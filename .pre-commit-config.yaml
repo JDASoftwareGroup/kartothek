@@ -1,0 +1,21 @@
+repos:
+  - repo: https://github.com/ambv/black
+    rev: 18.9b0
+    hooks:
+      - id: black
+        args: [--safe]
+        python_version: python3.6
+
+  - repo: git://github.com/pre-commit/pre-commit-hooks
+    rev: v2.0.0
+    hooks:
+    -   id: flake8
+        rev: 3.6.0
+        python_version: python3.6
+
+  - repo: git://github.com/pre-commit/mirrors-isort
+    rev: v4.3.4
+    hooks:
+    -   id: isort
+        verbose: true
+        python_version: python3.6

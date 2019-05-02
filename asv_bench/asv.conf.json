@@ -1,0 +1,11 @@
+{
+    "version": 1,
+    "project": "kartothek",
+    
+    "project_url": "https://code.blue-yonder.org/projects/DP/repos/raq/browse/data-engineering/kartothek",
+    "repo": ".",
+    "environment_type": "virtualenv",
+    "env_dir": ".asv/env",
+    "results_dir": ".asv/results",
+    "html_dir": ".asv/html",
+}

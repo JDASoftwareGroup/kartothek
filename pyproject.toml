@@ -1,0 +1,13 @@
+[build-system]
+requires = ['setuptools', 'setuptools-scm', 'six', 'wheel']
+
+[tool.black]
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.venv
+  | build
+  | dist
+)/
+'''

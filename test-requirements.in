@@ -1,0 +1,15 @@
+cloudpickle
+dill
+distributed
+
+hypothesis
+pytest
+pytest-cov
+pytest-flake8
+pytest-mock
+setuptools-scm
+
+# Dependencies for the documentation
+sphinx
+sphinx_rtd_theme
+IPython

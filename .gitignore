@@ -1,0 +1,21 @@
+*.egg-info/
+*.pyc
+.coverage*
+.eggs/
+.hypothesis/
+.pytest_cache/
+
+flake8_report.txt
+junit.xml
+requirements-pinned.txt
+requirements.txt
+test-requirements-pinned.txt
+
+__pycache__/
+coverage.xml
+htmlcov/
+docs/_build
+
+# dask.distributed tests
+dask-worker-space/
+_test_worker-*
