@@ -2,7 +2,7 @@
     "version": 1,
     "project": "kartothek",
     
-    "project_url": "https://code.blue-yonder.org/projects/DP/repos/raq/browse/data-engineering/kartothek",
+    "project_url": "https://github.com/JDASoftwareGroup/kartothek",
     "repo": ".",
     "environment_type": "virtualenv",
     "env_dir": ".asv/env",
