@@ -9,5 +9,8 @@ install:
   - pip install --upgrade pytest
   - pip install --no-deps .
 
+before_script:
+  - pip freeze
+
 script:
   - pytest
