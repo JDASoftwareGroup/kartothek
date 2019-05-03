@@ -61,7 +61,7 @@ def test_pyarrow_07992(store):
     pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
-def test_scd_4440(store):
+def test_index_metadata(store):
     key = "test.parquet"
     df = pd.DataFrame({"a": [1]})
     table = pa.Table.from_pandas(df)

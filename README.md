@@ -1,7 +1,7 @@
 kartothek
 =========
 
-[![Build Status](https://travis-ci.org/fjetter/kartothek.svg?branch=master)](https://travis-ci.org/fjetter/kartothek)
+[![Build Status](https://travis-ci.org/JDASoftwareGroup/kartothek.svg?branch=master)](https://travis-ci.org/JDASoftwareGroup/kartothek)
 [![Documentation Status](https://readthedocs.org/projects/kartothek/badge/?version=latest)](https://kartothek.readthedocs.io/en/latest/?badge=latest)
 
 Datasets are a collection of files with the same schema that reside in

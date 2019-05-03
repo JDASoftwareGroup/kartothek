@@ -510,7 +510,7 @@ def test_store_dataframes_partition_on(store_factory, bound_store_dataframes):
         OrderedDict([("location", ["0", "1", "2"]), ("other", ["a", "a", "a"])])
     )
 
-    # SCD-4413: First partition is empty, test this edgecase
+    # First partition is empty, test this edgecase
     input_ = [
         {
             "label": "label",
