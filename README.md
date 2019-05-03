@@ -3,8 +3,8 @@ kartothek
 =========
 
 Datasets are a collection of files with the same schema that reside in
-a storage. ``kartothek`` offers a metadata definition to handle these datasets
-efficiently. In addition, the :mod:`kartothek.io` module provides building
+a storage. `kartothek` offers a metadata definition to handle these datasets
+efficiently. In addition, the `kartothek.io` module provides building
 blocks to create and modify these datasets. Handling of I/O, tracking of
 dataset partitions and selecting subsets of data are handled transparently.
 
