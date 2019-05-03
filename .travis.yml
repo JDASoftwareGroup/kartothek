@@ -1,0 +1,13 @@
+language: python
+
+python:
+  - 3.6
+
+install:
+  - pip install --upgrade -r requirements.in
+  - pip install --upgrade -r test-requirements.in
+  - pip install --upgrade pytest
+  - pip install --no-deps .
+
+script:
+  - pytest
