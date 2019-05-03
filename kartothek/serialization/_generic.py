@@ -166,7 +166,6 @@ def check_predicates(predicates):
                 ):
                     raise NotImplementedError(
                         "Null-terminated binary strings are not supported as predicate values."
-                        " See https://issues.blue-yonder.org/browse/SCD-4566"
                     )
 
 
