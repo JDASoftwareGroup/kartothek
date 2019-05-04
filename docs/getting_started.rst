@@ -74,7 +74,7 @@ that all have the same schema. These files are called ``partitions`` in
 
 As we neither have explicitly defined the name of the table nor the name
 of the created partition, ``kartothek`` has used the default table name
-``core`` and used a generated UUID for the partition name.
+``table`` and used a generated UUID for the partition name.
 
 .. ipython:: python
 
