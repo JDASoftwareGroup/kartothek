@@ -3,11 +3,15 @@ language: python
 python:
   - 3.6
 
+before_install:
+  - pip install --upgrade pip-tools
+  - ./compile_requirements.sh
+  - python setup.py bdist_wheel
+
 install:
-  - pip install --upgrade -r requirements.in
-  - pip install --upgrade -r test-requirements.in
+  - pip install --upgrade -r test-requirements-pinned.txt
   - pip install --upgrade pytest
-  - pip install --no-deps .
+  - pip install --no-deps dist/*
 
 before_script:
   - pip freeze
