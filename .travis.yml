@@ -23,6 +23,7 @@ install:
 
 before_script:
   - pip freeze
+  - ci/check_format.sh
 
 script:
   - pytest
