@@ -3,6 +3,10 @@ language: python
 python:
   - 3.6
 
+env:
+  - KARTOTHEK_ARROW_VERSION=0.12.1
+  - KARTOTHEK_ARROW_VERSION=0.13.0
+
 before_install:
   - pip install --upgrade pip-tools
   - ./compile_requirements.sh
