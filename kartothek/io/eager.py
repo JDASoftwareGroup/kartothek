@@ -24,6 +24,7 @@ from kartothek.io_components.delete import (
     delete_top_level_metadata,
 )
 from kartothek.io_components.docs import default_docs
+from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
 from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,
@@ -612,3 +613,24 @@ def write_single_partition(
         store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
     )
     return mp
+
+
+@default_docs
+def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
+    """
+    Remove auxiliary files that are no longer tracked by the dataset.
+
+    These files include indices that are no longer referenced by the metadata
+    as well as files in the directories of the tables that are no longer
+    referenced. The latter is only applied to static datasets.
+
+    Parameters
+    ----------
+    """
+    nested_files = dispatch_files_to_gc(
+        dataset_uuid=dataset_uuid, store_factory=store, chunk_size=None, factory=factory
+    )
+
+    # Given that `nested_files` is a generator with a single element, just
+    # return the output of `delete_files` on that element.
+    return delete_files(next(nested_files), store_factory=store)
