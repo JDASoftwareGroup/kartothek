@@ -18,12 +18,14 @@ from kartothek.core.naming import (
     get_partition_file_prefix,
 )
 from kartothek.core.uuid import gen_uuid
+from kartothek.io.iter import read_dataset_as_metapartitions__iterator
 from kartothek.io_components.delete import (
     delete_common_metadata,
     delete_indices,
     delete_top_level_metadata,
 )
 from kartothek.io_components.docs import default_docs
+from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
 from kartothek.io_components.metapartition import (
     MetaPartition,
@@ -613,6 +615,37 @@ def write_single_partition(
         store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
     )
     return mp
+
+
+@default_docs
+def build_dataset_indices(
+    store, dataset_uuid, columns, output_blocksize=0, factory=None
+):
+    """
+    Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
+
+    This function loads the dataset, computes the requested indices and writes
+    the indices to the dataset. The dataset partitions itself are not mutated.
+
+    Parameters
+    ----------
+    """
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
+    )
+
+    new_partitions = []
+    for mp in read_dataset_as_metapartitions__iterator(factory=ds_factory):
+        mp = mp.build_indices(columns=columns)
+        mp = mp.remove_dataframes()  # Remove dataframe from memory
+        new_partitions.append(mp)
+
+    return update_indices_from_partitions(
+        new_partitions, dataset_metadata_factory=ds_factory
+    )
 
 
 @default_docs
