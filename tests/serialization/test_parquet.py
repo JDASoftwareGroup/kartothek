@@ -1,6 +1,5 @@
 import os
 from datetime import date, datetime
-from distutils.version import LooseVersion
 
 import numpy as np
 import pandas as pd
@@ -13,10 +12,9 @@ import six
 import storefact
 from pyarrow.parquet import ParquetFile
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 from kartothek.serialization._util import _check_contains_null
-
-ARROW_LARGER_EQ_0130 = LooseVersion(pa.__version__) >= "0.13.0"
 
 
 @pytest.fixture
@@ -61,7 +59,7 @@ def test_pyarrow_07992(store):
     pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
-def test_scd_4440(store):
+def test_index_metadata(store):
     key = "test.parquet"
     df = pd.DataFrame({"a": [1]})
     table = pa.Table.from_pandas(df)
@@ -326,9 +324,7 @@ def test_pushdown_binaries(store, dataframe_not_nested, binary_value, chunk_size
     assert df_restored.iloc[0].bytes == binary_value
 
 
-@pytest.mark.xfail(
-    reason="Requires parquet-cpp 1.5.0."
-)
+@pytest.mark.xfail(reason="Requires parquet-cpp 1.5.0.")
 def test_pushdown_null_itermediate(store):
     binary = b"\x8f\xb6\xe5@\x90\xdc\x11\xe8\x00\xae\x02B\xac\x12\x01\x06"
     df = pd.DataFrame({"byte_with_null": [binary]})

@@ -1,0 +1,41 @@
+language: python
+
+# needed for python>=3.7
+dist: xenial
+
+python:
+  - 3.6
+  - 3.7
+
+env:
+  - KARTOTHEK_ARROW_VERSION=0.12.1
+  - KARTOTHEK_ARROW_VERSION=0.13.0
+
+before_install:
+  - pip install --upgrade pip
+  - pip install pip-tools
+  - ./compile_requirements.sh
+  - python setup.py bdist_wheel
+
+install:
+  - pip install -r test-requirements-pinned.txt
+  - pip install --no-deps dist/*
+
+# If docs break or formatting, linting is off, I'd like to know immediately
+before_script:
+  - pip freeze
+  - pip install pre-commit && pre-commit run -a
+  - python setup.py docs
+
+script:
+  - pytest
+
+deploy:
+  provider: pypi
+  user: fjetter
+  password:
+    secure: akyeNjwXBsalgbqtPJkcEVaUzjXCvc78UZavjF3e8MuPefoGLzGnPdjh1vf/HX1msERem3WxKrzyqfmp7AMypXnzA5QuiZD81Zp55ypXmULBfm2zAkWCwdiej4mCAEBeOWrIihFPM7zBUNFKBG4/FzRYAlA1BJR7jSlHe4wZpWrfZ4hwTEbwH6J87YgDtiA7D9MCxewct5lecUMuLNVvaSRxt2rH1U6JyaExAtSJdMZhVqh8KNKfumxSoHrewDId6n2ITUKrks/TV4Ygm22+bIZ9dvpDcYpQq3Y+P56mTrHs6Eam1EHOxF11U/Vt4CLPuTr5eFMbRzEOnP+i+KbrIS6onWdLGQB98gtVrnIYYLwr+kLBowkVayyZTysw9FZO6niF0FaX+gw0XYhiqBX2pJPWcQDHHmfnRYrtFsofwgTFs5ux+cOhCiOC+PwPnfuUWzeiGgLrg5VQB5Gz2Hw2NRdUxd7l5zBTWyJqreKFCIGu+PEPY2abZeA1DKgdqd67nVm++d9PDDgufqRkooG4Y8UOr+7CIkV04nPtvIo4FpOI85D4DDBE3wWU8x2eEYQETH0kwNQkITmwaThsqW1ZVzqRi3dcFt1RX6gCMnziE/lcfw7vT2L7BgVbihF/KR7FDxi+6/9c7BYAEaUbsQbunpaIH5QdRN5xLJbWIgt4KD8=
+  on:
+    tags: true
+  distributions: "sdist bdist_wheel"
+  skip_existing: true

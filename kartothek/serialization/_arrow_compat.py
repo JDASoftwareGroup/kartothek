@@ -1,11 +1,7 @@
 import json
-from distutils.version import LooseVersion
 
-import pyarrow as pa
-
+from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.core.common_metadata import SchemaWrapper
-
-ARROW_LARGER_EQ_0130 = LooseVersion(pa.__version__) >= "0.13.0"
 
 
 def _fix_pyarrow_0130_table(table):
@@ -33,7 +29,7 @@ def _fix_pyarrow_07992_table(table):
         if (pandas_metadata["index_columns"] == ["__index_level_0__"]) and not (
             "__index_level_0__" in column_names
         ):
-            # SCD-4440: really old files are missing index information
+            # really old files are missing index information
             has_changed = True
             if ARROW_LARGER_EQ_0130:
                 pandas_type = "int64"
