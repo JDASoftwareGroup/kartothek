@@ -12,13 +12,13 @@ env:
   - KARTOTHEK_ARROW_VERSION=0.13.0
 
 before_install:
-  - pip install --upgrade pip-tools
+  - pip install --upgrade pip
+  - pip install pip-tools
   - ./compile_requirements.sh
   - python setup.py bdist_wheel
 
 install:
-  - pip install --upgrade -r test-requirements-pinned.txt
-  - pip install --upgrade pytest
+  - pip install -r test-requirements-pinned.txt
   - pip install --no-deps dist/*
 
 # If docs break or formatting, linting is off, I'd like to know immediately
@@ -29,7 +29,3 @@ before_script:
 
 script:
   - pytest
-
-matrix:
-  allow_failures:
-  - python: 3.7
