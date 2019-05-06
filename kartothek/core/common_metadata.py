@@ -5,7 +5,6 @@ import difflib
 import logging
 import pprint
 from copy import deepcopy
-from distutils.version import LooseVersion
 
 import pandas as pd
 import pyarrow as pa
@@ -16,9 +15,9 @@ import six
 from kartothek.core import naming
 from kartothek.core._compat import load_json
 
-_logger = logging.getLogger()
+from ._compat import ARROW_LARGER_EQ_0130
 
-ARROW_LARGER_EQ_0130 = LooseVersion(pa.__version__) >= "0.13.0"
+_logger = logging.getLogger()
 
 
 class SchemaWrapper(object):

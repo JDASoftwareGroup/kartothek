@@ -1,11 +1,7 @@
 import json
-from distutils.version import LooseVersion
 
-import pyarrow as pa
-
+from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.core.common_metadata import SchemaWrapper
-
-ARROW_LARGER_EQ_0130 = LooseVersion(pa.__version__) >= "0.13.0"
 
 
 def _fix_pyarrow_0130_table(table):

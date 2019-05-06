@@ -14,8 +14,8 @@ import pyarrow.parquet as pq
 import six
 from pyarrow.parquet import ParquetFile
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.serialization._arrow_compat import (
-    ARROW_LARGER_EQ_0130,
     _fix_pyarrow_0130_table,
     _fix_pyarrow_07992_table,
 )

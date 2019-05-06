@@ -13,8 +13,8 @@ import pytest
 import simplejson
 from dask.dataframe.utils import make_meta as dask_make_meta
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.core.common_metadata import (
-    ARROW_LARGER_EQ_0130,
     SchemaWrapper,
     _diff_schemas,
     _get_common_metadata_key,

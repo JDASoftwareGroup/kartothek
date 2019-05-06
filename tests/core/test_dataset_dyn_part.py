@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-
 import os
 import random
 import tempfile
@@ -13,6 +12,7 @@ import storefact
 from six.moves import xrange
 from six.moves.urllib.parse import quote
 
+from kartothek.core._compat import DASK_LARGER_EQ_121
 from kartothek.core.common_metadata import (
     _get_common_metadata_key,
     make_meta,

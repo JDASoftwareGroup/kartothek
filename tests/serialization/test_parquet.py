@@ -1,6 +1,5 @@
 import os
 from datetime import date, datetime
-from distutils.version import LooseVersion
 
 import numpy as np
 import pandas as pd
@@ -13,10 +12,9 @@ import six
 import storefact
 from pyarrow.parquet import ParquetFile
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 from kartothek.serialization._util import _check_contains_null
-
-ARROW_LARGER_EQ_0130 = LooseVersion(pa.__version__) >= "0.13.0"
 
 
 @pytest.fixture
