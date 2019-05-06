@@ -1,7 +1,11 @@
 language: python
 
+# needed for python>=3.7
+dist: xenial
+
 python:
   - 3.6
+  - 3.7
 
 env:
   - KARTOTHEK_ARROW_VERSION=0.12.1
@@ -22,3 +26,7 @@ before_script:
 
 script:
   - pytest
+
+matrix:
+  allow_failures:
+  - python: 3.7
