@@ -23,7 +23,9 @@ install:
 
 before_script:
   - pip freeze
+  # If docs break or formatting, linting is off, I'd like to know immediately
   - ci/check_format.sh
+  - python setup.py docs
 
 script:
   - pytest
