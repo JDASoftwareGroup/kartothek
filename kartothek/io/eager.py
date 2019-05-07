@@ -652,7 +652,7 @@ def update_dataset_from_dataframes(
 
     Returns
     -------
-    The dataset metadata object (:class:`~kartothek.dataset.DatasetMetadata`).
+    The dataset metadata object (:class:`~kartothek.core.dataset.DatasetMetadata`).
     """
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,

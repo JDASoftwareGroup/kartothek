@@ -198,7 +198,7 @@ def update_dataset_from_dataframes__iter(
 
     Returns
     -------
-    The dataset metadata object (`kartothek.dataset.DatasetMetadata`).
+    The dataset metadata object (:class:`~kartothek.core.dataset.DatasetMetadata`).
     """
 
     ds_factory, metadata_version, partition_on = validate_partition_keys(
