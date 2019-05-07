@@ -65,7 +65,7 @@ other files belonging to the dataset must be referenced by this file.
 
 A storage location can be one of:
 
- * An OBST bucket incl. all of its keys
+ * An object store bucket incl. all of its keys (S3, ABS, GCS, etc.)
  * A directory on a filesystem incl. all files in subdirectories
 
 .. warning::
