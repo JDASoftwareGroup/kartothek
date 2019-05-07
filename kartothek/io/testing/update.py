@@ -62,12 +62,12 @@ def test_update_dataset_with_partitions__reducer(
 
     # First check the index. if they are as expected, use them to determine label name
 
-    exp_idx_values = [1, 2]
+    exp_idx_values = {1, 2}
     ind = dataset.indices["p"]
     ind_updated = dataset_updated.indices["p"]
-    assert list(ind.index_dct.keys()) == exp_idx_values
-    exp_updated_idx_values = [2, 3]
-    assert list(ind_updated.index_dct.keys()) == exp_updated_idx_values
+    assert set(ind.index_dct.keys()) == exp_idx_values
+    exp_updated_idx_values = {2, 3}
+    assert set(ind_updated.index_dct.keys()) == exp_updated_idx_values
 
     assert ind_updated.index_dct[2] == ind.index_dct[2]
     assert ind.index_dct[1] != ind_updated.index_dct[3]
