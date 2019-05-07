@@ -440,6 +440,7 @@ def _maybe_infer_files_attribute(metapartition, dataset_uuid):
     return new_mp
 
 
+@default_docs
 @normalize_args
 def store_dataframes_as_dataset(
     store,
