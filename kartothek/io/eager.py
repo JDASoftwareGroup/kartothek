@@ -665,9 +665,7 @@ def update_dataset_from_dataframes(
 
     secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
 
-    mp = parse_input_to_metapartition(
-        df_list, metadata_version=default_metadata_version
-    )
+    mp = parse_input_to_metapartition(df_list, metadata_version=metadata_version)
 
     if sort_partitions_by:
         mp = mp.apply(partial(sort_values_categorical, column=sort_partitions_by))

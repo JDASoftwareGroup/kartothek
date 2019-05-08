@@ -219,7 +219,7 @@ def update_dataset_from_dataframes__iter(
 
     new_partitions = []
     for df in df_generator:
-        mp = parse_input_to_metapartition(df, metadata_version=default_metadata_version)
+        mp = parse_input_to_metapartition(df, metadata_version=metadata_version)
 
         if sort_partitions_by:
             mp = mp.apply(sort_partitions_by_fn)
