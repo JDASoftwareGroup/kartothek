@@ -1,7 +1,9 @@
+# Test Code Dependencies
 cloudpickle
 dill
 distributed
 
+# Test Framework
 hypothesis
 pytest
 pytest-cov
@@ -9,7 +11,16 @@ pytest-flake8
 pytest-mock
 setuptools-scm
 
-# Dependencies for the documentation
+# Benchmarks
+asv
+
+# Documentation
 sphinx
 sphinx_rtd_theme
 IPython
+
+# Formatting / Checking
+black[d]==18.9b0
+flake8-mutable==1.2.0
+flake8==3.6.0
+isort==4.3.4

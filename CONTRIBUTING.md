@@ -14,7 +14,7 @@ If you've found a bug, please report it to the issue tracker and
 
 To get started, set up a new virtual environment and install all requirements
 
-```
+```bash
 virtualenv kartothek-dev --python=python3.6
 source kartothek-dev/bin/activate
 pip install -e .
@@ -28,7 +28,7 @@ We're using [pytest](https://pytest.org) as a testing framework and make heavy u
 
 To run the tests simply run
 
-```
+```bash
 pytest
 ```
 
@@ -38,13 +38,12 @@ For performance critical code paths we have [asv](https://pre-commit.com) benchm
 the subfolder `asv_bench`.
 To run the benchmarks a single time and receive immediate feedback run
 
-```
-pip install asv
+```bash
 asv run --python=same --show-stderr
 ```
 
 #### Building documentation
-```
+```bash
 python setup.py docs
 ```
 
@@ -60,7 +59,6 @@ instructions on the [pre-commit](https://pre-commit.com) homepage.
 If you prefer to perform manual formatting and linting, you can install and run the necessary
 tools like this
 
-```
-pip install black[d]==18.9b0 flake8==3.6.0 flake8-mutable==1.2.0 isort==4.3.4
+```bash
 ./ci/format_code.sh
 ```
