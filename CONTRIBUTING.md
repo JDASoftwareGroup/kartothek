@@ -60,5 +60,5 @@ If you prefer to perform manual formatting and linting, you can install and run 
 tools like this
 
 ```bash
-./ci/format_code.sh
+./format_code.sh
 ```
