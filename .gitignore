@@ -11,6 +11,8 @@ requirements-pinned.txt
 requirements.txt
 test-requirements-pinned.txt
 
+.asv
+
 __pycache__/
 coverage.xml
 htmlcov/

@@ -28,7 +28,7 @@ class TimeMetaPartition(AsvBenchmarkConfig):
         df = pd.DataFrame(
             {"primary_key": pd.Series(dtype[1], index=range(num_rows), dtype=dtype[0])}
         )
-        self.schema = make_meta(df, ["primary_key"])
+        self.schema = make_meta(df, partition_keys=["primary_key"], origin="df")
         self.df = df.drop("primary_key", axis=1)
         self.mp = MetaPartition(
             label="primary_key={}/base_label".format(dtype[0]),

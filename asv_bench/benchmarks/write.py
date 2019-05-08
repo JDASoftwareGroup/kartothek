@@ -20,7 +20,7 @@ from .config import AsvBenchmarkConfig
 def generate_mp(dataset_metadata=None):
     return MetaPartition(
         label=uuid.uuid4().hex,
-        table_meta={"table": make_meta(get_dataframe_alltypes())},
+        table_meta={"table": make_meta(get_dataframe_alltypes(), origin="alltypes")},
         files={"table": "fakefile"},
         dataset_metadata=dataset_metadata,
     )
