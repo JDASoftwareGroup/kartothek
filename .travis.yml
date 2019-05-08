@@ -30,6 +30,10 @@ before_script:
 script:
   - pytest
 
+after_success:
+  - pip install codecov
+  - codecov
+
 deploy:
   provider: pypi
   user: fjetter

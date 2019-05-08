@@ -3,6 +3,7 @@ kartothek
 
 [![Build Status](https://travis-ci.org/JDASoftwareGroup/kartothek.svg?branch=master)](https://travis-ci.org/JDASoftwareGroup/kartothek)
 [![Documentation Status](https://readthedocs.org/projects/kartothek/badge/?version=latest)](https://kartothek.readthedocs.io/en/latest/?badge=latest)
+[![codecov.io](https://codecov.io/github/JDASoftwareGroup/kartothek/coverage.svg?branch=master)](https://codecov.io/github/JDASoftwareGroup/kartothek)
 
 Datasets are a collection of files with the same schema that reside in
 a storage. `kartothek` offers a metadata definition to handle these datasets
