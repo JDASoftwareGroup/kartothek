@@ -3,7 +3,8 @@
 This is a helper module to simplify code documentation
 """
 
-import funcsigs
+import inspect
+
 from six.moves import cStringIO as StringIO
 
 _PARAMETER_MAPPING = {
@@ -140,7 +141,7 @@ def default_docs(func):
     """
     docs = func.__doc__
     new_docs = ""
-    signature = funcsigs.signature(func)
+    signature = inspect.signature(func)
 
     try:
         buf = StringIO(docs)
