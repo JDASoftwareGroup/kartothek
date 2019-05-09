@@ -455,7 +455,7 @@ def test_index_normalize_value(dtype, value, expected):
     index = ExplicitSecondaryIndex(
         column="col", dtype=dtype, index_storage_key="dataset_uuid/some_index.parquet"
     )
-    actual = index._normalize_value(value)
+    actual = index.normalize_value(index.dtype, value)
     assert actual == expected
     assert type(actual) == type(expected)
 

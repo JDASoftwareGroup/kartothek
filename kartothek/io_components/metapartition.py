@@ -25,7 +25,7 @@ from kartothek.core.common_metadata import (
     validate_compatible,
     validate_shared_columns,
 )
-from kartothek.core.index import ExplicitSecondaryIndex
+from kartothek.core.index import ExplicitSecondaryIndex, IndexBase
 from kartothek.core.index import merge_indices as merge_indices_algo
 from kartothek.core.naming import get_partition_file_prefix
 from kartothek.core.partition import Partition
@@ -542,13 +542,9 @@ class MetaPartition(Iterable):
         index_df_dct = {}
         for column, value in indices:
             pa_dtype = schema[schema.get_field_index(column)].type
-            if pa.types.is_date(pa_dtype):
-                index_df_dct[column] = pd.Series(
-                    pd.to_datetime([value], infer_datetime_format=True)
-                ).dt.date
-            else:
-                dtype = pa_dtype.to_pandas_dtype()
-                index_df_dct[column] = pd.Series([value], dtype=dtype)
+            value = IndexBase.normalize_value(pa_dtype, value)
+            dtype = pa_dtype.to_pandas_dtype()
+            index_df_dct[column] = pd.Series([value], dtype=dtype)
         index_df = pd.DataFrame(index_df_dct)
 
         filtered_predicates = []
