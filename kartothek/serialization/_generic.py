@@ -239,6 +239,12 @@ def filter_array_like(
     elif is_list_like(value) and len(value) and isinstance(value[0], date_type_to_cast):
         value = [pd.Timestamp(val).to_datetime64() for val in value]
 
+    # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
+    if np.issubdtype(array_like.dtype, np.floating) and np.isnan(array_like).all():
+        value_dtype = np.array([value]).dtype
+        if array_like.dtype.kind != value_dtype.kind:
+            array_like = array_like.astype(value_dtype)
+
     with np.errstate(invalid="ignore"):
         if op == "==":
             np.logical_and(array_like == value, mask, out=out)
