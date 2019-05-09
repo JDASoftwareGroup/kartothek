@@ -43,12 +43,14 @@ LOGGER = logging.getLogger(__name__)
 
 SINGLE_TABLE = "table"
 
+_Literal = namedtuple("_Literal", ["column", "op", "value"])
+_SplitPredicate = namedtuple("_SplitPredicate", ["key_part", "content_part"])
+
 
 def _predicates_to_named(predicates):
     if predicates is None:
         return None
-    Literal = namedtuple("Literal", ["column", "op", "value"])
-    return [[Literal(*x) for x in conjunction] for conjunction in predicates]
+    return [[_Literal(*x) for x in conjunction] for conjunction in predicates]
 
 
 def _initialize_store_for_metapartition(method, method_args, method_kwargs):
@@ -516,7 +518,6 @@ class MetaPartition(Iterable):
         # Predicates are split in this function into the parts that apply to
         # the partition key columns `key_part` and the parts that apply to the
         # contents of the file `content_part`.
-        SplitPredicate = namedtuple("SplitPredicate", ["key_part", "content_part"])
         split_predicates = []
         has_index_condition = False
         for conjunction in predicates:
@@ -528,7 +529,7 @@ class MetaPartition(Iterable):
                     key_part.append(literal)
                 else:
                     content_part.append(literal)
-            split_predicates.append(SplitPredicate(key_part, content_part))
+            split_predicates.append(_SplitPredicate(key_part, content_part))
         return split_predicates, has_index_condition
 
     def _apply_partition_key_predicates(self, table, indices, split_predicates):
