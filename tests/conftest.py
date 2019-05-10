@@ -19,7 +19,11 @@ from kartothek.core.testing import (
     get_dataframe_alltypes,
     get_dataframe_not_nested,
 )
-from kartothek.io_components.metapartition import MetaPartition
+from kartothek.io_components.metapartition import (
+    MetaPartition,
+    gen_uuid,
+    parse_input_to_metapartition,
+)
 from kartothek.io_components.write import store_dataset_from_partitions
 from kartothek.serialization import ParquetSerializer
 
@@ -95,6 +99,44 @@ def mock_uuid(mocker):
     uuid = mocker.patch("kartothek.core.uuid._uuid_hook_str")
     uuid.return_value = "auto_dataset_uuid"
     return uuid
+
+
+@pytest.fixture
+def mock_default_metadata_version(mocker, backend_identifier):
+    mock_metadata_version = 1
+
+    # Mock `kartothek.core.utils.verify_metadata_version`
+    def patched__verify_metadata_version(metadata_version):
+        pass
+
+    mocker.patch(
+        "kartothek.core.utils._verify_metadata_version",
+        patched__verify_metadata_version,
+    )
+
+    # Mock `kartothek.io_components.metapartition.parse_input_to_metapartition`
+    def patched__parse_input_to_metapartition(obj, metadata_version=None):
+        if metadata_version == mock_metadata_version:
+            table, data = obj  # Tuple
+            return MetaPartition(
+                label=gen_uuid(), data={table: data}, metadata_version=metadata_version
+            )
+        try:
+            return parse_input_to_metapartition(obj, metadata_version)
+        except ValueError as e:
+            # Raise a "custom" error to distinguish this error from the error raised
+            # by `parse_input_to_metapartition` when the object has not previously
+            # passed through this mock function
+            raise AssertionError("Traversed through mock. Original error: {}".format(e))
+
+    mocker.patch(
+        "kartothek.io.{backend_identifier}.parse_input_to_metapartition".format(
+            backend_identifier=backend_identifier
+        ),
+        patched__parse_input_to_metapartition,
+    )
+
+    return mock_metadata_version
 
 
 @pytest.fixture(params=[4], scope="session")

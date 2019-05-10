@@ -11,8 +11,12 @@ import six
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex
+from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.core.testing import TIME_TO_FREEZE_ISO
-from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io.eager import (
+    read_dataset_as_metapartitions,
+    store_dataframes_as_dataset,
+)
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
 
 
@@ -527,3 +531,64 @@ def test_sort_partitions_by(
     ):
         for _, df in six.iteritems(label_df_tupl):
             assert (df.TARGET == sorted(df.TARGET)).all()
+
+
+def test_metadata_version(
+    store_factory,
+    bound_update_dataset,
+    mock_default_metadata_version,
+    backend_identifier,
+):
+    if backend_identifier in ("dask.dataframe", "dask.delayed"):
+        pytest.skip()  # TODO: fix `io.dask.*.test_update._update_dataset`
+
+    dataset_uuid = "dataset_uuid"
+    partitions = [
+        {"label": "cluster_1", "data": [("core", pd.DataFrame({"p": [1, 2]}))]},
+        {"label": "cluster_2", "data": [("core", pd.DataFrame({"p": [2, 3]}))]},
+    ]
+
+    dataset = store_dataframes_as_dataset(
+        dfs=partitions,
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        metadata_version=DEFAULT_METADATA_VERSION,
+    )
+
+    with pytest.raises(AssertionError, match="Traversed through mock"):
+        # Try to commit data to dataset using a different metadata version
+        # and different data format (format is mocked)
+        # This does not raise when the `parse_input_to_metapartition`
+        # argument is `default_metadata_version` instead of `metadata_version`
+        new_partitions = ("core", pd.DataFrame({"p": [2, 3]}))
+        bound_update_dataset(
+            new_partitions,
+            store=store_factory,
+            dataset_uuid=dataset_uuid,
+            default_metadata_version=mock_default_metadata_version,
+        )
+
+    mps = read_dataset_as_metapartitions(store=store_factory, dataset_uuid=dataset_uuid)
+    assert len(mps) == len(dataset.partitions)
+
+
+def test_raises_on_invalid_input(store_factory, bound_update_dataset):
+    dataset_uuid = "dataset_uuid"
+    partitions = [
+        {"label": "cluster_1", "data": [("core", pd.DataFrame({"p": [1, 2]}))]},
+        {"label": "cluster_2", "data": [("core", pd.DataFrame({"p": [2, 3]}))]},
+    ]
+
+    dataset = store_dataframes_as_dataset(
+        dfs=partitions, store=store_factory, dataset_uuid=dataset_uuid
+    )
+
+    with pytest.raises(Exception):
+        new_partitions = [({"stuff"}, [("something", {1, 2, 3})])]  # invalid format
+        bound_update_dataset(
+            new_partitions, store=store_factory, dataset_uuid=dataset_uuid
+        )
+
+    # Check no new partitions have been written to storage
+    mps = read_dataset_as_metapartitions(store=store_factory, dataset_uuid=dataset_uuid)
+    assert len(mps) == len(dataset.partitions)
