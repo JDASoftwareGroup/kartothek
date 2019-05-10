@@ -25,7 +25,7 @@ from kartothek.core.common_metadata import (
     validate_compatible,
     validate_shared_columns,
 )
-from kartothek.core.index import ExplicitSecondaryIndex
+from kartothek.core.index import ExplicitSecondaryIndex, IndexBase
 from kartothek.core.index import merge_indices as merge_indices_algo
 from kartothek.core.naming import get_partition_file_prefix
 from kartothek.core.partition import Partition
@@ -43,12 +43,14 @@ LOGGER = logging.getLogger(__name__)
 
 SINGLE_TABLE = "table"
 
+_Literal = namedtuple("_Literal", ["column", "op", "value"])
+_SplitPredicate = namedtuple("_SplitPredicate", ["key_part", "content_part"])
+
 
 def _predicates_to_named(predicates):
     if predicates is None:
         return None
-    Literal = namedtuple("Literal", ["column", "op", "value"])
-    return [[Literal(*x) for x in conjunction] for conjunction in predicates]
+    return [[_Literal(*x) for x in conjunction] for conjunction in predicates]
 
 
 def _initialize_store_for_metapartition(method, method_args, method_kwargs):
@@ -516,7 +518,6 @@ class MetaPartition(Iterable):
         # Predicates are split in this function into the parts that apply to
         # the partition key columns `key_part` and the parts that apply to the
         # contents of the file `content_part`.
-        SplitPredicate = namedtuple("SplitPredicate", ["key_part", "content_part"])
         split_predicates = []
         has_index_condition = False
         for conjunction in predicates:
@@ -528,7 +529,7 @@ class MetaPartition(Iterable):
                     key_part.append(literal)
                 else:
                     content_part.append(literal)
-            split_predicates.append(SplitPredicate(key_part, content_part))
+            split_predicates.append(_SplitPredicate(key_part, content_part))
         return split_predicates, has_index_condition
 
     def _apply_partition_key_predicates(self, table, indices, split_predicates):
@@ -541,13 +542,9 @@ class MetaPartition(Iterable):
         index_df_dct = {}
         for column, value in indices:
             pa_dtype = schema[schema.get_field_index(column)].type
-            if pa.types.is_date(pa_dtype):
-                index_df_dct[column] = pd.Series(
-                    pd.to_datetime([value], infer_datetime_format=True)
-                ).dt.date
-            else:
-                dtype = pa_dtype.to_pandas_dtype()
-                index_df_dct[column] = pd.Series([value], dtype=dtype)
+            value = IndexBase.normalize_value(pa_dtype, value)
+            dtype = pa_dtype.to_pandas_dtype()
+            index_df_dct[column] = pd.Series([value], dtype=dtype)
         index_df = pd.DataFrame(index_df_dct)
 
         filtered_predicates = []

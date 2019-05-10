@@ -75,7 +75,7 @@ class IndexBase(CopyMixin):
                 self.index_dct = {}
                 n_collisions = 0
                 for value, partitions in six.iteritems(index_dct):
-                    value = self._normalize_value(value)
+                    value = IndexBase.normalize_value(self.dtype, value)
                     if value not in self.index_dct:
                         self.index_dct[value] = copy(partitions)
                     else:
@@ -113,7 +113,8 @@ class IndexBase(CopyMixin):
             class_=type(self).__name__, attrs=", ".join(repr_str)
         )
 
-    def _normalize_value(self, value):
+    @staticmethod
+    def normalize_value(dtype, value):
         """
         Normalize value according to index dtype.
 
@@ -121,6 +122,8 @@ class IndexBase(CopyMixin):
 
         Parameters
         ----------
+        dtype: pyarrow.Type
+            Arrow type of the index.
         value: Any
             any value
 
@@ -136,29 +139,29 @@ class IndexBase(CopyMixin):
         NotImplementedError
             If the dtype cannot be handled.
         """
-        if self.dtype is None:
+        if dtype is None:
             raise ValueError(
                 "Cannot normalize index values as long as dtype is not set"
             )
-        elif pa.types.is_string(self.dtype):
+        elif pa.types.is_string(dtype):
             if isinstance(value, six.binary_type):
                 return value.decode("utf-8")
             else:
                 return six.text_type(value)
-        elif pa.types.is_binary(self.dtype):
+        elif pa.types.is_binary(dtype):
             if isinstance(value, six.binary_type):
                 return value
             else:
                 return six.text_type(value).encode("utf-8")
-        elif pa.types.is_date(self.dtype):
+        elif pa.types.is_date(dtype):
             return pd.Timestamp(value).date()
-        elif pa.types.is_temporal(self.dtype):
+        elif pa.types.is_temporal(dtype):
             return pd.Timestamp(value).to_datetime64()
-        elif pa.types.is_integer(self.dtype):
+        elif pa.types.is_integer(dtype):
             return int(value)
-        elif pa.types.is_floating(self.dtype):
+        elif pa.types.is_floating(dtype):
             return float(value)
-        elif pa.types.is_boolean(self.dtype):
+        elif pa.types.is_boolean(dtype):
             if isinstance(value, six.string_types):
                 if value.lower() == "false":
                     return False
@@ -169,7 +172,7 @@ class IndexBase(CopyMixin):
             return bool(value)
         else:
             raise NotImplementedError(
-                "Cannot normalize index value for type {}".format(self.dtype)
+                "Cannot normalize index value for type {}".format(dtype)
             )
 
     @property
@@ -236,7 +239,7 @@ class IndexBase(CopyMixin):
                 "Index is external. To query an external index, the index ne to be preloaded."
             )
 
-        return self.index_dct.get(self._normalize_value(value), [])
+        return self.index_dct.get(IndexBase.normalize_value(self.dtype, value), [])
 
     def to_dict(self):
         """
@@ -351,7 +354,9 @@ class IndexBase(CopyMixin):
         inplace: bool, (default: False)
             If `True` the operation is performed inplace and will return the same object
         """
-        set_of_values = set(self._normalize_value(v) for v in list_of_values)
+        set_of_values = set(
+            IndexBase.normalize_value(self.dtype, v) for v in list_of_values
+        )
 
         if not set_of_values:
             return self

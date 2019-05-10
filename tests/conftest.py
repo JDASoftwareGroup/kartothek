@@ -5,6 +5,7 @@
 
 import datetime
 from collections import OrderedDict
+from functools import partial
 
 import pandas as pd
 import pytest
@@ -53,40 +54,40 @@ def df_serializer():
 
 
 @pytest.fixture(scope="session")
-def store_session(tmpdir_factory):
+def store_session_factory(tmpdir_factory):
     path = tmpdir_factory.mktemp("fsstore_test")
     path = path.realpath()
     url = "hfs://{}".format(path)
-    return storefact.get_store_from_url(url)
+    return partial(storefact.get_store_from_url, url)
 
 
 @pytest.fixture
-def store(tmpdir):
+def store_factory(tmpdir):
     path = tmpdir.join("store").strpath
     url = "hfs://{}".format(path)
-    return storefact.get_store_from_url(url)
+    return partial(storefact.get_store_from_url, url)
 
 
 @pytest.fixture
-def store2(tmpdir):
+def store_factory2(tmpdir):
     path = tmpdir.join("store2").strpath
     url = "hfs://{}".format(path)
-    return storefact.get_store_from_url(url)
+    return partial(storefact.get_store_from_url, url)
 
 
 @pytest.fixture(scope="session")
-def store_session_factory(store_session):
-    return lambda: store_session
+def store_session(store_session_factory):
+    return store_session_factory()
 
 
 @pytest.fixture
-def store_factory(store):
-    return lambda: store
+def store(store_factory):
+    return store_factory()
 
 
 @pytest.fixture
-def store_factory2(store2):
-    return lambda: store2
+def store2(store_factory2):
+    return store_factory2()
 
 
 @pytest.fixture
