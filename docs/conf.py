@@ -56,7 +56,7 @@ source_suffix = ".rst"
 master_doc = "index"
 
 # General information about the project.
-project = u"kartothek"
+project = "kartothek"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.

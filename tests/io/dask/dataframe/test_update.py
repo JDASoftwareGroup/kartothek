@@ -38,7 +38,7 @@ def _update_dataset(partitions, secondary_indices=None, *args, **kwargs):
         *args,
         table=table_name,
         secondary_indices=secondary_indices,
-        **kwargs
+        **kwargs,
     ).compute()
 
 

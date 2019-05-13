@@ -148,8 +148,8 @@ def _validate_predicate_pushdown(df, column, value, store, chunk_size):
     [
         (3, None),
         (3.0, TypeError),
-        (u"3", TypeError),
-        (u"3.0", TypeError),
+        ("3", TypeError),
+        ("3.0", TypeError),
         (b"3", TypeError),
         (b"3.0", TypeError),
     ],
@@ -175,8 +175,8 @@ def test_predicate_evaluation_integer(
     [
         (3, None),
         (3.0, TypeError),
-        (u"3", TypeError),
-        (u"3.0", TypeError),
+        ("3", TypeError),
+        ("3.0", TypeError),
         (b"3", TypeError),
         (b"3.0", TypeError),
     ],
@@ -202,8 +202,8 @@ def test_predicate_evaluation_unsigned_integer(
     [
         (3, TypeError),
         (3.0, None),
-        (u"3", TypeError),
-        (u"3.0", TypeError),
+        ("3", TypeError),
+        ("3.0", TypeError),
         (b"3", TypeError),
         (b"3.0", TypeError),
     ],
@@ -225,7 +225,7 @@ def test_predicate_evaluation_float(
 
 @pytest.mark.parametrize("column", _STR_TYPES)
 @pytest.mark.parametrize(
-    "input_values", [(3, TypeError), (3.0, TypeError), (u"3", None), (b"3", None)]
+    "input_values", [(3, TypeError), (3.0, TypeError), ("3", None), (b"3", None)]
 )
 def test_predicate_evaluation_string(
     store, dataframe_not_nested, column, input_values, chunk_size
@@ -248,13 +248,13 @@ def test_predicate_evaluation_string(
     [
         # it's the fifth due to the day % 31 in the testdata
         (date(2018, 1, 5), None),
-        (u"2018-01-05", None),
+        ("2018-01-05", None),
         (b"2018-01-05", None),
         (datetime(2018, 1, 1, 1, 1), TypeError),
         (3, TypeError),
         (3.0, TypeError),
-        (u"3", ValueError),
-        (u"3.0", ValueError),
+        ("3", ValueError),
+        ("3.0", ValueError),
         (b"3", ValueError),
         (b"3.0", ValueError),
     ],
@@ -286,7 +286,7 @@ def test_predicate_evaluation_date(
         (np.datetime64(datetime(2018, 1, 5), "us"), None),
         (np.datetime64(datetime(2018, 1, 5), "ns"), None),
         (date(2018, 1, 4), TypeError),
-        (u"2018-01-04", TypeError),
+        ("2018-01-04", TypeError),
         (b"2018-01-04", TypeError),
         (1, TypeError),
         (1.0, TypeError),

@@ -88,7 +88,7 @@ def test_dispatch_metapartitions_query_partition_on(
     )
     partitions = list(generator)
     assert len(partitions) == 1
-    assert partitions[0].label == u"P=2/cluster_2"
+    assert partitions[0].label == "P=2/cluster_2"
 
 
 @pytest.mark.min_metadata_version(4)

@@ -257,7 +257,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -271,7 +271,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -283,7 +283,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -295,7 +295,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -307,7 +307,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -319,7 +319,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -331,7 +331,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -343,7 +343,7 @@ def test_predicate_pushdown(
         key,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
-        **read_kwargs
+        **read_kwargs,
     )
     assert_frame_almost_equal(result, expected)
 
@@ -355,7 +355,7 @@ def test_predicate_pushdown(
             key,
             predicate_pushdown_to_io=predicate_pushdown_to_io,
             predicates=predicates,
-            **read_kwargs
+            **read_kwargs,
         )
     assert str(exc.value) == "Malformed predicates"
 
@@ -367,7 +367,7 @@ def test_predicate_pushdown(
             key,
             predicate_pushdown_to_io=predicate_pushdown_to_io,
             predicates=predicates,
-            **read_kwargs
+            **read_kwargs,
         )
     assert str(exc.value) == "Malformed predicates"
 
@@ -379,7 +379,7 @@ def test_predicate_pushdown(
             key,
             predicate_pushdown_to_io=predicate_pushdown_to_io,
             predicates=predicates,
-            **read_kwargs
+            **read_kwargs,
         )
     assert str(exc.value) == "Malformed predicates"
 

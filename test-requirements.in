@@ -21,7 +21,5 @@ sphinx_rtd_theme
 IPython
 
 # Formatting / Checking
-black[d]==18.9b0
-flake8-mutable==1.2.0
-flake8==3.6.0
-isort[pyproject]==4.3.18
+pre-commit
+flake8-mutable
