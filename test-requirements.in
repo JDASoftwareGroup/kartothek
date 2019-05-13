@@ -24,4 +24,4 @@ IPython
 black[d]==18.9b0
 flake8-mutable==1.2.0
 flake8==3.6.0
-isort==4.3.4
+isort[pyproject]==4.3.18
