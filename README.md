@@ -14,6 +14,21 @@ efficiently. In addition, the `kartothek.io` module provides building
 blocks to create and modify these datasets. Handling of I/O, tracking of
 dataset partitions and selecting subsets of data are handled transparently.
 
+Installation
+---------------------------
+Installers for the latest released version are availabe at the [Python
+package index](https://pypi.org/project/kartothek) and on conda.
+
+```sh
+# Install with pip
+pip install kartothek
+```
+
+```sh
+# Install with conda
+conda install -c conda-forge kartothek
+```
+
 What is a (real) Kartothek?
 ---------------------------
 
