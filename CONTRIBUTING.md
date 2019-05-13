@@ -56,8 +56,8 @@ We have pre-commit hooks for all of these tools which take care of formatting
 and checking the code. To set up these hooks, please follow the installation
 instructions on the [pre-commit](https://pre-commit.com) homepage.
 
-If you prefer to perform manual formatting and linting, you can install and run the necessary
-tools like this
+If you prefer to perform manual formatting and linting, you can run the necessary
+toolchain like this
 
 ```bash
 ./format_code.sh

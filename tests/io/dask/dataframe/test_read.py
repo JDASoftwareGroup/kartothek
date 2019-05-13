@@ -19,7 +19,7 @@ def _read_as_ddf(
     categoricals=None,
     tables=None,
     dataset_has_index=False,
-    **kwargs
+    **kwargs,
 ):
     table = tables or "core"
     if categoricals:
@@ -30,7 +30,7 @@ def _read_as_ddf(
         factory=factory,
         categoricals=categoricals,
         table=table,
-        **kwargs
+        **kwargs,
     )
     if categoricals:
         assert ddf._meta.dtypes["P"] == pd.api.types.CategoricalDtype(

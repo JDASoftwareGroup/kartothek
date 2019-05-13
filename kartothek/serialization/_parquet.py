@@ -161,8 +161,8 @@ class ParquetSerializer(DataFrameSerializer):
             missing_columns = set(columns) - set(table.schema.names)
             if missing_columns:
                 raise ValueError(
-                    u"Columns cannot be found in stored dataframe: {missing}".format(
-                        missing=u", ".join(sorted(missing_columns))
+                    "Columns cannot be found in stored dataframe: {missing}".format(
+                        missing=", ".join(sorted(missing_columns))
                     )
                 )
 

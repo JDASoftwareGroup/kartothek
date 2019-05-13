@@ -37,7 +37,7 @@ class CsvSerializer(DataFrameSerializer):
         columns=None,
         categories=None,
         predicates=None,
-        **kwargs
+        **kwargs,
     ):
         check_predicates(predicates)
 

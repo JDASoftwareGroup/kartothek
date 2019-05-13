@@ -161,22 +161,22 @@ def test_align_datasets_right(dataset, evaluation_dataset, store_session):
 
     mp_list = list_metapartitions[0]
     assert len(mp_list) == 3, [mp.label for mp in mp_list]
-    expected = [u"cluster_1_1", u"cluster_1", u"cluster_2"]
+    expected = ["cluster_1_1", "cluster_1", "cluster_2"]
     assert [mp.label for mp in mp_list] == expected
 
     mp_list = list_metapartitions[1]
     assert len(mp_list) == 3, [mp.label for mp in mp_list]
-    expected = [u"cluster_1_2", u"cluster_1", u"cluster_2"]
+    expected = ["cluster_1_2", "cluster_1", "cluster_2"]
     assert [mp.label for mp in mp_list] == expected
 
     mp_list = list_metapartitions[2]
     assert len(mp_list) == 3, [mp.label for mp in mp_list]
-    expected = [u"cluster_2_1", u"cluster_1", u"cluster_2"]
+    expected = ["cluster_2_1", "cluster_1", "cluster_2"]
     assert [mp.label for mp in mp_list] == expected
 
     mp_list = list_metapartitions[3]
     assert len(mp_list) == 3, [mp.label for mp in mp_list]
-    expected = [u"cluster_2_2", u"cluster_1", u"cluster_2"]
+    expected = ["cluster_2_2", "cluster_1", "cluster_2"]
     assert [mp.label for mp in mp_list] == expected
 
 

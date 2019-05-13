@@ -360,7 +360,7 @@ def test_validate_different_cats_same_type():
 
 def test_validate_different_cats_different_type():
     input_df = pd.DataFrame(
-        {"categories": pd.Series([u"a", u"b", u"c", u"a"], dtype="category")}
+        {"categories": pd.Series(["a", "b", "c", "a"], dtype="category")}
     )
     input_df_2 = pd.DataFrame(
         {"categories": pd.Series([b"f", b"e", b"e", b"f"], dtype="category")}

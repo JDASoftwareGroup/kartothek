@@ -133,7 +133,7 @@ def _perform_read_test(
         categoricals=categoricals,
         label_filter=label_filter,
         dates_as_object=dates_as_object,
-        **read_kwargs
+        **read_kwargs,
     )
 
     # The filter should allow only a single partition
@@ -236,7 +236,7 @@ def test_read_dataset_as_dataframes_predicate(
         dataset_uuid=dataset.uuid,
         store=store_session_factory,
         predicates=predicates,
-        **custom_read_parameters
+        **custom_read_parameters,
     )
     core_result = pd.concat([data["core"] for data in result])
 
@@ -285,7 +285,7 @@ def test_read_dataset_as_dataframes_predicate_with_partition_keys(
         store=store_session_factory,
         predicates=predicates,
         tables=["core"],
-        **custom_read_parameters
+        **custom_read_parameters,
     )
 
     core_result = pd.concat([data["core"] for data in result])
@@ -319,7 +319,7 @@ def test_read_dataset_as_dataframes_predicate_empty(
         predicates=[[("P", "==", -42)]],
         tables=["core"],
         columns={"core": ["P", "L", "TARGET"]},
-        **custom_read_parameters
+        **custom_read_parameters,
     )
     assert len(result) == 0
 
@@ -352,7 +352,7 @@ def test_read_dataset_as_dataframes_concat_primary(
         store=store_factory,
         concat_partitions_on_primary_index=True,
         predicates=[[("b", "==", "1")]],
-        **custom_read_parameters
+        **custom_read_parameters,
     )
     result_df = result[0]["data"].sort_values(by="c")
 
