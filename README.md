@@ -4,6 +4,9 @@ kartothek
 [![Build Status](https://travis-ci.org/JDASoftwareGroup/kartothek.svg?branch=master)](https://travis-ci.org/JDASoftwareGroup/kartothek)
 [![Documentation Status](https://readthedocs.org/projects/kartothek/badge/?version=latest)](https://kartothek.readthedocs.io/en/latest/?badge=latest)
 [![codecov.io](https://codecov.io/github/JDASoftwareGroup/kartothek/coverage.svg?branch=master)](https://codecov.io/github/JDASoftwareGroup/kartothek)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/JDASoftwareGroup/kartothek/blob/master/LICENSE.txt)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/kartothek/badges/installer/conda.svg)](https://conda.anaconda.org/conda-forge)
+[![Anaconda-Server Badge](https://anaconda.org/conda-forge/kartothek/badges/downloads.svg)](https://anaconda.org/conda-forge/kartothek)
 
 Datasets are a collection of files with the same schema that reside in
 a storage. `kartothek` offers a metadata definition to handle these datasets
