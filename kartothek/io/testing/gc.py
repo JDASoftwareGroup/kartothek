@@ -2,6 +2,8 @@ from .utils import create_dataset
 
 
 def test_garbage_collect_idempotent(store_factory, garbage_collect_callable):
+    """Check that garbage collection does nothing when there is no garbage."""
+
     create_dataset("uuid", store_factory, 4)
 
     keys_before = set(store_factory().keys())

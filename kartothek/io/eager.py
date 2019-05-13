@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
+from functools import partial
+
 import pandas as pd
 import six
 
@@ -18,12 +20,15 @@ from kartothek.core.naming import (
     get_partition_file_prefix,
 )
 from kartothek.core.uuid import gen_uuid
+from kartothek.io.iter import read_dataset_as_metapartitions__iterator
 from kartothek.io_components.delete import (
     delete_common_metadata,
     delete_indices,
     delete_top_level_metadata,
 )
 from kartothek.io_components.docs import default_docs
+from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
+from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,
@@ -32,9 +37,11 @@ from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     NoDefault,
+    _ensure_compatible_indices,
     _make_callable,
     align_categories,
     normalize_args,
+    sort_values_categorical,
     validate_partition_keys,
 )
 from kartothek.io_components.write import (
@@ -433,6 +440,7 @@ def _maybe_infer_files_attribute(metapartition, dataset_uuid):
     return new_mp
 
 
+@default_docs
 @normalize_args
 def store_dataframes_as_dataset(
     store,
@@ -612,3 +620,124 @@ def write_single_partition(
         store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
     )
     return mp
+
+
+@default_docs
+@normalize_args
+def update_dataset_from_dataframes(
+    df_list,
+    store=None,
+    dataset_uuid=None,
+    delete_scope=None,
+    metadata=None,
+    df_serializer=None,
+    metadata_merger=None,
+    central_partition_metadata=True,
+    default_metadata_version=DEFAULT_METADATA_VERSION,
+    partition_on=None,
+    load_dynamic_metadata=True,
+    sort_partitions_by=None,
+    secondary_indices=None,
+    factory=None,
+):
+    """
+    Update a kartothek dataset in store at once, using a list of dataframes.
+
+    Useful for datasets which do not fit into memory.
+
+    Parameters
+    ----------
+    df_list: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]
+        The dataframe(s) to be stored.
+
+    Returns
+    -------
+    The dataset metadata object (:class:`~kartothek.core.dataset.DatasetMetadata`).
+    """
+    ds_factory, metadata_version, partition_on = validate_partition_keys(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        ds_factory=factory,
+        default_metadata_version=default_metadata_version,
+        partition_on=partition_on,
+        load_dynamic_metadata=load_dynamic_metadata,
+    )
+
+    secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
+
+    mp = parse_input_to_metapartition(df_list, metadata_version=metadata_version)
+
+    if sort_partitions_by:
+        mp = mp.apply(partial(sort_values_categorical, column=sort_partitions_by))
+
+    if partition_on:
+        mp = mp.partition_on(partition_on)
+
+    if secondary_indices:
+        mp = mp.build_indices(secondary_indices)
+
+    mp = mp.store_dataframes(
+        store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
+    )
+
+    return update_dataset_from_partitions(
+        mp,
+        store_factory=store,
+        dataset_uuid=dataset_uuid,
+        ds_factory=ds_factory,
+        delete_scope=delete_scope,
+        metadata=metadata,
+        metadata_merger=metadata_merger,
+    )
+
+
+@default_docs
+def build_dataset_indices(
+    store, dataset_uuid, columns, output_blocksize=0, factory=None
+):
+    """
+    Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
+
+    This function loads the dataset, computes the requested indices and writes
+    the indices to the dataset. The dataset partitions itself are not mutated.
+
+    Parameters
+    ----------
+    """
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
+    )
+
+    new_partitions = []
+    for mp in read_dataset_as_metapartitions__iterator(factory=ds_factory):
+        mp = mp.build_indices(columns=columns)
+        mp = mp.remove_dataframes()  # Remove dataframe from memory
+        new_partitions.append(mp)
+
+    return update_indices_from_partitions(
+        new_partitions, dataset_metadata_factory=ds_factory
+    )
+
+
+@default_docs
+def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
+    """
+    Remove auxiliary files that are no longer tracked by the dataset.
+
+    These files include indices that are no longer referenced by the metadata
+    as well as files in the directories of the tables that are no longer
+    referenced. The latter is only applied to static datasets.
+
+    Parameters
+    ----------
+    """
+    nested_files = dispatch_files_to_gc(
+        dataset_uuid=dataset_uuid, store_factory=store, chunk_size=None, factory=factory
+    )
+
+    # Given that `nested_files` is a generator with a single element, just
+    # return the output of `delete_files` on that element.
+    return delete_files(next(nested_files), store_factory=store)

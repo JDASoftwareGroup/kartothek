@@ -43,8 +43,11 @@ def dispatch_files_to_gc(dataset_uuid, store_factory, chunk_size, factory):
 
     files_to_remove = list(remove_index_files | remove_table_files)
 
-    for i in range(0, len(files_to_remove), chunk_size):
-        yield files_to_remove[i : i + chunk_size]
+    if chunk_size is None:
+        yield files_to_remove
+    else:
+        for i in range(0, len(files_to_remove), chunk_size):
+            yield files_to_remove[i : i + chunk_size]
 
 
 def delete_files(files, store_factory):
