@@ -10,7 +10,6 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import simplejson
-import six
 
 from kartothek.core import naming
 from kartothek.core._compat import load_json
@@ -26,7 +25,7 @@ class SchemaWrapper(object):
     """
 
     def __init__(self, schema, origin):
-        if not isinstance(origin, six.string_types):
+        if not isinstance(origin, str):
             raise TypeError("Schema origin must either be None or a string.")
 
         self.__schema = schema

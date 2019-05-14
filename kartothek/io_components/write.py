@@ -3,8 +3,6 @@
 
 from collections import defaultdict
 
-import six
-
 from kartothek.core import naming
 from kartothek.core.common_metadata import (
     read_schema_metadata,
@@ -32,7 +30,7 @@ SINGLE_CATEGORY = SINGLE_TABLE
 def persist_indices(store, dataset_uuid, indices):
     store = _instantiate_store(store)
     output_filenames = {}
-    for column, index in six.iteritems(indices):
+    for column, index in indices.items():
         # backwards compat
         if isinstance(index, dict):
             legacy_storage_key = "{dataset_uuid}.{column}{suffix}".format(
@@ -54,7 +52,7 @@ def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid)
     # (e.g. other pandas version or null schemas)
     tm_dct = defaultdict(set)
     for mp in partition_list:
-        for tab, tm in six.iteritems(mp.table_meta):
+        for tab, tm in mp.table_meta.items():
             tm_dct[tab].add(tm)
 
     if update_dataset:
@@ -74,7 +72,7 @@ def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid)
             )
 
     result = {}
-    for table, schemas in six.iteritems(tm_dct):
+    for table, schemas in tm_dct.items():
         try:
             result[table] = validate_compatible(schemas)
         except ValueError as e:
@@ -86,7 +84,7 @@ def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid)
 
     validate_shared_columns(list(result.values()))
 
-    for table, schema in six.iteritems(result):
+    for table, schema in result.items():
         store_schema_metadata(
             schema=schema, dataset_uuid=dataset_uuid, store=store, table=table
         )
@@ -182,7 +180,7 @@ def update_metadata(dataset_builder, metadata_merger, add_partitions, dataset_me
         dataset_metadata = dataset_metadata()
 
     new_dataset_metadata.update(dataset_metadata)
-    for key, value in six.iteritems(new_dataset_metadata):
+    for key, value in new_dataset_metadata.items():
         dataset_builder.add_metadata(key, value)
     return dataset_builder
 
@@ -210,12 +208,12 @@ def update_indices(dataset_builder, store, add_partitions, remove_partitions):
 
     if dataset_indices:  # dataset already exists and will be updated
         if remove_partitions:
-            for column, dataset_index in six.iteritems(dataset_indices):
+            for column, dataset_index in dataset_indices.items():
                 dataset_indices[column] = dataset_index.remove_partitions(
                     remove_partitions, inplace=True
                 )
 
-        for column, index in six.iteritems(partition_indices):
+        for column, index in partition_indices.items():
             dataset_indices[column] = dataset_indices[column].update(
                 index, inplace=True
             )
@@ -227,7 +225,7 @@ def update_indices(dataset_builder, store, add_partitions, remove_partitions):
     index_filenames = persist_indices(
         store=store, dataset_uuid=dataset_builder.uuid, indices=dataset_indices
     )
-    for column, filename in six.iteritems(index_filenames):
+    for column, filename in index_filenames.items():
         dataset_builder.add_external_index(column, filename)
 
     return dataset_builder

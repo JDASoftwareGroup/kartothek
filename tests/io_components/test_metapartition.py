@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as pdt
 import pytest
-import six
 
 from kartothek.core.common_metadata import make_meta, store_schema_metadata
 from kartothek.core.index import ExplicitSecondaryIndex
@@ -1403,7 +1402,7 @@ def test_input_to_metaframes_simple():
     df = list(mp.data.values())[0]
     pdt.assert_frame_equal(df, df_input)
 
-    assert isinstance(mp.label, six.string_types)
+    assert isinstance(mp.label, str)
 
 
 def test_input_to_metaframes_dict():

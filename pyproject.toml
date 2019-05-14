@@ -1,5 +1,5 @@
 [build-system]
-requires = ['setuptools', 'setuptools-scm', 'six', 'wheel']
+requires = ['setuptools', 'setuptools-scm', 'wheel']
 
 [tool.black]
 exclude = '''

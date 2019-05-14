@@ -3,8 +3,6 @@
 
 import logging
 
-import six
-
 from kartothek.core import naming
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.io_components.metapartition import MetaPartition
@@ -29,7 +27,7 @@ def update_indices_from_partitions(partition_list, dataset_metadata_factory):
         indices=dataset_indices,
     )
 
-    for column, storage_key in six.iteritems(indices):
+    for column, storage_key in indices.items():
         dataset_metadata_factory.indices[column] = ExplicitSecondaryIndex(
             column=column, index_storage_key=storage_key
         )

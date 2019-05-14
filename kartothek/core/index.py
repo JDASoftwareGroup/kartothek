@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-import six
 
 import kartothek.core._time
 from kartothek.core import naming
@@ -74,7 +73,7 @@ class IndexBase(CopyMixin):
                 # index_dct may be from an untrusted or weakly typed source, so we need to normalize and fuse values
                 self.index_dct = {}
                 n_collisions = 0
-                for value, partitions in six.iteritems(index_dct):
+                for value, partitions in index_dct.items():
                     value = IndexBase.normalize_value(self.dtype, value)
                     if value not in self.index_dct:
                         self.index_dct[value] = copy(partitions)
@@ -104,7 +103,7 @@ class IndexBase(CopyMixin):
 
     def __repr__(self):
         repr_str = []
-        for key, val in six.iteritems(self.__dict__):
+        for key, val in self.__dict__.items():
             if isinstance(val, dict):
                 repr_str.append("=".join([key, str(sorted(val.keys()))]))
             else:
@@ -144,15 +143,15 @@ class IndexBase(CopyMixin):
                 "Cannot normalize index values as long as dtype is not set"
             )
         elif pa.types.is_string(dtype):
-            if isinstance(value, six.binary_type):
+            if isinstance(value, bytes):
                 return value.decode("utf-8")
             else:
-                return six.text_type(value)
+                return str(value)
         elif pa.types.is_binary(dtype):
-            if isinstance(value, six.binary_type):
+            if isinstance(value, bytes):
                 return value
             else:
-                return six.text_type(value).encode("utf-8")
+                return str(value).encode("utf-8")
         elif pa.types.is_date(dtype):
             return pd.Timestamp(value).date()
         elif pa.types.is_temporal(dtype):
@@ -162,7 +161,7 @@ class IndexBase(CopyMixin):
         elif pa.types.is_floating(dtype):
             return float(value)
         elif pa.types.is_boolean(dtype):
-            if isinstance(value, six.string_types):
+            if isinstance(value, str):
                 if value.lower() == "false":
                     return False
                 elif value.lower() == "true":
@@ -296,7 +295,7 @@ class IndexBase(CopyMixin):
         else:
             new_index_dict = copy(self.index_dct)
 
-        for value, partition_list in six.iteritems(index.index_dct):
+        for value, partition_list in index.index_dct.items():
             old = new_index_dict.get(value, [])
             new_index_dict[value] = list(set(old + partition_list))
         return self.copy(column=self.column, index_dct=new_index_dict, dtype=self.dtype)
@@ -320,7 +319,7 @@ class IndexBase(CopyMixin):
             return self
         if inplace:
             values_to_remove = []
-            for val, partition_list in six.iteritems(self.index_dct):
+            for val, partition_list in self.index_dct.items():
                 for partition_label in partitions_to_delete:
                     if partition_label in partition_list:
                         partition_list.remove(partition_label)
@@ -335,7 +334,7 @@ class IndexBase(CopyMixin):
             )
         else:
             new_index_dict = {}
-            for val, partition_list in six.iteritems(self.index_dct):
+            for val, partition_list in self.index_dct.items():
                 new_list = set(partition_list) - set(partitions_to_delete)
                 if len(new_list) > 0:
                     new_index_dict[val] = list(new_list)
@@ -374,7 +373,7 @@ class IndexBase(CopyMixin):
             )
         else:
             new_index_dict = {}
-            for val, partition_list in six.iteritems(self.index_dct):
+            for val, partition_list in self.index_dct.items():
                 if val not in set_of_values:
                     new_index_dict[val] = partition_list
 
@@ -398,7 +397,7 @@ class IndexBase(CopyMixin):
             return False
         if len(self.index_dct) != len(other.index_dct):
             return False
-        for col, partition_list in six.iteritems(self.index_dct):
+        for col, partition_list in self.index_dct.items():
             if col not in other.index_dct:
                 return False
             if set(partition_list) != set(other.index_dct[col]):
@@ -541,7 +540,7 @@ class ExplicitSecondaryIndex(IndexBase):
         -------
         index: [kartothek.core.index.ExplicitSecondaryIndex]
         """
-        if isinstance(dct_or_str, six.string_types):
+        if isinstance(dct_or_str, str):
             # External index
             return ExplicitSecondaryIndex(column=column, index_storage_key=dct_or_str)
         else:
@@ -681,7 +680,7 @@ def merge_indices(list_of_indices):
         return merge_indices([first, second])
 
     for indices in list_of_indices:
-        for column, index in six.iteritems(indices):
+        for column, index in indices.items():
             if column in final_indices:
                 final_indices[column] = final_indices[column].update(index)
             else:
@@ -702,7 +701,7 @@ def remove_partitions_from_indices(index_dict, partitions):
         A list of partition labels which should be removed form the index objects
     """
     new_index_dict = {}
-    for column, index in six.iteritems(index_dict):
+    for column, index in index_dict.items():
         new_index_dict[column] = index.remove_partitions(partitions)
     return new_index_dict
 
@@ -724,16 +723,16 @@ def filter_indices(index_dict, partitions):
     new_index_dict = {}
     index_types = {}
     types = {}
-    for column, index in six.iteritems(index_dict):
+    for column, index in index_dict.items():
         new_index_dict[column] = {}
         types[column] = index.dtype
         index_types[column] = type(index)
-        for index_value, partition_list in six.iteritems(index.to_dict()):
+        for index_value, partition_list in index.to_dict().items():
             new_index_dict[column][index_value] = [
                 part_label for part_label in partition_list if part_label in partitions
             ]
 
-    for column, index_dict in six.iteritems(new_index_dict):
+    for column, index_dict in new_index_dict.items():
         new_index_dict[column] = index_types[column](
             column=column, index_dct=index_dict, dtype=types[column]
         )
@@ -741,7 +740,7 @@ def filter_indices(index_dict, partitions):
 
 
 def _index_dct_to_table(index_dct, column):
-    keys = six.viewkeys(index_dct)
+    keys = index_dct.keys()
     keys_type = None
     if len(keys) > 0:
         probe = next(iter(keys))
@@ -765,7 +764,7 @@ def _index_dct_to_table(index_dct, column):
     keys = np.array(list(keys))
 
     labeled_array = pa.array(keys, type=keys_type)
-    partition_array = pa.array(list(six.viewvalues(index_dct)))
+    partition_array = pa.array(list(index_dct.values()))
 
     return pa.Table.from_arrays(
         [labeled_array, partition_array], names=[column, _PARTITION_COLUMN_NAME]

@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
-import six
-from six.moves.urllib.parse import quote as six_quote
-from six.moves.urllib.parse import unquote as six_unquote
+from urllib.parse import quote as urllib_quote
+from urllib.parse import unquote as urllib_unquote
 
 
 def quote(value):
@@ -11,11 +10,11 @@ def quote(value):
     Performs string encoding and urlencodes the given string. If the given value is not
     of string type, it will be cast using the `str` constructor
     """
-    if not isinstance(value, (six.text_type, six.binary_type)):
+    if not isinstance(value, (str, bytes)):
         value = str(value)
-    if isinstance(value, six.binary_type):
+    if isinstance(value, bytes):
         value = value.decode("utf-8")
-    r_val = six_quote(value.encode("utf-8"))
+    r_val = urllib_quote(value.encode("utf-8"))
     return r_val
 
 
@@ -23,7 +22,7 @@ def unquote(value):
     """
     Decodes a urlencoded string and performs necessary decoding depending on the used python version.
     """
-    return six_unquote(value)
+    return urllib_unquote(value)
 
 
 def decode_key(key):

@@ -7,7 +7,6 @@ from functools import partial
 import numpy as np
 import pandas as pd
 import pytest
-import six
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex
@@ -282,7 +281,7 @@ def test_update_dataset_with_partitions__reducer_partitions(
     assert sorted(dataset.indices.keys()) == updated_idx_keys
 
     expected_new_idx = {}
-    for k, v in six.iteritems(dataset_loadedidx.indices["P"].index_dct):
+    for k, v in dataset_loadedidx.indices["P"].index_dct.items():
         val = [pl.replace(cluster_2_label, cluster_3_label) for pl in v]
         expected_new_idx[k] = val
 
@@ -290,7 +289,7 @@ def test_update_dataset_with_partitions__reducer_partitions(
 
     assert sorted(expected_new_idx.keys()) == sorted(updated_P_idx_dct.keys())
 
-    for k, v in six.iteritems(updated_P_idx_dct):
+    for k, v in updated_P_idx_dct.items():
         assert sorted(expected_new_idx[k]) == sorted(v)
 
 
@@ -529,7 +528,7 @@ def test_sort_partitions_by(
     for label_df_tupl in read_dataset_as_dataframes__iterator(
         store=store_factory, dataset_uuid="dataset_uuid"
     ):
-        for _, df in six.iteritems(label_df_tupl):
+        for _, df in label_df_tupl.items():
             assert (df.TARGET == sorted(df.TARGET)).all()
 
 

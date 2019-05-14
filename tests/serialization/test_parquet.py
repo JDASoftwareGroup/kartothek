@@ -8,7 +8,6 @@ import pandas.util.testing as pdtest
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-import six
 import storefact
 from pyarrow.parquet import ParquetFile
 
@@ -308,7 +307,7 @@ def test_predicate_evaluation_datetime(
 
 
 def test_ensure_binaries(binary_value):
-    assert isinstance(binary_value, six.binary_type)
+    assert isinstance(binary_value, bytes)
 
 
 def test_pushdown_binaries(store, dataframe_not_nested, binary_value, chunk_size):

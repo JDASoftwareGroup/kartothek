@@ -5,7 +5,6 @@ from collections import defaultdict
 from functools import partial
 
 import dask
-import six
 from dask import delayed
 
 from kartothek.core import naming
@@ -323,7 +322,7 @@ def read_dataset_as_delayed_metapartitions(
         func_dict.update(
             {
                 table: partial(_cast_categorical_to_index_cat, categories=cats)
-                for table, cats in six.iteritems(categoricals_from_index)
+                for table, cats in categoricals_from_index.items()
             }
         )
         mps = map_delayed(mps, MetaPartition.apply, func_dict, type_safe=True)

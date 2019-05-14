@@ -4,7 +4,6 @@
 from functools import partial
 
 import pandas as pd
-import six
 
 from kartothek.core.common_metadata import (
     empty_dataframe_from_schema,
@@ -279,7 +278,7 @@ def read_table(
 
     if table is None:
         raise TypeError("Parameter `table` is not optional.")
-    if not isinstance(table, six.string_types):
+    if not isinstance(table, str):
         raise TypeError("Argument `table` needs to be a string")
 
     columns = _check_compatible_list(table, columns, "columns")
@@ -526,7 +525,7 @@ def create_empty_dataset_header(
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
 
-    for table, schema in six.iteritems(table_meta):
+    for table, schema in table_meta.items():
         table_meta[table] = make_meta(schema, origin=table, partition_keys=partition_on)
         store_schema_metadata(
             schema=table_meta[table],
@@ -542,7 +541,7 @@ def create_empty_dataset_header(
         table_meta=table_meta,
     )
     if metadata:
-        for key, value in six.iteritems(metadata):
+        for key, value in metadata.items():
             dataset_builder.add_metadata(key, value)
     if metadata_storage_format.lower() == "json":
         store.put(*dataset_builder.to_json())

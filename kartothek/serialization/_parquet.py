@@ -11,7 +11,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-import six
 from pyarrow.parquet import ParquetFile
 
 from kartothek.core._compat import ARROW_LARGER_EQ_0130
@@ -315,15 +314,15 @@ def _timelike_to_arrow_encoding(value, pa_type):
 
 def _normalize_value(value, pa_type):
     if pa.types.is_string(pa_type):
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             return value.decode("utf-8")
-        elif isinstance(value, six.text_type):
+        elif isinstance(value, str):
             return value
     elif pa.types.is_binary(pa_type):
-        if isinstance(value, six.binary_type):
+        if isinstance(value, bytes):
             return value
-        elif isinstance(value, six.text_type):
-            return six.text_type(value).encode("utf-8")
+        elif isinstance(value, str):
+            return str(value).encode("utf-8")
     elif (
         pa.types.is_integer(pa_type)
         and pd.api.types.is_integer(value)
@@ -332,7 +331,7 @@ def _normalize_value(value, pa_type):
         or pa.types.is_boolean(pa_type)
         and pd.api.types.is_bool(value)
         or pa.types.is_timestamp(pa_type)
-        and not isinstance(value, (six.binary_type, six.text_type))
+        and not isinstance(value, (bytes, str))
         and (
             pd.api.types.is_datetime64_dtype(value)
             or isinstance(value, datetime.datetime)
@@ -340,9 +339,9 @@ def _normalize_value(value, pa_type):
     ):
         return value
     elif pa.types.is_date(pa_type):
-        if isinstance(value, six.string_types):
+        if isinstance(value, str):
             return datetime.datetime.strptime(value, "%Y-%m-%d").date()
-        elif isinstance(value, six.binary_type):
+        elif isinstance(value, bytes):
             value = value.decode("utf-8")
             return datetime.datetime.strptime(value, "%Y-%m-%d").date()
         elif isinstance(value, datetime.date) and not isinstance(

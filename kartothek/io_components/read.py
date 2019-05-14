@@ -1,5 +1,4 @@
 import pandas as pd
-import six
 
 from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
@@ -10,7 +9,7 @@ from kartothek.io_components.utils import _make_callable
 def _index_to_dataframe(idx_name, idx, allowed_labels=None):
     label_col = []
     value_col = []
-    for value, labels in six.iteritems(idx):
+    for value, labels in idx.items():
         for label in labels:
             if allowed_labels is not None and label not in allowed_labels:
                 continue
@@ -42,7 +41,7 @@ def dispatch_metapartitions_from_factory(
 
     indices_to_dispatch = {
         name: ix.copy(index_dct={})
-        for name, ix in six.iteritems(dataset_factory.indices)
+        for name, ix in dataset_factory.indices.items()
         if isinstance(ix, ExplicitSecondaryIndex)
     }
 
@@ -83,7 +82,7 @@ def dispatch_metapartitions_from_factory(
         if allowed_labels is not None:
             partition_labels = allowed_labels
         else:
-            partition_labels = six.iterkeys(dataset_factory.partitions)
+            partition_labels = dataset_factory.partitions.keys()
 
         for part_label in partition_labels:
 

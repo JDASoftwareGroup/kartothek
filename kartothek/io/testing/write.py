@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as pdt
 import pytest
-import six
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex
@@ -198,7 +197,6 @@ def test_file_structure_dataset_v4_partition_on_second_table_no_index_col_simple
         )
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_store_dataframes_as_dataset(
     store_factory, metadata_version, bound_store_dataframes
 ):
@@ -262,7 +260,6 @@ def test_store_dataframes_as_dataset(
     pdt.assert_frame_equal(df_helper, df_stored)
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_store_dataframes_as_dataset_empty_dataframe(
     store_factory, metadata_version, df_all_types, bound_store_dataframes
 ):
@@ -398,7 +395,6 @@ def test_store_dataframes_as_dataset_batch_mode(
     }
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_store_dataframes_as_dataset_auto_uuid(
     store_factory, metadata_version, mock_uuid, bound_store_dataframes
 ):
@@ -442,7 +438,6 @@ def test_store_dataframes_as_dataset_auto_uuid(
     assert dataset.partitions == stored_dataset.partitions
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_store_dataframes_as_dataset_list_input(
     store_factory, metadata_version, bound_store_dataframes
 ):

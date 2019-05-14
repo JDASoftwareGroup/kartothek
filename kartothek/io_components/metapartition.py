@@ -5,7 +5,6 @@ import inspect
 import io
 import logging
 import os
-import sys
 import time
 import warnings
 from collections import Iterable, Iterator, defaultdict, namedtuple
@@ -15,7 +14,6 @@ from functools import wraps
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-import six
 
 from kartothek.core import naming
 from kartothek.core.common_metadata import (
@@ -211,7 +209,7 @@ class MetaPartition(Iterable):
         verify_metadata_version(self.metadata_version)
         self.table_meta = table_meta if table_meta else {}
         if isinstance(data, dict) and (len(self.table_meta) == 0):
-            for table, df in six.iteritems(data):
+            for table, df in data.items():
                 if df is not None:
                     self.table_meta[table] = make_meta(
                         df,
@@ -219,7 +217,7 @@ class MetaPartition(Iterable):
                         partition_keys=partition_keys,
                     )
         indices = indices or {}
-        for column, index_dct in six.iteritems(indices):
+        for column, index_dct in indices.items():
             if isinstance(index_dct, dict):
                 indices[column] = ExplicitSecondaryIndex(
                     column=column, index_dct=index_dct
@@ -312,7 +310,7 @@ class MetaPartition(Iterable):
         if self.metadata_version != other.metadata_version:
             return False
 
-        for table, meta in six.iteritems(self.table_meta):
+        for table, meta in self.table_meta.items():
             if not meta.equals(other.table_meta.get(table, None)):
                 return False
 
@@ -350,7 +348,7 @@ class MetaPartition(Iterable):
         if self.files != other.files:
             return False
 
-        for label, df in six.iteritems(self.data):
+        for label, df in self.data.items():
             if not (df.equals(other.data[label])):
                 return False
 
@@ -432,7 +430,7 @@ class MetaPartition(Iterable):
 
         if schema_validation:
             table_meta = {}
-            for table, meta in six.iteritems(self.table_meta):
+            for table, meta in self.table_meta.items():
                 other = metapartition.table_meta.get(table, None)
                 # This ensures that only schema-compatible metapartitions can be nested
                 # The returned schema by validate_compatible is the reference schema with the most
@@ -639,7 +637,7 @@ class MetaPartition(Iterable):
             return self
         new_data = copy(self.data)
         predicates = _predicates_to_named(predicates)
-        for table, key in six.iteritems(self.files):
+        for table, key in self.files.items():
             table_columns = columns.get(table, None)
             categories = categoricals.get(table, None)
             dataset_uuid, _, indices, file_name = decode_key(key)
@@ -868,7 +866,6 @@ class MetaPartition(Iterable):
         try:
             df_merged = merge_func(left_df, right_df, **merge_kwargs)
         except TypeError:
-            exc_type, exc_value, exc_traceback = sys.exc_info()
             LOGGER.error(
                 "Tried to merge using %s with\n left:%s\nright:%s\n " "kwargs:%s",
                 merge_func.__name__,
@@ -876,7 +873,7 @@ class MetaPartition(Iterable):
                 right_df.head(),
                 merge_kwargs,
             )
-            six.reraise(exc_type, exc_value, exc_traceback)
+            raise
 
         new_data[output_label] = df_merged
         new_table_meta = copy(self.table_meta)
@@ -915,7 +912,7 @@ class MetaPartition(Iterable):
             reference_meta[table] = _common_metadata
 
         result = {}
-        for table, schema in six.iteritems(self.table_meta):
+        for table, schema in self.table_meta.items():
             try:
                 result[table] = validate_compatible([schema, reference_meta[table]])
             except ValueError as e:
@@ -958,7 +955,7 @@ class MetaPartition(Iterable):
         )
         file_dct = {}
 
-        for table, df in six.iteritems(self.data):
+        for table, df in self.data.items():
             key = get_partition_file_prefix(
                 partition_label=self.label,
                 dataset_uuid=dataset_uuid,
@@ -969,7 +966,6 @@ class MetaPartition(Iterable):
             try:
                 file_dct[table] = df_serializer.store(store, key, df)
             except Exception as exc:
-                exc_type, exc_value, exc_traceback = sys.exc_info()
                 try:
                     if isinstance(df, pd.DataFrame):
                         buf = io.StringIO()
@@ -984,7 +980,7 @@ class MetaPartition(Iterable):
                         LOGGER.error("Storage of dask dataframe failed.")
                         pass
                 finally:
-                    six.reraise(exc_type, exc_value, exc_traceback)
+                    raise
             LOGGER.debug("Storage of dataframe for table `%s` successful", table)
 
         new_metapartition = self.copy(files=file_dct, data={})
@@ -1010,13 +1006,13 @@ class MetaPartition(Iterable):
         """
 
         count_cols = defaultdict(list)
-        for label, df in six.iteritems(self.data):
+        for label, df in self.data.items():
             # List itself is not hashable
             key = "".join(sorted(df.columns))
             count_cols[key].append((label, df))
         is_modified = False
         new_data = {}
-        for _, tuple_list in six.iteritems(count_cols):
+        for _, tuple_list in count_cols.items():
             if len(tuple_list) > 1:
                 is_modified = True
                 data = [x[1] for x in tuple_list]
@@ -1031,7 +1027,7 @@ class MetaPartition(Iterable):
                 origin="{}/{}".format(self.label, label),
                 partition_keys=self.partition_keys,
             )
-            for (label, df) in six.iteritems(new_data)
+            for (label, df) in new_data.items()
         }
         if is_modified:
             return self.copy(files={}, data=new_data, table_meta=new_table_meta)
@@ -1073,11 +1069,9 @@ class MetaPartition(Iterable):
                 FutureWarning,
             )
         if callable(func):
-            new_data = {k: func(v) for k, v in six.iteritems(self.data) if k in tables}
+            new_data = {k: func(v) for k, v in self.data.items() if k in tables}
         elif isinstance(func, dict):
-            new_data = {
-                k: func[k](v) for k, v in six.iteritems(self.data) if k in tables
-            }
+            new_data = {k: func[k](v) for k, v in self.data.items() if k in tables}
         if metadata:
             warnings.warn(
                 "The keyword argument ``metadata`` doesn't have any effect and will be removed soon.",
@@ -1092,7 +1086,7 @@ class MetaPartition(Iterable):
                     origin="{}/{}".format(self.label, table),
                     partition_keys=self.partition_keys,
                 )
-                for table, df in six.iteritems(new_data)
+                for table, df in new_data.items()
             }
         return self.copy(data=new_data, table_meta=new_table_meta)
 
@@ -1115,7 +1109,7 @@ class MetaPartition(Iterable):
                 pk = kwargs["partition_keys"]
                 return {
                     table: normalize_column_order(schema, pk)
-                    for table, schema in six.iteritems(meta)
+                    for table, schema in meta.items()
                 }
             else:
                 return meta
@@ -1257,13 +1251,13 @@ class MetaPartition(Iterable):
                 )
         new_mp = self.as_sentinel().copy(partition_keys=partition_on)
 
-        if isinstance(partition_on, six.string_types):
+        if isinstance(partition_on, str):
             partition_on = [partition_on]
         partition_on = self._ensure_compatible_partitioning(partition_on)
 
         new_data = self._partition_data(partition_on)
 
-        for label, data_dct in six.iteritems(new_data):
+        for label, data_dct in new_data.items():
             tmp_mp = MetaPartition(
                 label=label,
                 files=self.files,
@@ -1273,7 +1267,7 @@ class MetaPartition(Iterable):
                 indices={},
                 table_meta={
                     table: normalize_column_order(schema, partition_on)
-                    for table, schema in six.iteritems(self.table_meta)
+                    for table, schema in self.table_meta.items()
                 },
                 partition_keys=partition_on,
             )
@@ -1306,7 +1300,7 @@ class MetaPartition(Iterable):
         ]
         dct = dict()
         empty_tables = []
-        for table, df in six.iteritems(self.data):
+        for table, df in self.data.items():
             # Implementation from pyarrow
             # See https://github.com/apache/arrow/blob/b33dfd9c6bd800308bb1619b237dbf24dea159be/python/pyarrow/parquet.py#L1030  # noqa: E501
 
@@ -1345,7 +1339,7 @@ class MetaPartition(Iterable):
                     dct[new_label] = {}
                 dct[new_label][table] = group
 
-        for label, table_dct in six.iteritems(dct):
+        for label, table_dct in dct.items():
             for empty_table, df in empty_tables:
                 if empty_table not in table_dct:
                     table_dct[empty_table] = df.drop(labels=partition_on, axis=1)
@@ -1393,7 +1387,7 @@ class MetaPartition(Iterable):
         new_metadata_version = -1
         for mp in metapartitions:
             new_metadata_version = max(new_metadata_version, mp.metadata_version)
-            for label, df in six.iteritems(mp.data):
+            for label, df in mp.data.items():
                 data[label].append(df)
 
         new_data = {}
@@ -1460,7 +1454,7 @@ class MetaPartition(Iterable):
     @_apply_to_list
     def delete_from_store(self, dataset_uuid, store):
         # Delete data first
-        for file_key in six.itervalues(self.files):
+        for file_key in self.files.values():
             store.delete(file_key)
         return self.copy(files={}, data={}, metadata={})
 
@@ -1499,7 +1493,7 @@ def partition_labels_from_mps(mps):
 
 
 def _ensure_native_string_type(obj):
-    if isinstance(obj, six.binary_type):
+    if isinstance(obj, bytes):
         return obj.decode()
     else:
         return str(obj)

@@ -9,7 +9,6 @@ from collections import OrderedDict, defaultdict
 import pandas as pd
 import pyarrow as pa
 import simplejson
-import six
 
 import kartothek.core._time
 import kartothek.core._zmsgpack as msgpack
@@ -37,7 +36,7 @@ def _validate_uuid(uuid):
 
 def to_ordinary_dict(dct):
     new_dct = {}
-    for key, value in six.iteritems(dct):
+    for key, value in dct.items():
         if isinstance(value, dict):
             new_dct[key] = to_ordinary_dict(value)
         else:
@@ -122,7 +121,7 @@ class DatasetMetadataBase(CopyMixin):
     def secondary_indices(self):
         return {
             col: ind
-            for col, ind in six.iteritems(self.indices)
+            for col, ind in self.indices.items()
             if isinstance(ind, ExplicitSecondaryIndex)
         }
 
@@ -185,12 +184,12 @@ class DatasetMetadataBase(CopyMixin):
             ]
         )
         if self.indices:
-            dct["indices"] = {k: v.to_dict() for k, v in six.iteritems(self.indices)}
+            dct["indices"] = {k: v.to_dict() for k, v in self.indices.items()}
         if self.metadata:
             dct["metadata"] = self.metadata
         if self.partitions or self.explicit_partitions:
             dct["partitions"] = {}
-            for label, partition in six.iteritems(self.partitions):
+            for label, partition in self.partitions.items():
                 dct["partitions"][label] = partition.to_dict()
 
         if self.partition_keys is not None:
@@ -263,7 +262,7 @@ class DatasetMetadataBase(CopyMixin):
             column: index.load(store)
             if isinstance(index, ExplicitSecondaryIndex)
             else index
-            for column, index in six.iteritems(self.indices)
+            for column, index in self.indices.items()
         }
         ds = self.copy(indices=indices)
 
@@ -297,7 +296,7 @@ class DatasetMetadataBase(CopyMixin):
             self.indices, **{index.column: index for index in additional_indices}
         )
 
-        for column, value in six.iteritems(kwargs):
+        for column, value in kwargs.items():
             if column in indices:
                 candidate_set &= set(indices[column].query(value))
 
@@ -563,13 +562,13 @@ class DatasetMetadata(DatasetMetadataBase):
             else None,
         )
 
-        for key, value in six.iteritems(dct.get("metadata", {})):
+        for key, value in dct.get("metadata", {}).items():
             builder.add_metadata(key, value)
-        for partition_label, part_dct in six.iteritems(dct.get("partitions", {})):
+        for partition_label, part_dct in dct.get("partitions", {}).items():
             builder.add_partition(
                 partition_label, Partition.from_v2_dict(partition_label, part_dct)
             )
-        for column, index_dct in six.iteritems(dct.get("indices", {})):
+        for column, index_dct in dct.get("indices", {}).items():
             if isinstance(index_dct, IndexBase):
                 builder.add_embedded_index(column, index_dct)
             else:
@@ -609,14 +608,14 @@ def _construct_dynamic_index_from_partitions(partitions, table_meta, default_dty
 
     # We exploit the fact that all tables are partitioned equally.
     first_partition = next(
-        six.itervalues(partitions)
+        iter(partitions.values())
     )  # partitions is NOT empty here, see check above
     first_partition_files = _get_files(first_partition)
     if not first_partition_files:
         return {}
-    key_table = next(six.iterkeys(first_partition_files))
+    key_table = next(iter(first_partition_files.keys()))
     storage_keys = (
-        (key, _get_files(part)[key_table]) for key, part in six.iteritems(partitions)
+        (key, _get_files(part)[key_table]) for key, part in partitions.items()
     )
 
     _key_indices = defaultdict(_get_empty_index)
@@ -632,13 +631,13 @@ def _construct_dynamic_index_from_partitions(partitions, table_meta, default_dty
             for column, value in indices:
                 _key_indices[column][value].add(partition_label)
     new_indices = {}
-    for col, index_dct in six.iteritems(_key_indices):
+    for col, index_dct in _key_indices.items():
         arrow_type = _get_type_from_meta(table_meta, col, default_dtype)
 
         # convert defaultdicts into dicts
         new_indices[col] = PartitionIndex(
             column=col,
-            index_dct={k1: list(v1) for k1, v1 in six.iteritems(index_dct)},
+            index_dct={k1: list(v1) for k1, v1 in index_dct.items()},
             dtype=arrow_type,
         )
     return new_indices
@@ -661,10 +660,10 @@ def _check_index_depth(indices, depth_indices):
 
 def _get_partition_keys_from_partitions(partitions):
     if len(partitions):
-        part = next(iter(six.itervalues(partitions)))
+        part = next(iter(partitions.values()))
         files_dct = part["files"]
         if files_dct:
-            key = next(iter(six.itervalues(files_dct)))
+            key = next(iter(files_dct.values()))
             _, _, indices, _ = decode_key(key)
             if indices:
                 return [tup[0] for tup in indices]
@@ -852,8 +851,8 @@ class DatasetMetadataBuilder(CopyMixin):
         )
         if self.indices:
             dct["indices"] = {}
-            for column, index in six.iteritems(self.indices):
-                if isinstance(index, six.string_types):
+            for column, index in self.indices.items():
+                if isinstance(index, str):
                     dct["indices"][column] = index
                 else:
                     dct["indices"][column] = index.to_dict()
@@ -862,7 +861,7 @@ class DatasetMetadataBuilder(CopyMixin):
 
         if self.explicit_partitions:
             dct["partitions"] = factory()
-            for label, partition in six.iteritems(self.partitions):
+            for label, partition in self.partitions.items():
                 part_dict = partition.to_dict()
                 dct["partitions"][label] = part_dict
 
@@ -914,15 +913,3 @@ class DatasetMetadataBuilder(CopyMixin):
             partition_keys=self.partition_keys,
             table_meta=self.table_meta,
         )
-
-
-def _sort_dataset_metadata(od):
-    if isinstance(od, list):
-        return od
-    res = OrderedDict()
-    for k, v in sorted(six.iteritems(od)):
-        if isinstance(v, dict):
-            res[k] = _sort_dataset_metadata(v)
-        else:
-            res[k] = v
-    return res

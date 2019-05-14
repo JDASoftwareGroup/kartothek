@@ -4,7 +4,6 @@ import numpy as np
 import pandas as pd
 import pandas.util.testing as pdt
 import pytest
-import six
 
 from kartothek.io.eager import (
     read_dataset_as_dataframes,
@@ -47,7 +46,6 @@ def backend_identifier():
     return "eager"
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_read_table_eager(dataset, store_session, use_categoricals):
     if use_categoricals:
         categories = {"core": ["P"]}
@@ -129,7 +127,6 @@ def test_read_table_with_columns(dataset, store_session):
     pdt.assert_frame_equal(df, expected_df, check_dtype=False, check_like=True)
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_read_table_simple_list_for_cols_cats(dataset, store_session):
     df = read_table(
         store=store_session,

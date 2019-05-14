@@ -9,7 +9,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pytest
-import six
 from hypothesis import assume, given
 from pandas.testing import assert_series_equal
 
@@ -593,7 +592,7 @@ def test_merge_indices(obj_factory):
         ),
     ]
     result = merge_indices(indices)
-    for key, value in six.iteritems(result):
+    for key, value in result.items():
         if isinstance(value, ExplicitSecondaryIndex):
             result[key] = value.to_dict()
             for part_list in result[key].values():
