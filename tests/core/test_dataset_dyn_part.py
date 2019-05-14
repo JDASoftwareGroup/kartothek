@@ -3,15 +3,13 @@
 import os
 import random
 import tempfile
+from urllib.parse import quote
 
 import numpy as np
 import pandas as pd
 import pytest
 import simplejson
-import six
 import storefact
-from six.moves import xrange
-from six.moves.urllib.parse import quote
 
 from kartothek.core._compat import ARROW_LARGER_EQ_0130, DASK_LARGER_EQ_121
 from kartothek.core.common_metadata import (
@@ -209,8 +207,8 @@ def test_dynamic_partitions_multiple_indices(store):
     # Sorting may differ in the index list. This is ok for runtime
     # but does produce flaky tests thus sort them.
     sorted_result = {
-        column: {label: sorted(x) for label, x in six.iteritems(index)}
-        for column, index in six.iteritems(dmd_dict["indices"])
+        column: {label: sorted(x) for label, x in index.items()}
+        for column, index in dmd_dict["indices"].items()
     }
     assert sorted_result == expected_indices
 
@@ -288,8 +286,8 @@ def test_dynamic_partitions_with_garbage(store):
     # Sorting may differ in the index list. This is ok for runtime
     # but does produce flaky tests thus sort them.
     sorted_result = {
-        column: {label: sorted(x) for label, x in six.iteritems(index)}
-        for column, index in six.iteritems(dmd_dict["indices"])
+        column: {label: sorted(x) for label, x in index.items()}
+        for column, index in dmd_dict["indices"].items()
     }
     assert sorted_result == expected_indices
 
@@ -355,7 +353,7 @@ def test_dask_partitions(metadata_version):
     os.mkdir(table_dir)
     store = storefact.get_store_from_url("hfs://{}".format(bucket_dir))
 
-    locations = ["L-{}".format(i) for i in xrange(2)]
+    locations = ["L-{}".format(i) for i in range(2)]
     df = pd.DataFrame()
     for l in locations:
         core = pd.DataFrame(

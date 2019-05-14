@@ -4,12 +4,11 @@ from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
-import six
 
 
 def _to_binary(x):
     x = str(x)
-    if isinstance(x, six.text_type):
+    if isinstance(x, str):
         x = x.encode("utf-8")
     return x
 
@@ -59,9 +58,7 @@ def get_dataframe_not_nested(n):
                 [datetime(2018, 1, x % 31 + 1) for x in range(1, n + 1)],
                 dtype="datetime64[ns]",
             ),
-            "unicode": pd.Series(
-                [six.text_type(x) for x in range(n)], dtype=np.unicode
-            ),
+            "unicode": pd.Series([str(x) for x in range(n)], dtype=np.unicode),
             "null": pd.Series([None] * n, dtype=object),
             "bytes": pd.Series(binaries, dtype=np.object),
         }

@@ -1,9 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import six
-
-
 class Partition(object):
     def __init__(self, label, files=None, metadata=None):
         """
@@ -39,7 +36,7 @@ class Partition(object):
 
     @staticmethod
     def from_v2_dict(label, dct):
-        if isinstance(dct, six.string_types):
+        if isinstance(dct, str):
             raise ValueError(
                 "Trying to load a partition from a string. Probably the dataset file uses the multifile "
                 "feature. Please load the metadata object using the DatasetMetadata.load_from_buffer "

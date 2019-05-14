@@ -9,7 +9,6 @@ import logging
 
 import decorator
 import pandas as pd
-import six
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.factory import _ensure_factory
@@ -52,7 +51,7 @@ def combine_metadata(dataset_metadata, append_to_list=True):
 
 def _remove_invalids(dct):
     new_dict = {}
-    for key, value in six.iteritems(dct):
+    for key, value in dct.items():
         if isinstance(value, dict):
             tmp = _remove_invalids(value)
             # Do not propagate empty dicts

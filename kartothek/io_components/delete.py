@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import six
-
 from kartothek.core import naming
 from kartothek.core.naming import metadata_key_from_uuid
 
@@ -15,7 +13,7 @@ def delete_common_metadata(dataset_factory):
 
 
 def delete_indices(dataset_factory):
-    for index_object in six.itervalues(dataset_factory.indices):
+    for index_object in dataset_factory.indices.values():
         index_key = index_object.index_storage_key
         dataset_factory.store.delete(index_key)
     return dataset_factory

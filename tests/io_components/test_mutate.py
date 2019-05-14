@@ -2,7 +2,6 @@ import types
 
 import pandas as pd
 import pytest
-import six
 
 from kartothek.io_components.merge import align_datasets
 from kartothek.io_components.metapartition import MetaPartition
@@ -89,7 +88,6 @@ def test_align_datasets_prefix__equal_number_of_partitions(
     mp_list = list_metapartitions[0]
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_align_datasets_exact(dataset, evaluation_dataset, store_session):
     with pytest.raises(RuntimeError):
         list(
@@ -122,7 +120,6 @@ def test_align_datasets_exact(dataset, evaluation_dataset, store_session):
     assert [mp.label for mp in mp_list] == ["cluster_2", "cluster_2"]
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_align_datasets_left(dataset, evaluation_dataset, store_session):
     generator = align_datasets(
         left_dataset_uuid=dataset.uuid,
@@ -146,7 +143,6 @@ def test_align_datasets_left(dataset, evaluation_dataset, store_session):
     assert [mp.label for mp in mp_list] == expected
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_align_datasets_right(dataset, evaluation_dataset, store_session):
     generator = align_datasets(
         left_dataset_uuid=dataset.uuid,
@@ -180,7 +176,6 @@ def test_align_datasets_right(dataset, evaluation_dataset, store_session):
     assert [mp.label for mp in mp_list] == expected
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_align_datasets_callable(dataset, evaluation_dataset, store_session):
     def comp(left, right):
         return left == right

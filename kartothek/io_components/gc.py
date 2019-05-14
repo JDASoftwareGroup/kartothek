@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import six
-
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import TABLE_METADATA_FILE
 
@@ -18,7 +16,7 @@ def dispatch_files_to_gc(dataset_uuid, store_factory, chunk_size, factory):
     index_path = "{dataset_uuid}/indices/".format(dataset_uuid=dataset_uuid)
     remove_index_files = set(ds_factory.store.iter_keys(prefix=index_path))
 
-    for index in six.itervalues(ds_factory.indices):
+    for index in ds_factory.indices.values():
         index_keys = set()
         # We only add the indices that are saved as explicit indices
         if index.index_storage_key:
@@ -28,8 +26,8 @@ def dispatch_files_to_gc(dataset_uuid, store_factory, chunk_size, factory):
     remove_table_files = set()
     if ds_factory.explicit_partitions:
         table_files = set()
-        for partition in six.itervalues(ds_factory.partitions):
-            for name in six.itervalues(partition.files):
+        for partition in ds_factory.partitions.values():
+            for name in partition.files.values():
                 table_files.add(name)
 
         for table in ds_factory.tables:

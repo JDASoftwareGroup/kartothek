@@ -4,7 +4,6 @@
 import warnings
 
 import pandas as pd
-import six
 from dask import delayed
 
 CATEGORICAL_EFFICIENCY_WARN_LIMIT = 100000
@@ -29,7 +28,7 @@ def _maybe_get_categoricals_from_index(dataset_metadata_factory, categoricals):
     """
     categoricals_from_index = {}
     if categoricals:
-        for table, table_cat in six.iteritems(categoricals):
+        for table, table_cat in categoricals.items():
             if not table_cat:
                 continue
             categoricals_from_index[table] = {}

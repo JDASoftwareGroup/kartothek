@@ -4,8 +4,7 @@ This is a helper module to simplify code documentation
 """
 
 import inspect
-
-from six.moves import cStringIO as StringIO
+from io import StringIO
 
 _PARAMETER_MAPPING = {
     "store": """

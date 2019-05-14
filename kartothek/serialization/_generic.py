@@ -10,7 +10,6 @@ import datetime
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_list_like
-from six import iteritems
 
 from kartothek.serialization._util import _check_contains_null
 
@@ -93,7 +92,7 @@ class DataFrameSerializer(object):
         if filter_query and predicates:
             raise ValueError("Can only specify one of filter_query and predicates")
 
-        for suffix, serializer in iteritems(cls._serializers):
+        for suffix, serializer in cls._serializers.items():
             if key.endswith(suffix):
                 df = serializer.restore_dataframe(
                     store,

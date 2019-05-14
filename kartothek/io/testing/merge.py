@@ -3,8 +3,6 @@ from datetime import date
 
 import pandas as pd
 import pandas.util.testing as pdt
-import pytest
-import six
 
 MERGE_TASKS = [
     {
@@ -50,7 +48,6 @@ MERGE_EXP_CL2 = pd.DataFrame(
 )
 
 
-@pytest.mark.skipif(six.PY2, reason="Partition order unstable in PY2")
 def test_merge_datasets(
     dataset,
     evaluation_dataset,
