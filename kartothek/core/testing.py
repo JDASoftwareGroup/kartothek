@@ -3,6 +3,8 @@
 
 import contextlib
 import datetime
+from datetime import date
+from unittest import mock
 
 import hypothesis.extra.numpy as hyp_np
 import hypothesis.strategies as hyp_st
@@ -10,18 +12,6 @@ import numpy as np
 import pandas as pd
 
 from kartothek.core.uuid import gen_uuid_object
-
-try:
-    from freezegun.api import real_date as date
-except ImportError:
-    from datetime import date
-
-
-try:
-    # python 3:
-    from unittest import mock
-except ImportError:
-    import mock
 
 TIME_TO_FREEZE = datetime.datetime(2000, 1, 1, 1, 1, 1, 1)
 TIME_TO_FREEZE_ISO = "2000-01-01T01:01:01.000001"

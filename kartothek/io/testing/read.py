@@ -148,24 +148,24 @@ def _perform_read_test(
             assert isinstance(res, MetaPartition)
         result = [mp.data for mp in result]
 
-        def sort_by(dct):
-            return dct["core"].P.iloc[0]
+        def sort_by(obj):
+            return obj["core"].P.iloc[0]
 
     elif output_type == "table":
 
         assert isinstance(result[0], pd.DataFrame)
         assert "P" in result[0]
 
-        def sort_by(df):
-            return df.P.iloc[0]
+        def sort_by(obj):
+            return obj.P.iloc[0]
 
     else:
         assert isinstance(result[0], dict)
         assert "core" in result[0]
         assert "P" in result[0]["core"]
 
-        def sort_by(dct):
-            return dct["core"].P.iloc[0]
+        def sort_by(obj):
+            return obj["core"].P.iloc[0]
 
     result = sorted(result, key=sort_by)
 

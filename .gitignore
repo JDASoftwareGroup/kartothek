@@ -4,6 +4,7 @@
 .eggs/
 .hypothesis/
 .pytest_cache/
+.mypy_cache/
 
 flake8_report.txt
 junit.xml

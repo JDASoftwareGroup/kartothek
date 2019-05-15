@@ -6,6 +6,7 @@ This module contains functionality for persisting/serialising DataFrames.
 
 
 import datetime
+from typing import Dict
 
 import numpy as np
 import pandas as pd
@@ -22,7 +23,7 @@ class DataFrameSerializer(object):
     simplekv stores.
     """
 
-    _serializers = {}
+    _serializers: Dict[str, "DataFrameSerializer"] = {}
     type_stable = False
 
     def __ne__(self, other):
