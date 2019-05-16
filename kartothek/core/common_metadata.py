@@ -263,14 +263,6 @@ def make_meta(obj, origin, partition_keys=None):
         field_name = cmd["field_name"]
         field_idx = schema.get_field_index(field_name)
         field = schema[field_idx]
-        if pa.types.is_dictionary(field.type):
-            # TODO: remove this with Arrow 0.10 when we can access the dictionary
-            #       information.
-            tmp_df = pd.DataFrame({field.name: obj[field.name].cat.categories})
-            tmp_schema = pa.Table.from_pandas(tmp_df).schema
-            field = tmp_schema[0]
-            tmp_metadata = _pandas_meta_from_schema(schema)
-            cmd = tmp_metadata["columns"][0]
         fields[field_name], cmd["pandas_type"], cmd["numpy_type"], cmd[
             "metadata"
         ] = normalize_type(
@@ -291,6 +283,8 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
     - all floats (``float32``, ``float64``) will be converted to ``float64``
     - all list value types will be normalized (e.g. ``list[int16]`` to ``list[int64]``, ``list[list[uint8]]`` to
       ``list[list[uint64]]``)
+    - all dict value types will be normalized (e.g. ``dictionary<values=float32, indices=int16, ordered=0>`` to
+      ``float64``)
 
     Parameters
     ----------
@@ -319,6 +313,9 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
             t_pa.value_type, t_pd[len("list[") : -1], None, None
         )
         return pa.list_(t_pa2), "list[{}]".format(t_pd2), "object", None
+    elif pa.types.is_dictionary(t_pa):
+        # downcast to dictionary content, `t_pd` is useless in that case
+        return normalize_type(t_pa.dictionary.type, t_np, t_np, None)
     else:
         return t_pa, t_pd, t_np, metadata
 
