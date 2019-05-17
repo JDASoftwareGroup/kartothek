@@ -707,3 +707,15 @@ def test_serialization_normalization(key):
     assert index.normalize_value(index.dtype, key) == index2.normalize_value(
         index2.dtype, key
     )
+
+
+def test_serialization_no_indices(store):
+    index = ExplicitSecondaryIndex(column="col", index_dct={1: ["part_1"]})
+    storage_key = index.store(store=store, dataset_uuid="uuid")
+
+    # Create index without `index_dct`
+    index = ExplicitSecondaryIndex(column="col", index_storage_key=storage_key)
+
+    index2 = pickle.loads(pickle.dumps(index))
+
+    assert index == index2

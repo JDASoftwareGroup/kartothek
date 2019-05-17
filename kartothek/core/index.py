@@ -521,7 +521,12 @@ class ExplicitSecondaryIndex(IndexBase):
             return False
         if self.index_storage_key != other.index_storage_key:
             return False
-        return super(ExplicitSecondaryIndex, self).__eq__(other)
+        try:
+            return super(ExplicitSecondaryIndex, self).__eq__(other)
+        except TypeError:  # an `index_dct == None`
+            if self.index_dct != other.index_dct:
+                return False
+            return True
 
     @staticmethod
     def from_v2(column, dct_or_str):
