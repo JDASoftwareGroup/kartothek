@@ -2,6 +2,7 @@
 cloudpickle
 dill
 distributed
+pytz
 toolz
 
 # Test Framework

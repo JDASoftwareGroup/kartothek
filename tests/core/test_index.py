@@ -9,6 +9,7 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pytest
+import pytz
 from hypothesis import assume, given
 from pandas.testing import assert_series_equal
 
@@ -367,16 +368,26 @@ def test_index_as_flat_series_date():
     assert_series_equal(ser, expected)
 
 
-def test_index_store_roundtrip_ts(store):
+@pytest.mark.parametrize(
+    "dtype, timestamps",
+    [
+        (pa.timestamp("ns"), [pd.Timestamp("2017-01-01"), pd.Timestamp("2017-01-02")]),
+        (
+            pa.timestamp("ns"),
+            [
+                pd.Timestamp("2017-01-01", tzinfo=pytz.timezone("EST")),
+                pd.Timestamp("2017-01-02", tzinfo=pytz.timezone("EST")),
+            ],
+        ),
+    ],
+)
+def test_index_store_roundtrip_ts(store, dtype, timestamps):
     storage_key = "dataset_uuid/some_index.parquet"
     index1 = ExplicitSecondaryIndex(
         column="col",
-        index_dct={
-            pd.Timestamp("2017-01-01"): ["part_1", "part_2"],
-            pd.Timestamp("2017-01-02"): ["part_3"],
-        },
+        index_dct=dict(zip(timestamps, [["part_1", "part_2"], ["part_3"]])),
         index_storage_key=storage_key,
-        dtype=pa.timestamp("ns"),
+        dtype=dtype,
     )
     key1 = index1.store(store, "dataset_uuid")
 
@@ -448,6 +459,18 @@ def test_index_raises_null_dtype():
         ),
         (pa.timestamp("ns"), "2018-01-01", pd.Timestamp("2018-01-01").to_datetime64()),
         (pa.date32(), "2018-01-01", datetime.date(2018, 1, 1)),
+        (
+            pa.timestamp("ns", tz=pytz.timezone("Europe/Berlin")),
+            pd.Timestamp("2018-01-01", tzinfo=pytz.timezone("Europe/Berlin")),
+            pd.Timestamp(
+                "2018-01-01", tzinfo=pytz.timezone("Europe/Berlin")
+            ).to_datetime64(),
+        ),
+        (
+            pa.timestamp("ns", tz=pytz.timezone("Europe/Berlin")),
+            "2018-01-01",  # Naive date, is interpreted as being UTC
+            pd.Timestamp("2018-01-01", tzinfo=pytz.timezone("UTC")).to_datetime64(),
+        ),
     ],
 )
 def test_index_normalize_value(dtype, value, expected):
