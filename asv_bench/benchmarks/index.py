@@ -2,7 +2,9 @@
 # See "Writing benchmarks" in the asv docs for more information.
 
 
+import pickle
 import shutil
+import sys
 import tempfile
 
 import numpy as np
@@ -61,6 +63,15 @@ class Index(AsvBenchmarkConfig):
         self, number_values, number_partitions, arrow_type
     ):
         self.ktk_index.as_flat_series(partitions_as_index=True)
+
+    def track_mem_serialized(self, number_values, number_partitions, arrow_type):
+        # Use `sys.getsizeof` as asv's `mem_*` just reports `0` if memory usage is low
+        # enough
+        return sys.getsizeof(pickle.dumps(self.ktk_index))
+
+    def time_serialization(self, number_values, number_partitions, arrow_type):
+        # Time serialization of indices
+        pickle.loads(pickle.dumps(self.ktk_index))
 
 
 class BuildIndex(AsvBenchmarkConfig):
