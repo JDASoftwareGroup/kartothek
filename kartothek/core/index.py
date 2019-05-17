@@ -617,33 +617,7 @@ class ExplicitSecondaryIndex(IndexBase):
         """
         if self.index_dct is None:
             index_buffer = store.get(self.index_storage_key)
-            reader = pa.BufferReader(index_buffer)
-            # This can be done much more efficient but would take a lot more
-            # time to implement so this will be only done on request.
-            table = pq.read_table(reader)
-            column_type = None
-            # Actually the following line should work but seems broken in pyarrow 0.2
-            #   column_type = table.schema.field_by_name(self.column).type
-            for field in table.schema:
-                if field.name == self.column:
-                    column_type = field.type
-            df = _fix_pyarrow_07992_table(table).to_pandas()
-
-            if column_type == pa.timestamp("us"):
-                # type roundtrip is wrong, was ns, values are numpy.datetime64[ns] though
-                column_type = pa.timestamp("ns")
-
-            # This is much faster then iterating over all rows
-            index_dct = dict(
-                zip(
-                    df[self.column].values,
-                    (
-                        # TODO: remove list conversion once pyarrow is fixed
-                        list(x)
-                        for x in df[_PARTITION_COLUMN_NAME].values
-                    ),
-                )
-            )
+            index_dct, column_type = _parquet_bytes_to_dict(self.column, index_buffer)
 
             return ExplicitSecondaryIndex(
                 column=self.column,
@@ -654,6 +628,32 @@ class ExplicitSecondaryIndex(IndexBase):
             )
         else:
             return self
+
+    def __getstate__(self):
+        if self.index_dct is None:
+            return (self.column, self.index_storage_key, self.dtype, None)
+
+        table = _index_dct_to_table(self.index_dct, self.column)
+        buf = pa.BufferOutputStream()
+        pq.write_table(table, buf)
+        parquet_bytes = buf.getvalue().to_pybytes()
+        # Since `self.dtype` will be inferred by parquet bytes, do not return
+        # this argument during serialization to avoid unnecessary memory consumption
+        return (self.column, self.index_storage_key, None, parquet_bytes)
+
+    def __setstate__(self, state):
+        column, storage_key, column_type, parquet_bytes = state
+        if parquet_bytes is None:
+            index_dct = None
+        else:
+            index_dct, column_type = _parquet_bytes_to_dict(column, parquet_bytes)
+        self.__init__(
+            column=column,
+            index_dct=index_dct,
+            index_storage_key=storage_key,
+            dtype=column_type,
+            normalize_dtype=False,
+        )
 
 
 def merge_indices(list_of_indices):
@@ -737,6 +737,28 @@ def filter_indices(index_dict, partitions):
             column=column, index_dct=index_dict, dtype=types[column]
         )
     return new_index_dict
+
+
+def _parquet_bytes_to_dict(column, index_buffer):
+    reader = pa.BufferReader(index_buffer)
+    # This can be done much more efficient but would take a lot more
+    # time to implement so this will be only done on request.
+    table = pq.read_table(reader)
+    column_type = table.schema.field_by_name(column).type
+
+    # `datetime.datetime` objects have a precision of up to microseconds only, so arrow
+    # parses the type to `pa.timestamp("us")`. Since the
+    # values are normalized to `numpy.datetime64[ns]` anyways, we do not care about this
+    # and load the column type as `pa.timestamp("ns")`
+    if column_type == pa.timestamp("us"):
+        column_type = pa.timestamp("ns")
+
+    df = _fix_pyarrow_07992_table(table).to_pandas()  # Could eventually be phased out
+
+    index_dct = dict(
+        zip(df[column].values, (list(x) for x in df[_PARTITION_COLUMN_NAME].values))
+    )
+    return index_dct, column_type
 
 
 def _index_dct_to_table(index_dct, column):

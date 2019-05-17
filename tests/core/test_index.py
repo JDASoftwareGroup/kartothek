@@ -3,6 +3,7 @@
 
 import datetime
 import logging
+import pickle
 from itertools import permutations
 
 import numpy as np
@@ -642,3 +643,67 @@ def test_index_uint():
         },
     )
     assert index.dtype == "uint64"
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        True,  # pa.bool_()
+        1,  # pa.int64()
+        1.1,  # pa.float64()
+        b"x",  # pa.binary()
+        "ö",  # pa.string()
+        pd.Timestamp("2018-01-01").to_datetime64(),  # pa.timestamp("ns")
+        pd.Timestamp(
+            "2018-01-01", tzinfo=pytz.timezone("Europe/Berlin")
+        ).to_datetime64(),  # pa.timestamp("ns")
+        datetime.date(2018, 1, 1),  # pa.date32()
+    ],
+)
+def test_serialization(key):
+    """Check index remains consistent after serializing and de-serializing"""
+    index = ExplicitSecondaryIndex(
+        column="col", index_dct={key: ["part_2", "part_4", "part_1"]}
+    )
+    index2 = pickle.loads(pickle.dumps(index))
+
+    assert index == index2
+
+
+@pytest.mark.parametrize(
+    "key",
+    [
+        True,  # pa.bool_()
+        1,  # pa.int64()
+        1.1,  # pa.float64()
+        b"x",  # pa.binary()
+        "ö",  # pa.string()
+        pd.Timestamp("2018-01-01").to_datetime64(),  # pa.timestamp("ns")
+        pd.Timestamp(
+            "2018-01-01", tzinfo=pytz.timezone("Europe/Berlin")
+        ).to_datetime64(),  # pa.timestamp("ns")
+        datetime.datetime(
+            2018, 1, 1, 12, 30
+        ),  # pa.timestamp("us") (initial) => pa.timestamp("ns") (after loading)
+        datetime.datetime(
+            2018, 1, 1, 12, 30, tzinfo=pytz.timezone("Europe/Berlin")
+        ),  # pa.timestamp("ns")
+        datetime.date(2018, 1, 1),  # pa.date32()
+    ],
+)
+def test_serialization_normalization(key):
+    """
+    Check that index normalizes values consistently after serializing.
+
+    This is helpful to ensure correct behavior for cases such as when
+    key=`datetime.datetime(2018, 1, 1, 12, 30)`, as this would be parsed to
+    `pa.timestamp("us")` during index creation, but stored as `pa.timestamp("ns")`.
+    """
+    index = ExplicitSecondaryIndex(
+        column="col", index_dct={key: ["part_2", "part_4", "part_1"]}
+    )
+    index2 = pickle.loads(pickle.dumps(index))
+
+    assert index.normalize_value(index.dtype, key) == index2.normalize_value(
+        index2.dtype, key
+    )
