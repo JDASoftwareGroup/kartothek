@@ -1,8 +1,5 @@
 Examples
-========
-
-Quickstart
-^^^^^^^^^^
+--------
 
 Setup a store
 
@@ -54,8 +51,11 @@ Setup a store
     df_from_store
 
 
+Eager
+`````
+
 Write
-^^^^^
+~~~~~
 
 .. ipython:: python
 
@@ -98,7 +98,79 @@ Write
 
 
 Read
-^^^^
+~~~~
+
+.. ipython:: python
+
+    import pandas as pd
+    from kartothek.io.eager import read_dataset_as_dataframes
+
+    # Create the pipeline with a minimal set of configs
+    list_of_partitions = read_dataset_as_dataframes(
+        dataset_uuid='MyFirstDataset',
+        store=store_factory
+    )
+
+    # In case you were using the dataset created in the Write example
+    for d1, d2 in zip(list_of_partitions, [
+                            # FirstPartition
+                            {
+                                "FirstCategory": pd.DataFrame(),
+                                "SecondCategory": pd.DataFrame()
+                            },
+                            # SecondPartition
+                            {
+                                "FirstCategory": pd.DataFrame(),
+                                "SecondCategory": pd.DataFrame()
+                            },
+                        ]
+    ):
+        for kv1, kv2 in zip(d1.items(), d2.items()):
+            k1, v1 = kv1
+            k2, v2 = kv2
+            assert k1 == k2 and all(v1 == v2)
+
+
+Iter
+````
+Write
+~~~~~
+
+.. ipython:: python
+
+    import pandas as pd
+    from kartothek.io.iter import store_dataframes_as_dataset__iter
+
+    input_list_of_partitions = [
+        {
+            "label": "FirstPartition",
+            "data": [
+                ("FirstCategory", pd.DataFrame()),
+                ("SecondCategory", pd.DataFrame())
+            ]
+        },
+        {
+            "label": "SecondPartition",
+            "data": [
+                ("FirstCategory", pd.DataFrame()),
+                ("SecondCategory", pd.DataFrame())
+            ]
+        }
+    ]
+
+    # The pipeline will return a :class:`~kartothek.core.dataset.DatasetMetadata` object
+    # which refers to the created dataset
+    dataset = store_dataframes_as_dataset__iter(
+        input_list_of_partitions,
+        store=store_factory,
+        dataset_uuid='MyFirstDatasetIter',
+        metadata={"dataset": "metadata"},  # This is optional dataset metadata
+        metadata_version=4
+    )
+    dataset
+
+Read
+~~~~
 
 .. ipython:: python
 
@@ -107,7 +179,7 @@ Read
 
     # Create the pipeline with a minimal set of configs
     list_of_partitions = read_dataset_as_dataframes__iterator(
-        dataset_uuid='MyFirstDataset',
+        dataset_uuid='MyFirstDatasetIter',
         store=store_factory
     )
     # the iter backend returns a generator object. In our case we want to look at
@@ -132,3 +204,64 @@ Read
             k1, v1 = kv1
             k2, v2 = kv2
             assert k1 == k2 and all(v1 == v2)
+
+Dask
+````
+
+Write
+~~~~~
+
+.. ipython:: python
+
+    import pandas as pd
+    from kartothek.io.dask.delayed import store_delayed_as_dataset
+
+    input_list_of_partitions = [
+        {
+            "label": "FirstPartition",
+            "data": [
+                ("FirstCategory", pd.DataFrame()),
+                ("SecondCategory", pd.DataFrame())
+            ]
+        },
+        {
+            "label": "SecondPartition",
+            "data": [
+                ("FirstCategory", pd.DataFrame()),
+                ("SecondCategory", pd.DataFrame())
+            ]
+        }
+    ]
+
+    # This will return a :class:`~dask.delayed`. The figure below
+    # show the generated task graph.
+    task = store_delayed_as_dataset(
+        input_list_of_partitions,
+        store=store_factory,
+        dataset_uuid='MyFirstDatasetDask',
+        metadata={"dataset": "metadata"},  # This is optional dataset metadata
+        metadata_version=4
+    )
+    task.compute()
+
+.. figure:: ./taskgraph.jpeg
+    :scale: 40%
+    :figclass: align-center
+
+    Task graph for the above dataset store pipeline.
+
+Read
+~~~~
+
+.. ipython:: python
+
+    import dask
+    import pandas as pd
+    from kartothek.io.dask.delayed import read_dataset_as_delayed
+
+    tasks = read_dataset_as_delayed(
+        dataset_uuid='MyFirstDatasetIter',
+        store=store_factory
+    )
+    tasks
+    dask.compute(tasks)
