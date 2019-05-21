@@ -6,6 +6,8 @@ import pickle
 import shutil
 import sys
 import tempfile
+import uuid
+from functools import lru_cache
 
 import numpy as np
 import pandas as pd
@@ -18,19 +20,24 @@ from kartothek.io_components.metapartition import MetaPartition
 from .config import AsvBenchmarkConfig
 
 
-class Index(AsvBenchmarkConfig):
-    params = (
-        [10 * 1, 10 ** 3],  # values
-        [10 * 1, 10 ** 3],  # partitions
-        [(int, pa.int64()), (str, pa.string())],  # types
-    )
-    param_names = ["number_values", "number_partitions", "dtype"]
+@lru_cache()
+def generate_partition_values(num_partitions):
+    dataset_uuid = uuid.uuid1().hex
+    return [
+        f"{dataset_uuid}/column_1={ix % 10}/column_2={ix % 100}/{uuid.uuid1().hex}.parquet"
+        for ix in range(num_partitions)
+    ]
 
+
+class IndexBase(AsvBenchmarkConfig):
     def setup(self, number_values, number_partitions, dtype):
         py_type, arrow_type = dtype
+        self.partition_values = generate_partition_values(number_partitions)
         index_dct = {
-            py_type(val): [str(part) for part in range(number_partitions)]
-            for val in range(0, number_values)
+            py_type(val): list(
+                np.random.choice(self.partition_values, number_partitions // 2)
+            )
+            for val in range(number_values)
         }
         self.column_name = "column"
         self.ktk_index = ExplicitSecondaryIndex(
@@ -50,6 +57,15 @@ class Index(AsvBenchmarkConfig):
     def teardown(self, number_values, number_partitions, dtype):
         shutil.rmtree(self.tmp_dir)
 
+
+class Index(IndexBase):
+    params = (
+        [10 * 1, 10 ** 3],  # values
+        [10 * 1, 10 ** 3],  # partitions
+        [(int, pa.int64())],  # types
+    )
+    param_names = ["number_values", "number_partitions", "dtype"]
+
     def time_load_index(self, number_values, number_partitions, arrow_type):
         self.ktk_index_not_loaded.load(self.store)
 
@@ -64,18 +80,36 @@ class Index(AsvBenchmarkConfig):
     ):
         self.ktk_index.as_flat_series(partitions_as_index=True)
 
-    def track_mem_serialized(self, number_values, number_partitions, arrow_type):
+
+class SerializeIndex(IndexBase):
+    timeout = 180
+    params = (
+        [(10 ** 3, 10), (10 ** 4, 100)],  # (values, partitions)
+        [(int, pa.int64())],  # types
+    )
+    param_names = ["number_values__number_partitions", "dtype"]
+
+    def setup(self, number_values__number_partitions, dtype):
+        number_values, number_partitions = number_values__number_partitions
+        return super().setup(number_values, number_partitions, dtype)
+
+    def teardown(self, number_values__number_partitions, dtype):
+        number_values, number_partitions = number_values__number_partitions
+        return super().teardown(number_values, number_partitions, dtype)
+
+    def track_mem_serialized(self, number_values__number_partitions, arrow_type):
         # Use `sys.getsizeof` as asv's `mem_*` just reports `0` if memory usage is low
         # enough
         return sys.getsizeof(pickle.dumps(self.ktk_index))
 
-    def time_serialization(self, number_values, number_partitions, arrow_type):
+    def time_serialization(self, number_values__number_partitions, arrow_type):
         # Time serialization of indices
         pickle.loads(pickle.dumps(self.ktk_index))
 
 
 class BuildIndex(AsvBenchmarkConfig):
     params = ([-1, 1], [10 ** 3, 10 ** 4], [10, 100])
+    param_names = ["cardinality", "num_values", "partitions_to_merge"]
 
     def setup(self, cardinality, num_values, partitions_to_merge):
         self.column = "column"
