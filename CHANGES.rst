@@ -14,6 +14,7 @@ Version 3.1.0 (2019-XX-XX)
     + ``io.eager.index.build_dataset_indices``
     + ``io.eager.update_dataset_from_dataframes``
 - fix ``_apply_partition_key_predicates`` ``FutureWarning``
+- serialize :class:`~kartothek.core.index.ExplicitSecondaryIndex` to parquet
 
 **Breaking:**
 
