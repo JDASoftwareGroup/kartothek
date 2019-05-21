@@ -1,6 +1,5 @@
 # Test Code Dependencies
 cloudpickle
-dill
 distributed
 pytz
 toolz

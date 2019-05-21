@@ -1,4 +1,6 @@
-import dill
+import pickle
+from functools import partial
+
 import pytest
 
 from kartothek.core.factory import DatasetFactory
@@ -33,9 +35,13 @@ class CountFactory(object):
         return result
 
 
+def _create_count_store(store_factory):
+    return CountStore(store_factory())
+
+
 @pytest.fixture(scope="function")
 def count_store(store_factory):
-    return CountFactory(lambda: CountStore(store_factory()))
+    return CountFactory(partial(_create_count_store, store_factory))
 
 
 def test_store_init(count_store, dataset_function):
@@ -76,7 +82,7 @@ def test_get_metadata(count_store, dataset_function):
     assert store.get_count == initial_count
 
 
-def test_dill(count_store, dataset_function):
+def test_pickle(count_store, dataset_function):
     factory = DatasetFactory(dataset_uuid="dataset_uuid", store_factory=count_store)
     assert factory._cache_store is None
     assert factory._cache_metadata is None
@@ -86,6 +92,6 @@ def test_dill(count_store, dataset_function):
     assert factory._cache_store is not None
     assert factory._cache_metadata is not None
 
-    factory2 = dill.loads(dill.dumps(factory))
+    factory2 = pickle.loads(pickle.dumps(factory, pickle.HIGHEST_PROTOCOL))
     assert factory2._cache_store is None
     assert factory2._cache_metadata is None
