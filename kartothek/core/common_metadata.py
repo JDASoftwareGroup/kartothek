@@ -15,6 +15,7 @@ import simplejson
 
 from kartothek.core import naming
 from kartothek.core._compat import load_json
+from kartothek.core.utils import _ensure_string_type
 
 from ._compat import ARROW_LARGER_EQ_0130
 
@@ -787,6 +788,8 @@ def empty_dataframe_from_schema(schema, columns=None, date_as_object=False):
             arrays=arrays, names=names, metadata=schema.metadata
         )
         df = table.to_pandas(date_as_object=date_as_object)
+
+    df.columns = df.columns.map(_ensure_string_type)
     if columns is not None:
         df = df[columns]
 
