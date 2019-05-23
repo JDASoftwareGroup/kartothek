@@ -1,3 +1,5 @@
+import pickle
+
 import dask
 import pytest
 
@@ -7,6 +9,8 @@ from kartothek.io.testing.delete import *  # noqa
 
 def _delete(*args, **kwargs):
     tasks = delete_dataset__delayed(*args, **kwargs)
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
     dask.compute(tasks)
 
 

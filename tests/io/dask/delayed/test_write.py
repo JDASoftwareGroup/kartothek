@@ -1,3 +1,4 @@
+import pickle
 from functools import partial
 
 import dask.bag as db
@@ -10,11 +11,19 @@ from kartothek.io.testing.write import *  # noqa
 
 def _store_dataframes(execution_mode, df_list, *args, **kwargs):
     if execution_mode == "dask.bag":
-        return store_bag_as_dataset(
-            db.from_sequence(df_list), *args, **kwargs
-        ).compute()
+        bag = store_bag_as_dataset(db.from_sequence(df_list), *args, **kwargs)
+
+        s = pickle.dumps(bag, pickle.HIGHEST_PROTOCOL)
+        bag = pickle.loads(s)
+
+        return bag.compute()
     elif execution_mode == "dask.delayed":
-        return store_delayed_as_dataset(df_list, *args, **kwargs).compute()
+        tasks = store_delayed_as_dataset(df_list, *args, **kwargs)
+
+        s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+        tasks = pickle.loads(s)
+
+        return tasks.compute()
     else:
         raise ValueError("Unknown execution mode: {}".format(execution_mode))
 

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
+import pickle
 
 import dask
 import dask.dataframe as dd
@@ -18,7 +19,6 @@ def bound_update_dataset():
     return _update_dataset
 
 
-@dask.delayed
 def _unwrap_partition(part):
     return next(iter(dict(part["data"]).values()))
 
@@ -33,13 +33,22 @@ def _update_dataset(partitions, secondary_indices=None, *args, **kwargs):
     else:
         table_name = "core"
         partitions = None
-    return update_dataset_from_ddf(
+    ddf = update_dataset_from_ddf(
         partitions,
         *args,
         table=table_name,
         secondary_indices=secondary_indices,
         **kwargs,
-    ).compute()
+    )
+
+    s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
+    ddf = pickle.loads(s)
+
+    return ddf.compute()
+
+
+def _return_none():
+    return None
 
 
 @pytest.mark.min_metadata_version(4)
@@ -101,6 +110,9 @@ def test_update_shuffle_buckets(
         partition_on=["primary"],
     )
 
+    s = pickle.dumps(dataset_comp, pickle.HIGHEST_PROTOCOL)
+    dataset_comp = pickle.loads(s)
+
     dataset = dataset_comp.compute()
     dataset = dataset.load_all_indices(store_factory())
 
@@ -129,7 +141,7 @@ def test_update_shuffle_buckets(
 
     # update the dataset
     # do not use partition_on since it should be interfered from the existing dataset
-    updated_dataset = update_dataset_from_ddf(
+    tasks = update_dataset_from_ddf(
         ddf,
         store_factory,
         dataset_uuid="output_dataset_uuid",
@@ -139,7 +151,12 @@ def test_update_shuffle_buckets(
         num_buckets=num_buckets,
         sort_partitions_by="sorted_column",
         default_metadata_version=metadata_version,
-    ).compute()
+    )
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
+    updated_dataset = tasks.compute()
 
     assert len(updated_dataset.partitions) == 2 * len(dataset.partitions)
 
@@ -177,7 +194,7 @@ def test_update_shuffle_buckets(
         )
 
     # Check that delayed objects are allowed as delete scope.
-    update_dataset_from_ddf(
+    tasks = update_dataset_from_ddf(
         None,
         store_factory,
         dataset_uuid="output_dataset_uuid",
@@ -187,5 +204,10 @@ def test_update_shuffle_buckets(
         num_buckets=num_buckets,
         sort_partitions_by="sorted_column",
         default_metadata_version=metadata_version,
-        delete_scope=dask.delayed(lambda: None)(),
-    ).compute()
+        delete_scope=dask.delayed(_return_none)(),
+    )
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
+    tasks.compute()

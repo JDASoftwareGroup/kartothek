@@ -1,4 +1,5 @@
 import pickle
+from copy import copy
 from functools import partial
 
 import pytest
@@ -33,6 +34,11 @@ class CountFactory(object):
         result = self.inner()
         self.last = result
         return result
+
+    def __getstate__(self):
+        state = copy(self.__dict__)
+        state["last"] = None
+        return state
 
 
 def _create_count_store(store_factory):

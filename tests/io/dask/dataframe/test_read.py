@@ -1,3 +1,4 @@
+import pickle
 from functools import partial
 
 import pandas as pd
@@ -44,6 +45,9 @@ def _read_as_ddf(
             assert ddf._meta.dtypes["L"] == pd.api.types.CategoricalDtype(
                 categories=["__UNKNOWN_CATEGORIES__"], ordered=False
             )
+
+    s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
+    ddf = pickle.loads(s)
 
     ddf = ddf.compute().reset_index(drop=True)
 

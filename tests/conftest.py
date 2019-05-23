@@ -9,7 +9,6 @@ from functools import partial
 
 import pandas as pd
 import pytest
-import storefact
 
 from kartothek.core.common_metadata import make_meta
 from kartothek.core.factory import DatasetFactory
@@ -19,6 +18,7 @@ from kartothek.core.testing import (
     get_dataframe_alltypes,
     get_dataframe_not_nested,
 )
+from kartothek.io.testing.utils import no_pickle_store_from_url
 from kartothek.io_components.metapartition import (
     MetaPartition,
     gen_uuid,
@@ -62,21 +62,21 @@ def store_session_factory(tmpdir_factory):
     path = tmpdir_factory.mktemp("fsstore_test")
     path = path.realpath()
     url = "hfs://{}".format(path)
-    return partial(storefact.get_store_from_url, url)
+    return partial(no_pickle_store_from_url, url)
 
 
 @pytest.fixture
 def store_factory(tmpdir):
     path = tmpdir.join("store").strpath
     url = "hfs://{}".format(path)
-    return partial(storefact.get_store_from_url, url)
+    return partial(no_pickle_store_from_url, url)
 
 
 @pytest.fixture
 def store_factory2(tmpdir):
     path = tmpdir.join("store2").strpath
     url = "hfs://{}".format(path)
-    return partial(storefact.get_store_from_url, url)
+    return partial(no_pickle_store_from_url, url)
 
 
 @pytest.fixture(scope="session")

@@ -41,7 +41,6 @@ from ._update import _update_dask_partitions_one_to_one
 from ._utils import _maybe_get_categoricals_from_index, map_delayed
 
 
-@delayed
 def _delete_all_additional_metadata(dataset_factory):
     delete_indices(dataset_factory=dataset_factory)
     delete_common_metadata(dataset_factory=dataset_factory)
@@ -49,7 +48,6 @@ def _delete_all_additional_metadata(dataset_factory):
     return dataset_factory.dataset_uuid
 
 
-@delayed
 def _delete_tl_metadata(dataset_factory, *args):
     """
     This function serves as a collector function for delayed objects. Therefore
@@ -74,7 +72,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
 
     mps = dispatch_metapartitions_from_factory(dataset_factory)
 
-    delayed_dataset_uuid = _delete_all_additional_metadata(
+    delayed_dataset_uuid = delayed(_delete_all_additional_metadata)(
         dataset_factory=dataset_factory
     )
 
@@ -85,7 +83,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
         dataset_uuid=delayed_dataset_uuid,
     )
 
-    return _delete_tl_metadata(dataset_factory, mps)
+    return delayed(_delete_tl_metadata)(dataset_factory, mps)
 
 
 def garbage_collect_dataset__delayed(
@@ -231,14 +229,17 @@ def merge_datasets_as_delayed(
     return mps
 
 
-def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
-    @dask.delayed
-    def _load_and_concat(mps):
-        return MetaPartition.concat_metapartitions(
-            [mp.load_dataframes(*args, **kwargs) for mp in mps]
-        )
+def _load_and_concat_metapartitions_inner(mps, args, kwargs):
+    return MetaPartition.concat_metapartitions(
+        [mp.load_dataframes(*args, **kwargs) for mp in mps]
+    )
 
-    return [_load_and_concat(mps) for mps in list_of_mps]
+
+def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
+    return [
+        delayed(_load_and_concat_metapartitions_inner)(mps, args, kwargs)
+        for mps in list_of_mps
+    ]
 
 
 def _identity():

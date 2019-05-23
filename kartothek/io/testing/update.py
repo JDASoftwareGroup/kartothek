@@ -21,9 +21,8 @@ from kartothek.io.iter import read_dataset_as_dataframes__iterator
 
 @pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions__reducer(
-    store, metadata_version, bound_update_dataset, mocker
+    store_factory, metadata_version, bound_update_dataset, mocker, store
 ):
-
     partitions = [
         {
             "label": "cluster_1",
@@ -38,7 +37,7 @@ def test_update_dataset_with_partitions__reducer(
     ]
     dataset = bound_update_dataset(
         partitions,
-        store=lambda: store,
+        store=store_factory,
         metadata={"dataset": "metadata"},
         dataset_uuid="dataset_uuid",
         default_metadata_version=metadata_version,
@@ -54,7 +53,7 @@ def test_update_dataset_with_partitions__reducer(
 
     dataset_updated = bound_update_dataset(
         [part3],
-        store=lambda: store,
+        store=store_factory,
         delete_scope=[{"p": 1}],
         metadata={"extra": "metadata"},
         dataset_uuid="dataset_uuid",
@@ -100,7 +99,7 @@ def test_update_dataset_with_partitions__reducer(
 
 @pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions_no_index_input_info(
-    store, metadata_version, bound_update_dataset
+    store_factory, metadata_version, bound_update_dataset, store
 ):
     partitions = [
         {
@@ -116,7 +115,7 @@ def test_update_dataset_with_partitions_no_index_input_info(
     ]
     dataset = store_dataframes_as_dataset(
         dfs=partitions,
-        store=lambda: store,
+        store=store_factory,
         metadata={"dataset": "metadata"},
         dataset_uuid="dataset_uuid",
         metadata_version=metadata_version,
@@ -127,7 +126,7 @@ def test_update_dataset_with_partitions_no_index_input_info(
     part3 = {"label": "cluster_3", "data": [("core", pd.DataFrame({"p": [3]}))]}
     dataset_updated = bound_update_dataset(
         [part3],
-        store=lambda: store,
+        store=store_factory,
         dataset_uuid=dataset.uuid,
         delete_scope=[{"p": 1}],
         metadata={"extra": "metadata"},
@@ -140,7 +139,7 @@ def test_update_dataset_with_partitions_no_index_input_info(
 
 @pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions__reducer_delete_only(
-    store, metadata_version, frozen_time_em, bound_update_dataset
+    store_factory, metadata_version, frozen_time_em, bound_update_dataset, store
 ):
     partitions = [
         {
@@ -156,7 +155,7 @@ def test_update_dataset_with_partitions__reducer_delete_only(
     ]
     dataset = store_dataframes_as_dataset(
         dfs=partitions,
-        store=lambda: store,
+        store=store_factory,
         metadata={"dataset": "metadata"},
         dataset_uuid="dataset_uuid",
         metadata_version=metadata_version,
@@ -166,7 +165,7 @@ def test_update_dataset_with_partitions__reducer_delete_only(
     empty_part = []
     dataset_updated = bound_update_dataset(
         [empty_part],
-        store=lambda: store,
+        store=store_factory,
         dataset_uuid="dataset_uuid",
         delete_scope=[{"p": 1}],
         metadata={"extra": "metadata"},
@@ -295,7 +294,7 @@ def test_update_dataset_with_partitions__reducer_partitions(
 
 @pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions__reducer_nonexistent(
-    store, metadata_version, frozen_time_em, bound_update_dataset
+    store_factory, metadata_version, frozen_time_em, bound_update_dataset, store
 ):
 
     part3 = {
@@ -305,7 +304,7 @@ def test_update_dataset_with_partitions__reducer_nonexistent(
     }
     dataset_updated = bound_update_dataset(
         [part3],
-        store=lambda: store,
+        store=store_factory,
         dataset_uuid="dataset_uuid",
         delete_scope=[{"p": 1}],
         metadata={"extra": "metadata"},

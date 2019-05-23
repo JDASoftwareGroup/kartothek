@@ -1,3 +1,4 @@
+import pickle
 from functools import partial
 
 import pytest
@@ -25,6 +26,10 @@ def _load_dataframes(output_type, *args, **kwargs):
             kwargs.pop("tables")
         func = partial(read_table_as_delayed, table="core")
     tasks = func(*args, **kwargs)
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
     result = [task.compute() for task in tasks]
     return result
 
