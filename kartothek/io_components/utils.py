@@ -119,7 +119,10 @@ def _ensure_compatible_indices(dataset, secondary_indices):
             )
         return ds_secondary_indices
     else:
-        return secondary_indices
+        # We return `False` if there is no dataset in storage and `secondary_indices` is undefined
+        # (`secondary_indices` is normalized to `[]` by default).
+        # In consequence, `parse_input_to_metapartition` will not check indices at the partition level.
+        return secondary_indices or False
 
 
 def validate_partition_keys(

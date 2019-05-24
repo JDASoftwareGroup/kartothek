@@ -1494,7 +1494,9 @@ def partition_labels_from_mps(mps):
     return partition_labels
 
 
-def parse_input_to_metapartition(obj, metadata_version=None):
+def parse_input_to_metapartition(
+    obj, metadata_version=None, expected_secondary_indices=False
+):
     """
     Parses given user input and returns a MetaPartition
 
@@ -1550,6 +1552,11 @@ def parse_input_to_metapartition(obj, metadata_version=None):
     obj : Union[Dict, pd.DataFrame, kartothek.io_components.metapartition.MetaPartition]
     metadata_version : int, optional
         The kartothek dataset specification version
+    expected_secondary_indices : Optional[Union[Iterable[str], Literal[False]]]
+        Iterable of strings containing expected columns on which indices are created. An empty iterable indicates no
+        indices are expected.
+        The default is `False`, which, indicates no checking will be done (`None` behaves the same way).
+        This is only used in mode "Dictionary with partition information".
 
     Raises
     ------
@@ -1568,12 +1575,16 @@ def parse_input_to_metapartition(obj, metadata_version=None):
             return MetaPartition(label=None, metadata_version=metadata_version)
         first_element = obj.pop()
         mp = parse_input_to_metapartition(
-            obj=first_element, metadata_version=metadata_version
+            obj=first_element,
+            metadata_version=metadata_version,
+            expected_secondary_indices=expected_secondary_indices,
         )
         for mp_in in obj:
             mp = mp.add_metapartition(
                 parse_input_to_metapartition(
-                    obj=mp_in, metadata_version=metadata_version
+                    obj=mp_in,
+                    metadata_version=metadata_version,
+                    expected_secondary_indices=expected_secondary_indices,
                 )
             )
     elif isinstance(obj, dict):
@@ -1581,11 +1592,19 @@ def parse_input_to_metapartition(obj, metadata_version=None):
             data = dict(obj["data"])
         else:
             data = obj["data"]
+
+        indices = obj.get("indices", {})
+        if expected_secondary_indices not in (False, None):
+            # Validate explicit input of indices
+            _ensure_valid_indices(
+                secondary_indices=expected_secondary_indices, mp_indices=indices
+            )
+
         mp = MetaPartition(
             # TODO: Deterministic hash for the input?
             label=obj.get("label", gen_uuid()),
             data=data,
-            indices=obj.get("indices", {}),
+            indices=indices,
             metadata_version=metadata_version,
         )
     elif isinstance(obj, pd.DataFrame):
@@ -1600,3 +1619,24 @@ def parse_input_to_metapartition(obj, metadata_version=None):
         raise ValueError("Unexpected type: {}".format(type(obj)))
 
     return mp
+
+
+def _ensure_valid_indices(secondary_indices, mp_indices):
+    if not secondary_indices:
+        if mp_indices:
+            raise ValueError(
+                "Incorrect indices provided for dataset.\n"
+                f"Expected index columns: {secondary_indices}"
+                f"Provided index: {mp_indices}"
+            )
+    else:
+        secondary_indices = set(secondary_indices)
+        # If the dataset has `secondary_indices` defined, then these indices will be build later so there is no need to
+        # ensure that they are also defined here (on a partition level).
+        # Hence,  we just check that no new indices are defined on the partition level.
+        if not secondary_indices.issuperset(mp_indices.keys()):
+            raise ValueError(
+                "Incorrect indices provided for dataset.\n"
+                f"Expected index columns: {secondary_indices}"
+                f"Provided index: {mp_indices}"
+            )
