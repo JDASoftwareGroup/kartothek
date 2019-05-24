@@ -66,7 +66,9 @@ def _update_dask_partitions_one_to_one(
     sort_partitions_by,
 ):
     input_to_mps = partial(
-        parse_input_to_metapartition, metadata_version=metadata_version
+        parse_input_to_metapartition,
+        metadata_version=metadata_version,
+        expected_secondary_indices=secondary_indices,
     )
     mps = map_delayed(delayed_tasks, input_to_mps)
 
