@@ -1,3 +1,5 @@
+import pickle
+
 import dask
 import pytest
 
@@ -16,4 +18,9 @@ def _unwrap_partition(part):
 
 
 def _update_dataset(partitions, secondary_indices=None, *args, **kwargs):
-    return update_dataset_from_delayed(partitions, *args, **kwargs).compute()
+    tasks = update_dataset_from_delayed(partitions, *args, **kwargs)
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
+    return tasks.compute()

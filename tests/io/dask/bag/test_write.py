@@ -1,3 +1,5 @@
+import pickle
+
 import dask.bag as db
 import pytest
 
@@ -6,7 +8,10 @@ from kartothek.io.testing.write import *  # noqa
 
 
 def _store_dataframes(df_list, *args, **kwargs):
-    return store_bag_as_dataset(db.from_sequence(df_list), *args, **kwargs).compute()
+    bag = store_bag_as_dataset(db.from_sequence(df_list), *args, **kwargs)
+    s = pickle.dumps(bag, pickle.HIGHEST_PROTOCOL)
+    bag = pickle.loads(s)
+    return bag.compute()
 
 
 @pytest.fixture()
