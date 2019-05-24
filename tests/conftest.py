@@ -115,14 +115,16 @@ def mock_default_metadata_version(mocker, backend_identifier):
     )
 
     # Mock `kartothek.io_components.metapartition.parse_input_to_metapartition`
-    def patched__parse_input_to_metapartition(obj, metadata_version=None):
+    def patched__parse_input_to_metapartition(
+        obj, metadata_version=None, *args, **kwargs
+    ):
         if metadata_version == mock_metadata_version:
             table, data = obj  # Tuple
             return MetaPartition(
                 label=gen_uuid(), data={table: data}, metadata_version=metadata_version
             )
         try:
-            return parse_input_to_metapartition(obj, metadata_version)
+            return parse_input_to_metapartition(obj, metadata_version, *args, **kwargs)
         except ValueError as e:
             # Raise a "custom" error to distinguish this error from the error raised
             # by `parse_input_to_metapartition` when the object has not previously
