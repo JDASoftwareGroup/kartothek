@@ -69,7 +69,7 @@ class DatasetMetadataBase(CopyMixin):
         self.partitions = partitions if partitions else {}
         self.metadata = metadata if metadata else {}
         self.indices = indices if indices else {}
-        # explict partitions means that the partitions are defined in the
+        # explicit partitions means that the partitions are defined in the
         # metadata.json file (in contrast to implicit partitions that are
         # derived from the partition key names)
         self.explicit_partitions = explicit_partitions

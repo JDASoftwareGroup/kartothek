@@ -25,7 +25,7 @@ Goals
  * Query planing with `O(1)` calls to the remote store
  * Inverted indices for fast query planing
  * Read access without any locking mechanism
- * Portable accross frameworks and languages
+ * Portable across frameworks and languages
  * Seemless integration to OSS community software
    (Apache Arrow, Apache Parquet, pandas, etc.)
  * Lifecycle management (garbage collection, retention, etc.)
@@ -190,7 +190,7 @@ Attributes
 ----------
 
 This section describes the attributes that should be present in the main
-metadata JSON file. For each attribute, we specifiy its key and the expected
+metadata JSON file. For each attribute, we specify its key and the expected
 type. The type is a must and conversion from e.g. ``INT`` in the case
 a ``STRING`` is expected are not done. The usage of these attributes
 can be seen in the example below.

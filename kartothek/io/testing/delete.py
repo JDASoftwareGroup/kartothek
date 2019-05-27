@@ -27,10 +27,10 @@ def test_delete_single_dataset(store_factory, metadata_version, bound_delete_dat
     create_dataset("dataset", store_factory, metadata_version)
     create_dataset("another_dataset", store_factory, metadata_version)
     store = store_factory()
-    ammount_of_keys = len(list(store.keys()))
+    amount_of_keys = len(list(store.keys()))
     assert len(list(store.keys())) > 0
     bound_delete_dataset("dataset", store_factory)
-    assert len(list(store.keys())) == ammount_of_keys / 2, store.keys()
+    assert len(list(store.keys())) == amount_of_keys / 2, store.keys()
 
 
 def test_delete_only_dataset(store_factory, metadata_version, bound_delete_dataset):

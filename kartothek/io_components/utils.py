@@ -41,7 +41,7 @@ def combine_metadata(dataset_metadata, append_to_list=True):
     Parameters
     ----------
     dataset_metadata: list of dict
-        The list of dictionaries (ususally metadata) to be combined.
+        The list of dictionaries (usually metadata) to be combined.
     append_to_list: bool
         If True, all values are concatenated. If False, only unique values are kept
     """

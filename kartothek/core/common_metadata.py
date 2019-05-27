@@ -584,7 +584,7 @@ def validate_compatible(schemas, ignore_pandas=False):
     Use :meth:`make_meta` and :meth:`normalize_column_order` for type and column order normalization.
 
     In the case that all schemas don't contain any pandas metadata, we will check the Arrow
-    schemas directly for compatability.
+    schemas directly for compatibility.
 
     Parameters
     ----------
@@ -653,7 +653,7 @@ def validate_shared_columns(schemas, ignore_pandas=False):
     Type normalization should be handled by :meth:`make_meta`.
 
     In the case that all schemas don't contain any pandas metadata, we will check the Arrow
-    schemas directly for compatability. Then the metadata information will not be checked
+    schemas directly for compatibility. Then the metadata information will not be checked
     (as it is non-existent).
 
     Parameters

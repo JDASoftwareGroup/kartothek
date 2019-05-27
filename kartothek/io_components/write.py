@@ -160,7 +160,7 @@ def store_dataset_from_partitions(
         store.put(*dataset_builder.to_msgpack())
     else:
         raise ValueError(
-            "Unkown metadata storage format encountered: {}".format(
+            "Unknown metadata storage format encountered: {}".format(
                 metadata_storage_format
             )
         )

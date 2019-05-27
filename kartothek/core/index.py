@@ -723,7 +723,7 @@ def filter_indices(index_dict, partitions):
     index_dict: dict of Index
         A dictionary holding kartothek indices
     partition_list: list
-        A list of partition labels which are allowed in the ouput dictionary
+        A list of partition labels which are allowed in the output dictionary
     """
     new_index_dict = {}
     index_types = {}

@@ -1,7 +1,7 @@
 """
 UUID generation mechanism used in Kartothek.
 
-Using these routines ensures compatiblity w/ Kartothek as well as the application of best practices.
+Using these routines ensures compatibility w/ Kartothek as well as the application of best practices.
 """
 
 

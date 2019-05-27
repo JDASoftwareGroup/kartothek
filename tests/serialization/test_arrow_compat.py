@@ -30,7 +30,7 @@ def reference_store():
 
 def test_arrow_compat(arrow_version, reference_store, mocker):
     """
-    Test if reading/writing accross the supported arrow versions is actually
+    Test if reading/writing across the supported arrow versions is actually
     compatible
 
     Generate new reference files with::

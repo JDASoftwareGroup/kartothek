@@ -108,7 +108,7 @@ def get_numpy_array_strategy(
     array_strategy = hyp_np.arrays(dtype=dtype_strategy, shape=shape, unique=unique)
 
     if exclude_dtypes is None or "date" not in exclude_dtypes:
-        date_strat = hyp_st.lists(
+        date_start = hyp_st.lists(
             hyp_st.dates(
                 min_value=datetime.date(1970, 1, 1), max_value=datetime.date(2100, 1, 1)
             ),
@@ -116,8 +116,8 @@ def get_numpy_array_strategy(
             max_size=shape,
             unique=unique,
         )
-        date_strat = date_strat.map(np.array)
-        one_of_strategies = [array_strategy] + [date_strat]
+        date_start = date_start.map(np.array)
+        one_of_strategies = [array_strategy] + [date_start]
         array_strategy = hyp_st.one_of(one_of_strategies)
 
     def _restrict_datetime_ranges(arr):

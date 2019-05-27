@@ -11,7 +11,7 @@ DASK_LARGER_EQ_121 = LooseVersion(dask.__version__) >= "1.2.1"
 
 def load_json(buf, **kwargs):
     """
-    Compability function to load JSON from str/bytes/unicode.
+    Compatibility function to load JSON from str/bytes/unicode.
 
     For Python 2.7 json.loads accepts str and unicode.
     Python 3.4 only accepts str whereas 3.5+ accept bytes and str.
