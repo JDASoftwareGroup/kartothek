@@ -24,3 +24,10 @@ def _verify_metadata_version(metadata_version):
 
 def verify_metadata_version(*args, **kwargs):
     return _verify_metadata_version(*args, **kwargs)
+
+
+def _ensure_string_type(obj):
+    if isinstance(obj, bytes):
+        return obj.decode()
+    else:
+        return str(obj)
