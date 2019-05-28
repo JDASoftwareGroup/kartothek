@@ -539,3 +539,31 @@ def test_datetime_predicate_with_dates_as_object(
         predicates=[[("c", ">=", datetime.datetime(2000, 1, 1))]],
         dates_as_object=True,
     )
+
+
+def test_binary_column_metadata(store_factory, bound_load_dataframes):
+    table_name = "core"
+    df = {
+        "label": "part1",
+        "data": [(table_name, pd.DataFrame({b"int_col": [1], "🙈".encode(): [2]}))],
+    }
+
+    store_dataframes_as_dataset(
+        dfs=[df], store=store_factory, dataset_uuid="dataset_uuid"
+    )
+
+    result = bound_load_dataframes(
+        dataset_uuid="dataset_uuid", store=store_factory, tables=table_name
+    )
+
+    probe = result[0]
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data[table_name] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[table_name] for mp in result]
+    else:
+        result_dfs = result
+    df = pd.concat(result_dfs).reset_index(drop=True)
+
+    # Assert column names are of type `str`, instead of `bytes` objects
+    assert set(df.columns.map(type)) == {str}
