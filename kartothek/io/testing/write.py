@@ -698,6 +698,86 @@ def test_schema_check_write_shared(store_factory, bound_store_dataframes):
     assert 'Found incompatible entries for column "P"' in str(exc.value)
 
 
+def test_schema_check_write_nice_error(store_factory, bound_store_dataframes):
+    df1 = pd.DataFrame(
+        {
+            "P": pd.Series([1, 1], dtype=np.int64),
+            "Q": pd.Series([1, 2], dtype=np.int64),
+            "X": pd.Series([1, 1], dtype=np.int64),
+        }
+    )
+    df2 = pd.DataFrame(
+        {
+            "P": pd.Series([2, 2], dtype=np.uint64),
+            "Q": pd.Series([1, 2], dtype=np.int64),
+            "X": pd.Series([1, 1], dtype=np.int64),
+        }
+    )
+    df_list = [
+        {"label": "uuid1", "data": [("core", df1)]},
+        {"label": "uuid2", "data": [("core", df2)]},
+    ]
+    with pytest.raises(Exception) as exc:
+        bound_store_dataframes(
+            df_list,
+            store=store_factory,
+            dataset_uuid="dataset_uuid",
+            partition_on=["P", "Q"],
+            metadata_version=4,
+        )
+    assert _exception_str(exc.value).startswith(
+        """Schemas for table 'core' of dataset 'dataset_uuid' are not compatible!
+
+Schema violation
+
+Origin schema: {core/P=2/Q=1/uuid2, core/P=2/Q=2/uuid2}
+Origin reference: {core/P=1/Q=1/uuid1, core/P=1/Q=2/uuid1}
+
+Diff:
+"""
+    )
+
+
+def test_schema_check_write_cut_error(store_factory, bound_store_dataframes):
+    df1 = pd.DataFrame(
+        {
+            "P": pd.Series([1] * 100, dtype=np.int64),
+            "Q": pd.Series(range(100), dtype=np.int64),
+            "X": pd.Series([1] * 100, dtype=np.int64),
+        }
+    )
+    df2 = pd.DataFrame(
+        {
+            "P": pd.Series([2] * 100, dtype=np.uint64),
+            "Q": pd.Series(range(100), dtype=np.int64),
+            "X": pd.Series([1] * 100, dtype=np.int64),
+        }
+    )
+    df_list = [
+        {"label": "uuid1", "data": [("core", df1)]},
+        {"label": "uuid2", "data": [("core", df2)]},
+    ]
+    with pytest.raises(Exception) as exc:
+        bound_store_dataframes(
+            df_list,
+            store=store_factory,
+            dataset_uuid="dataset_uuid",
+            partition_on=["P", "Q"],
+            metadata_version=4,
+        )
+    assert _exception_str(exc.value).startswith(
+        """Schemas for table 'core' of dataset 'dataset_uuid' are not compatible!
+
+Schema violation
+
+Origin schema: {core/P=2/Q=0/uuid2, core/P=2/Q=1/uuid2, core/P=2/Q=10/uuid2, core/P=2/Q=11/uuid2, core/P=2/Q=12/uuid2, core/P=2/Q=13/uuid2, core/P=2/Q=14/uuid2, core/P=2/Q=15/uuid2, core/P=2/Q=16/uuid2, core/P=2/Q=17...}
+Origin reference: {core/P=1/Q=0/uuid1, core/P=1/Q=1/uuid1, core/P=1/Q=10/uuid1, core/P=1/Q=11/uuid1, core/P=1/Q=12/uuid1, core/P=1/Q=13/uuid1, core/P=1/Q=14/uuid1, core/P=1/Q=15/uuid1, core/P=1/Q=16/uuid1, core/P=1/Q=17...}
+
+Diff:
+"""
+    )
+
+
 @pytest.mark.min_metadata_version(4)
 def test_metadata_consistency_errors_fails(
     store_factory, metadata_version, bound_store_dataframes
