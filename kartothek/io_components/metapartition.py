@@ -28,7 +28,7 @@ from kartothek.core.index import merge_indices as merge_indices_algo
 from kartothek.core.naming import get_partition_file_prefix
 from kartothek.core.partition import Partition
 from kartothek.core.urlencode import decode_key, quote_indices
-from kartothek.core.utils import _ensure_string_type, verify_metadata_version
+from kartothek.core.utils import ensure_string_type, verify_metadata_version
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.utils import _instantiate_store, combine_metadata
 from kartothek.serialization import (
@@ -714,7 +714,7 @@ class MetaPartition(Iterable):
                 date_as_object=dates_as_object,
             )
 
-            df.columns = df.columns.map(_ensure_string_type)
+            df.columns = df.columns.map(ensure_string_type)
             if table_columns is not None:
                 # TODO: When the write-path ensures that all partitions have the same column set, this check can be
                 #       moved before `DataFrameSerializer.restore_dataframe`. At the position of the current check we

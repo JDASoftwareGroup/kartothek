@@ -26,7 +26,22 @@ def verify_metadata_version(*args, **kwargs):
     return _verify_metadata_version(*args, **kwargs)
 
 
-def _ensure_string_type(obj):
+def ensure_string_type(obj):
+    """
+    Parse object passed to the function to `str`.
+
+    If the object is of type `bytes`, it is decoded, otherwise a generic string representation of the object is
+    returned.
+
+    Parameters
+    ----------
+    obj: Any
+        object which is to be parsed to `str`
+
+    Returns
+    -------
+    str_obj: String
+    """
     if isinstance(obj, bytes):
         return obj.decode()
     else:
