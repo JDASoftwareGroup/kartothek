@@ -4,7 +4,9 @@
 import difflib
 import logging
 import pprint
-from copy import deepcopy
+from copy import copy, deepcopy
+from functools import reduce
+from typing import Set, Union
 
 import pandas as pd
 import pyarrow as pa
@@ -24,13 +26,33 @@ class SchemaWrapper(object):
     Wrapper object for pyarrow.Schema, since their pickle implementation is broken.
     """
 
-    def __init__(self, schema, origin):
-        if not isinstance(origin, str):
-            raise TypeError("Schema origin must either be None or a string.")
+    def __init__(self, schema, origin: Union[str, Set[str]]):
+        if isinstance(origin, str):
+            origin = {origin}
+        elif isinstance(origin, set):
+            origin = copy(origin)
+        if not all(isinstance(s, str) for s in origin):
+            raise TypeError("Schema origin elements must be strings.")
 
         self.__schema = schema
         self.__origin = origin
         self._schema_compat()
+
+    def with_origin(self, origin: Union[str, Set[str]]) -> "SchemaWrapper":
+        """
+        Create new SchemaWrapper with given origin.
+
+        Parameters
+        ----------
+        origin:
+            New origin.
+
+        Returns
+        -------
+        schema:
+            New schema.
+        """
+        return SchemaWrapper(self.__schema, origin)
 
     def _schema_compat(self):
         # https://issues.apache.org/jira/browse/ARROW-5104
@@ -81,8 +103,8 @@ class SchemaWrapper(object):
         return self.__schema
 
     @property
-    def origin(self):
-        return self.__origin
+    def origin(self) -> Set[str]:
+        return copy(self.__origin)
 
     def __repr__(self):
         return self.__schema.__repr__()
@@ -128,7 +150,8 @@ class SchemaWrapper(object):
 
     def remove_metadata(self):
         return SchemaWrapper(
-            self.__schema.remove_metadata(), self.__origin + "__no_metadata"
+            self.__schema.remove_metadata(),
+            {s + "__no_metadata" for s in self.__origin},
         )
 
     remove_metadata.__doc__ = pa.Schema.remove_metadata.__doc__
@@ -615,6 +638,18 @@ def validate_compatible(schemas, ignore_pandas=False):
             current, null_columns
         ).remove_metadata()
 
+        def _fmt_origin(origin):
+            origin = sorted(origin)
+            # dask cuts of exception messages at 1k chars:
+            #   https://github.com/dask/distributed/blob/6e0c0a6b90b1d3c/distributed/core.py#L964
+            # therefore, we cut the the maximum length
+            max_len = 200
+            inner_msg = ", ".join(origin)
+            ellipsis = "..."
+            if len(inner_msg) > max_len + len(ellipsis):
+                inner_msg = inner_msg[:max_len] + ellipsis
+            return "{{{}}}".format(inner_msg)
+
         if reference_to_compare != current_to_compare:
             schema_diff = _diff_schemas(reference, current)
             exception_message = """Schema violation
@@ -629,11 +664,23 @@ Reference schema:
 {reference}""".format(
                 schema_diff=schema_diff,
                 reference=str(reference),
-                origin_schema=current.origin,
-                origin_reference=reference.origin,
+                origin_schema=_fmt_origin(current.origin),
+                origin_reference=_fmt_origin(reference.origin),
             )
             raise ValueError(exception_message)
-    return reference
+
+    # add all origins to result AFTER error checking, otherwise the error message would be pretty misleading due to the
+    # reference containing all origins.
+    if reference is None:
+        return None
+    else:
+        return reference.with_origin(
+            reduce(
+                set.union,
+                (schema.origin for schema, _null_columns in schemas_to_evaluate),
+                reference.origin,
+            )
+        )
 
 
 def validate_shared_columns(schemas, ignore_pandas=False):

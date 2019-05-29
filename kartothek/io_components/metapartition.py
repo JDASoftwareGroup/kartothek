@@ -1266,7 +1266,9 @@ class MetaPartition(Iterable):
                 metadata_version=self.metadata_version,
                 indices={},
                 table_meta={
-                    table: normalize_column_order(schema, partition_on)
+                    table: normalize_column_order(schema, partition_on).with_origin(
+                        "{}/{}".format(table, label)
+                    )
                     for table, schema in self.table_meta.items()
                 },
                 partition_keys=partition_on,

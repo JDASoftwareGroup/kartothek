@@ -72,7 +72,10 @@ def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid)
             )
 
     result = {}
-    for table, schemas in tm_dct.items():
+
+    # sort tables and schemas to have reproducible error messages
+    for table in sorted(tm_dct.keys()):
+        schemas = sorted(tm_dct[table], key=lambda s: sorted(s.origin))
         try:
             result[table] = validate_compatible(schemas)
         except ValueError as e:
