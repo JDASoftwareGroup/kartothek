@@ -504,8 +504,7 @@ def _determine_schemas_to_compare(schemas, ignore_pandas):
                 null_cols_in_reference.remove(col)
             schemas_to_evaluate.append((current, null_columns))
 
-    if reference is None and schemas_to_evaluate:
-        reference = schemas_to_evaluate.pop()[0]
+    assert (reference is not None) or (not schemas_to_evaluate)
 
     return reference, schemas_to_evaluate
 
