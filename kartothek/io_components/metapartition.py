@@ -1510,7 +1510,8 @@ def parse_input_to_metapartition(
                         is generated using :func:`kartothek.core.uuid.gen_uuid`.
             * **data** - A dict or list of tuples. The keys represent the table name \
                         and the values are the actual payload data as a pandas.DataFrame.
-            * **indices** - A dictionary to describe the dataset indices. All \
+            * **indices** - Deprecated, see the keyword argument `secondary_indices` to create indices.
+                            A dictionary to describe the dataset indices. All \
                             partition level indices are finally merged using \
                             :func:`kartothek.io_components.metapartition.MetaPartition.merge_indices` \
                             into a single dataset index
@@ -1594,6 +1595,12 @@ def parse_input_to_metapartition(
             data = obj["data"]
 
         indices = obj.get("indices", {})
+        if indices:
+            warnings.warn(
+                "The explicit input of indices using the `indices` key is deprecated."
+                'Use the `secondary_indices` keyword argument of "write" and "update" functions instead.',
+                DeprecationWarning,
+            )
         if expected_secondary_indices not in (False, None):
             # Validate explicit input of indices
             _ensure_valid_indices(
