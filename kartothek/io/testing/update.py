@@ -635,3 +635,39 @@ def test_raises_on_new_index_creation(
             dataset_uuid=dataset_uuid,
             secondary_indices=dataset_update_secondary_indices,
         )
+
+
+@pytest.mark.parametrize("define_indices_on_partition", (False, True))
+def test_update_first_time_with_secondary_indices(
+    store_factory, bound_update_dataset, define_indices_on_partition
+):
+    """
+    Check it is possible to create a new dataset with indices defined either on partition or using the
+    `secondary_indices` kwarg. The intention of this test is to verify that there are no exceptions raised
+    related to index validation when a dataset is created using an `update` function
+    """
+    dataset_uuid = "dataset_uuid"
+    index_column = "p"
+    new_partition = {
+        "label": "cluster_1",
+        "data": [("core", pd.DataFrame({index_column: [1, 2]}))],
+    }
+
+    dataset_update_secondary_indices = [index_column]
+    if define_indices_on_partition:
+        dataset_update_secondary_indices = None
+        new_partition["indices"] = {
+            index_column: ExplicitSecondaryIndex(
+                index_column,
+                {
+                    k: [new_partition["label"]]
+                    for k in new_partition["data"][0][1][index_column].unique()
+                },
+            )
+        }
+    bound_update_dataset(
+        [new_partition],
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        secondary_indices=dataset_update_secondary_indices,
+    )
