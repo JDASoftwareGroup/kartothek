@@ -24,6 +24,9 @@ Version 3.1.0 (2019-XX-XX)
     - Testing: create :func:`~kartothek.io.testing.read.test_binary_column_metadata` which checks column names stored as
       ``bytes`` objects are read as type ``str``
 
+- fix issue where it was possible to add an index to an existing dataset by using update functions and partition indices
+  (https://github.com/JDASoftwareGroup/kartothek/issues/16).
+
 **Breaking:**
 
 - categorical normalization was moved from :meth:`~kartothek.core.common_metadata.make_meta` to
