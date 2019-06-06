@@ -17,7 +17,7 @@ def _unwrap_partition(part):
     return next(iter(dict(part["data"]).values()))
 
 
-def _update_dataset(partitions, secondary_indices=None, *args, **kwargs):
+def _update_dataset(partitions, *args, **kwargs):
     tasks = update_dataset_from_delayed(partitions, *args, **kwargs)
 
     s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)

@@ -23,7 +23,7 @@ def _unwrap_partition(part):
     return next(iter(dict(part["data"]).values()))
 
 
-def _update_dataset(partitions, secondary_indices=None, *args, **kwargs):
+def _update_dataset(partitions, *args, **kwargs):
     if any(partitions):
         table_name = next(iter(dict(partitions[0]["data"]).keys()))
         delayed_partitions = [
@@ -33,13 +33,7 @@ def _update_dataset(partitions, secondary_indices=None, *args, **kwargs):
     else:
         table_name = "core"
         partitions = None
-    ddf = update_dataset_from_ddf(
-        partitions,
-        *args,
-        table=table_name,
-        secondary_indices=secondary_indices,
-        **kwargs,
-    )
+    ddf = update_dataset_from_ddf(partitions, *args, table=table_name, **kwargs)
 
     s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
     ddf = pickle.loads(s)
