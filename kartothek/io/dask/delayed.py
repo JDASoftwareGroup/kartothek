@@ -70,6 +70,10 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
         load_dataset_metadata=False,
     )
 
+    garbage_collect_dataset__delayed(
+        dataset_uuid=None, store=None, chunk_size=100, factory=dataset_factory
+    )
+
     mps = dispatch_metapartitions_from_factory(dataset_factory)
 
     delayed_dataset_uuid = delayed(_delete_all_additional_metadata)(

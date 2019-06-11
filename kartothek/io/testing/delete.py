@@ -20,6 +20,39 @@ def test_delete_dataset(store_factory, metadata_version, bound_delete_dataset):
     assert len(list(store.keys())) == 0
 
 
+def _test_gc(uuid, store_factory, garbage_collect_callable):
+    store = store_factory()
+
+    keys_before = set(store.keys())
+
+    # Add a non-tracked table file
+    store.put("{}/core/trash.parquet".format(uuid), b"trash")
+
+    # Add a non-tracked index file
+    store.put("{}/indices/trash.parquet".format(uuid), b"trash")
+
+    garbage_collect_callable(uuid, store_factory)
+
+    keys_after = set(store.keys())
+    assert keys_before == keys_after
+
+
+def test_gc_delete_dataset(
+    store_factory, metadata_version, bound_delete_dataset, garbage_collect_callable
+):
+    """
+    Ensure that a dataset can be deleted
+    """
+    create_dataset("dataset", store_factory, metadata_version)
+
+    _test_gc("dataset", store_factory, garbage_collect_callable)
+
+    store = store_factory()
+    assert len(list(store.keys())) > 0
+    bound_delete_dataset("dataset", store_factory)
+    assert len(list(store.keys())) == 0
+
+
 def test_delete_single_dataset(store_factory, metadata_version, bound_delete_dataset):
     """
     Ensure that only the specified dataset is deleted

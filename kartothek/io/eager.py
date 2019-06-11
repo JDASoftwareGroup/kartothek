@@ -64,6 +64,14 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
         load_dataset_metadata=False,
     )
 
+    nested_files = dispatch_files_to_gc(
+        dataset_uuid=None, store_factory=None, chunk_size=None, factory=ds_factory
+    )
+
+    # Given that `nested_files` is a generator with a single element, just
+    # return the output of `delete_files` on that element.
+    delete_files(next(nested_files), store_factory=ds_factory.store_factory)
+
     # Delete indices first since they do not affect dataset integrity
     delete_indices(dataset_factory=ds_factory)
 
