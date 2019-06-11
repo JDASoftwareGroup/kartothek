@@ -63,6 +63,9 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
         load_dataset_metadata=False,
     )
 
+    # Remove possibly unreferenced files
+    garbage_collect_dataset(factory=ds_factory)
+
     # Delete indices first since they do not affect dataset integrity
     delete_indices(dataset_factory=ds_factory)
 
