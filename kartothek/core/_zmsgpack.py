@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import msgpack
-import zstd
+import zstd  # type: ignore
 
 
 def packb(obj):
