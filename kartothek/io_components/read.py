@@ -1,4 +1,4 @@
-from typing import Iterator, List, Union
+from typing import Iterator, List, Union, cast
 
 import pandas as pd
 
@@ -61,6 +61,9 @@ def dispatch_metapartitions_from_factory(
                 base_df = df
             else:
                 base_df = base_df.merge(df, on=["__partition__"])
+
+        assert base_df is not None
+        base_df = cast(pd.DataFrame, base_df)
 
         # Group the resulting MetaParitions by partition keys
         merged_partitions = base_df.groupby(dataset_factory.partition_keys)

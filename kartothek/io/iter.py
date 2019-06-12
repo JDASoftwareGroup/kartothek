@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-
-
 from functools import partial
+from typing import cast
 
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import (
@@ -83,6 +82,7 @@ def read_dataset_as_metapartitions__iterator(
                 ]
             )
         else:
+            mp = cast(MetaPartition, mp)
             mp = mp.load_dataframes(
                 store=store,
                 tables=tables,
