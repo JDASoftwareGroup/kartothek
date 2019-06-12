@@ -3,8 +3,10 @@ import pickle
 import dask
 import pytest
 
-from kartothek.io.dask.delayed import delete_dataset__delayed
-from kartothek.io.eager import garbage_collect_dataset
+from kartothek.io.dask.delayed import (
+    delete_dataset__delayed,
+    garbage_collect_dataset__delayed,
+)
 from kartothek.io.testing.delete import *  # noqa
 
 
@@ -22,4 +24,4 @@ def bound_delete_dataset():
 
 @pytest.fixture()
 def garbage_collect_callable():
-    return garbage_collect_dataset
+    return garbage_collect_dataset__delayed

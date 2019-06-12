@@ -70,7 +70,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
         load_dataset_metadata=False,
     )
 
-    garbage_collect_dataset__delayed(
+    gc = garbage_collect_dataset__delayed(
         dataset_uuid=None, store=None, chunk_size=100, factory=dataset_factory
     )
 
@@ -87,7 +87,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
         dataset_uuid=delayed_dataset_uuid,
     )
 
-    return delayed(_delete_tl_metadata)(dataset_factory, mps)
+    return delayed(_delete_tl_metadata)(dataset_factory, mps, gc)
 
 
 def garbage_collect_dataset__delayed(
