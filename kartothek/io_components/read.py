@@ -1,3 +1,5 @@
+from typing import Iterator, List, Union
+
 import pandas as pd
 
 from kartothek.core.factory import DatasetFactory
@@ -26,7 +28,7 @@ def dispatch_metapartitions_from_factory(
     concat_partitions_on_primary_index=False,
     predicates=None,
     store=None,
-):
+) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     if not callable(dataset_factory) and not isinstance(
         dataset_factory, DatasetFactory
     ):
@@ -181,7 +183,7 @@ def dispatch_metapartitions(
     label_filter=None,
     concat_partitions_on_primary_index=False,
     predicates=None,
-):
+) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     dataset_factory = DatasetFactory(
         dataset_uuid=dataset_uuid,
         store_factory=_make_callable(store),
