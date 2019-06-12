@@ -186,7 +186,7 @@ def normalize_column_order(schema, partition_keys=None):
         Schema information for DataFrame.
     """
     if not isinstance(schema, SchemaWrapper):
-        schema = SchemaWrapper(schema, None)
+        schema = SchemaWrapper(schema, "__unknown__")
 
     if partition_keys is None:
         partition_keys = []
@@ -463,7 +463,7 @@ def _determine_schemas_to_compare(schemas, ignore_pandas):
 
     for schema in schemas:
         if not isinstance(schema, SchemaWrapper):
-            schema = SchemaWrapper(schema, None)
+            schema = SchemaWrapper(schema, "__unknown__")
 
         if has_pandas:
             metadata = schema.metadata
