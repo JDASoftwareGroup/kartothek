@@ -50,6 +50,9 @@ def combine_metadata(dataset_metadata, append_to_list=True):
 
 
 def _remove_invalids(dct):
+    if not isinstance(dct, dict):
+        return {}
+
     new_dict = {}
     for key, value in dct.items():
         if isinstance(value, dict):
