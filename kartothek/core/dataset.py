@@ -445,13 +445,13 @@ class DatasetMetadata(DatasetMetadataBase):
         dataset_metadata: :class:`~kartothek.core.dataset.DatasetMetadata`
             Parsed metadata.
         """
+        key1 = naming.metadata_key_from_uuid(uuid)
         try:
-            key1 = naming.metadata_key_from_uuid(uuid)
             value = store.get(key1)
             metadata = load_json(value)
         except KeyError:
+            key2 = naming.metadata_key_from_uuid(uuid, format="msgpack")
             try:
-                key2 = naming.metadata_key_from_uuid(uuid, format="msgpack")
                 value = store.get(key2)
                 metadata = msgpack.unpackb(value)
             except KeyError:

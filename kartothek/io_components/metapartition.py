@@ -10,6 +10,7 @@ import warnings
 from collections import Iterable, Iterator, defaultdict, namedtuple
 from copy import copy
 from functools import wraps
+from typing import Any, Dict, Optional, cast
 
 import numpy as np
 import pandas as pd
@@ -59,6 +60,7 @@ def _initialize_store_for_metapartition(method, method_args, method_kwargs):
                 method_kwargs[store_variable]
             )
         else:
+            method = cast(object, method)
             args = inspect.getfullargspec(method).args
 
             if store_variable in args:
@@ -167,7 +169,7 @@ class MetaPartition(Iterable):
         metadata=None,
         data=None,
         dataset_metadata=None,
-        indices=None,
+        indices: Optional[Dict[Any, Any]] = None,
         metadata_version=None,
         table_meta=None,
         partition_keys=None,
@@ -1496,7 +1498,7 @@ def partition_labels_from_mps(mps):
 
 def parse_input_to_metapartition(
     obj, metadata_version=None, expected_secondary_indices=False
-):
+) -> MetaPartition:
     """
     Parses given user input and returns a MetaPartition
 

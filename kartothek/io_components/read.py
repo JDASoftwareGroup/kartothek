@@ -1,3 +1,5 @@
+from typing import Iterator, List, Union, cast
+
 import pandas as pd
 
 from kartothek.core.factory import DatasetFactory
@@ -26,7 +28,7 @@ def dispatch_metapartitions_from_factory(
     concat_partitions_on_primary_index=False,
     predicates=None,
     store=None,
-):
+) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     if not callable(dataset_factory) and not isinstance(
         dataset_factory, DatasetFactory
     ):
@@ -59,6 +61,9 @@ def dispatch_metapartitions_from_factory(
                 base_df = df
             else:
                 base_df = base_df.merge(df, on=["__partition__"])
+
+        assert base_df is not None
+        base_df = cast(pd.DataFrame, base_df)
 
         # Group the resulting MetaParitions by partition keys
         merged_partitions = base_df.groupby(dataset_factory.partition_keys)
@@ -181,7 +186,7 @@ def dispatch_metapartitions(
     label_filter=None,
     concat_partitions_on_primary_index=False,
     predicates=None,
-):
+) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     dataset_factory = DatasetFactory(
         dataset_uuid=dataset_uuid,
         store_factory=_make_callable(store),

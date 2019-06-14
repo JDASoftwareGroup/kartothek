@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
-
-
 from functools import partial
+from typing import cast
 
 import pandas as pd
 
@@ -68,6 +67,7 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
     delete_indices(dataset_factory=ds_factory)
 
     for metapartition in dispatch_metapartitions_from_factory(ds_factory):
+        metapartition = cast(MetaPartition, metapartition)
         metapartition.delete_from_store(dataset_uuid=dataset_uuid, store=store)
 
     # delete common metadata after partitions
