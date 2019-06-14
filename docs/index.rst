@@ -28,6 +28,7 @@ Contents
    :maxdepth: 2
 
    Getting started <getting_started>
+   Further useful kartothek features <further_useful_features>
    Specification <spec/index>
    Partition Indices <spec/partition_indices>
    Type System <spec/type_system>
