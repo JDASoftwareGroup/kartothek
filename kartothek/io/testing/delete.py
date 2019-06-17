@@ -69,3 +69,21 @@ def test_delete_missing_dataset(store_factory, store_factory2, bound_delete_data
 
         bound_delete_dataset("dataset", store_factory2)
         assert len(list(store2.keys())) == 0
+
+
+def test_delete_dataset_unreferenced_files(
+    store_factory, metadata_version, bound_delete_dataset
+):
+    """
+    Ensure that unreferenced files of a dataset are also removed when a dataset is deleted
+    """
+    uuid = "dataset"
+    create_dataset(uuid, store_factory, metadata_version)
+
+    store = store_factory()
+    store.put(f"{uuid}/core/trash.parquet", b"trash")
+
+    assert len(list(store.keys())) > 0
+    bound_delete_dataset(uuid, store_factory)
+
+    assert len(list(store.keys())) == 0
