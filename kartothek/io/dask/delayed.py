@@ -117,7 +117,10 @@ def garbage_collect_dataset__delayed(
         chunk_size=chunk_size,
         factory=factory,
     )
-    return [delayed(delete_files)(files, store_factory=store) for files in nested_files]
+    return [
+        delayed(delete_files)(files, store_factory=store or factory.store_factory)
+        for files in nested_files
+    ]
 
 
 def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tasks):

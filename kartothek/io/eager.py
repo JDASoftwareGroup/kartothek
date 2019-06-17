@@ -746,4 +746,6 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
 
     # Given that `nested_files` is a generator with a single element, just
     # return the output of `delete_files` on that element.
-    return delete_files(next(nested_files), store_factory=store)
+    return delete_files(
+        next(nested_files), store_factory=store or factory.store_factory
+    )
