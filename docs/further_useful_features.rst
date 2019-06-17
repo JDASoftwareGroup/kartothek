@@ -96,6 +96,7 @@ be specified as a list:
 .. ipython:: python
 
     duplicate_df = df.copy()
+    duplicate_df.F = "bar"
 
     dm = store_dataframes_as_dataset(
         store_factory,
@@ -359,7 +360,7 @@ keyword argument as shown in the example below:
 .. ipython:: python
 
     dm = update_dataset_from_dataframes(
-        another_df,
+        None,
         store=store_factory,
         dataset_uuid="partitioned_dataset",
         partition_on="E",
@@ -383,6 +384,21 @@ the partition ``E=train`` has been removed.
 When  using ``delete_scope``, multiple values for the same column cannot be defined as a
 list but have to be specified instead as individual dictionaries, ie.
 ``[{"E": ["test", "train"]}]`` will not work but ``[{"E": "test"}, {"E": "train"}]`` will.
+
+.. ipython:: python
+
+    dm = update_dataset_from_dataframes(
+        None,
+        store=store_factory,
+        dataset_uuid="another_partitioned_dataset",
+        partition_on=["E", "F"],
+        delete_scope=[{"E": "train", "F": "foo"}, {"E": "test", "F": "bar"}],
+    )
+
+    dm.partitions  # `E=train/F=foo` and `E=test/F=bar` are deleted
+
+
+
 
 
 Garbage collection
