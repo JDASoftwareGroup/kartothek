@@ -1575,13 +1575,13 @@ def parse_input_to_metapartition(
     if isinstance(obj, list):
         if len(obj) == 0:
             return MetaPartition(label=None, metadata_version=metadata_version)
-        first_element = obj.pop()
+        first_element = obj[0]
         mp = parse_input_to_metapartition(
             obj=first_element,
             metadata_version=metadata_version,
             expected_secondary_indices=expected_secondary_indices,
         )
-        for mp_in in obj:
+        for mp_in in obj[1:]:
             mp = mp.add_metapartition(
                 parse_input_to_metapartition(
                     obj=mp_in,
