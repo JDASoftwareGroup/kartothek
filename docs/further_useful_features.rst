@@ -373,7 +373,7 @@ As we can see, we specified using a dictionary that data where the column ``E`` 
 value ``train`` should be removed. Looking at the partitions after the update, we see that
 the partition ``E=train`` has been removed.
 
-.. note:: we defined ``delete_scope`` over a value of ``E``. ``E`` also happens to be a
+.. note:: We defined ``delete_scope`` over a value of ``E``. ``E`` also happens to be a
     column that we partitioned by. This is because using ``delete_scope`` uses the same
     underlying logic as the predicate-based filtering mentioned in :ref:`getting_started`.
 
@@ -382,7 +382,7 @@ the partition ``E=train`` has been removed.
     **all** previous partitions and replace them with the ones in the update.
 
 When  using ``delete_scope``, multiple values for the same column cannot be defined as a
-list but have to be specified instead as individual dictionaries, ie.
+list but have to be specified instead as individual dictionaries, i.e.
 ``[{"E": ["test", "train"]}]`` will not work but ``[{"E": "test"}, {"E": "train"}]`` will.
 
 .. ipython:: python
