@@ -111,14 +111,19 @@ def garbage_collect_dataset__delayed(
     -------
     tasks: list of dask.delayed
     """
-    nested_files = dispatch_files_to_gc(
+
+    ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
-        store_factory=store,
-        chunk_size=chunk_size,
+        store=store,
         factory=factory,
+        load_dataset_metadata=False,
+    )
+
+    nested_files = dispatch_files_to_gc(
+        dataset_uuid=None, store_factory=None, chunk_size=chunk_size, factory=ds_factory
     )
     return [
-        delayed(delete_files)(files, store_factory=store or factory.store_factory)
+        delayed(delete_files)(files, store_factory=ds_factory.store_factory)
         for files in nested_files
     ]
 

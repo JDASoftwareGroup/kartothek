@@ -740,12 +740,18 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
     Parameters
     ----------
     """
+
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
+    )
+
     nested_files = dispatch_files_to_gc(
-        dataset_uuid=dataset_uuid, store_factory=store, chunk_size=None, factory=factory
+        dataset_uuid=None, store_factory=None, chunk_size=None, factory=ds_factory
     )
 
     # Given that `nested_files` is a generator with a single element, just
     # return the output of `delete_files` on that element.
-    return delete_files(
-        next(nested_files), store_factory=store or factory.store_factory
-    )
+    return delete_files(next(nested_files), store_factory=ds_factory.store_factory)
