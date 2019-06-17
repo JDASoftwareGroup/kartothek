@@ -1,3 +1,5 @@
+.. _further_useful_features:
+
 =================================
 Further useful kartothek features
 =================================

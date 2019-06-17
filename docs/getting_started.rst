@@ -110,19 +110,16 @@ For this guide, two attributes that are noteworthy are ``tables`` and ``partitio
 
 - Each dataset has one or more ``tables``, where each table is a logical collection of data,
   bound together by a common schema.
-- Partitions are the mutually exclusive and collectively exhaustive physical `pieces` or
-  `shards` of data that constitute the contents of a dataset. Data is written to storage in
-  batches (for ``eager``, there is only a single batch) and in the simplest case, such a
-  batch is synonymous with a ``partition`` in ``kartothek``. In practice however, the mapping
-  between partitions and batches is almost never one-to-one. See the section on partitioning
-  for further details: :ref:`partitioning_section`.
+- Partitions are the mutually exclusive and collectively exhaustive physical `pieces` of data
+  that constitute the contents of a dataset. Data is written to storage on a per-partition basis.
+  See the section on partitioning for further details: :ref:`partitioning_section`.
 
 For each table, ``kartothek`` also tracks the schema of the columns.
 Unless specified explicitly on write, it is inferred from the passed data.
 On writing additional data to a dataset, we will also check that the schema
 of the new data matches the schema of the existing data.
 
-.. admonition:: Passing multiple dataframes to a dataset during write/update
+.. admonition:: Writing multiple dataframes with identical schemas
 
     To store multiple dataframes into a dataset, it is possible to pass an iterator of
     dataframes; the exact format will depend on the I/O backend used. See
@@ -197,28 +194,25 @@ to :func:`~kartothek.io.eager.store_dataframes_as_dataset` throws ``ValueError``
 When we do not explicitly define the name of the table and partition, ``kartothek`` uses the
 default table name ``table`` and generates a UUID for the partition name.
 
-.. admonition:: A more complex example: multiple named tables and partitions
+.. admonition:: A more complex example: multiple named tables
 
     Sometimes it may be useful to write multiple dataframes with different schemas into
     a single dataset. This can be achieved by creating a dataset with multiple tables.
 
-    In this example, we create a dataset with two partitions ``partition1`` and ``partition2``
-    (represented by the dictionary objects inside the list). For each partition, there exist
-    two tables: ``core-table`` and ``aux-table``. The schemas of the tables are identical
-    across partitions.
+    In this example, we create a dataset with two tables: ``core-table`` and ``aux-table``.
+    The schemas of the tables are identical across partitions (each dictionary in the
+    ``dfs`` list argument represents a partition).
 
     .. ipython:: python
 
         dfs = [
             {
-                "label": "partition1",
                 "data": {
                     "core-table": pd.DataFrame({"col1": ["x"]}),
                     "aux-table": pd.DataFrame({"f": [1.1]}),
                 },
             },
             {
-                "label": "partition2",
                 "data": {
                     "core-table": pd.DataFrame({"col1": ["y"]}),
                     "aux-table": pd.DataFrame({"f": [3.2]}),
@@ -273,9 +267,9 @@ represent the `tables` of the dataset. For example,
     in `disjunctive normal form <https://en.wikipedia.org/wiki/Disjunctive_normal_form>`_.
 
     When this argument is defined, ``kartothek`` tries to use the Apache Parquet metadata
-    for partition pruning and predicate pushdown to speed up queries when possible.
-    In general when and how this works is a complex topic, well beyond the scope of this guide
-    but it is a 'good-to-know' feature from the perspective of users.
+    for partition pruning and predicate pushdown to speed up queries when possible. How this
+    works is a complex topic, well beyond the scope of this guide but it is a 'good-to-know'
+    feature from the perspective of users.
 
     .. ipython:: python
 
@@ -284,6 +278,7 @@ represent the `tables` of the dataset. For example,
             "two-tables", store_factory, table="aux-table", predicates=[[("f", "<", 2.5)]]
         )
 
+For a deeper dive into ``kartothek`` you can take a look at: :ref:`further_useful_features`.
 
 .. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
 .. _storefact: https://github.com/blue-yonder/storefact
