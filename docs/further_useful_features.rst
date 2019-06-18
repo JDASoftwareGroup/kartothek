@@ -181,7 +181,7 @@ Writing a dataset with a secondary index:
     dm
 
     dm = dm.load_all_indices(store_factory())
-    dm.secondary_indices["X"].index_dct[0]  # Show files where `X == 0`
+    dm.indices["X"].eval_operator("==", 0)  # Show files where `X == 0`
 
 
 As can be seen from the example above, both ``partition_on`` and ``secondary_indices``
