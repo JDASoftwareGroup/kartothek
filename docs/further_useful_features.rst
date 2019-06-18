@@ -325,9 +325,9 @@ Trying to update only a subset of tables throws a ``ValueError``:
     Tables of existing dataset: ['table1', 'table2']
 
 
-Adding data to existing datasets is not the only functionality achievable within an update
-and it can even be used to remove or replace data. To do this we use the ``delete_scope``
-keyword argument as shown in the example below:
+Adding data to an existing dataset is not the only functionality achievable within an update
+operation, such an operation can also be used to remove or overwrite data.
+To do so we use the ``delete_scope`` keyword argument as shown in the example below:
 
 .. ipython:: python
 
@@ -379,7 +379,7 @@ Garbage collection
 When ``kartothek`` is executing an operation, it makes sure to not
 commit changes to the dataset until the operation has been succesfully completed. If a
 write operation does not succeed for any reason, although there may be new files written
-to storage, those files will not used by the dataset as they will not be referenced in
+to storage, those files will not be used by the dataset as they will not be referenced in
 the ``kartothek`` metadata. Thus, when the user reads the dataset, no new data will
 appear in the output.
 
