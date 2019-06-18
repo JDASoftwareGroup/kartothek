@@ -23,7 +23,7 @@ purposes, we will use a small DataFrame with a mixed set of types.
 
     df = pd.DataFrame(
         {
-            "A": 1.,
+            "A": 1.0,
             "B": pd.Timestamp("20130102"),
             "C": pd.Series(1, index=list(range(4)), dtype="float32"),
             "D": np.array([3] * 4, dtype="int32"),
@@ -70,11 +70,7 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
 
     from kartothek.io.eager import store_dataframes_as_dataset
 
-    dm = store_dataframes_as_dataset(
-        store_factory,
-        "a_unique_dataset_identifier",
-        df,
-    )
+    dm = store_dataframes_as_dataset(store_factory, "a_unique_dataset_identifier", df)
     dm
 
 
@@ -137,7 +133,7 @@ schemas:
 
     another_df = pd.DataFrame(
         {
-            "A": 5.,
+            "A": 5.0,
             "B": pd.Timestamp("20110102"),
             "C": pd.Series(1, index=list(range(4)), dtype="float32"),
             "D": np.array([12] * 4, dtype="int32"),
@@ -147,12 +143,10 @@ schemas:
     )
     another_df
     df.dtypes
-    another_df.dtypes #both have the same schema
+    another_df.dtypes  # both have the same schema
 
     store_dataframes_as_dataset(
-        store_factory,
-        "another_unique_dataset_identifier",
-        [df, another_df],
+        store_factory, "another_unique_dataset_identifier", [df, another_df]
     )
 
 However, passing a list of dataframes with differing schemas `without specifying table names`
@@ -167,12 +161,12 @@ to :func:`~kartothek.io.eager.store_dataframes_as_dataset` throws ``ValueError``
             "I": np.array([9] * 4, dtype="int32"),
             "J": pd.Series(3, index=list(range(4)), dtype="float32"),
             "K": pd.Timestamp("20190604"),
-            "L": 2.,
+            "L": 2.0,
         }
     )
     df2
     df.dtypes
-    df2.dtypes #schema is different!
+    df2.dtypes  # schema is different!
 
 
 .. ipython::
@@ -210,21 +204,17 @@ default table name ``table`` and generates a UUID for the partition name.
                 "data": {
                     "core-table": pd.DataFrame({"col1": ["x"]}),
                     "aux-table": pd.DataFrame({"f": [1.1]}),
-                },
+                }
             },
             {
                 "data": {
                     "core-table": pd.DataFrame({"col1": ["y"]}),
                     "aux-table": pd.DataFrame({"f": [3.2]}),
-                },
+                }
             },
         ]
 
-        dm = store_dataframes_as_dataset(
-            store_factory,
-            dataset_uuid="two-tables",
-            dfs=dfs
-        )
+        dm = store_dataframes_as_dataset(store_factory, dataset_uuid="two-tables", dfs=dfs)
         dm.tables
         dm.partitions
 
@@ -241,7 +231,6 @@ table of the dataset as a pandas DataFrame.
     from kartothek.io.eager import read_table
 
     read_table("a_unique_dataset_identifier", store_factory, table="table")
-    
 
 We can also read a dataframe iteratively, using
 :func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`. This will return a generator
@@ -253,11 +242,11 @@ represent the `tables` of the dataset. For example,
     from kartothek.io.iter import read_dataset_as_dataframes__iterator
 
     for partition_index, df_dict in enumerate(
-            read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_factory)
-        ):
-            print(f"Partition #{partition_index}")
-            for table_name, table_df in df_dict.items():
-                print(f"Table: {table_name}. Data: \n{table_df}")
+        read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_factory)
+    ):
+        print(f"Partition #{partition_index}")
+        for table_name, table_df in df_dict.items():
+            print(f"Table: {table_name}. Data: \n{table_df}")
 
 
 .. admonition:: Filtering the dataset using predicates

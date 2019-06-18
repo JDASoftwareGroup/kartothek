@@ -55,7 +55,7 @@ the data there with ``kartothek``:
 
     df = pd.DataFrame(
         {
-            "A": 1.,
+            "A": 1.0,
             "B": pd.Timestamp("20130102"),
             "C": pd.Series(1, index=list(range(4)), dtype="float32"),
             "D": np.array([3] * 4, dtype="int32"),
@@ -72,10 +72,7 @@ written to the same partition. To do this, we use the ``partition_on`` keyword a
 .. ipython:: python
 
     dm = store_dataframes_as_dataset(
-        store_factory,
-        "partitioned_dataset",
-        df,
-        partition_on = 'E',
+        store_factory, "partitioned_dataset", df, partition_on="E"
     )
     dm
 
@@ -102,7 +99,7 @@ be specified as a list:
         store_factory,
         "another_partitioned_dataset",
         [df, duplicate_df],
-        partition_on = ['E', 'F'],
+        partition_on=["E", "F"],
     )
     dm.partitions
 
@@ -122,11 +119,7 @@ For example:
 
     df.dtypes
     different_df = pd.DataFrame(
-        {
-            "B": pd.to_datetime(["20130102","20190101"]),
-            "L": [1, 4],
-            "Q": [True, False],
-        }
+        {"B": pd.to_datetime(["20130102", "20190101"]), "L": [1, 4], "Q": [True, False]}
     )
     different_df.dtypes
 
@@ -134,7 +127,7 @@ For example:
         store_factory,
         "multiple_partitioned_tables",
         [{"data": {"table1": df, "table2": different_df}}],
-        partition_on='B',
+        partition_on="B",
     )
 
     dm.partitions
@@ -174,12 +167,7 @@ Writing a dataset with a secondary index:
 
     # "Generate" 5 dataframes
     df_gen = (
-        pd.DataFrame(
-            {
-                "date": pd.Timestamp(f"2020-01-0{i}"),
-                "X": np.random.choice(10, 10),
-            }
-        )
+        pd.DataFrame({"date": pd.Timestamp(f"2020-01-0{i}"), "X": np.random.choice(10, 10)})
         for i in range(1, 6)
     )
 
@@ -187,13 +175,13 @@ Writing a dataset with a secondary index:
         df_gen,
         store_factory,
         "secondarily_indexed",
-        partition_on = "date",
-        secondary_indices = "X"
+        partition_on="date",
+        secondary_indices="X",
     )
     dm
 
     dm = dm.load_all_indices(store_factory())
-    dm.secondary_indices['X'].index_dct[0]  # Show files where `X == 0`
+    dm.secondary_indices["X"].index_dct[0]  # Show files where `X == 0`
 
 
 As can be seen from the example above, both ``partition_on`` and ``secondary_indices``
@@ -231,7 +219,7 @@ Now, we create ``another_df`` with the same schema as our intial dataframe
 
     another_df = pd.DataFrame(
         {
-            "A": 5.,
+            "A": 5.0,
             "B": pd.Timestamp("20110102"),
             "C": pd.Series(2, index=list(range(4)), dtype="float32"),
             "D": np.array([6] * 4, dtype="int32"),
@@ -241,9 +229,7 @@ Now, we create ``another_df`` with the same schema as our intial dataframe
     )
 
     dm = update_dataset_from_dataframes(
-        [another_df],
-        store=store_factory,
-        dataset_uuid="a_unique_dataset_identifier"
+        [another_df], store=store_factory, dataset_uuid="a_unique_dataset_identifier"
     )
     dm.partitions
 
@@ -277,7 +263,7 @@ To illustrate this point better, lets first create a dataset with two tables:
             "I": np.array([9] * 4, dtype="int32"),
             "J": pd.Series(3, index=list(range(4)), dtype="float32"),
             "K": pd.Timestamp("20190604"),
-            "L": 2.,
+            "L": 2.0,
         }
     )
     df2
@@ -285,15 +271,7 @@ To illustrate this point better, lets first create a dataset with two tables:
     dm = store_dataframes_as_dataset(
         store_factory,
         "another_unique_dataset_identifier",
-        dfs = [
-            {
-                "data":
-                {
-                    "table1": df,
-                    "table2": df2
-                }
-            }
-        ]
+        dfs=[{"data": {"table1": df, "table2": df2}}],
     )
     dm.tables
     dm.partitions
@@ -311,21 +289,15 @@ with new data for ``table1`` and ``table2``:
             "I": np.array([12] * 4, dtype="int32"),
             "J": pd.Series(4, index=list(range(4)), dtype="float32"),
             "K": pd.Timestamp("20190614"),
-            "L": 10.,
+            "L": 10.0,
         }
     )
     another_df2
 
     dm = update_dataset_from_dataframes(
-        {
-            "data":
-            {
-                "table1": another_df,
-                "table2": another_df2
-            }
-        },
+        {"data": {"table1": another_df, "table2": another_df2}},
         store=store_factory,
-        dataset_uuid="another_unique_dataset_identifier"
+        dataset_uuid="another_unique_dataset_identifier",
     )
     dm.tables
     dm.partitions
@@ -364,7 +336,7 @@ keyword argument as shown in the example below:
         store=store_factory,
         dataset_uuid="partitioned_dataset",
         partition_on="E",
-        delete_scope=[{"E": "train"}]
+        delete_scope=[{"E": "train"}],
     )
     dm.partitions
 
