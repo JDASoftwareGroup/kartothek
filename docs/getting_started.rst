@@ -106,8 +106,8 @@ For this guide, two attributes that are noteworthy are ``tables`` and ``partitio
 
 - Each dataset has one or more ``tables``, where each table is a logical collection of data,
   bound together by a common schema.
-- Partitions are the mutually exclusive and collectively exhaustive physical `pieces` of data
-  that constitute the contents of a dataset. Data is written to storage on a per-partition basis.
+- ``partitions`` are the physical "pieces" of data which together constitute the
+  contents of a dataset. Data is written to storage on a per-partition basis.
   See the section on partitioning for further details: :ref:`partitioning_section`.
 
 For each table, ``kartothek`` also tracks the schema of the columns.
@@ -115,11 +115,18 @@ Unless specified explicitly on write, it is inferred from the passed data.
 On writing additional data to a dataset, we will also check that the schema
 of the new data matches the schema of the existing data.
 
+While two tables may have different schemas, every file belonging to a given table needs
+to have the same schema as the table. Furthermore, every partition needs to have a file
+for every table (empty files are allowed).
+
 .. admonition:: Writing multiple dataframes with identical schemas
 
     To store multiple dataframes into a dataset, it is possible to pass an iterator of
-    dataframes; the exact format will depend on the I/O backend used. See
-    :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
+    dataframes; the exact format will depend on the I/O backend used.
+
+    Additionally, ``kartothek`` supports several data input formats,
+    it does not need to always be a plain ``pd.DataFrame``.
+    See :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
     further details.
 
     If table names are not specified when passing an iterator of dataframes,
