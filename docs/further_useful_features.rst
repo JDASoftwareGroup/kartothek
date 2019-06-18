@@ -392,9 +392,10 @@ function is called on the dataset.
 If a dataset is updated on a regular basis, it may be useful to run garbage collection
 periodically to decrease unnecessary storage use.
 
-An example of garbage collection is shown below. A file named ``trash.parquet`` is
-created in storage but untracked by kartothek. When garbage collection is called, the
-file is removed.
+An example of garbage collection is shown below. Suppose a file named
+``E=train/F=x/d513c388.parquet`` might have been referenced before a deletion or
+compaction operation. This file remains in storage but is untracked by kartothek.
+When garbage collection is called, the file is removed.
 
 .. ipython:: python
 
@@ -402,7 +403,7 @@ file is removed.
 
     store = store_factory()
     # Put corrupt parquet file in storage for dataset "a_unique_dataset_identifier"
-    store.put("a_unique_dataset_identifier/table/trash.parquet", b"trash")
+    store.put("a_unique_dataset_identifier/table/E=train/F=x/d513c388.parquet", b"trash")
     files_before = set(store.keys())
 
     garbage_collect_dataset(store=store_factory, dataset_uuid="a_unique_dataset_identifier")
