@@ -70,6 +70,8 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
         load_dataset_metadata=False,
     )
 
+    gc = garbage_collect_dataset__delayed(factory=dataset_factory)
+
     mps = dispatch_metapartitions_from_factory(dataset_factory)
 
     delayed_dataset_uuid = delayed(_delete_all_additional_metadata)(
@@ -83,7 +85,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
         dataset_uuid=delayed_dataset_uuid,
     )
 
-    return delayed(_delete_tl_metadata)(dataset_factory, mps)
+    return delayed(_delete_tl_metadata)(dataset_factory, mps, gc)
 
 
 def garbage_collect_dataset__delayed(
@@ -109,13 +111,21 @@ def garbage_collect_dataset__delayed(
     -------
     tasks: list of dask.delayed
     """
-    nested_files = dispatch_files_to_gc(
+
+    ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
-        store_factory=store,
-        chunk_size=chunk_size,
+        store=store,
         factory=factory,
+        load_dataset_metadata=False,
     )
-    return [delayed(delete_files)(files, store_factory=store) for files in nested_files]
+
+    nested_files = dispatch_files_to_gc(
+        dataset_uuid=None, store_factory=None, chunk_size=chunk_size, factory=ds_factory
+    )
+    return [
+        delayed(delete_files)(files, store_factory=ds_factory.store_factory)
+        for files in nested_files
+    ]
 
 
 def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tasks):

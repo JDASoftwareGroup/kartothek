@@ -12,6 +12,7 @@ def dispatch_files_to_gc(dataset_uuid, store_factory, chunk_size, factory):
         factory=factory,
         load_dataset_metadata=False,
     )
+    dataset_uuid = dataset_uuid or ds_factory.uuid
 
     index_path = "{dataset_uuid}/indices/".format(dataset_uuid=dataset_uuid)
     remove_index_files = set(ds_factory.store.iter_keys(prefix=index_path))
