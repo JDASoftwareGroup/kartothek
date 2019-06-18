@@ -81,7 +81,7 @@ Of interest here is ``dm.partitions``:
 
 .. ipython:: python
 
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 We can see that partitions have been stored in a way which indicates the
@@ -101,7 +101,7 @@ be specified as a list:
         [df, duplicate_df],
         partition_on=["E", "F"],
     )
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 Note that, since 2 dataframes have been provided as input to the function, there are
@@ -130,7 +130,7 @@ For example:
         partition_on="B",
     )
 
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 Because partitions are physical in nature, it is not possible to modify the
@@ -207,7 +207,7 @@ the data there with ``kartothek``:
 .. ipython:: python
 
     dm = store_dataframes_as_dataset(store_factory, "a_unique_dataset_identifier", df)
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 Now, we create ``another_df`` with the same schema as our intial dataframe
@@ -231,7 +231,7 @@ Now, we create ``another_df`` with the same schema as our intial dataframe
     dm = update_dataset_from_dataframes(
         [another_df], store=store_factory, dataset_uuid="a_unique_dataset_identifier"
     )
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 Looking at ``dm.partitions``, we can see that another partition has
@@ -274,7 +274,7 @@ To illustrate this point better, lets first create a dataset with two tables:
         dfs=[{"data": {"table1": df, "table2": df2}}],
     )
     dm.tables
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 Below is an example where we update the existing dataset ``another_unique_dataset_identifier``
@@ -300,7 +300,7 @@ with new data for ``table1`` and ``table2``:
         dataset_uuid="another_unique_dataset_identifier",
     )
     dm.tables
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 Trying to update only a subset of tables throws a ``ValueError``:
@@ -338,7 +338,7 @@ keyword argument as shown in the example below:
         partition_on="E",
         delete_scope=[{"E": "train"}],
     )
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 As we can see, we specified using a dictionary that data where the column ``E`` has the
@@ -367,7 +367,7 @@ list but have to be specified instead as individual dictionaries, i.e.
         delete_scope=[{"E": "train", "F": "foo"}, {"E": "test", "F": "bar"}],
     )
 
-    dm.partitions  # `E=train/F=foo` and `E=test/F=bar` are deleted
+    sorted(dm.partitions.keys())  # `E=train/F=foo` and `E=test/F=bar` are deleted
 
 
 

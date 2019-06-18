@@ -99,7 +99,7 @@ This class holds information about the structure and schema of the dataset.
 .. ipython:: python
 
     dm.tables
-    dm.partitions
+    sorted(dm.partitions.keys())
 
 
 For this guide, two attributes that are noteworthy are ``tables`` and ``partitions``:
@@ -216,7 +216,7 @@ default table name ``table`` and generates a UUID for the partition name.
 
         dm = store_dataframes_as_dataset(store_factory, dataset_uuid="two-tables", dfs=dfs)
         dm.tables
-        dm.partitions
+        sorted(dm.partitions.keys())
 
 
 Reading data from storage
