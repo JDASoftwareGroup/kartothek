@@ -65,8 +65,9 @@ the data there with ``kartothek``:
     )
     df
 
-``kartothek`` allows users to (physically) partition their data by the
-values of table columns such that all the rows with the same value of the column all get
+``kartothek`` allows users to partition their data by the
+values of table columns such that, for a given input partition,
+all the rows with the same value of the column all get
 written to the same partition. To do this, we use the ``partition_on`` keyword argument:
 
 .. ipython:: python
@@ -74,8 +75,6 @@ written to the same partition. To do this, we use the ``partition_on`` keyword a
     dm = store_dataframes_as_dataset(
         store_factory, "partitioned_dataset", df, partition_on="E"
     )
-    dm
-
 
 Of interest here is ``dm.partitions``:
 
@@ -133,13 +132,11 @@ For example:
     sorted(dm.partitions.keys())
 
 
-Because partitions are physical in nature, it is not possible to modify the
-partitioning scheme of an existing dataset via an update, instead, the dataset
-would have to be re-created.
+When data is appended to a dataset, ``kartothek`` guarantees it has the proper schema
+and partitioning.
 
-.. note:: Under the hood, partitions are structurally identical to each other and each partition
-    is made up of a collection of files containing the subset of data of each table
-    belonging to that partition.
+.. note:: Every partition must have data for every table. An empty dataframe in this
+          context is also considered as data.
 
 Secondary Indices
 -----------------
