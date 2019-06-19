@@ -37,7 +37,7 @@ of written data didn't require reading through an entire dataset to be able to
 identify and access the required subset. This is where *explicitly* partitioning by
 table columns helps.
 
-To see explicit partitioning in action, lets set up some data and a storage location
+To see explicit partitioning in action, let's set up some data and a storage location
 first and store the data there with ``kartothek``:
 
 .. ipython:: python
@@ -210,7 +210,7 @@ provides update functions that generally have the prefix `update_dataset` in the
 For example, :func:`~kartothek.io.eager.update_dataset_from_dataframes` is the update
 function for the ``eager`` backend.
 
-To see updating in action, lets set up some data and a storage location first and store
+To see updating in action, let's set up some data and a storage location first and store
 the data there with ``kartothek``:
 
 .. ipython:: python
@@ -261,7 +261,7 @@ The way dataset updates work is that new partitions are added to a dataset
 as long as they have the same tables as the existing partitions. A `different`
 table **cannot** be introduced into an existing dataset with an update.
 
-To illustrate this point better, lets first create a dataset with two tables:
+To illustrate this point better, let's first create a dataset with two tables:
 
 .. ipython:: python
 
