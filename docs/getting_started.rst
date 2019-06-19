@@ -92,6 +92,7 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
       There are also ``dask.bag`` and ``dask.dataframe`` which support I/O operations
       for the respective `dask`_ objects.
 
+
 After calling :func:`~kartothek.io.eager.store_dataframes_as_dataset`,
 a :class:`~kartothek.core.dataset.DatasetMetadata` object is returned.
 This class holds information about the structure and schema of the dataset.
@@ -133,6 +134,7 @@ for every table (empty files are allowed).
     ``kartothek`` assumes these dataframes are different chunks of the same table
     and expects their schemas to be identical. A ``ValueError`` will be thrown otherwise.
 
+
 For example, the following will work fine because ``df`` and ``another_df`` have identical
 schemas:
 
@@ -155,6 +157,7 @@ schemas:
     store_dataframes_as_dataset(
         store_factory, "another_unique_dataset_identifier", [df, another_df]
     )
+
 
 However, passing a list of dataframes with differing schemas `without specifying table names`
 to :func:`~kartothek.io.eager.store_dataframes_as_dataset` throws ``ValueError``:
@@ -190,7 +193,9 @@ to :func:`~kartothek.io.eager.store_dataframes_as_dataset` throws ``ValueError``
     Origin schema: {table/9e7d9217c82b4fda9c4e720dc987c60d}
     Origin reference: {table/80feb4d84ac34a9c9d08ba48c8170647}
 
+
 .. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`
+
 
 When we do not explicitly define the name of the table and partition, ``kartothek`` uses the
 default table name ``table`` and generates a UUID for the partition name.
@@ -239,6 +244,7 @@ table of the dataset as a pandas DataFrame.
 
     read_table("a_unique_dataset_identifier", store_factory, table="table")
 
+
 We can also read a dataframe iteratively, using
 :func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`. This will return a generator
 of dictionaries (one dictionary for each `partition`), where the keys of each dictionary
@@ -273,6 +279,7 @@ represent the `tables` of the dataset. For example,
         read_table(
             "two-tables", store_factory, table="aux-table", predicates=[[("f", "<", 2.5)]]
         )
+
 
 For a deeper dive into ``kartothek`` you can take a look at: :ref:`further_useful_features`.
 

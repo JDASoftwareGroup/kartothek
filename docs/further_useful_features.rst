@@ -20,10 +20,10 @@ particular applications.
 Partitioning and Indexing
 =========================
 
-
 ``kartothek`` is designed primarily for storing large datasets consistently and
 accessing them efficiently. To achieve this, it provides two useful functionalities:
 partitioning and secondary indices.
+
 
 Partitioning
 ------------
@@ -33,11 +33,12 @@ partitions, which in the underlying key-value store translates to writing new fi
 to the storage layer.
 
 From the perspective of efficient access, it would be helpful if accessing a subset
-of written data didn't require reading through an entire dataset to be able to identify
-and access the required subset. This is where partitioning by table columns helps.
+of written data didn't require reading through an entire dataset to be able to
+identify and access the required subset. This is where *explicitly* partitioning by
+table columns helps.
 
-To see partitioning in action, lets set up some data and a storage location first and store
-the data there with ``kartothek``:
+To see explicit partitioning in action, lets set up some data and a storage location
+first and store the data there with ``kartothek``:
 
 .. ipython:: python
 
@@ -65,16 +66,18 @@ the data there with ``kartothek``:
     )
     df
 
-``kartothek`` allows users to partition their data by the
-values of table columns such that, for a given input partition,
-all the rows with the same value of the column all get
-written to the same partition. To do this, we use the ``partition_on`` keyword argument:
+
+``kartothek`` allows users to explicitly partition their data by the values of table
+columns such that, for a given input partition, all the rows with the same value of the
+column all get written to the same partition. To do this, we use the
+``partition_on`` keyword argument:
 
 .. ipython:: python
 
     dm = store_dataframes_as_dataset(
         store_factory, "partitioned_dataset", df, partition_on="E"
     )
+
 
 Of interest here is ``dm.partitions``:
 
@@ -86,8 +89,8 @@ Of interest here is ``dm.partitions``:
 We can see that partitions have been stored in a way which indicates the
 specific value for the column on which partitioning has been performed.
 
-Partitioning can also be performed on multiple columns; in this case, columns should
-be specified as a list:
+Partitioning can also be performed on multiple columns; in this case, columns
+should be specified as a list:
 
 .. ipython:: python
 
@@ -105,12 +108,13 @@ be specified as a list:
 
 Note that, since 2 dataframes have been provided as input to the function, there are
 4 different files created, even though only 2 different combinations of values of E and
-F are found, ``E=test/F=foo`` and ``E=train/F=foo`` .
-(However, these 4 physical partitions can be read as just the 2 logical partitions by
-using the argument ``concat_partitions_on_primary_index=True`` at reading time).
+F are found, ``E=test/F=foo`` and ``E=train/F=foo`` (However, these 4 physical partitions
+can be read as just the 2 logical partitions by using the argument
+``concat_partitions_on_primary_index=True`` at reading time).
 
-For datasets consisting of multiple tables, partitioning on
-columns only works if the column exists in both tables and is of the same data type.
+For datasets consisting of multiple tables, explicit partitioning on columns can only be
+performed if the column exists in both tables and is of the same data type: guaranteeing
+that their types are the same is part of schema validation in ``kartothek``.
 
 For example:
 
@@ -132,21 +136,26 @@ For example:
     sorted(dm.partitions.keys())
 
 
-When data is appended to a dataset, ``kartothek`` guarantees it has the proper schema
-and partitioning.
+As noted above, when data is appended to a dataset, ``kartothek`` guarantees it has
+the proper schema and partitioning.
 
 .. note:: Every partition must have data for every table. An empty dataframe in this
           context is also considered as data.
 
+
 Secondary Indices
 -----------------
 
-The ability to build and maintain secondary indices are an additional ability
-provided by ``kartothek``. Secondary indices are `similar` to partitions in the
-sense that they allow faster access to subsets of data. The main difference
-between them is that while partitioning actually creates separate partitions based
-on column values, secondary indices are simply python dictionaries mapping column
-values and the partitions that rows with them can be found in.
+The ability to build and maintain 'secondary' indices are an additional ability
+provided by ``kartothek``. In general, an index is a data structure used to improve
+the speed of read queries. In the context of ``kartothek`` an index is a data structure
+that contains a mapping of every unique value of a given column to references to all the
+partitions where this value occurs.
+
+Explicitly partitioning on a column internally creates a :class:`~kartothek.core.index.PartitionIndex`.
+While this index has a one-to-one mapping of column values to partition references,
+secondary indices have the advantage of being able to contain one-to-many mappings of
+column values to partition references.
 
 .. note::
 
@@ -155,6 +164,7 @@ values and the partitions that rows with them can be found in.
     on a per-partition basis and accordingly data inputs are expected to be generators.
     Although using other iterables such as lists also works, doing so is counter
     to the intent of the ``iter`` backend (lists would be appropriate in ``eager``).
+
 
 Writing a dataset with a secondary index:
 
@@ -185,9 +195,11 @@ As can be seen from the example above, both ``partition_on`` and ``secondary_ind
 can be specified together. Multiple ``secondary_indices`` can also be added as a list of
 strings.
 
-In general, secondary indices behave like partitions in terms of when and how they can
-and cannot be created. However, when using ``partition_on`` the order of the columns
-provided is important, whereas it is ignored for ``secondary_indices``.
+In general, secondary indices behave like explicit partitions in terms of when and how they
+can and cannot be created. However, when using ``partition_on`` the order of the columns
+provided is important, whereas it is ignored for ``secondary_indices``: this is because the
+underlying processes differ and creation of the :class:`~kartothek.core.index.PartitionIndex`
+is merely a side-effect of using ``partition_on``.
 
 
 Updating an existing dataset
@@ -342,13 +354,23 @@ As we can see, we specified using a dictionary that data where the column ``E`` 
 value ``train`` should be removed. Looking at the partitions after the update, we see that
 the partition ``E=train`` has been removed.
 
-.. note:: We defined ``delete_scope`` over a value of ``E``. ``E`` also happens to be a
-    column that we partitioned by. This is because using ``delete_scope`` uses the same
-    underlying logic as the predicate-based filtering mentioned in :ref:`getting_started`.
+.. note:: We defined ``delete_scope`` over a value of ``E`` which is also the column that
+    we partitioned on: ``delete_scope`` only works *as expected* on indexed columns.
 
-    Attempting to use ``delete_scope`` will *also* work on datasets not previously
-    partitioned on any column(s); in this case however the effect will simply be to remove
-    **all** previous partitions and replace them with the ones in the update.
+    Furthermore it *should only* be used on partitioned columns due to their one-to-one mapping;
+    without the guarantee of one-to-one mappings, using ``delete_scope`` could have unwanted
+    effects like accidentally removing data with different values.
+
+
+.. admonition:: Using ``delete_scope`` on data not partitioned by columns
+
+    Attempting to use ``delete_scope`` *will also* work on datasets not previously partitioned
+    on any column(s); however the effect will simply be to remove **all** previous partitions
+    and replace them with the ones in the update and therfore **should not** be used in such cases.
+
+    If the intention of the user is to delete existing partitions, using :func:`kartothek.io.eager.delete_dataset`
+    would be a much better and safer way to go about doing so.
+
 
 When  using ``delete_scope``, multiple values for the same column cannot be defined as a
 list but have to be specified instead as individual dictionaries, i.e.
@@ -367,9 +389,6 @@ list but have to be specified instead as individual dictionaries, i.e.
     sorted(dm.partitions.keys())  # `E=train/F=foo` and `E=test/F=bar` are deleted
 
 
-
-
-
 Garbage collection
 ==================
 
@@ -382,7 +401,6 @@ appear in the output.
 
 Similarly, when deleting a partition, ``kartothek`` only removes the reference of that file
 from the metadata.
-
 
 These temporary files will remain in storage until a ``kartothek``  garbage collection
 function is called on the dataset.
