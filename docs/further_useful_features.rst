@@ -286,6 +286,12 @@ To illustrate this point better, let's first create a dataset with two tables:
     sorted(dm.partitions.keys())
 
 
+.. admonition:: Filenames
+
+   In the previous example a dictionary was used to pass the desired data to the store function. To label each file,
+   by default ``kartothek`` uses UUIDs to ensure that each filename is unique, this is necessary so that the
+   update can properly work using `copy-on-write <https://en.wikipedia.org/wiki/Copy-on-write>`_ principles.
+
 Below is an example where we update the existing dataset ``another_unique_dataset_identifier``
 with new data for ``table1`` and ``table2``:
 
