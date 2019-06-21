@@ -4,7 +4,6 @@
 Further useful kartothek features
 =================================
 
-
 This document introduces additional features of ``kartothek`` that allow users to
 partition and index their data during writing, update already written data and
 keep their data stores 'clean' with garbage collection.
@@ -14,6 +13,32 @@ in a bid to encourage deeper exploration of ``kartothek`` beyond 'getting starte
 better enable developers to start thinking about how it can (or cannot) be useful in their
 particular applications.
 
+.. _storage_specification:
+
+Storage specification
+=====================
+
+``kartothek`` can write to any location that
+fulfills the `simplekv.KeyValueStore interface
+<https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore>`_  as long as they
+support `ExtendedKeyspaceMixin
+<https://github.com/mbr/simplekv/search?q=%22class+ExtendedKeyspaceMixin%22&unscoped_q=%22class+ExtendedKeyspaceMixin%22>`_
+(this is necessary so that ``/`` can be used in the storage key name).
+
+`storefact`_ offers support for several stores to ``kartothek``, these can be created using the
+function :func:`~storefact.get_store_from_url` with one of the following prefixes:
+
+- ``hfs``: Local filesystem
+- ``hazure``: AzureBlockBlobStorage
+- ``hs3``:  BotoStore (Amazon S3)
+
+For more information, take a look out at the `storefact documentation
+<https://storefact.readthedocs.io/en/latest/reference/storefact.html>`_.
+
+The reason ``store_factory`` is defined as a ``partial`` callable with the store
+information as arguments is because, when using distributed computing backends in
+``kartothek``, the connections of the store cannot be safely transferred between
+processes and thus we pass storage information to workers as a factory function.
 
 .. _partitioning_section:
 
@@ -430,3 +455,5 @@ When garbage collection is called, the file is removed.
     garbage_collect_dataset(store=store_factory, dataset_uuid="a_unique_dataset_identifier")
 
     files_before.difference(store.keys())  # Show files removed
+
+.. _storefact: https://github.com/blue-yonder/storefact

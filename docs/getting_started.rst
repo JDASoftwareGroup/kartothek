@@ -38,9 +38,12 @@ Defining the storage location
 =============================
 
 We want to store this DataFrame now as a dataset. Therefore, we first need
-to connect to a storage location. ``kartothek`` can write to any location that
-fulfills the `simplekv.KeyValueStore interface`_. We use `storefact`_ in this
-example to construct such a store for the local filesystem.
+to connect to a storage location.
+
+We define a store factory as a callable which contains the storage information.
+We will use `storefact`_ in this example to construct such a store factory
+for the local filesystem (``hfs://`` indicates we are using the local filesystem and
+what follows is the filepath).
 
 .. ipython:: python
 
@@ -53,10 +56,8 @@ example to construct such a store for the local filesystem.
     store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
 
 
-The reason ``store_factory`` is defined as a ``partial`` callable with the store
-information as arguments is because, when using distributed computing backends in
-``kartothek``, the connections of the store cannot be safely transferred between
-processes and thus we pass storage information to workers as a factory function.
+For a more technical description of storage specification in kartothek, see
+:ref:`storage_specification`.
 
 
 Writing data to storage
@@ -283,6 +284,5 @@ represent the `tables` of the dataset. For example,
 
 For a deeper dive into ``kartothek`` you can take a look at: :ref:`further_useful_features`.
 
-.. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
 .. _storefact: https://github.com/blue-yonder/storefact
 .. _dask: https://docs.dask.org/en/latest/
