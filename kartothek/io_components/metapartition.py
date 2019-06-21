@@ -421,11 +421,12 @@ class MetaPartition(Iterable):
         if self.is_sentinel:
             return metapartition
 
-        metapartition_dict = metapartition.to_dict()
-        table_meta = metapartition_dict.pop("table_meta")
-        existing_label = [x["label"] for x in self.metapartitions]
+        table_meta = metapartition.table_meta
+        existing_label = [mp_["label"] for mp_ in self.metapartitions]
 
-        if metapartition_dict["label"] in existing_label:
+        if any(
+            [mp_["label"] in existing_label for mp_ in metapartition.metapartitions]
+        ):
             raise RuntimeError(
                 "Duplicate labels for nested metapartitions are not allowed!"
             )
@@ -441,29 +442,23 @@ class MetaPartition(Iterable):
 
         metadata_merger = metadata_merger or combine_metadata
         new_dataset_metadata = metadata_merger(
-            [self.dataset_metadata, metapartition_dict.pop("dataset_metadata")]
+            [self.dataset_metadata, metapartition.dataset_metadata]
         )
 
         new_object = MetaPartition(
             label="NestedMetaPartition",
             dataset_metadata=new_dataset_metadata,
-            metadata_version=metapartition_dict.pop("metadata_version"),
+            metadata_version=metapartition.metadata_version,
             table_meta=table_meta,
-            partition_keys=metapartition_dict.pop("partition_keys", None),
+            partition_keys=metapartition.partition_keys or None,
         )
 
-        if len(metapartition.metapartitions) > 1:
-            for mp in metapartition:
-                new_object = new_object.add_metapartition(
-                    mp, metadata_merger=metadata_merger, schema_validation=False
-                )
-            return new_object
-        else:
-            new_metapartitions = self.metapartitions[:]
+        # Add metapartition information to the new object
+        new_metapartitions = self.metapartitions.copy()
+        new_metapartitions.extend(metapartition.metapartitions.copy())
+        new_object.metapartitions = new_metapartitions
 
-            new_metapartitions.append(metapartition_dict)
-            new_object.metapartitions = new_metapartitions
-            return new_object
+        return new_object
 
     @staticmethod
     def from_dict(dct):
