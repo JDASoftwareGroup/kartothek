@@ -271,6 +271,78 @@ def test_eq():
     assert not meta_partition == "abc"
 
 
+def test_add_nested_to_plain():
+    mp = MetaPartition(
+        label="label_1",
+        files={"core": "file"},
+        data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+        indices={"test": [1, 2, 3]},
+        dataset_metadata={"dataset": "metadata"},
+    )
+
+    to_nest = [
+        MetaPartition(
+            label="label_2",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+        MetaPartition(
+            label="label_22",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+    ]
+    mp_nested = to_nest[0].add_metapartition(to_nest[1])
+
+    mp_add_nested = mp.add_metapartition(mp_nested)
+    mp_iter = mp.add_metapartition(to_nest[0]).add_metapartition(to_nest[1])
+
+    assert mp_add_nested == mp_iter
+
+
+def test_add_nested_to_nested():
+    mps1 = [
+        MetaPartition(
+            label="label_1",
+            files={"core": "file"},
+            data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+            indices={"test": [1, 2, 3]},
+            dataset_metadata={"dataset": "metadata"},
+        ),
+        MetaPartition(
+            label="label_33",
+            files={"core": "file"},
+            data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+            indices={"test": [1, 2, 3]},
+            dataset_metadata={"dataset": "metadata"},
+        ),
+    ]
+
+    mpn_1 = mps1[0].add_metapartition(mps1[1])
+
+    mps2 = [
+        MetaPartition(
+            label="label_2",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+        MetaPartition(
+            label="label_22",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+    ]
+    mpn_2 = mps2[0].add_metapartition(mps2[1])
+
+    mp_nested_merge = mpn_1.add_metapartition(mpn_2)
+
+    mp_iter = mps1.pop()
+    for mp_ in [*mps1, *mps2]:
+        mp_iter = mp_iter.add_metapartition(mp_)
+
+    assert mp_nested_merge == mp_iter
+
+
 def test_eq_nested():
     mp = MetaPartition(
         label="label_1",
