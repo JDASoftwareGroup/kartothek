@@ -227,22 +227,26 @@ underlying processes differ and creation of the :class:`~kartothek.core.index.Pa
 is merely a side-effect of using ``partition_on``.
 
 
-Updating an existing dataset
-============================
+Updating existing data
+======================
 
-It's possible to update datasets by adding new physical partitions to them, ``kartothek``
+It's possible to update existing data (formally referred to in ``kartothek`` as a dataset)
+by adding new physical partitions to them and deleting or replacing old partitions. ``kartothek``
 provides update functions that generally have the prefix `update_dataset` in their names.
 For example, :func:`~kartothek.io.eager.update_dataset_from_dataframes` is the update
 function for the ``eager`` backend.
 
-To see updating in action, let's set up some data and a storage location first and store
-the data there with ``kartothek``:
+To see updating in action, let's first set up a storage location first and store some data there
+with ``kartothek``. Specifically, we'll reuse the ``df`` dataframe that we'd created earlier:
 
 .. ipython:: python
 
     dm = store_dataframes_as_dataset(store_factory, "a_unique_dataset_identifier", df)
     sorted(dm.partitions.keys())
 
+
+Appending Data
+--------------
 
 Now, we create ``another_df`` with the same schema as our intial dataframe
 ``df`` and update it using the ``eager`` backend by calling :func:`~kartothek.io.eager.update_dataset_from_dataframes`:
@@ -311,11 +315,12 @@ To illustrate this point better, let's first create a dataset with two tables:
     sorted(dm.partitions.keys())
 
 
-.. admonition:: Filenames
+.. admonition:: Partition names
 
-   In the previous example a dictionary was used to pass the desired data to the store function. To label each file,
-   by default ``kartothek`` uses UUIDs to ensure that each filename is unique, this is necessary so that the
-   update can properly work using `copy-on-write <https://en.wikipedia.org/wiki/Copy-on-write>`_ principles.
+   In the previous example a dictionary was used to pass the desired data to the store function. To label each
+   partition, by default ``kartothek`` uses UUIDs to ensure that each partition is named uniquely. This is
+   necessary so that the update can properly work using `copy-on-write <https://en.wikipedia.org/wiki/Copy-on-write>`_
+   principles.
 
 Below is an example where we update the existing dataset ``another_unique_dataset_identifier``
 with new data for ``table1`` and ``table2``:
@@ -365,8 +370,11 @@ Trying to update only a subset of tables throws a ``ValueError``:
     Tables of existing dataset: ['table1', 'table2']
 
 
+Deleting Data
+-------------
+
 Adding data to an existing dataset is not the only functionality achievable within an update
-operation, such an operation can also be used to remove or overwrite data.
+operation, and it can also be used to remove data.
 To do so we use the ``delete_scope`` keyword argument as shown in the example below:
 
 .. ipython:: python
@@ -385,22 +393,19 @@ As we can see, we specified using a dictionary that data where the column ``E`` 
 value ``train`` should be removed. Looking at the partitions after the update, we see that
 the partition ``E=train`` has been removed.
 
-.. note:: We defined ``delete_scope`` over a value of ``E`` which is also the column that
-    we partitioned on: ``delete_scope`` only works *as expected* on indexed columns.
+.. warning:: We defined ``delete_scope`` over a value of ``E`` which is also the column that
+    we partitioned on: ``delete_scope`` *only works on* indexed columns.
 
     Furthermore it *should only* be used on partitioned columns due to their one-to-one mapping;
     without the guarantee of one-to-one mappings, using ``delete_scope`` could have unwanted
     effects like accidentally removing data with different values.
 
-
-.. admonition:: Using ``delete_scope`` on data not partitioned by columns
-
     Attempting to use ``delete_scope`` *will also* work on datasets not previously partitioned
-    on any column(s); however the effect will simply be to remove **all** previous partitions
-    and replace them with the ones in the update and therfore **should not** be used in such cases.
+    on any column(s); however this is **not at all advised** since the effect will simply be to
+    remove **all** previous partitions and replace them with the ones in the update.
 
-    If the intention of the user is to delete existing partitions, using :func:`kartothek.io.eager.delete_dataset`
-    would be a much better and safer way to go about doing so.
+    If the intention of the user is to delete *all* existing partitions, using :func:`kartothek.io.eager.delete_dataset`
+    would be a much better, cleaner and safer way to go about doing so.
 
 
 When  using ``delete_scope``, multiple values for the same column cannot be defined as a
@@ -419,6 +424,49 @@ list but have to be specified instead as individual dictionaries, i.e.
 
     sorted(dm.partitions.keys())  # `E=train/F=foo` and `E=test/F=bar` are deleted
 
+
+Replacing Data
+--------------
+
+Finally, an update step can be used to perform the two steps above, i.e. deleting and appending
+together in one shot. This is done simply by specifying a dataset to be appended while also defining
+a ``delete_scope`` over the partition. The following example illustrates how both can be performed
+with one update:
+
+.. ipython:: python
+
+    df  # this has 2 rows where column E has value 'test' and another 2 rows where E is 'train'
+
+    dm = store_dataframes_as_dataset(
+        store_factory, "replace_partition", df, partition_on="E"
+    )
+    sorted(dm.partitions.keys())  # two partitions, one each for E=test and E=train
+
+    modified_df = another_df.copy()
+    modified_df.E = (
+        "train"
+    )  # set column E to have value 'train' for all rows in this dataframe
+    modified_df
+
+    dm = update_dataset_from_dataframes(
+        [
+            modified_df
+        ],  # specify dataframe which has 'new' data for partition to be replaced
+        store=store_factory,
+        dataset_uuid="replace_partition",
+        partition_on="E",  # don't forget to specify the partitioning column
+        delete_scope=[{"E": "train"}],  # specify the partition to be deleted
+    )
+    sorted(dm.partitions.keys())
+
+    modified_df = read_table("replace_partition", store_factory, table="table")
+    modified_df
+
+
+As can be seen in the example above, the resultant dataframe from :func:`~kartothek.io.eager.read_table` has two rows
+corresponding to ``E=test`` from ``df`` and four rows corresponding to ``E=train`` from ``modified_df``
+and the net result is that the original partition with the two rows corresponding to ``E=train`` from ``df``
+has been completely replaced.
 
 Garbage collection
 ==================
