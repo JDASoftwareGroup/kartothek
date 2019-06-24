@@ -75,7 +75,7 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
     dm
 
 
-.. admonition:: Storage backends
+.. admonition:: Scheduling backends
 
     The import path of this function already gives us a hint about the general
     structuring of the ``kartothek`` modules. In :mod:`kartothek.io` we have all
@@ -85,13 +85,13 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
     The scheduling backends `currently supported` by kartothek are:
 
     - ``eager`` runs all execution immediately and on the local machine.
-    - ``iter`` executes operations on the dataset on a per-partition basis.
+    - ``iter`` executes operations on the dataset using a generator/iterator interface.
       The standard format to read/store dataframes in ``iter`` is by providing
       a generator of dataframes.
     - ``dask`` is suitable for larger datasets. It can be used to work on datasets in
       parallel or even in a cluster by using ``dask.distributed`` as the backend.
       There are also ``dask.bag`` and ``dask.dataframe`` which support I/O operations
-      for the respective `dask`_ objects.
+      for the respective `dask`_ collections.
 
 
 After calling :func:`~kartothek.io.eager.store_dataframes_as_dataset`,
@@ -116,10 +116,6 @@ For each table, ``kartothek`` also tracks the schema of the columns.
 Unless specified explicitly on write, it is inferred from the passed data.
 On writing additional data to a dataset, we will also check that the schema
 of the new data matches the schema of the existing data.
-
-While two tables may have different schemas, every file belonging to a given table needs
-to have the same schema as the table. Furthermore, every partition needs to have a file
-for every table (empty files are allowed).
 
 .. admonition:: Writing multiple dataframes with identical schemas
 
@@ -215,14 +211,14 @@ default table name ``table`` and generates a UUID for the partition name.
         dfs = [
             {
                 "data": {
-                    "core-table": pd.DataFrame({"col1": ["x"]}),
-                    "aux-table": pd.DataFrame({"f": [1.1]}),
+                    "core-table": pd.DataFrame({"index": [22], "col1": ["x"]}),
+                    "aux-table": pd.DataFrame({"index": [22, 23], "f": [1.1, 2.4]}),
                 }
             },
             {
                 "data": {
-                    "core-table": pd.DataFrame({"col1": ["y"]}),
-                    "aux-table": pd.DataFrame({"f": [3.2]}),
+                    "core-table": pd.DataFrame({"index": [31], "col1": ["y"]}),
+                    "aux-table": pd.DataFrame({"index": [29, 31], "f": [3.2, 0.6]}),
                 }
             },
         ]
@@ -269,10 +265,9 @@ represent the `tables` of the dataset. For example,
     the ``predicates`` argument. Technically speaking, ``kartothek`` supports predicates
     in `disjunctive normal form <https://en.wikipedia.org/wiki/Disjunctive_normal_form>`_.
 
-    When this argument is defined, ``kartothek`` tries to use the Apache Parquet metadata
-    for partition pruning and predicate pushdown to speed up queries when possible. How this
-    works is a complex topic, well beyond the scope of this guide but it is a 'good-to-know'
-    feature from the perspective of users.
+    When this argument is defined, ``kartothek`` uses the Apache Parquet metadata
+    to speed up queries when possible.
+    How this works is a complex topic, see :ref:`predicate_pushdown`.
 
     .. ipython:: python
 

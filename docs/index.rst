@@ -35,6 +35,7 @@ Contents
    In- / Ouptut <io/index>
    Extending <io/extending>
    DataFrame Serialization <spec/serialization>
+   Predicate pushdown <spec/predicate_pushdown>
    Module Reference <_rst/modules>
    Changelog <changes>
 

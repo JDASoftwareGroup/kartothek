@@ -186,7 +186,8 @@ column values to partition references.
 
     The examples we've looked at so far have mostly used functions from the ``eager``
     backend. As noted earlier, the ``iter`` backend executes operations on the dataset
-    on a per-partition basis and accordingly data inputs are expected to be generators.
+    using an iterator/generator interface (data input is expected to be provided as a
+    generator).
     Although using other iterables such as lists also works, doing so is counter
     to the intent of the ``iter`` backend (lists would be appropriate in ``eager``).
 
