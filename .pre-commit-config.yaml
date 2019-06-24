@@ -7,6 +7,14 @@ repos:
           - --safe
           - --target-version=py36
 
+  - repo: https://github.com/asottile/blacken-docs
+    rev: v1.1.0
+    hooks:
+    -   id: blacken-docs
+        additional_dependencies: [black==19.3b0]
+        args:
+          - --target-version=py36
+
   - repo: git://github.com/pre-commit/pre-commit-hooks
     rev: v2.2.1
     hooks:

@@ -14,7 +14,7 @@ purposes, we use a small DataFrame with a mixed set of types.
 
    df = pd.DataFrame(
        {
-           "A": 1.,
+           "A": 1.0,
            "B": pd.Timestamp("20130102"),
            "C": pd.Series(1, index=list(range(4)), dtype="float32"),
            "D": np.array([3] * 4, dtype="int32"),
@@ -58,8 +58,9 @@ to work on datasets in parallel or even in a cluster by using
    :okwarning:
 
    from kartothek.io.eager import store_dataframes_as_dataset
+
    dm = store_dataframes_as_dataset(
-      store, "a_unique_dataset_identifier", df, metadata_version=4
+       store, "a_unique_dataset_identifier", df, metadata_version=4
    )
    dm
 
