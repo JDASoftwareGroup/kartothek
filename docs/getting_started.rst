@@ -55,6 +55,14 @@ what follows is the filepath).
 
     store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
 
+.. admonition:: Storage locations
+
+    `storefact`_ offers support for several stores in ``kartothek``, these can be created using the
+    function :func:`storefact.get_store_from_url` with one of the following prefixes:
+
+    - ``hfs``: Local filesystem
+    - ``hazure``: AzureBlockBlobStorage
+    - ``hs3``:  BotoStore (Amazon S3)
 
 For a more technical description of storage specification in kartothek, see
 :ref:`storage_specification`.

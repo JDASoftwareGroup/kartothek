@@ -25,13 +25,6 @@ support `ExtendedKeyspaceMixin
 <https://github.com/mbr/simplekv/search?q=%22class+ExtendedKeyspaceMixin%22&unscoped_q=%22class+ExtendedKeyspaceMixin%22>`_
 (this is necessary so that ``/`` can be used in the storage key name).
 
-`storefact`_ offers support for several stores to ``kartothek``, these can be created using the
-function :func:`~storefact.get_store_from_url` with one of the following prefixes:
-
-- ``hfs``: Local filesystem
-- ``hazure``: AzureBlockBlobStorage
-- ``hs3``:  BotoStore (Amazon S3)
-
 For more information, take a look out at the `storefact documentation
 <https://storefact.readthedocs.io/en/latest/reference/storefact.html>`_.
 
