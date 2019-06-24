@@ -258,7 +258,6 @@ def test_read_dataset_as_dataframes_predicate(
     )
 
 
-@pytest.mark.min_metadata_version(4)
 @pytest.mark.parametrize(
     "predicates",
     [
@@ -303,7 +302,6 @@ def test_read_dataset_as_dataframes_predicate_with_partition_keys(
     )
 
 
-@pytest.mark.min_metadata_version(4)
 def test_read_dataset_as_dataframes_predicate_empty(
     dataset_partition_keys,
     store_session_factory,

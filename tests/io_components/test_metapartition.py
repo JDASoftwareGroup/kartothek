@@ -22,11 +22,8 @@ from kartothek.io_components.metapartition import (
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 
 
-@pytest.mark.parametrize(
-    "metadata_version, expected_key", [(4, "dataset_uuid/core/test_label.parquet")]
-)
 def test_store_single_dataframe_as_partition(
-    store, metadata_storage_format, metadata_version, expected_key
+    store, metadata_storage_format, metadata_version
 ):
     df = pd.DataFrame(
         {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
@@ -44,6 +41,8 @@ def test_store_single_dataframe_as_partition(
     )
 
     assert len(meta_partition.data) == 0
+
+    expected_key = "dataset_uuid/core/test_label.parquet"
 
     assert meta_partition.files == {"core": expected_key}
     assert meta_partition.label == "test_label"

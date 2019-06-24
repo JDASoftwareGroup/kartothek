@@ -68,7 +68,6 @@ def test_dispatch_metapartition_undefined_behaviour(dataset, store_session, pred
     assert "The behaviour on an empty" in str(exc.value)
 
 
-@pytest.mark.min_metadata_version(4)
 @pytest.mark.parametrize(
     "predicates",
     [
@@ -91,7 +90,6 @@ def test_dispatch_metapartitions_query_partition_on(
     assert partitions[0].label == "P=2/cluster_2"
 
 
-@pytest.mark.min_metadata_version(4)
 @pytest.mark.parametrize(
     "predicates",
     [

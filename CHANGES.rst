@@ -34,6 +34,7 @@ Version 3.1.0 (2019-XX-XX)
 - categorical normalization was moved from :meth:`~kartothek.core.common_metadata.make_meta` to
   :meth:`~kartothek.core.common_metadata.normalize_type`.
 - :meth:`kartothek.core.common_metadata.SchemaWrapper.origin` is now a set of of strings instead of a single string
+- ``Partition.from_v2_dict`` was removed, use :meth:`kartothek.core.partition.Partition.from_dict` instead
 
 
 Version 3.0.0 (2019-05-02)

@@ -31,11 +31,6 @@ class Partition(object):
 
     @staticmethod
     def from_dict(label, dct):
-        part = Partition.from_v2_dict(label=label, dct=dct)
-        return part
-
-    @staticmethod
-    def from_v2_dict(label, dct):
         if isinstance(dct, str):
             raise ValueError(
                 "Trying to load a partition from a string. Probably the dataset file uses the multifile "
