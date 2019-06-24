@@ -157,6 +157,9 @@ For example:
 As noted above, when data is appended to a dataset, ``kartothek`` guarantees it has
 the proper schema and partitioning.
 
+The order of columns provided in ``partition_on`` is important, as the partition
+structure would be different if the columns are in a different order.
+
 .. note:: Every partition must have data for every table. An empty dataframe in this
           context is also considered as data.
 
@@ -164,26 +167,16 @@ the proper schema and partitioning.
 Secondary Indices
 -----------------
 
-The ability to build and maintain 'secondary' indices are an additional ability
-provided by ``kartothek``. In general, an index is a data structure used to improve
+The ability to build and maintain `inverted indices <https://en.wikipedia.org/wiki/Inverted_index>`_
+are an additional feature provided by ``kartothek``.
+In general, an index is a data structure used to improve
 the speed of read queries. In the context of ``kartothek`` an index is a data structure
 that contains a mapping of every unique value of a given column to references to all the
 partitions where this value occurs.
 
-Explicitly partitioning on a column internally creates a :class:`~kartothek.core.index.PartitionIndex`.
 While this index has a one-to-one mapping of column values to partition references,
 secondary indices have the advantage of being able to contain one-to-many mappings of
 column values to partition references.
-
-.. note::
-
-    The examples we've looked at so far have mostly used functions from the ``eager``
-    backend. As noted earlier, the ``iter`` backend executes operations on the dataset
-    using an iterator/generator interface (data input is expected to be provided as a
-    generator).
-    Although using other iterables such as lists also works, doing so is counter
-    to the intent of the ``iter`` backend (lists would be appropriate in ``eager``).
-
 
 Writing a dataset with a secondary index:
 
@@ -214,11 +207,7 @@ As can be seen from the example above, both ``partition_on`` and ``secondary_ind
 can be specified together. Multiple ``secondary_indices`` can also be added as a list of
 strings.
 
-In general, secondary indices behave like explicit partitions in terms of when and how they
-can and cannot be created. However, when using ``partition_on`` the order of the columns
-provided is important, whereas it is ignored for ``secondary_indices``: this is because the
-underlying processes differ and creation of the :class:`~kartothek.core.index.PartitionIndex`
-is merely a side-effect of using ``partition_on``.
+Contrary to ``partition_on``, the order of columns is ignored for ``secondary_indices``.
 
 
 Updating existing data
