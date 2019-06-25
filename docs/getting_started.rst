@@ -27,11 +27,21 @@ purposes, we will use a small DataFrame with a mixed set of types.
             "B": pd.Timestamp("20130102"),
             "C": pd.Series(1, index=list(range(4)), dtype="float32"),
             "D": np.array([3] * 4, dtype="int32"),
-            "E": pd.Categorical(["test", "train", "test", "train"]),
+            "E": pd.Categorical(["test", "train", "test", "prod"]),
             "F": "foo",
         }
     )
-    df
+
+    another_df = pd.DataFrame(
+        {
+            "A": 5.0,
+            "B": pd.Timestamp("20110102"),
+            "C": pd.Series(1, index=list(range(4)), dtype="float32"),
+            "D": np.array([12] * 4, dtype="int32"),
+            "E": pd.Categorical(["prod", "train", "test", "train"]),
+            "F": "bar",
+        }
+    )
 
 
 Defining the storage location
@@ -68,6 +78,7 @@ For a more technical description of storage specification in kartothek, see
 :ref:`storage_specification`.
 
 
+
 Writing data to storage
 =======================
 
@@ -79,8 +90,11 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
 
     from kartothek.io.eager import store_dataframes_as_dataset
 
-    dm = store_dataframes_as_dataset(store_factory, "a_unique_dataset_identifier", df)
-    dm
+    df.dtypes.equals(another_df.dtypes)  # both have the same schema
+
+    dm = store_dataframes_as_dataset(
+        store_factory, "a_unique_dataset_identifier", [df, another_df]
+    )
 
 
 .. admonition:: Scheduling backends
@@ -110,6 +124,7 @@ This class holds information about the structure and schema of the dataset.
 
     dm.tables
     sorted(dm.partitions.keys())
+    dm.table_meta["table"].remove_metadata()  # Arrow schema
 
 
 For this guide, two attributes that are noteworthy are ``tables`` and ``partitions``:
@@ -120,52 +135,21 @@ For this guide, two attributes that are noteworthy are ``tables`` and ``partitio
   contents of a dataset. Data is written to storage on a per-partition basis.
   See the section on partitioning for further details: :ref:`partitioning_section`.
 
-For each table, ``kartothek`` also tracks the schema of the columns.
-Unless specified explicitly on write, it is inferred from the passed data.
-On writing additional data to a dataset, we will also check that the schema
-of the new data matches the schema of the existing data.
+The attribute ``table_meta`` can be accessed to see the underlying schema of the dataset.
+See :ref:`type_system` for more information.
 
-.. admonition:: Writing multiple dataframes with identical schemas
+To store multiple dataframes into a dataset, it is possible to pass a collection of
+dataframes; the exact format will depend on the I/O backend used.
 
-    To store multiple dataframes into a dataset, it is possible to pass an iterator of
-    dataframes; the exact format will depend on the I/O backend used.
+Additionally, ``kartothek`` supports several data input formats,
+it does not need to always be a plain ``pd.DataFrame``.
+See :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
+further details.
 
-    Additionally, ``kartothek`` supports several data input formats,
-    it does not need to always be a plain ``pd.DataFrame``.
-    See :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
-    further details.
-
-    If table names are not specified when passing an iterator of dataframes,
-    ``kartothek`` assumes these dataframes are different chunks of the same table
-    and expects their schemas to be identical. A ``ValueError`` will be thrown otherwise.
-
-
-For example, the following will work fine because ``df`` and ``another_df`` have identical
-schemas:
-
-.. ipython:: python
-
-    another_df = pd.DataFrame(
-        {
-            "A": 5.0,
-            "B": pd.Timestamp("20110102"),
-            "C": pd.Series(1, index=list(range(4)), dtype="float32"),
-            "D": np.array([12] * 4, dtype="int32"),
-            "E": pd.Categorical(["prod", "train", "test", "train"]),
-            "F": "bar",
-        }
-    )
-    another_df
-    df.dtypes
-    another_df.dtypes  # both have the same schema
-
-    store_dataframes_as_dataset(
-        store_factory, "another_unique_dataset_identifier", [df, another_df]
-    )
-
-
-However, passing a list of dataframes with differing schemas `without specifying table names`
-to :func:`~kartothek.io.eager.store_dataframes_as_dataset` throws ``ValueError``:
+If table names are not specified when passing an iterator of dataframes,
+``kartothek`` assumes these dataframes are different chunks of the same table
+and expects their schemas to be identical. A ``ValueError`` will be thrown otherwise.
+For example,
 
 .. ipython:: python
 
@@ -179,9 +163,8 @@ to :func:`~kartothek.io.eager.store_dataframes_as_dataset` throws ``ValueError``
             "L": 2.0,
         }
     )
-    df2
-    df.dtypes
-    df2.dtypes  # schema is different!
+
+    df.dtypes.equals(df2.dtypes)  # schemas are different!
 
 
 .. ipython::
@@ -199,7 +182,8 @@ to :func:`~kartothek.io.eager.store_dataframes_as_dataset` throws ``ValueError``
     Origin reference: {table/80feb4d84ac34a9c9d08ba48c8170647}
 
 
-.. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`
+.. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`,
+          :ref:`input_output`.
 
 
 When we do not explicitly define the name of the table and partition, ``kartothek`` uses the
@@ -219,21 +203,20 @@ default table name ``table`` and generates a UUID for the partition name.
         dfs = [
             {
                 "data": {
-                    "core-table": pd.DataFrame({"index": [22], "col1": ["x"]}),
-                    "aux-table": pd.DataFrame({"index": [22, 23], "f": [1.1, 2.4]}),
+                    "core-table": pd.DataFrame({"id": [22, 23], "f": [1.1, 2.4]}),
+                    "aux-table": pd.DataFrame({"id": [22], "col1": ["x"]}),
                 }
             },
             {
                 "data": {
-                    "core-table": pd.DataFrame({"index": [31], "col1": ["y"]}),
-                    "aux-table": pd.DataFrame({"index": [29, 31], "f": [3.2, 0.6]}),
+                    "core-table": pd.DataFrame({"id": [29, 31], "f": [3.2, 0.6]}),
+                    "aux-table": pd.DataFrame({"id": [31], "col1": ["y"]}),
                 }
             },
         ]
 
         dm = store_dataframes_as_dataset(store_factory, dataset_uuid="two-tables", dfs=dfs)
         dm.tables
-        sorted(dm.partitions.keys())
 
 
 Reading data from storage
@@ -266,22 +249,27 @@ represent the `tables` of the dataset. For example,
         for table_name, table_df in df_dict.items():
             print(f"Table: {table_name}. Data: \n{table_df}")
 
+Respectively, the ``dask.delayed`` back-end provides the function
+:func:`~kartothek.io.dask.delayed.read_dataset_as_delayed`, which has a very similar
+interface to the :func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`
+function but returns a collection of ``dask.delayed`` objects.
 
-.. admonition:: Filtering the dataset using predicates
+
+.. admonition:: Filtering using predicates
 
     It is possible to filter data during reads using simple predicates by using
     the ``predicates`` argument. Technically speaking, ``kartothek`` supports predicates
     in `disjunctive normal form <https://en.wikipedia.org/wiki/Disjunctive_normal_form>`_.
 
     When this argument is defined, ``kartothek`` uses the Apache Parquet metadata
-    to speed up queries when possible.
+    as well as indices and partition information to speed up queries when possible.
     How this works is a complex topic, see :ref:`predicate_pushdown`.
 
     .. ipython:: python
 
-        # Read only values table `aux-table` where `f` < 2.5
+        # Read only values table `core-table` where `f` < 2.5
         read_table(
-            "two-tables", store_factory, table="aux-table", predicates=[[("f", "<", 2.5)]]
+            "two-tables", store_factory, table="core-table", predicates=[[("f", "<", 2.5)]]
         )
 
 

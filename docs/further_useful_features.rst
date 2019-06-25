@@ -35,25 +35,25 @@ processes and thus we pass storage information to workers as a factory function.
 
 .. _partitioning_section:
 
-Partitioning and Indexing
-=========================
-
-``kartothek`` is designed primarily for storing large datasets consistently and
-accessing them efficiently. To achieve this, it provides two useful functionalities:
-partitioning and secondary indices.
-
-
 Partitioning
-------------
+============
 
-As we have already seen, updating a dataset in ``kartothek`` amounts to adding new
-partitions, which in the underlying key-value store translates to writing new files
-to the storage layer.
+As we have already seen, writing data in ``kartothek`` amounts to writing
+partitions, which in the underlying key-value store translates to writing files
+to the storage layer in a structured manner.
 
 From the perspective of efficient access, it would be helpful if accessing a subset
 of written data didn't require reading through an entire dataset to be able to
 identify and access the required subset. This is where *explicitly* partitioning by
 table columns helps.
+
+``kartothek`` is designed primarily for storing large datasets consistently. One way
+to do this is to structure the data well, this can be done by
+explicitly partitioning the dataset by select columns.
+
+One benefit of doing so is that it allows for selective operations on data,
+which makes reading as well as mutating (replacing or deleting) subsets of data much
+more efficient as only a select amount of files need to be read.
 
 To see explicit partitioning in action, let's set up some data and a storage location
 first and store the data there with ``kartothek``:
@@ -162,52 +162,6 @@ structure would be different if the columns are in a different order.
 
 .. note:: Every partition must have data for every table. An empty dataframe in this
           context is also considered as data.
-
-
-Secondary Indices
------------------
-
-The ability to build and maintain `inverted indices <https://en.wikipedia.org/wiki/Inverted_index>`_
-are an additional feature provided by ``kartothek``.
-In general, an index is a data structure used to improve
-the speed of read queries. In the context of ``kartothek`` an index is a data structure
-that contains a mapping of every unique value of a given column to references to all the
-partitions where this value occurs.
-
-While this index has a one-to-one mapping of column values to partition references,
-secondary indices have the advantage of being able to contain one-to-many mappings of
-column values to partition references.
-
-Writing a dataset with a secondary index:
-
-.. ipython:: python
-
-    from kartothek.io.iter import store_dataframes_as_dataset__iter
-
-    # "Generate" 5 dataframes
-    df_gen = (
-        pd.DataFrame({"date": pd.Timestamp(f"2020-01-0{i}"), "X": np.random.choice(10, 10)})
-        for i in range(1, 6)
-    )
-
-    dm = store_dataframes_as_dataset__iter(
-        df_gen,
-        store_factory,
-        "secondarily_indexed",
-        partition_on="date",
-        secondary_indices="X",
-    )
-    dm
-
-    dm = dm.load_all_indices(store_factory())
-    dm.indices["X"].eval_operator("==", 0)  # Show files where `X == 0`
-
-
-As can be seen from the example above, both ``partition_on`` and ``secondary_indices``
-can be specified together. Multiple ``secondary_indices`` can also be added as a list of
-strings.
-
-Contrary to ``partition_on``, the order of columns is ignored for ``secondary_indices``.
 
 
 Updating existing data
@@ -387,7 +341,7 @@ the partition ``E=train`` has been removed.
     on any column(s); however this is **not at all advised** since the effect will simply be to
     remove **all** previous partitions and replace them with the ones in the update.
 
-    If the intention of the user is to delete *all* existing partitions, using :func:`kartothek.io.eager.delete_dataset`
+    If the intention of the user is to delete the entire dataset, using :func:`kartothek.io.eager.delete_dataset`
     would be a much better, cleaner and safer way to go about doing so.
 
 
@@ -423,13 +377,11 @@ with one update:
     dm = store_dataframes_as_dataset(
         store_factory, "replace_partition", df, partition_on="E"
     )
-    sorted(dm.partitions.keys())  # two partitions, one each for E=test and E=train
+    sorted(dm.partitions.keys())  # two partitions, one for each value of `E`
 
     modified_df = another_df.copy()
-    modified_df.E = (
-        "train"
-    )  # set column E to have value 'train' for all rows in this dataframe
-    modified_df
+    # set column E to have value 'train' for all rows in this dataframe
+    modified_df.E = "train"
 
     dm = update_dataset_from_dataframes(
         [
@@ -442,13 +394,12 @@ with one update:
     )
     sorted(dm.partitions.keys())
 
-    modified_df = read_table("replace_partition", store_factory, table="table")
-    modified_df
+    read_table("replace_partition", store_factory, table="table")
 
 
 As can be seen in the example above, the resultant dataframe from :func:`~kartothek.io.eager.read_table` has two rows
-corresponding to ``E=test`` from ``df`` and four rows corresponding to ``E=train`` from ``modified_df``
-and the net result is that the original partition with the two rows corresponding to ``E=train`` from ``df``
+corresponding to ``E=test`` from ``df`` and four rows corresponding to ``E=train`` from ``modified_df``.
+The result is that the original partition with the two rows corresponding to ``E=train`` from ``df``
 has been completely replaced.
 
 Garbage collection
