@@ -6,7 +6,6 @@ import datetime
 from collections import OrderedDict
 
 import pandas as pd
-import pytest
 from pandas.testing import assert_frame_equal
 
 from kartothek.core.common_metadata import make_meta
@@ -21,7 +20,6 @@ from kartothek.io.eager import (
 )
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_from_metapartition(dataset_function, store):
 
     new_data = {
@@ -94,7 +92,6 @@ def test_commit_dataset_from_metapartition(dataset_function, store):
     assert_frame_equal(df_expected, actual)
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_from_dict(dataset_function, store):
 
     new_data = {
@@ -171,7 +168,6 @@ def test_commit_dataset_from_dict(dataset_function, store):
     assert_frame_equal(df_expected, actual)
 
 
-@pytest.mark.min_metadata_version(4)
 def test_initial_commit(store):
     dataset_uuid = "dataset_uuid"
     df = pd.DataFrame(OrderedDict([("P", [5]), ("L", [5]), ("TARGET", [5])]))
@@ -202,7 +198,6 @@ def test_initial_commit(store):
     assert_frame_equal(df_expected, actual)
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_only_delete(store, metadata_version):
     partitions = [
         {
@@ -239,7 +234,6 @@ def test_commit_dataset_only_delete(store, metadata_version):
     assert updated_dataset.explicit_partitions is True
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_delete_all(store, metadata_version):
     partitions = [
         {

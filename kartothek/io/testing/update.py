@@ -19,7 +19,6 @@ from kartothek.io.eager import (
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
 
 
-@pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions__reducer(
     store_factory, metadata_version, bound_update_dataset, mocker, store
 ):
@@ -97,7 +96,6 @@ def test_update_dataset_with_partitions__reducer(
     assert dataset_updated == stored_dataset
 
 
-@pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions_no_index_input_info(
     store_factory, metadata_version, bound_update_dataset, store
 ):
@@ -137,7 +135,6 @@ def test_update_dataset_with_partitions_no_index_input_info(
     assert 3 in dataset_updated.indices["p"].to_dict()
 
 
-@pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions__reducer_delete_only(
     store_factory, metadata_version, frozen_time_em, bound_update_dataset, store
 ):
@@ -195,7 +192,6 @@ def test_update_dataset_with_partitions__reducer_delete_only(
     assert dataset_updated == stored_dataset
 
 
-@pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions__reducer_partitions(
     store_factory, frozen_time_em, bound_update_dataset
 ):
@@ -292,7 +288,6 @@ def test_update_dataset_with_partitions__reducer_partitions(
         assert sorted(expected_new_idx[k]) == sorted(v)
 
 
-@pytest.mark.min_metadata_version(4)
 def test_update_dataset_with_partitions__reducer_nonexistent(
     store_factory, metadata_version, frozen_time_em, bound_update_dataset, store
 ):
@@ -453,7 +448,6 @@ def test_update_dataset_with_partitions__reducer_nonexistent(
         ),
     ],
 )
-@pytest.mark.min_metadata_version(4)
 def test_schema_check_update(dfs, ok, store_factory, bound_update_dataset):
     df_list = [{"label": "cluster_1", "data": [("core", df)]} for df in dfs]
     store_dataframes_as_dataset(
@@ -480,7 +474,6 @@ def test_schema_check_update(dfs, ok, store_factory, bound_update_dataset):
             pipe(df_list[1:])
 
 
-@pytest.mark.min_metadata_version(4)
 def test_sort_partitions_by(
     store_factory, metadata_version, frozen_time_em, bound_update_dataset
 ):

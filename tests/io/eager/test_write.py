@@ -16,7 +16,6 @@ from kartothek.io.eager import (
 from kartothek.io_components.metapartition import MetaPartition
 
 
-@pytest.mark.min_metadata_version(4)
 def test_write_single_partition(store_factory, mock_uuid, metadata_version):
     create_empty_dataset_header(
         store=store_factory(),

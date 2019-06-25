@@ -101,8 +101,7 @@ _PARAMETER_MAPPING = {
     dates_as_object: bool
         Load pyarrow.date{32,64} columns as ``object`` columns in Pandas
         instead of using ``np.datetime64`` to preserve their type. While
-        this improves type-safety, this comes at a performance cost. Only
-        works for metadata version >= 4.
+        this improves type-safety, this comes at a performance cost.
 """,
     "predicates": """
     predicates: list of list of tuple[str, str, Any]
