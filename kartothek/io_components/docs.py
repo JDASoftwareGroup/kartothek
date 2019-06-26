@@ -64,7 +64,7 @@ _PARAMETER_MAPPING = {
 """,
     "partition_on": """
     partition_on: list
-        Column names by which the dataset should be partitioned by.
+         Column names by which the dataset should be partitioned by physically.
         These columns may later on be used as an Index to improve query performance.
         Partition columns need to be present in all dataset tables.
         Sensitive to ordering.
