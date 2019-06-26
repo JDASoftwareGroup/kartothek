@@ -6,7 +6,7 @@ import pytest
 from kartothek.serialization.testing import BINARY_COLUMNS, get_dataframe_not_nested
 
 
-class FakeStore(object):
+class FakeStore:
     def __init__(self):
         self._brain = {}
 

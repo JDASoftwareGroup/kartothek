@@ -22,7 +22,7 @@ from ._compat import ARROW_LARGER_EQ_0130
 _logger = logging.getLogger()
 
 
-class SchemaWrapper(object):
+class SchemaWrapper:
     """
     Wrapper object for pyarrow.Schema, since their pickle implementation is broken.
     """

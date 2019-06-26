@@ -5,7 +5,7 @@ import pytest
 from kartothek.serialization._io_buffer import BlockBuffer
 
 
-class _ReadRecordWrapper(object):
+class _ReadRecordWrapper:
     """
     Wrapper around file-like objects to record read requests.
     """
@@ -23,7 +23,7 @@ class _ReadRecordWrapper(object):
         return self.raw.read(size)
 
 
-class _ZeroFile(object):
+class _ZeroFile:
     """
     Simulated files filled with NULL-bytes, can be used to test behavior on very large files.
     """
