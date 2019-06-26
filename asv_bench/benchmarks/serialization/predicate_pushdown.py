@@ -8,7 +8,7 @@ from kartothek.serialization._generic import filter_df_from_predicates
 from kartothek.serialization.testing import get_dataframe_not_nested
 
 
-class TimeRestore(object):
+class TimeRestore:
     """
     An example benchmark that times the performance of various kinds
     of iterating over dictionaries in Python.
@@ -33,7 +33,7 @@ class TimeRestore(object):
         )
 
 
-class TimeFilterDF(object):
+class TimeFilterDF:
 
     params = ["conjunctions", "disjunctions"]
 

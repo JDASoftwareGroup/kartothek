@@ -17,7 +17,7 @@ from kartothek.serialization._util import _check_contains_null
 from ._util import ensure_unicode_string_type
 
 
-class DataFrameSerializer(object):
+class DataFrameSerializer:
     """
     Abstract class that supports serializing DataFrames to/from
     simplekv stores.

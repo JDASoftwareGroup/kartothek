@@ -19,7 +19,7 @@ signature = inspect.signature
 LOGGER = logging.getLogger(__name__)
 
 
-class InvalidObject(object):
+class InvalidObject:
     """
     Sentinel to mark keys for removal
     """
@@ -337,7 +337,7 @@ def check_single_table_dataset(dataset, expected_table=None):
         )
 
 
-class NoPickleFactory(object):
+class NoPickleFactory:
     def __init__(self, obj):
         self.obj = obj
 
@@ -360,7 +360,7 @@ def _make_callable(obj):
     return obj
 
 
-class NoDefault(object):
+class NoDefault:
     """
     This is used to flag non-optional keyword arguments for
     which None is a perfectly valid input

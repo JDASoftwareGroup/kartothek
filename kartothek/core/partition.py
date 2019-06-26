@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-class Partition(object):
+class Partition:
     def __init__(self, label, files=None, metadata=None):
         """
         An object for the internal representation of the metadata of a partition.

@@ -3,7 +3,7 @@ import collections
 import inspect
 
 
-class CopyMixin(object):
+class CopyMixin:
     def copy(self, **kwargs):
         constructor_args = inspect.signature(self.__init__).parameters
         init_args = collections.OrderedDict()
