@@ -13,13 +13,13 @@ then
         --no-index \
         -o requirements-pinned.txt \
         kartothek_env_reqs.txt \
-        requirements.in
+        requirements.txt
 else
     pip-compile \
         --upgrade \
         --no-index \
         -o requirements-pinned.txt \
-        requirements.in
+        requirements.txt
 fi
 
 pip-compile \
@@ -27,4 +27,4 @@ pip-compile \
     --no-index \
     -o test-requirements-pinned.txt \
     requirements-pinned.txt \
-    test-requirements.in
+    test-requirements.txt
