@@ -64,9 +64,10 @@ _PARAMETER_MAPPING = {
 """,
     "partition_on": """
     partition_on: list
-        Column names by which the dataset should be partitioned by.
-        If this parameter is given, the `metadata_version` must not be smaller than 3
-        Caution: There must not be an overlap between physical input partitions!
+        Column names by which the dataset should be partitioned by physically.
+        These columns may later on be used as an Index to improve query performance.
+        Partition columns need to be present in all dataset tables.
+        Sensitive to ordering.
 """,
     "predicate_pushdown_to_io": """
     predicate_pushdown_to_io: bool
