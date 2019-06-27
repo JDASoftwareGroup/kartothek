@@ -15,8 +15,8 @@ def setup_package():
     setup(
         name="kartothek",
         author="Blue Yonder GmbH",
-        install_requires=get_install_requirements("requirements.in"),
-        tests_require=get_install_requirements("test-requirements.in"),
+        install_requires=get_install_requirements("requirements.txt"),
+        tests_require=get_install_requirements("test-requirements.txt"),
         packages=find_packages(exclude=["tests"]),
         classifiers=[
             "Development Status :: 5 - Production/Stable",
