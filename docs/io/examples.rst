@@ -225,6 +225,9 @@ Read
     import pandas as pd
     from kartothek.io.dask.delayed import read_dataset_as_delayed
 
-    tasks = read_dataset_as_delayed(dataset_uuid="MyFirstDatasetIter", store=store_factory)
+    tasks = read_dataset_as_delayed(
+        dataset_uuid="MyFirstDatasetDask",
+        store=store_factory
+        )
     tasks
     dask.compute(tasks)
