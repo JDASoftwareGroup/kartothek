@@ -28,6 +28,7 @@ def dispatch_metapartitions_from_factory(
     concat_partitions_on_primary_index=False,
     predicates=None,
     store=None,
+    dispatch_by=None,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     if not callable(dataset_factory) and not isinstance(
         dataset_factory, DatasetFactory
@@ -36,7 +37,7 @@ def dispatch_metapartitions_from_factory(
 
     if predicates is not None:
         dataset_factory, allowed_labels = _allowed_labels_by_predicates(
-            predicates, dataset_factory
+            predicates, dataset_factory, dispatch_by,
         )
     else:
         allowed_labels = None
@@ -47,14 +48,27 @@ def dispatch_metapartitions_from_factory(
         if isinstance(ix, ExplicitSecondaryIndex)
     }
 
-    if concat_partitions_on_primary_index:
+    if dispatch_by and concat_partitions_on_primary_index:
+        raise ValueError(
+            "Both `dispatch_by` and `concat_partitions_on_primary_index` are provided, "
+            "`concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. "
+            "Please only provide the `dispatch_by` argument. "
+        )
+
+    if dispatch_by or concat_partitions_on_primary_index:
         if dataset_factory.explicit_partitions:
             dataset_factory = dataset_factory.load_partition_indices()
 
-        # Build up a DataFrame that contains per row a Partition and its
-        # primary index columns.
+        if dispatch_by and set(dispatch_by).issubset(
+            set(dataset_factory.indices.keys())
+        ):
+            part_keys = dispatch_by
+        else:
+            part_keys = dataset_factory.partition_keys
+
+        # Build up a DataFrame that contains per row a Partition and its primary index columns.
         base_df = None
-        for part_key in dataset_factory.partition_keys:
+        for part_key in part_keys:
             idx = dataset_factory.indices[part_key].index_dct
             df = _index_to_dataframe(part_key, idx, allowed_labels)
             if base_df is None:
@@ -65,11 +79,14 @@ def dispatch_metapartitions_from_factory(
         assert base_df is not None
         base_df = cast(pd.DataFrame, base_df)
 
-        # Group the resulting MetaParitions by partition keys
-        merged_partitions = base_df.groupby(dataset_factory.partition_keys)
+        # Group the resulting MetaParitions by partition keys or a subset of those keys
+        merged_partitions = base_df.groupby(part_keys)
         merged_partitions = merged_partitions["__partition__"].unique()
         for row, labels in merged_partitions.iteritems():
             mps = []
+            logical_predicates = list(
+                zip(part_keys, ["=="] * len(part_keys), [row] * len(part_keys))
+            )
             for label in labels:
                 mps.append(
                     MetaPartition.from_partition(
@@ -79,6 +96,7 @@ def dispatch_metapartitions_from_factory(
                         metadata_version=dataset_factory.metadata_version,
                         table_meta=dataset_factory.table_meta,
                         partition_keys=dataset_factory.partition_keys,
+                        logical_predicate=logical_predicates,
                     )
                 )
             yield mps
@@ -107,7 +125,7 @@ def dispatch_metapartitions_from_factory(
             )
 
 
-def _allowed_labels_by_predicates(predicates, dataset_factory):
+def _allowed_labels_by_predicates(predicates, dataset_factory, dispatch_by):
     if len(predicates) == 0:
         raise ValueError("The behaviour on an empty list of predicates is undefined")
 
@@ -120,6 +138,7 @@ def _allowed_labels_by_predicates(predicates, dataset_factory):
             raise ValueError("The behaviour on an empty predicate is undefined")
         for col, _, _ in predicates_inner:
             columns.add(col)
+    columns = columns.union(dispatch_by)
 
     # Load the necessary indices
     for column in columns:
@@ -186,6 +205,7 @@ def dispatch_metapartitions(
     label_filter=None,
     concat_partitions_on_primary_index=False,
     predicates=None,
+    dispatch_by=None,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     dataset_factory = DatasetFactory(
         dataset_uuid=dataset_uuid,
@@ -194,10 +214,16 @@ def dispatch_metapartitions(
         load_all_indices=False,
         load_dataset_metadata=load_dataset_metadata,
     )
+    if concat_partitions_on_primary_index and dispatch_by:
+        raise ValueError(
+            "Both `dispatch_by` and `concat_partitions_on_primary_index` are provided, "
+            "`concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. "
+            "Please only provide the `dispatch_by` argument. "
+        )
 
     return dispatch_metapartitions_from_factory(
         dataset_factory=dataset_factory,
         label_filter=label_filter,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicates=predicates,
+        dispatch_by=dispatch_by,
     )

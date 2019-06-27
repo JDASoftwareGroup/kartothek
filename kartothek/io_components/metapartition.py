@@ -52,6 +52,14 @@ def _predicates_to_named(predicates):
     return [[_Literal(*x) for x in conjunction] for conjunction in predicates]
 
 
+def _combine_predicates(predicates, logical_predicate):
+    combined_predicates = []
+    for conjunction in predicates:
+        conjunction.append(logical_predicate)
+        combined_predicates.append(conjunction)
+    return combined_predicates
+
+
 def _initialize_store_for_metapartition(method, method_args, method_kwargs):
 
     for store_variable in ["store", "storage"]:
@@ -173,6 +181,7 @@ class MetaPartition(Iterable):
         metadata_version=None,
         table_meta=None,
         partition_keys=None,
+        logical_predicate=None,
     ):
         """
         Initialize the :mod:`kartothek.io` base class MetaPartition.
@@ -202,6 +211,9 @@ class MetaPartition(Iterable):
         indices : dict, optional
             Kartothek index dictionary,
         metadata_version : int, optional
+        table_meta: TODO
+        partition_keys: TODO
+        logical_predicate: TODO
         """
 
         if metadata_version is None:
@@ -234,6 +246,7 @@ class MetaPartition(Iterable):
         ]
         self.dataset_metadata = dataset_metadata or {}
         self.partition_keys = partition_keys or []
+        self.logical_predicate = logical_predicate
 
     def __repr__(self):
         if len(self.metapartitions) > 1:
@@ -365,6 +378,7 @@ class MetaPartition(Iterable):
         metadata_version=None,
         table_meta=None,
         partition_keys=None,
+        logical_predicate=None,
     ):
         """
         Transform a kartothek :class:`~kartothek.core.partition.Partition` into a
@@ -398,6 +412,7 @@ class MetaPartition(Iterable):
             metadata_version=metadata_version,
             table_meta=table_meta,
             partition_keys=partition_keys,
+            logical_predicate=logical_predicate,
         )
 
     def add_metapartition(
@@ -615,8 +630,10 @@ class MetaPartition(Iterable):
         dates_as_object: bool
             Load pyarrow.data{32,64} columns as ``object`` columns in Pandas
             instead of using ``np.datetime64`` to preserve their type. While
-            this improves type-safety, this comes at a performance cost.
-
+            this improves type-safety, this comes at a performance cost. Only
+            works for metadata version >= 4.
+        predicates: nested list of tuples
+            TODO
         Returns
         -------
 
@@ -632,7 +649,11 @@ class MetaPartition(Iterable):
             LOGGER.debug("Partition %s is empty and has not tables/files", self.label)
             return self
         new_data = copy(self.data)
+
+        if self.logical_predicate and predicates:
+            predicates = _combine_predicates(predicates, self.logical_predicate)
         predicates = _predicates_to_named(predicates)
+
         for table, key in self.files.items():
             table_columns = columns.get(table, None)
             categories = categoricals.get(table, None)
