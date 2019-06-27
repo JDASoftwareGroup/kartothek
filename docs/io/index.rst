@@ -1,3 +1,5 @@
+.. _input_output:
+
 ==============
 In- and Output
 ==============
