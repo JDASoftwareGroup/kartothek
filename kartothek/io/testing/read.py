@@ -40,6 +40,7 @@ import pytest
 
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.metapartition import MetaPartition
 
 
@@ -365,6 +366,76 @@ def test_read_dataset_as_dataframes_concat_primary(
 
     pdt.assert_frame_equal(expected_df, result_df, check_like=True)
 
+
+def test_read_dataset_as_dataframes_dispatch_by(
+    store_factory, bound_load_dataframes, backend_identifier
+):
+    cluster1 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
+    )
+    cluster2 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [2, 3], "Content": ["cluster2", "cluster2"]}
+    )
+    cluster3 = pd.DataFrame({"A": [1], "B": [20], "C": [1], "Content": ["cluster3"]})
+    cluster4 = pd.DataFrame(
+        {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
+    )
+    clusters = [cluster1, cluster2, cluster3, cluster4]
+    partitions = [{"data": [("data", c)]} for c in clusters]
+
+    store_dataframes_as_dataset__iter(
+        df_generator=partitions,
+        store=store_factory,
+        dataset_uuid="partitioned_uuid",
+        metadata_version=4,
+        partition_on=["A", "B"],
+        secondary_indices=["C"],
+    )
+
+    # Dispatch by primary index "A"
+    dispatched_a = bound_load_dataframes(
+        dataset_uuid="partitioned_uuid", store=store_factory, dispatch_by=["A"]
+    )
+
+    expected_a = pd.DataFrame(
+        {
+            "A": [1, 1, 1, 1, 1],
+            "B": [10, 10, 10, 10, 20],
+            "C": [1, 2, 2, 3, 1],
+            "Content": ["cluster1", "cluster1", "cluster2", "cluster2", "cluster3"],
+        }
+    ).sort_values(by=["A", "B", "C"])
+    actual_a = dispatched_a[0]["data"].sort_values(by=["A", "B", "C"])
+    # TODO set index
+    # [0, 0, 1, 1, 0]
+    # pdt.assert_frame_equal(actual_a, expected_a_1)
+
+    # Dispatch by primary index "B"
+    # dispatched_b = bound_load_dataframes(
+    #     dataset_uuid="partitioned_uuid",
+    #     store=store_factory,
+    #     dispatch_by=["B"],
+    # )
+    # TODO add expectation for dipatched_b
+
+    # Dispatch by secondary index "C"
+    dispatched_c = bound_load_dataframes(
+        dataset_uuid="partitioned_uuid",
+        store=store_factory,
+        dispatch_by=["C"],
+        predicates=[[("A", "==", 2)]],
+    )
+    actual_c = dispatched_c[0]["data"].sort_values(by=["A", "B", "C"])
+
+    expected_c = pd.DataFrame(
+        {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
+    ).sort_values(by=["A", "B", "C"])
+    # TODO currently returns empty dataframe?
+
+    # TODO check indices
+    pdt.assert_frame_equal(actual_c, expected_c)
+
+    # TODO include a test case for dispatching by both primary and secondary index
 
 def test_read_dataset_as_dataframes(
     dataset,
