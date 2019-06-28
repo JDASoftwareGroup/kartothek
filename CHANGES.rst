@@ -33,6 +33,8 @@ Version 3.1.0 (2019-XX-XX)
   in :meth:`~kartothek.io_components.metapartition.MetaPartition.add_metapartition`.
   This fixes issue https://github.com/JDASoftwareGroup/kartothek/issues/40 .
 
+- Add :meth:`~karothek.io.dask.bag.build_dataset_indices__bag`
+
 **Breaking:**
 
 - categorical normalization was moved from :meth:`~kartothek.core.common_metadata.make_meta` to
