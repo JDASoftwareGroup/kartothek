@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
-
-
 from functools import partial
 
+import dask.bag as db
+
 from kartothek.core import naming
+from kartothek.core.factory import _ensure_factory
 from kartothek.core.utils import _check_callable
 from kartothek.core.uuid import gen_uuid
+from kartothek.io.eager import read_dataset_as_metapartitions
 from kartothek.io_components.docs import default_docs
+from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,
@@ -93,3 +96,45 @@ def store_bag_as_dataset(
     result = mps.reduction(perpartition=list, aggregate=aggregate, split_every=False)
 
     return result.to_delayed()
+
+
+@default_docs
+def build_dataset_indices__bag(
+    store, dataset_uuid, columns, partition_size=None, factory=None
+):
+    """
+    Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
+
+    This function loads the dataset, computes the requested indices and writes
+    the indices to the dataset. The dataset partitions itself are not mutated.
+
+    Parameters
+    ----------
+    partition_size: Optional[int]
+        Dask bag partition size. Use a larger numbers to decrease scheduler load and overhead, use smaller numbers for a
+        fine-grained scheduling and better resilience against worker errors.
+
+    Returns
+    -------
+    A dask.delayed computation object.
+    """
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
+    )
+
+    mps = read_dataset_as_metapartitions(factory=ds_factory)
+
+    return (
+        db.from_sequence(seq=mps, partition_size=partition_size)
+        .map(MetaPartition.build_indices, columns=columns)
+        .map(MetaPartition.remove_dataframes)
+        .reduction(list, list, split_every=False, out_type=db.Bag)
+        .flatten()
+        .map_partitions(list)
+        .map_partitions(
+            update_indices_from_partitions, dataset_metadata_factory=ds_factory
+        )
+    )
