@@ -2,7 +2,6 @@
 
 import pandas as pd
 import pytest
-from toolz.dicttoolz import valmap
 
 from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
@@ -10,12 +9,6 @@ from kartothek.io.eager import (
     read_dataset_as_metapartitions,
     store_dataframes_as_dataset,
 )
-
-
-def assert_index_dct_equal(dict1, dict2):
-    dict1 = valmap(sorted, dict1)
-    dict2 = valmap(sorted, dict2)
-    assert dict1 == dict2
 
 
 def test_build_indices(store_factory, metadata_version, bound_build_dataset_indices):
@@ -40,7 +33,7 @@ def test_build_indices(store_factory, metadata_version, bound_build_dataset_indi
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
     expected = {2: ["cluster_1", "cluster_2"], 3: ["cluster_2"], 1: ["cluster_1"]}
-    assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+    assert expected == dataset_factory.indices["p"].index_dct
 
 
 def test_create_index_from_inexistent_column_fails(

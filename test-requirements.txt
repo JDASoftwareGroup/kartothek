@@ -1,7 +1,6 @@
 # Test Code Dependencies
 distributed
 pytz
-toolz
 
 # Test Framework
 hypothesis
