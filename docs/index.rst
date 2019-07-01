@@ -37,6 +37,7 @@ Contents
    DataFrame Serialization <spec/serialization>
    Predicate pushdown <spec/predicate_pushdown>
    Module Reference <_rst/modules>
+   Versioning <versioning>
    Changelog <changes>
 
 
