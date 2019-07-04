@@ -10,6 +10,7 @@ python:
 env:
   - KARTOTHEK_ARROW_VERSION=0.12.1
   - KARTOTHEK_ARROW_VERSION=0.13.0
+  - KARTOTHEK_ARROW_VERSION=0.14.0
 
 before_install:
   - pip install --upgrade pip

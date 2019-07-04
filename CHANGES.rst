@@ -6,6 +6,7 @@ Changelog
 Version 3.1.0 (2019-XX-XX)
 ==========================
 
+- Support for pyarrow 0.14.0
 - fix ``getargspec`` ``DeprecationWarning``
 - fix ``FutureWarning`` in ``filter_array_like``
 - remove ``funcsigs`` requirement
