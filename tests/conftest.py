@@ -2,6 +2,10 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0103, C0111, W0621
 
+# fmt: off
+import faulthandler  # noqa: E402 isort:skip
+faulthandler.enable()  # noqa: E402 isort:skip
+# fmt: on
 
 import datetime
 from collections import OrderedDict
