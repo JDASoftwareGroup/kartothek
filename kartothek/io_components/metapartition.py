@@ -52,11 +52,17 @@ def _predicates_to_named(predicates):
     return [[_Literal(*x) for x in conjunction] for conjunction in predicates]
 
 
-def _combine_predicates(predicates, logical_predicate):
+def _combine_predicates(predicates, logical_conjunction):
+    if not logical_conjunction:
+        return predicates
+    if predicates is None:
+        return [logical_conjunction]
     combined_predicates = []
     for conjunction in predicates:
-        conjunction.append(logical_predicate)
-        combined_predicates.append(conjunction)
+        new_conjunction = conjunction[:]
+        for literal in logical_conjunction:
+            new_conjunction.append(literal)
+        combined_predicates.append(new_conjunction)
     return combined_predicates
 
 
@@ -158,6 +164,7 @@ class MetaPartitionIterator(Iterator):
             mp_dict["metadata_version"] = current.metadata_version
             mp_dict["table_meta"] = current.table_meta
             mp_dict["partition_keys"] = current.partition_keys
+            mp_dict["logical_conjunction"] = current.logical_conjunction
             self.position += 1
             return MetaPartition.from_dict(mp_dict)
 
@@ -181,7 +188,7 @@ class MetaPartition(Iterable):
         metadata_version=None,
         table_meta=None,
         partition_keys=None,
-        logical_predicate=None,
+        logical_conjunction=None,
     ):
         """
         Initialize the :mod:`kartothek.io` base class MetaPartition.
@@ -211,9 +218,14 @@ class MetaPartition(Iterable):
         indices : dict, optional
             Kartothek index dictionary,
         metadata_version : int, optional
-        table_meta: TODO
-        partition_keys: TODO
-        logical_predicate: TODO
+        table_meta: Dict[str, SchemaWrapper]
+            The dataset table schemas
+        partition_keys: List[str]
+            The dataset partition keys
+        logical_conjunction: List[Tuple[object, str, object]]
+            A logical conjunction to assign to the MetaPartition. By assigning
+            this, the MetaPartition will only be able to load data respecting
+            this conjunction.
         """
 
         if metadata_version is None:
@@ -246,7 +258,7 @@ class MetaPartition(Iterable):
         ]
         self.dataset_metadata = dataset_metadata or {}
         self.partition_keys = partition_keys or []
-        self.logical_predicate = logical_predicate
+        self.logical_conjunction = logical_conjunction
 
     def __repr__(self):
         if len(self.metapartitions) > 1:
@@ -378,7 +390,7 @@ class MetaPartition(Iterable):
         metadata_version=None,
         table_meta=None,
         partition_keys=None,
-        logical_predicate=None,
+        logical_conjunction=None,
     ):
         """
         Transform a kartothek :class:`~kartothek.core.partition.Partition` into a
@@ -412,7 +424,7 @@ class MetaPartition(Iterable):
             metadata_version=metadata_version,
             table_meta=table_meta,
             partition_keys=partition_keys,
-            logical_predicate=logical_predicate,
+            logical_conjunction=logical_conjunction,
         )
 
     def add_metapartition(
@@ -465,7 +477,8 @@ class MetaPartition(Iterable):
             dataset_metadata=new_dataset_metadata,
             metadata_version=metapartition.metadata_version,
             table_meta=table_meta,
-            partition_keys=metapartition.partition_keys or None,
+            partition_keys=metapartition_dict.pop("partition_keys", None),
+            logical_conjunction=metapartition_dict.pop("logical_partition", None),
         )
 
         # Add metapartition information to the new object
@@ -499,6 +512,7 @@ class MetaPartition(Iterable):
             dataset_metadata=dct.get("dataset_metadata", {}),
             table_meta=dct.get("table_meta", {}),
             partition_keys=dct.get("partition_keys", None),
+            logical_conjunction=dct.get("logical_conjunction", None),
         )
 
     def to_dict(self):
@@ -511,6 +525,7 @@ class MetaPartition(Iterable):
             "dataset_metadata": self.dataset_metadata,
             "table_meta": self.table_meta,
             "partition_keys": self.partition_keys,
+            "logical_conjunction": self.logical_conjunction,
         }
 
     @_apply_to_list
@@ -649,9 +664,7 @@ class MetaPartition(Iterable):
             LOGGER.debug("Partition %s is empty and has not tables/files", self.label)
             return self
         new_data = copy(self.data)
-
-        if self.logical_predicate and predicates:
-            predicates = _combine_predicates(predicates, self.logical_predicate)
+        predicates = _combine_predicates(predicates, self.logical_conjunction)
         predicates = _predicates_to_named(predicates)
 
         for table, key in self.files.items():
@@ -1145,6 +1158,9 @@ class MetaPartition(Iterable):
                 metadata_version=self.metadata_version,
                 table_meta=_renormalize_meta(kwargs.get("table_meta", self.table_meta)),
                 partition_keys=kwargs.get("partition_keys", self.partition_keys),
+                logical_conjunction=kwargs.get(
+                    "logical_conjunction", self.logical_conjunction
+                ),
             )
             for mp in metapartitions:
                 mp_parent = mp_parent.add_metapartition(
@@ -1164,6 +1180,9 @@ class MetaPartition(Iterable):
                         partition_keys=kwargs.get(
                             "partition_keys", self.partition_keys
                         ),
+                        logical_conjunction=kwargs.get(
+                            "logical_conjunction", self.logical_conjunction
+                        ),
                     )
                 )
             return mp_parent
@@ -1177,6 +1196,9 @@ class MetaPartition(Iterable):
                 metadata_version=kwargs.get("metadata_version", self.metadata_version),
                 table_meta=_renormalize_meta(kwargs.get("table_meta", self.table_meta)),
                 partition_keys=kwargs.get("partition_keys", self.partition_keys),
+                logical_conjunction=kwargs.get(
+                    "logical_conjunction", self.logical_conjunction
+                ),
             )
             return mp
 
@@ -1404,10 +1426,19 @@ class MetaPartition(Iterable):
         LOGGER.debug("Merging metapartitions")
         data = defaultdict(list)
         new_metadata_version = -1
+        logical_conjunction = None
+
         for mp in metapartitions:
             new_metadata_version = max(new_metadata_version, mp.metadata_version)
             for label, df in mp.data.items():
                 data[label].append(df)
+            if mp.logical_conjunction or logical_conjunction:
+                if logical_conjunction != mp.logical_conjunction:
+                    raise TypeError(
+                        "Can only merge metapartitions belonging to the same logical partition."
+                    )
+                else:
+                    logical_conjunction = mp.logical_conjunction
 
         new_data = {}
         for label in data:
@@ -1426,6 +1457,7 @@ class MetaPartition(Iterable):
             data=new_data,
             dataset_metadata=new_ds_meta,
             metadata_version=new_metadata_version,
+            logical_conjunction=logical_conjunction,
         )
 
         return new_mp

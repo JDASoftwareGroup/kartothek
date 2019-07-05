@@ -33,6 +33,7 @@ The following fixtures should be present (see tests.read.conftest)
 
 import datetime
 from functools import wraps
+from itertools import chain, combinations, permutations
 
 import pandas as pd
 import pandas.testing as pdt
@@ -365,9 +366,12 @@ def test_read_dataset_as_dataframes_concat_primary(
     pdt.assert_frame_equal(expected_df, result_df, check_like=True)
 
 
-def test_read_dataset_as_dataframes_dispatch_by(
-    store_factory, bound_load_dataframes, backend_identifier
+@pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
+def test_read_dataset_as_dataframes_dispatch_by_single_col(
+    store_factory, bound_load_dataframes, backend_identifier, dispatch_by, output_type
 ):
+    if output_type == "table":
+        pytest.skip()
     cluster1 = pd.DataFrame(
         {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
     )
@@ -392,48 +396,67 @@ def test_read_dataset_as_dataframes_dispatch_by(
 
     # Dispatch by primary index "A"
     dispatched_a = bound_load_dataframes(
-        dataset_uuid="partitioned_uuid", store=store_factory, dispatch_by=["A"]
+        dataset_uuid="partitioned_uuid", store=store_factory, dispatch_by=[dispatch_by]
     )
 
-    expected_a = pd.DataFrame(
-        {
-            "A": [1, 1, 1, 1, 1],
-            "B": [10, 10, 10, 10, 20],
-            "C": [1, 2, 2, 3, 1],
-            "Content": ["cluster1", "cluster1", "cluster2", "cluster2", "cluster3"],
-        }
-    ).sort_values(by=["A", "B", "C"])
-    actual_a = dispatched_a[0]["data"].sort_values(by=["A", "B", "C"])
-    # TODO set index
-    # [0, 0, 1, 1, 0]
-    # pdt.assert_frame_equal(actual_a, expected_a_1)
+    unique_a = set()
+    for part in dispatched_a:
+        if isinstance(part, MetaPartition):
+            data = part.data["data"]
+        else:
+            data = part["data"]
+        unique_dispatch = data[dispatch_by].unique()
+        assert len(unique_dispatch) == 1
+        unique_dispatch[0] not in unique_a
+        unique_a.add(unique_dispatch[0])
 
-    # Dispatch by primary index "B"
-    # dispatched_b = bound_load_dataframes(
-    #     dataset_uuid="partitioned_uuid",
-    #     store=store_factory,
-    #     dispatch_by=["B"],
-    # )
-    # TODO add expectation for dipatched_b
 
-    # Dispatch by secondary index "C"
-    dispatched_c = bound_load_dataframes(
-        dataset_uuid="partitioned_uuid",
-        store=store_factory,
-        dispatch_by=["C"],
-        predicates=[[("A", "==", 2)]],
+def test_read_dataset_as_dataframes_dispatch_by_multi_col(
+    store_factory, bound_load_dataframes, backend_identifier, output_type
+):
+    if output_type == "table":
+        pytest.skip()
+    cluster1 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
     )
-    actual_c = dispatched_c[0]["data"].sort_values(by=["A", "B", "C"])
-
-    expected_c = pd.DataFrame(
+    cluster2 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [2, 3], "Content": ["cluster2", "cluster2"]}
+    )
+    cluster3 = pd.DataFrame({"A": [1], "B": [20], "C": [1], "Content": ["cluster3"]})
+    cluster4 = pd.DataFrame(
         {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
-    ).sort_values(by=["A", "B", "C"])
-    # TODO currently returns empty dataframe?
+    )
+    clusters = [cluster1, cluster2, cluster3, cluster4]
+    partitions = [{"data": [("data", c)]} for c in clusters]
 
-    # TODO check indices
-    pdt.assert_frame_equal(actual_c, expected_c)
+    store_dataframes_as_dataset__iter(
+        df_generator=partitions,
+        store=store_factory,
+        dataset_uuid="partitioned_uuid",
+        metadata_version=4,
+        partition_on=["A", "B"],
+        secondary_indices=["C"],
+    )
+    for dispatch_by in chain.from_iterable(
+        combinations(x, 2) for x in permutations(["A", "B", "C"])
+    ):
+        dispatched = bound_load_dataframes(
+            dataset_uuid="partitioned_uuid",
+            store=store_factory,
+            dispatch_by=dispatch_by,
+        )
+        uniques = pd.DataFrame(columns=dispatch_by)
+        for part in dispatched:
+            if isinstance(part, MetaPartition):
+                data = part.data["data"]
+            else:
+                data = part["data"]
+            unique_dispatch = data[list(dispatch_by)].drop_duplicates()
+            assert len(unique_dispatch) == 1
+            row = unique_dispatch
+            uniques.append(row)
+        assert not any(uniques.duplicated())
 
-    # TODO include a test case for dispatching by both primary and secondary index
 
 def test_read_dataset_as_dataframes(
     dataset,
