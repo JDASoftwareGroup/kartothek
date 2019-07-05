@@ -118,6 +118,10 @@ class DatasetMetadataBase(CopyMixin):
             return []
 
     @property
+    def index_columns(self):
+        return set(self.indices.keys()).union(self.partition_keys)
+
+    @property
     def secondary_indices(self):
         return {
             col: ind
