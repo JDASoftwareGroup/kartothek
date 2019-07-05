@@ -49,6 +49,13 @@ def dispatch_metapartitions_from_factory(
         )
         dispatch_by = dataset_factory.partition_keys
 
+    if dispatch_by and not set(dispatch_by).issubset(
+        set(dataset_factory.index_columns)
+    ):
+        raise RuntimeError(
+            f"Dispatch columns must be indexed.\nRequested index: {dispatch_by} but available index columns: {sorted(dataset_factory.index_columns)}"
+        )
+
     if predicates is not None:
         dataset_factory, allowed_labels = _allowed_labels_by_predicates(
             predicates, dataset_factory, dispatch_by
@@ -63,19 +70,9 @@ def dispatch_metapartitions_from_factory(
     }
 
     if dispatch_by:
-        if dataset_factory.explicit_partitions:
-            dataset_factory = dataset_factory.load_partition_indices()
-
-        if dispatch_by and set(dispatch_by).issubset(
-            set(dataset_factory.indices.keys())
-        ):
-            part_keys = dispatch_by
-        else:
-            part_keys = dataset_factory.partition_keys
-
         # Build up a DataFrame that contains per row a Partition and its primary index columns.
         base_df = None
-        for part_key in part_keys:
+        for part_key in dispatch_by:
             dataset_factory.load_index(part_key)
             idx = dataset_factory.indices[part_key].index_dct
             df = _index_to_dataframe(part_key, idx, allowed_labels)
@@ -89,14 +86,14 @@ def dispatch_metapartitions_from_factory(
 
         # Group the resulting MetaParitions by partition keys or a subset of those keys
         merged_partitions = base_df.groupby(
-            by=list(part_keys), sort=False, as_index=False
+            by=list(dispatch_by), sort=False, as_index=False
         )
         for group_name, group in merged_partitions:
             if not isinstance(group_name, tuple):
                 group_name = (group_name,)
             mps = []
             logical_conjunction = list(
-                zip(part_keys, ["=="] * len(part_keys), group_name)
+                zip(dispatch_by, ["=="] * len(dispatch_by), group_name)
             )
             for label in group.__partition__:
                 mps.append(
