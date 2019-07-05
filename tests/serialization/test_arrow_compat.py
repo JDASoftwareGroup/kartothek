@@ -12,7 +12,8 @@ from kartothek.core.testing import get_dataframe_alltypes
 from kartothek.serialization import ParquetSerializer
 
 
-@pytest.fixture(params=["0.12.1", "0.13.0"])
+# @pytest.fixture(params=["0.12.1", "0.13.0", "0.14.0"])
+@pytest.fixture(params=["0.13.0"])
 def arrow_version(request):
     yield request.param
 

@@ -1,5 +1,8 @@
 import json
 
+import numpy as np
+import pyarrow as pa
+
 from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.core.common_metadata import SchemaWrapper
 
@@ -9,6 +12,30 @@ def _fix_pyarrow_0130_table(table):
         schema = SchemaWrapper(table.schema, "_fix_pyarrow_0130_table")
         return table.replace_schema_metadata(schema.internal().metadata)
     return table
+
+
+def _fix_pyarrow_0140_table(table):
+    """
+    Version 0.14.0 assigns all datetime/timestamp fields without timezone information the UTC timezone which should not be considered equal to "no timezone information"
+    """
+    schema = table.schema
+    timestamps = [pa.types.is_timestamp(field.type) for field in table.schema]
+    timestamp_indices = np.nonzero(timestamps)[0]
+    pandas_metadata = schema.pandas_metadata
+    new_schema = schema
+    for col_ix in timestamp_indices:
+        col_meta = pandas_metadata["columns"][col_ix]
+        # if there is a timezone, there is metadata
+        if col_meta["metadata"] is None:
+            old_field = schema[col_ix]
+            new_field = pa.field(
+                old_field.name,
+                pa.timestamp(old_field.type.unit),
+                old_field.nullable,
+                old_field.metadata,
+            )
+            new_schema = new_schema.set(col_ix, new_field)
+    return table.cast(new_schema)
 
 
 def _fix_pyarrow_07992_table(table):
