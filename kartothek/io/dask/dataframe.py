@@ -121,7 +121,7 @@ def update_dataset_from_ddf(
     Update a dataset from a dask.dataframe.
 
 
-    Behavior without ``shuffle==False``::
+    .. admonition:: Behavior without ``shuffle==False``
 
         In the case without ``partition_on`` every dask partition is mapped to a single kartothek partition
 
@@ -129,31 +129,25 @@ def update_dataset_from_ddf(
         depends on the content of the respective partition, such that every resulting kartothek partition has
         only a single value in the respective ``partition_on`` columns.
 
-    Behavior with ``shuffle==True``::
+    .. admonition:: Behavior with ``shuffle==True``
 
         ``partition_on`` is mandatory
 
         Perform a data shuffle to ensure that every primary key will have at most ``num_bucket``.
 
-        Note::
-
-            The number of allowed buckets will have an impact on the required ressources and runtime.
-            Using a larger number of allowed buckets will usually reduce ressource consumption and in some
+        .. note::
+            The number of allowed buckets will have an impact on the required resources and runtime.
+            Using a larger number of allowed buckets will usually reduce resource consumption and in some
             cases also improves runtime performance.
 
-        Example::
+        :Example:
 
-            partition_on="primary_key"
-            num_buckets=2
-
-            yields
-
+            >>> partition_on="primary_key"
+            >>> num_buckets=2  # doctest: +SKIP
             primary_key=1/bucket1.parquet
             primary_key=1/bucket2.parquet
 
-    Note::
-
-        This can only be used for datasets with a single table!
+    .. note:: This can only be used for datasets with a single table!
 
     Parameters
     ----------
@@ -162,10 +156,12 @@ def update_dataset_from_ddf(
         will only delete partitions without creating new ones.
     shuffle: bool
         If True and partition_on is requested, shuffle the data to reduce number of output partitions
-    repartition_ratio: Union[int, float]
-        If provided, repartition the dataframe befor calculation starts to ``ceil(ddf.npartitions / repartition_ratio)``
+    repartition_ratio: Optional[Union[int, float]]
+        If provided, repartition the dataframe before calculation starts to ``ceil(ddf.npartitions / repartition_ratio)``
     num_buckets: int
         If provided, the output partitioning will have ``num_buckets`` files per primary key partitioning.
+        This effectively splits up the execution ``num_buckets`` times. Setting this parameter may be helpful when
+        scaling.
         This only has an effect if ``shuffle==True``
     """
     partition_on = normalize_arg("partition_on", partition_on)
