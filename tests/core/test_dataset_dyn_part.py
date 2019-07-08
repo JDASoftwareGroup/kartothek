@@ -11,7 +11,11 @@ import pytest
 import simplejson
 import storefact
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130, DASK_LARGER_EQ_121
+from kartothek.core._compat import (
+    ARROW_LARGER_EQ_0130,
+    ARROW_LARGER_EQ_0140,
+    DASK_LARGER_EQ_121,
+)
 from kartothek.core.common_metadata import (
     _get_common_metadata_key,
     make_meta,
@@ -336,7 +340,7 @@ def test_dynamic_partitions_quote(store, metadata_version):
 
 
 @pytest.mark.xfail(
-    DASK_LARGER_EQ_121 and ARROW_LARGER_EQ_0130,
+    DASK_LARGER_EQ_121 and ARROW_LARGER_EQ_0130 and not ARROW_LARGER_EQ_0140,
     reason="Dask cannot handle pyarrow==0.13.0 https://github.com/dask/dask/pull/4695",
 )
 def test_dask_partitions(metadata_version):

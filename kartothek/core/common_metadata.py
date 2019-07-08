@@ -16,6 +16,7 @@ import simplejson
 from kartothek.core import naming
 from kartothek.core._compat import load_json
 from kartothek.core.utils import ensure_string_type
+from kartothek.serialization._arrow_compat import _fix_pyarrow_0140_schema
 
 from ._compat import ARROW_LARGER_EQ_0130
 
@@ -58,6 +59,7 @@ class SchemaWrapper:
     def _schema_compat(self):
         # https://issues.apache.org/jira/browse/ARROW-5104
         schema = self.__schema
+        schema = _fix_pyarrow_0140_schema(schema)
         if self.__schema is not None and self.__schema.metadata is not None:
             pandas_metadata = _pandas_meta_from_schema(schema)
             index_cols = pandas_metadata["index_columns"]
@@ -122,6 +124,7 @@ class SchemaWrapper:
     def __setstate__(self, state):
         self.__schema = _bytes2schema(state[0])
         self.__origin = state[1]
+        self._schema_compat()
 
     def __getattr__(self, attr):
         return getattr(self.__schema, attr)
@@ -150,10 +153,11 @@ class SchemaWrapper:
     remove.__doc__ = pa.Schema.set.__doc__
 
     def remove_metadata(self):
-        return SchemaWrapper(
-            self.__schema.remove_metadata(),
-            {s + "__no_metadata" for s in self.__origin},
+        wrapped = SchemaWrapper(
+            self.__schema, {s + "__no_metadata" for s in self.__origin}
         )
+        wrapped.__schema = wrapped.__schema.remove_metadata()
+        return wrapped
 
     remove_metadata.__doc__ = pa.Schema.remove_metadata.__doc__
 

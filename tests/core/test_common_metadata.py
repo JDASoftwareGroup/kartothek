@@ -13,7 +13,7 @@ import pytest
 import simplejson
 from dask.dataframe.utils import make_meta as dask_make_meta
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130
+from kartothek.core._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0140
 from kartothek.core.common_metadata import (
     SchemaWrapper,
     _diff_schemas,
@@ -40,6 +40,8 @@ def test_store_schema_metadata(store, df_all_types):
     assert key in store.keys()
     pq_file = pq.ParquetFile(store.open(key))
     actual_schema = pq_file.schema.to_arrow_schema()
+
+    actual_schema = SchemaWrapper(actual_schema, "actual")
     fields = [
         pa.field("array_float32", pa.list_(pa.float64())),
         pa.field("array_float64", pa.list_(pa.float64())),
@@ -56,6 +58,7 @@ def test_store_schema_metadata(store, df_all_types):
         pa.field("byte", pa.binary()),
         pa.field("date", pa.date32()),
         pa.field("datetime64", pa.timestamp("us")),
+        pa.field("datetime64_ts", pa.timestamp("ns", tz="Europe/Berlin")),
         pa.field("float32", pa.float64()),
         pa.field("float64", pa.float64()),
         pa.field("int16", pa.int64()),
@@ -416,7 +419,15 @@ def test_diff_schemas(df_all_types):
     schema2 = make_meta(df2, origin="2")
     schema1 = make_meta(df_all_types, origin="1")
     diff = _diff_schemas(schema1, schema2)
-    expected_arrow_diff = """Arrow schema:
+
+    if ARROW_LARGER_EQ_0140:
+        arrow_sep = "@@ -27,10 +25,11 @@"
+        datetime_64_tz_type = "timestamp[ns, tz=Europe/Berlin]"
+    else:
+        arrow_sep = "@@ -26,10 +24,11 @@"
+        datetime_64_tz_type = "timestamp[ns]"
+
+    expected_arrow_diff = f"""Arrow schema:
 @@ -1,5 +1,3 @@
 
 -array_float32: list<item: double>
@@ -424,9 +435,9 @@ def test_diff_schemas(df_all_types):
  array_float64: list<item: double>
    child 0, item: double
  array_int16: list<item: int64>
-@@ -26,10 +24,11 @@
+{arrow_sep}
 
- datetime64: timestamp[ns]
+ datetime64_ts: {datetime_64_tz_type}
  float32: double
  float64: double
 -int16: int64
@@ -440,7 +451,14 @@ def test_diff_schemas(df_all_types):
  uint32: uint64
 
 """
-    expected_pandas_diff = """Pandas_metadata:
+    if ARROW_LARGER_EQ_0140:
+        pandas_sep_first = "@@ -96,8 +91,8 @@"
+        pandas_sep_second = "@@ -113,6 +108,11 @@"
+    else:
+        pandas_sep_first = "@@ -91,8 +86,8 @@"
+        pandas_sep_second = "@@ -108,6 +103,11 @@"
+    expected_pandas_diff = (
+        """Pandas_metadata:
 @@ -3,12 +3,7 @@
 
                       'name': None,
@@ -455,8 +473,9 @@ def test_diff_schemas(df_all_types):
 + 'columns': [{'field_name': 'array_float64',
                'metadata': None,
                'name': 'array_float64',
-               'numpy_type': 'object',
-@@ -91,8 +86,8 @@
+               'numpy_type': 'object',\n"""
+        + pandas_sep_first
+        + """
 
               {'field_name': 'int16',
                'metadata': None,
@@ -467,8 +486,9 @@ def test_diff_schemas(df_all_types):
 +              'pandas_type': 'float64'},
               {'field_name': 'int32',
                'metadata': None,
-               'name': 'int32',
-@@ -108,6 +103,11 @@
+               'name': 'int32',\n"""
+        + pandas_sep_second
+        + """
 
                'name': 'int8',
                'numpy_type': 'int64',
@@ -481,7 +501,7 @@ def test_diff_schemas(df_all_types):
               {'field_name': 'null',
                'metadata': None,
                'name': 'null',"""
-
+    )
     assert diff == expected_arrow_diff + expected_pandas_diff
 
 
