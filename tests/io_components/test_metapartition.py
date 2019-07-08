@@ -239,22 +239,22 @@ def test_eq():
     df_other = pd.DataFrame({"a": [2]})
 
     meta_partition = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df.copy()}}
+        {"label": "test_label", "data": {"core": df.copy(deep=True)}}
     )
     assert meta_partition == meta_partition
 
     meta_partition_same = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df_same.copy()}}
+        {"label": "test_label", "data": {"core": df_same.copy(deep=True)}}
     )
     assert meta_partition == meta_partition_same
 
     meta_partition_different_df = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df_other.copy()}}
+        {"label": "test_label", "data": {"core": df_other.copy(deep=True)}}
     )
     assert not meta_partition == meta_partition_different_df
 
     meta_partition_different_label = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"not_core": df_same.copy()}}
+        {"label": "test_label", "data": {"not_core": df_same.copy(deep=True)}}
     )
     assert not meta_partition == meta_partition_different_label
 
@@ -264,7 +264,10 @@ def test_eq():
     assert meta_partition_empty_data == meta_partition_empty_data
 
     meta_partition_more_data = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df.copy(), "not_core": df.copy()}}
+        {
+            "label": "test_label",
+            "data": {"core": df.copy(deep=True), "not_core": df.copy(deep=True)},
+        }
     )
     assert not (meta_partition == meta_partition_more_data)
 
