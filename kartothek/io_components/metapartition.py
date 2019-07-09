@@ -596,6 +596,7 @@ class MetaPartition(Iterable):
 
     @default_docs
     @_apply_to_list
+    @default_docs
     def load_dataframes(
         self,
         store,
@@ -606,6 +607,35 @@ class MetaPartition(Iterable):
         dates_as_object=False,
         predicates=None,
     ):
+        """
+        Load the dataframes of the partitions from store into memory.
+
+        Parameters
+        ----------
+        tables : list of string, optional
+            If a list is supplied, only the given tables of the partition are
+            loaded. If the given table does not exist it is ignored.
+
+            Examples
+
+            .. code::
+
+                >>> part = MetaPartition(
+                ...     label='part_label'
+                ...     files={
+                ...         'core': 'core_key_in_store',
+                ...         'helper': 'helper_key_in_store'
+                ...     }
+                ...  )
+                >>> part.data
+                    {}
+                >>> part = part.load_dataframes(store, ['core'])
+                >>> part.data
+                    {
+                        'core': pd.DataFrame()
+                    }
+
+        """
         if columns is None:
             columns = {}
         if categoricals is None:
