@@ -86,6 +86,53 @@ def test_store_single_dataframe_as_partition_no_metadata(store, metadata_version
     pdt.assert_frame_equal(df, stored_df)
 
 
+def test_load_dataframe_logical_conjunction(
+    store, meta_partitions_files_only, metadata_version, metadata_storage_format
+):
+    df = pd.DataFrame(
+        {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
+    )
+    mp = MetaPartition(
+        label="cluster_1",
+        data={"core": df},
+        metadata_version=metadata_version,
+        logical_conjunction=[("P", ">", 4)],
+    )
+    meta_partition = mp.store_dataframes(
+        store=store,
+        df_serializer=None,
+        dataset_uuid="dataset_uuid",
+        store_metadata=True,
+        metadata_storage_format=metadata_storage_format,
+    )
+    predicates = None
+    loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
+    data = {
+        "core": pd.DataFrame(
+            {"P": [5, 6, 7, 8, 9], "L": [5, 6, 7, 8, 9], "TARGET": [15, 16, 17, 18, 19]}
+        ).set_index(np.arange(5, 10))
+    }
+    pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
+
+    predicates = [[("L", ">", 2), ("TARGET", "<", 17)]]
+    loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
+    data = {
+        "core": pd.DataFrame({"P": [5, 6], "L": [5, 6], "TARGET": [15, 16]}).set_index(
+            np.array([5, 6])
+        )
+    }
+    pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
+
+    predicates = [[("L", ">", 2), ("TARGET", "<", 17)], [("TARGET", "==", 19)]]
+    loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
+    data = {
+        "core": pd.DataFrame(
+            {"P": [5, 6, 9], "L": [5, 6, 9], "TARGET": [15, 16, 19]}
+        ).set_index(np.array([5, 6, 9]))
+    }
+    pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
+
+
 def test_store_multiple_dataframes_as_partition(
     store, metadata_storage_format, metadata_version
 ):
@@ -650,7 +697,6 @@ def test_to_dict(metadata_version):
         table_meta={"core": {"test": "int8"}},
     )
     mp_dct = mp.to_dict()
-
     assert mp_dct == {
         "label": "label_1",
         "data": {"core": "placeholder"},
@@ -660,6 +706,7 @@ def test_to_dict(metadata_version):
         "metadata_version": metadata_version,
         "table_meta": {"core": {"test": "int8"}},
         "partition_keys": [],
+        "logical_conjunction": None,
     }
 
 
