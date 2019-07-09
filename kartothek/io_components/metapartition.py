@@ -31,6 +31,7 @@ from kartothek.core.partition import Partition
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_string_type, verify_metadata_version
 from kartothek.core.uuid import gen_uuid
+from kartothek.io_components.docs import default_docs
 from kartothek.io_components.utils import _instantiate_store, combine_metadata
 from kartothek.serialization import (
     DataFrameSerializer,
@@ -594,6 +595,7 @@ class MetaPartition(Iterable):
         return filtered_predicates
 
     @_apply_to_list
+    @default_docs
     def load_dataframes(
         self,
         store,
@@ -648,8 +650,7 @@ class MetaPartition(Iterable):
             instead of using ``np.datetime64`` to preserve their type. While
             this improves type-safety, this comes at a performance cost. Only
             works for metadata version >= 4.
-        predicates: nested list of tuples
-            TODO
+        predicates: list of list of tuple[str, str, Any]
         Returns
         -------
 

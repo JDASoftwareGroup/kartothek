@@ -221,12 +221,6 @@ def dispatch_metapartitions(
         load_all_indices=False,
         load_dataset_metadata=load_dataset_metadata,
     )
-    if concat_partitions_on_primary_index and dispatch_by:
-        raise ValueError(
-            "Both `dispatch_by` and `concat_partitions_on_primary_index` are provided, "
-            "`concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. "
-            "Please only provide the `dispatch_by` argument. "
-        )
 
     return dispatch_metapartitions_from_factory(
         dataset_factory=dataset_factory,
