@@ -18,7 +18,7 @@ To get started, set up a new virtual environment and install all requirements
 virtualenv kartothek-dev --python=python3.6
 source kartothek-dev/bin/activate
 pip install -e .
-pip install -r test-requirements.in
+pip install -r test-requirements.txt
 ```
 
 #### Running tests

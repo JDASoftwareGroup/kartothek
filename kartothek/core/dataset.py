@@ -558,19 +558,15 @@ class DatasetMetadata(DatasetMetadataBase):
             uuid=dct[naming.UUID_KEY],
             metadata_version=dct[naming.METADATA_VERSION_KEY],
             explicit_partitions=explicit_partitions,
-            partition_keys=dct.get("partition_keys", None)
-            if dct[naming.METADATA_VERSION_KEY] >= 4
-            else None,
-            table_meta=dct.get("table_meta", None)
-            if dct[naming.METADATA_VERSION_KEY] >= 4
-            else None,
+            partition_keys=dct.get("partition_keys", None),
+            table_meta=dct.get("table_meta", None),
         )
 
         for key, value in dct.get("metadata", {}).items():
             builder.add_metadata(key, value)
         for partition_label, part_dct in dct.get("partitions", {}).items():
             builder.add_partition(
-                partition_label, Partition.from_v2_dict(partition_label, part_dct)
+                partition_label, Partition.from_dict(partition_label, part_dct)
             )
         for column, index_dct in dct.get("indices", {}).items():
             if isinstance(index_dct, IndexBase):

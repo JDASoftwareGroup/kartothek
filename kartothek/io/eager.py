@@ -708,9 +708,7 @@ def update_dataset_from_dataframes(
 
 
 @default_docs
-def build_dataset_indices(
-    store, dataset_uuid, columns, output_blocksize=0, factory=None
-):
+def build_dataset_indices(store, dataset_uuid, columns, factory=None):
     """
     Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
 

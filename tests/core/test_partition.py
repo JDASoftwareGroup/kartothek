@@ -7,13 +7,13 @@ from kartothek.core.partition import Partition
 
 def test_roundtrip():
     expected = {"files": {"Queejeb3": "file.parquet"}}
-    result = Partition.from_v2_dict("partition_label", expected).to_dict()
+    result = Partition.from_dict("partition_label", expected).to_dict()
     assert expected == result
 
 
 def test_roundtrip_no_metadata():
     expected = {"files": {"Queejeb3": "file.parquet"}}
-    result = Partition.from_v2_dict("partition_label", expected).to_dict()
+    result = Partition.from_dict("partition_label", expected).to_dict()
     assert expected == result
 
 

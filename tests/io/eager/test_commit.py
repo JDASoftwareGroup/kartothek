@@ -6,7 +6,6 @@ import datetime
 from collections import OrderedDict
 
 import pandas as pd
-import pytest
 from pandas.testing import assert_frame_equal
 
 from kartothek.core.common_metadata import make_meta
@@ -21,7 +20,6 @@ from kartothek.io.eager import (
 )
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_from_metapartition(dataset_function, store):
 
     new_data = {
@@ -94,7 +92,6 @@ def test_commit_dataset_from_metapartition(dataset_function, store):
     assert_frame_equal(df_expected, actual)
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_from_dict(dataset_function, store):
 
     new_data = {
@@ -171,7 +168,39 @@ def test_commit_dataset_from_dict(dataset_function, store):
     assert_frame_equal(df_expected, actual)
 
 
-@pytest.mark.min_metadata_version(4)
+def test_commit_dataset_from_nested_metapartition(store):
+    """
+    Check it is possible to use `commit_dataset` with nested metapartitions as input.
+    Original issue: https://github.com/JDASoftwareGroup/kartothek/issues/40
+    """
+
+    df = pd.DataFrame({"a": [1, 1, 2, 2], "b": [3, 4, 5, 6]})
+
+    create_empty_dataset_header(
+        store=store,
+        dataset_uuid="uuid",
+        table_meta={"table": make_meta(df, "table", ["a"])},
+        partition_on=["a"],
+    )
+
+    partitions = []
+    for x in range(2):
+        partitions.append(
+            write_single_partition(
+                store=store,
+                dataset_uuid="uuid",
+                data={"data": {"table": df}},
+                partition_on=["a"],
+            )
+        )
+
+    partition_labels = {mp_.label for mp in partitions for mp_ in mp}
+    dm = commit_dataset(
+        store=store, dataset_uuid="uuid", new_partitions=partitions, partition_on=["a"]
+    )
+    assert dm.partitions.keys() == partition_labels
+
+
 def test_initial_commit(store):
     dataset_uuid = "dataset_uuid"
     df = pd.DataFrame(OrderedDict([("P", [5]), ("L", [5]), ("TARGET", [5])]))
@@ -202,7 +231,6 @@ def test_initial_commit(store):
     assert_frame_equal(df_expected, actual)
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_only_delete(store, metadata_version):
     partitions = [
         {
@@ -239,7 +267,6 @@ def test_commit_dataset_only_delete(store, metadata_version):
     assert updated_dataset.explicit_partitions is True
 
 
-@pytest.mark.min_metadata_version(4)
 def test_commit_dataset_delete_all(store, metadata_version):
     partitions = [
         {

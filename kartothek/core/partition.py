@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-class Partition(object):
+class Partition:
     def __init__(self, label, files=None, metadata=None):
         """
         An object for the internal representation of the metadata of a partition.
@@ -31,11 +31,6 @@ class Partition(object):
 
     @staticmethod
     def from_dict(label, dct):
-        part = Partition.from_v2_dict(label=label, dct=dct)
-        return part
-
-    @staticmethod
-    def from_v2_dict(label, dct):
         if isinstance(dct, str):
             raise ValueError(
                 "Trying to load a partition from a string. Probably the dataset file uses the multifile "

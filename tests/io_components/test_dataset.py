@@ -13,7 +13,6 @@ from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex
 
 
-@pytest.mark.min_metadata_version(4)
 def test_dataset_get_indices_as_dataframe_raise_index_not_loaded(dataset_with_index):
     with pytest.raises(RuntimeError):
         dataset_with_index.get_indices_as_dataframe(
@@ -21,7 +20,6 @@ def test_dataset_get_indices_as_dataframe_raise_index_not_loaded(dataset_with_in
         )
 
 
-@pytest.mark.min_metadata_version(4)
 def test_dataset_get_indices_as_dataframe_partition_keys_only(
     dataset_with_index, store_session
 ):
@@ -34,7 +32,6 @@ def test_dataset_get_indices_as_dataframe_partition_keys_only(
     pdt.assert_frame_equal(result, expected)
 
 
-@pytest.mark.min_metadata_version(4)
 def test_dataset_get_indices_as_dataframe(dataset_with_index, store_session):
     expected = pd.DataFrame(
         OrderedDict([("L", [1, 2]), ("P", [1, 2])]),

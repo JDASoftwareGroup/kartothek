@@ -778,7 +778,6 @@ Diff:
     )
 
 
-@pytest.mark.min_metadata_version(4)
 def test_metadata_consistency_errors_fails(
     store_factory, metadata_version, bound_store_dataframes
 ):
@@ -803,7 +802,6 @@ def test_metadata_consistency_errors_fails(
             )
 
 
-@pytest.mark.min_metadata_version(4)
 def test_table_consistency_resistance(
     store_factory, metadata_version, bound_store_dataframes
 ):

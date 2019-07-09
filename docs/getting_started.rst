@@ -1,136 +1,279 @@
+.. _getting_started:
+
+===============
 Getting started
 ===============
 
-``kartothek`` manages datasets that consist of files that contain tables.
-When working with these tables as a Python user, we will use pandas DataFrames
-as the user-facing type. We typically expect that the dataset contents are
-large, often too large to be held in a single machine but for demonstration
-purposes, we use a small DataFrame with a mixed set of types.
+
+``kartothek`` manages datasets that consist of files that contain tables. It does so by offering
+a metadata definition to handle these datasets efficiently.
+
+Datasets in ``kartothek`` are made up of one or more ``tables``, each with a unique schema.
+When working with ``kartothek`` tables as a Python user, we will use :class:`~pandas.DataFrame`
+as the user-facing type.
+
+We typically expect that the contents of a dataset are
+large, often too large to be held in memory by a single machine but for demonstration
+purposes, we will use a small DataFrame with a mixed set of types.
 
 .. ipython:: python
 
-   import numpy as np
-   import pandas as pd
+    import numpy as np
+    import pandas as pd
 
-   df = pd.DataFrame(
-       {
-           "A": 1.0,
-           "B": pd.Timestamp("20130102"),
-           "C": pd.Series(1, index=list(range(4)), dtype="float32"),
-           "D": np.array([3] * 4, dtype="int32"),
-           "E": pd.Categorical(["test", "train", "test", "train"]),
-           "F": "foo",
-       }
-   )
-   df
+    df = pd.DataFrame(
+        {
+            "A": 1.0,
+            "B": pd.Timestamp("20130102"),
+            "C": pd.Series(1, index=list(range(4)), dtype="float32"),
+            "D": np.array([3] * 4, dtype="int32"),
+            "E": pd.Categorical(["test", "train", "test", "prod"]),
+            "F": "foo",
+        }
+    )
+
+    another_df = pd.DataFrame(
+        {
+            "A": 5.0,
+            "B": pd.Timestamp("20110102"),
+            "C": pd.Series(1, index=list(range(4)), dtype="float32"),
+            "D": np.array([12] * 4, dtype="int32"),
+            "E": pd.Categorical(["prod", "train", "test", "train"]),
+            "F": "bar",
+        }
+    )
+
+
+Defining the storage location
+=============================
 
 We want to store this DataFrame now as a dataset. Therefore, we first need
-to connect to a storage location. ``kartothek`` can write to any location that
-fulfills the `simplekv.KeyValueStore interface`_. We use `storefact`_ in this
-example to construct such a store for the local filesystem.
+to connect to a storage location.
+
+We define a store factory as a callable which contains the storage information.
+We will use `storefact`_ in this example to construct such a store factory
+for the local filesystem (``hfs://`` indicates we are using the local filesystem and
+what follows is the filepath).
 
 .. ipython:: python
 
-   from storefact import get_store_from_url
-   from tempfile import TemporaryDirectory
+    from functools import partial
+    from tempfile import TemporaryDirectory
+    from storefact import get_store_from_url
 
-   dataset_dir = TemporaryDirectory()
-   store = get_store_from_url(f"hfs://{dataset_dir.name}")
+    dataset_dir = TemporaryDirectory()
 
-Now that we have our data and the storage location, we can persist it to a dataset.
-For that we use in this guide :func:`kartothek.io.eager.store_dataframes_as_dataset`
-to store a ``DataFrame`` we already have in memory in the local task.
+    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
 
-The import path of this function already gives us a hint about the general
-structuring of the ``kartothek`` modules. In :mod:`kartothek.io` we have all
-the building blocks to build data pipelines that read and write from/to storages.
-Other top-level modules for example handle the serialization of DataFrames to
-``bytes``.
+.. admonition:: Storage locations
 
-The next module level ``eager`` describes the scheduling backend.
-``eager`` runs all execution immediately and on the local machine.
-There is also ``iter`` that supports reading the dataset on
-a per-partition base. For larger dataset, ``dask`` can be used
-to work on datasets in parallel or even in a cluster by using
-``distributed`` as the backend for ``dask``.
+    `storefact`_ offers support for several stores in ``kartothek``, these can be created using the
+    function :func:`storefact.get_store_from_url` with one of the following prefixes:
+
+    - ``hfs``: Local filesystem
+    - ``hazure``: AzureBlockBlobStorage
+    - ``hs3``:  BotoStore (Amazon S3)
+
+For a more technical description of storage specification in kartothek, see
+:ref:`storage_specification`.
+
+
+
+Writing data to storage
+=======================
+
+Now that we have some data and a location to store it in, we can persist it as a
+dataset. To do so, we will use :func:`~kartothek.io.eager.store_dataframes_as_dataset`
+to store the ``DataFrame`` ``df`` that we already have in memory.
 
 .. ipython:: python
-   :okwarning:
 
-   from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.io.eager import store_dataframes_as_dataset
 
-   dm = store_dataframes_as_dataset(
-       store, "a_unique_dataset_identifier", df, metadata_version=4
-   )
-   dm
+    df.dtypes.equals(another_df.dtypes)  # both have the same schema
+
+    dm = store_dataframes_as_dataset(
+        store_factory, "a_unique_dataset_identifier", [df, another_df]
+    )
+
+
+.. admonition:: Scheduling backends
+
+    The import path of this function already gives us a hint about the general
+    structuring of the ``kartothek`` modules. In :mod:`kartothek.io` we have all
+    the building blocks to build data pipelines that read and write from/to storages.
+    The next module level (e.g. ``eager``) describes the scheduling backend.
+
+    The scheduling backends `currently supported` by kartothek are:
+
+    - ``eager`` runs all execution immediately and on the local machine.
+    - ``iter`` executes operations on the dataset using a generator/iterator interface.
+      The standard format to read/store dataframes in ``iter`` is by providing
+      a generator of dataframes.
+    - ``dask`` is suitable for larger datasets. It can be used to work on datasets in
+      parallel or even in a cluster by using ``dask.distributed`` as the backend.
+      There are also ``dask.bag`` and ``dask.dataframe`` which support I/O operations
+      for the respective `dask`_ collections.
+
 
 After calling :func:`~kartothek.io.eager.store_dataframes_as_dataset`,
-a :class:`kartothek.core.dataset.DatasetMetadata` object is returned. This is the main
-class holding all information about the parts and schema of the dataset.
-
-The most interesting ones for this guide are ``tables`` and ``partitions``.
-Each dataset can have multiple tables, each table is a collection of files
-that all have the same schema. These files are called ``partitions`` in
-``kartothek``.
-
-As we neither have explicitly defined the name of the table nor the name
-of the created partition, ``kartothek`` has used the default table name
-``table`` and used a generated UUID for the partition name.
+a :class:`~kartothek.core.dataset.DatasetMetadata` object is returned.
+This class holds information about the structure and schema of the dataset.
 
 .. ipython:: python
 
-   dm.tables
-   dm.partitions
-
-For each table, ``kartothek`` also tracks the schema of the columns.
-When not specified explicitly on write, it is inferred from the passed data.
-On writing additional data to a dataset, we will also check that the schema
-of the new data matches the schema of the existing data. If it doesn't, we will
-raise an exception.
-
-The schema is a ``pyarrow.Schema`` object which persists the native Arrow types
-for each column. Additionally, the schema also stores infomartion about the Pandas
-types and indices. This information is solely of informative nature and is not
-used by ``kartothek`` itself.
-
-.. ipython:: python
-
-   dm.table_meta
-
-After we have written the data, we want to read it back in again. For this we
-use :func:`kartothek.io.eager.read_table`. This method
-returns the whole dataset as a pandas DataFrame and the metadata of the
-dataset. The metadata of a dataset is a dict where one can store arbitrary
-information about the dataset. As this metadata is always loaded on accessing
-the dataset, this should be kept small.
+    dm.tables
+    sorted(dm.partitions.keys())
+    dm.table_meta["table"].remove_metadata()  # Arrow schema
 
 
-.. ipython:: python
-   :okwarning:
+For this guide, two attributes that are noteworthy are ``tables`` and ``partitions``:
 
-   from kartothek.io.eager import read_table
+- Each dataset has one or more ``tables``, where each table is a logical collection of data,
+  bound together by a common schema.
+- ``partitions`` are the physical "pieces" of data which together constitute the
+  contents of a dataset. Data is written to storage on a per-partition basis.
+  See the section on partitioning for further details: :ref:`partitioning_section`.
 
-   df = read_table("a_unique_dataset_identifier", store, table="table")
-   df
+The attribute ``table_meta`` can be accessed to see the underlying schema of the dataset.
+See :ref:`type_system` for more information.
 
-To understand the basics of the dataset, we can look at the files that were
-written using the store method. The main file of a dataset is
-``<dataset_uuid>.by-dataset-metadata.json``. Here we track all partitions that
-exist inside a datasets as well as the tables and additional metadata. This
-file is loaded on any operation of the dataset.
+To store multiple dataframes into a dataset, it is possible to pass a collection of
+dataframes; the exact format will depend on the I/O backend used.
 
-The magic ``<dataset_uuid>/<table>/_common_metadata`` file is an Apache Parquet
-file that contains no data. It is simply used to persist the schema of a single
-table.
+Additionally, ``kartothek`` supports several data input formats,
+it does not need to always be a plain ``pd.DataFrame``.
+See :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
+further details.
 
-Finally ``<dataset_uuid>/<table>/<partition_label>.parquet`` is the file that
-contains the data for this partition in the specific table. By default
-``kartothek`` serializes data to Apache Parquet files but also supports other
-file formats like CSV.
+If table names are not specified when passing an iterator of dataframes,
+``kartothek`` assumes these dataframes are different chunks of the same table
+and expects their schemas to be identical. A ``ValueError`` will be thrown otherwise.
+For example,
 
 .. ipython:: python
 
-   list(store.keys())
+    df2 = pd.DataFrame(
+        {
+            "G": "foo",
+            "H": pd.Categorical(["test", "train", "test", "train"]),
+            "I": np.array([9] * 4, dtype="int32"),
+            "J": pd.Series(3, index=list(range(4)), dtype="float32"),
+            "K": pd.Timestamp("20190604"),
+            "L": 2.0,
+        }
+    )
 
-.. _simplekv.KeyValueStore interface: https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore
+    df.dtypes.equals(df2.dtypes)  # schemas are different!
+
+
+.. ipython::
+
+    @verbatim
+    In [24]: store_dataframes_as_dataset(
+       ....:     store_factory,
+       ....:     "will_not_work",
+       ....:     [df, df2],
+       ....: )
+       ....:
+    ---------------------------------------------------------------------------
+    ValueError: Schema violation
+    Origin schema: {table/9e7d9217c82b4fda9c4e720dc987c60d}
+    Origin reference: {table/80feb4d84ac34a9c9d08ba48c8170647}
+
+
+.. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`,
+          :ref:`input_output`.
+
+
+When we do not explicitly define the name of the table and partition, ``kartothek`` uses the
+default table name ``table`` and generates a UUID for the partition name.
+
+.. admonition:: A more complex example: multiple named tables
+
+    Sometimes it may be useful to write multiple dataframes with different schemas into
+    a single dataset. This can be achieved by creating a dataset with multiple tables.
+
+    In this example, we create a dataset with two tables: ``core-table`` and ``aux-table``.
+    The schemas of the tables are identical across partitions (each dictionary in the
+    ``dfs`` list argument represents a partition).
+
+    .. ipython:: python
+
+        dfs = [
+            {
+                "data": {
+                    "core-table": pd.DataFrame({"id": [22, 23], "f": [1.1, 2.4]}),
+                    "aux-table": pd.DataFrame({"id": [22], "col1": ["x"]}),
+                }
+            },
+            {
+                "data": {
+                    "core-table": pd.DataFrame({"id": [29, 31], "f": [3.2, 0.6]}),
+                    "aux-table": pd.DataFrame({"id": [31], "col1": ["y"]}),
+                }
+            },
+        ]
+
+        dm = store_dataframes_as_dataset(store_factory, dataset_uuid="two-tables", dfs=dfs)
+        dm.tables
+
+
+Reading data from storage
+=========================
+
+After we have written the data, we may want to read it back in again. For this we can
+use :func:`~kartothek.io.eager.read_table`. This method returns the complete
+table of the dataset as a pandas DataFrame.
+
+.. ipython:: python
+
+    from kartothek.io.eager import read_table
+
+    read_table("a_unique_dataset_identifier", store_factory, table="table")
+
+
+We can also read a dataframe iteratively, using
+:func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`. This will return a generator
+of dictionaries (one dictionary for each `partition`), where the keys of each dictionary
+represent the `tables` of the dataset. For example,
+
+.. ipython:: python
+
+    from kartothek.io.iter import read_dataset_as_dataframes__iterator
+
+    for partition_index, df_dict in enumerate(
+        read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_factory)
+    ):
+        print(f"Partition #{partition_index}")
+        for table_name, table_df in df_dict.items():
+            print(f"Table: {table_name}. Data: \n{table_df}")
+
+Respectively, the ``dask.delayed`` back-end provides the function
+:func:`~kartothek.io.dask.delayed.read_dataset_as_delayed`, which has a very similar
+interface to the :func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`
+function but returns a collection of ``dask.delayed`` objects.
+
+
+.. admonition:: Filtering using predicates
+
+    It is possible to filter data during reads using simple predicates by using
+    the ``predicates`` argument. Technically speaking, ``kartothek`` supports predicates
+    in `disjunctive normal form <https://en.wikipedia.org/wiki/Disjunctive_normal_form>`_.
+
+    When this argument is defined, ``kartothek`` uses the Apache Parquet metadata
+    as well as indices and partition information to speed up queries when possible.
+    How this works is a complex topic, see :ref:`predicate_pushdown`.
+
+    .. ipython:: python
+
+        # Read only values table `core-table` where `f` < 2.5
+        read_table(
+            "two-tables", store_factory, table="core-table", predicates=[[("f", "<", 2.5)]]
+        )
+
+
+For a deeper dive into ``kartothek`` you can take a look at: :ref:`further_useful_features`.
+
 .. _storefact: https://github.com/blue-yonder/storefact
+.. _dask: https://docs.dask.org/en/latest/

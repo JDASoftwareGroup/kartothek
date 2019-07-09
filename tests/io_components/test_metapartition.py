@@ -22,11 +22,8 @@ from kartothek.io_components.metapartition import (
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 
 
-@pytest.mark.parametrize(
-    "metadata_version, expected_key", [(4, "dataset_uuid/core/test_label.parquet")]
-)
 def test_store_single_dataframe_as_partition(
-    store, metadata_storage_format, metadata_version, expected_key
+    store, metadata_storage_format, metadata_version
 ):
     df = pd.DataFrame(
         {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
@@ -44,6 +41,8 @@ def test_store_single_dataframe_as_partition(
     )
 
     assert len(meta_partition.data) == 0
+
+    expected_key = "dataset_uuid/core/test_label.parquet"
 
     assert meta_partition.files == {"core": expected_key}
     assert meta_partition.label == "test_label"
@@ -115,11 +114,11 @@ def test_load_dataframe_logical_conjunction(
     }
     pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
 
-    predicates = [[("L", ">", 2), ("TARGET", "<", 17)]]
+    predicates = [[("L", ">", 6), ("TARGET", "<", 18)]]
     loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
     data = {
-        "core": pd.DataFrame({"P": [5, 6], "L": [5, 6], "TARGET": [15, 16]}).set_index(
-            np.array([5, 6])
+        "core": pd.DataFrame({"P": [7], "L": [7], "TARGET": [17]}).set_index(
+            np.array([7])
         )
     }
     pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
@@ -317,6 +316,78 @@ def test_eq():
     assert not (meta_partition == meta_partition_more_data)
 
     assert not meta_partition == "abc"
+
+
+def test_add_nested_to_plain():
+    mp = MetaPartition(
+        label="label_1",
+        files={"core": "file"},
+        data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+        indices={"test": [1, 2, 3]},
+        dataset_metadata={"dataset": "metadata"},
+    )
+
+    to_nest = [
+        MetaPartition(
+            label="label_2",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+        MetaPartition(
+            label="label_22",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+    ]
+    mp_nested = to_nest[0].add_metapartition(to_nest[1])
+
+    mp_add_nested = mp.add_metapartition(mp_nested)
+    mp_iter = mp.add_metapartition(to_nest[0]).add_metapartition(to_nest[1])
+
+    assert mp_add_nested == mp_iter
+
+
+def test_add_nested_to_nested():
+    mps1 = [
+        MetaPartition(
+            label="label_1",
+            files={"core": "file"},
+            data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+            indices={"test": [1, 2, 3]},
+            dataset_metadata={"dataset": "metadata"},
+        ),
+        MetaPartition(
+            label="label_33",
+            files={"core": "file"},
+            data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+            indices={"test": [1, 2, 3]},
+            dataset_metadata={"dataset": "metadata"},
+        ),
+    ]
+
+    mpn_1 = mps1[0].add_metapartition(mps1[1])
+
+    mps2 = [
+        MetaPartition(
+            label="label_2",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+        MetaPartition(
+            label="label_22",
+            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            indices={"test": [4, 5, 6]},
+        ),
+    ]
+    mpn_2 = mps2[0].add_metapartition(mps2[1])
+
+    mp_nested_merge = mpn_1.add_metapartition(mpn_2)
+
+    mp_iter = mps1.pop()
+    for mp_ in [*mps1, *mps2]:
+        mp_iter = mp_iter.add_metapartition(mp_)
+
+    assert mp_nested_merge == mp_iter
 
 
 def test_eq_nested():

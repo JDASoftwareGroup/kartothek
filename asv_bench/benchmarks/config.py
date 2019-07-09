@@ -3,7 +3,7 @@
 import timeit
 
 
-class AsvBenchmarkConfig(object):
+class AsvBenchmarkConfig:
     """
     A mixin class to define default configurations for our benchmarks
     """

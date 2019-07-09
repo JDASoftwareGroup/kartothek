@@ -45,7 +45,6 @@ def _return_none():
     return None
 
 
-@pytest.mark.min_metadata_version(4)
 @pytest.mark.parametrize("unique_primaries", [1, 4])
 @pytest.mark.parametrize("unique_secondaries", [1, 3])
 @pytest.mark.parametrize("num_buckets", [1, 5])

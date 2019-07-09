@@ -7,7 +7,7 @@ import pytest
 from kartothek.core.factory import DatasetFactory
 
 
-class CountStore(object):
+class CountStore:
     def __init__(self, inner):
         self.inner = inner
         self.get_count = 0
@@ -23,7 +23,7 @@ class CountStore(object):
         return self.inner.__iter__()
 
 
-class CountFactory(object):
+class CountFactory:
     def __init__(self, inner):
         self.inner = inner
         self.count = 0

@@ -67,9 +67,10 @@ _PARAMETER_MAPPING = {
 """,
     "partition_on": """
     partition_on: list
-        Column names by which the dataset should be partitioned by.
-        If this parameter is given, the `metadata_version` must not be smaller than 3
-        Caution: There must not be an overlap between physical input partitions!
+        Column names by which the dataset should be partitioned by physically.
+        These columns may later on be used as an Index to improve query performance.
+        Partition columns need to be present in all dataset tables.
+        Sensitive to ordering.
 """,
     "predicate_pushdown_to_io": """
     predicate_pushdown_to_io: bool
@@ -104,8 +105,7 @@ _PARAMETER_MAPPING = {
     dates_as_object: bool
         Load pyarrow.date{32,64} columns as ``object`` columns in Pandas
         instead of using ``np.datetime64`` to preserve their type. While
-        this improves type-safety, this comes at a performance cost. Only
-        works for metadata version >= 4.
+        this improves type-safety, this comes at a performance cost.
 """,
     "predicates": """
     predicates: list of list of tuple[str, str, Any]
