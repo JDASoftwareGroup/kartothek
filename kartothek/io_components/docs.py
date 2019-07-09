@@ -32,6 +32,9 @@ _PARAMETER_MAPPING = {
     columns : dict of list of string, optional
         A dictionary mapping tables to list of columns. Only the specified
         columns are loaded for the corresponding table.""",
+    "dispatch_by": """
+    dispatch_by: list of strings, optional
+        List of index columns to group and partition the dataframe by.""",
     "df_serializer": """
     df_serializer : DataFrameSerializer, optional
         A pandas DataFrame serialiser from `kartothek.serialization`""",

@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 from functools import partial
 from typing import cast
 
@@ -247,7 +248,6 @@ def read_table(
     dates_as_object=False,
     predicates=None,
     factory=None,
-    dispatch_by=None,
 ):
     """
     A utility function to load a single table with multiple partitions as a single dataframe in one go.
@@ -283,6 +283,11 @@ def read_table(
         >>> df = read_table(store, 'dataset_uuid', 'core')
 
     """
+    if concat_partitions_on_primary_index:
+        warnings.warn(
+            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release.",
+            DeprecationWarning,
+        )
 
     if table is None:
         raise TypeError("Parameter `table` is not optional.")
@@ -308,7 +313,6 @@ def read_table(
         dates_as_object=dates_as_object,
         predicates=predicates,
         factory=ds_factory,
-        dispatch_by=dispatch_by,
     )
 
     empty_df = empty_dataframe_from_schema(

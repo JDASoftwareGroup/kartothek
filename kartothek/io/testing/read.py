@@ -33,7 +33,7 @@ The following fixtures should be present (see tests.read.conftest)
 
 import datetime
 from functools import wraps
-from itertools import chain, combinations, permutations
+from itertools import permutations
 
 import pandas as pd
 import pandas.testing as pdt
@@ -439,9 +439,7 @@ def test_read_dataset_as_dataframes_dispatch_by_multi_col(
         partition_on=["A", "B"],
         secondary_indices=["C"],
     )
-    for dispatch_by in chain.from_iterable(
-        combinations(x, 2) for x in permutations(["A", "B", "C"])
-    ):
+    for dispatch_by in permutations(("A", "B", "C"), 2):
         dispatched = bound_load_dataframes(
             dataset_uuid="partitioned_uuid",
             store=store_factory,
