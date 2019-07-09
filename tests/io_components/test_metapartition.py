@@ -114,11 +114,11 @@ def test_load_dataframe_logical_conjunction(
     }
     pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
 
-    predicates = [[("L", ">", 2), ("TARGET", "<", 17)]]
+    predicates = [[("L", ">", 6), ("TARGET", "<", 18)]]
     loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
     data = {
-        "core": pd.DataFrame({"P": [5, 6], "L": [5, 6], "TARGET": [15, 16]}).set_index(
-            np.array([5, 6])
+        "core": pd.DataFrame({"P": [7], "L": [7], "TARGET": [17]}).set_index(
+            np.array([7])
         )
     }
     pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])

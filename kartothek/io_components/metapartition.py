@@ -479,8 +479,8 @@ class MetaPartition(Iterable):
             dataset_metadata=new_dataset_metadata,
             metadata_version=metapartition.metadata_version,
             table_meta=table_meta,
-            partition_keys=metapartition_dict.pop("partition_keys", None),
-            logical_conjunction=metapartition_dict.pop("logical_partition", None),
+            partition_keys=metapartition.partition_keys or None,
+            logical_conjunction=metapartition.logical_conjunction or None,
         )
 
         # Add metapartition information to the new object
@@ -594,8 +594,8 @@ class MetaPartition(Iterable):
                     return None
         return filtered_predicates
 
-    @_apply_to_list
     @default_docs
+    @_apply_to_list
     def load_dataframes(
         self,
         store,
@@ -606,55 +606,6 @@ class MetaPartition(Iterable):
         dates_as_object=False,
         predicates=None,
     ):
-        """
-        Load the dataframes of the partitions from store into memory.
-
-        Parameters
-        ----------
-        store: KeyValuestore or callable
-            If it is a function, the result of calling it must be a KeyValueStore.
-        tables : list of string, optional
-            If a list is supplied, only the given tables of the partition are
-            loaded. If the given table does not exist it is ignored.
-
-            Examples
-
-            .. code::
-
-                >>> part = MetaPartition(
-                ...     label='part_label'
-                ...     files={
-                ...         'core': 'core_key_in_store',
-                ...         'helper': 'helper_key_in_store'
-                ...     }
-                ...  )
-                >>> part.data
-                    {}
-                >>> part = part.load_dataframes(store, ['core'])
-                >>> part.data
-                    {
-                        'core': pd.DataFrame()
-                    }
-
-        columns : dict of list of string, optional
-            A dictionary mapping tables to list of columns. Only the specified
-            columns are loaded for the corresponding table.
-        predicate_pushdown_to_io: bool
-            Push predicates through to the I/O layer, default True. Disable
-            this if you see problems with predicate pushdown for the given
-            file even if the file format supports it. Note that this option
-            only hides problems in the storage layer that need to be addressed
-            there.
-        dates_as_object: bool
-            Load pyarrow.data{32,64} columns as ``object`` columns in Pandas
-            instead of using ``np.datetime64`` to preserve their type. While
-            this improves type-safety, this comes at a performance cost. Only
-            works for metadata version >= 4.
-        predicates: list of list of tuple[str, str, Any]
-        Returns
-        -------
-
-        """
         if columns is None:
             columns = {}
         if categoricals is None:

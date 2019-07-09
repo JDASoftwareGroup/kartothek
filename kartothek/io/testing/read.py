@@ -331,7 +331,7 @@ def _gen_partition(b_c):
 
 
 def test_read_dataset_as_dataframes_concat_primary(
-    store_factory, custom_read_parameters, bound_load_dataframes, output_type
+    store_factory, custom_read_parameters, bound_load_dataframes, output_type, metadata_version
 ):
     if output_type != "dataframe":
         pytest.skip()
@@ -343,7 +343,7 @@ def test_read_dataset_as_dataframes_concat_primary(
         dfs=partitions,
         store=store_factory,
         dataset_uuid="partitioned_uuid",
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
 
@@ -368,7 +368,7 @@ def test_read_dataset_as_dataframes_concat_primary(
 
 @pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
 def test_read_dataset_as_dataframes_dispatch_by_single_col(
-    store_factory, bound_load_dataframes, backend_identifier, dispatch_by, output_type
+    store_factory, bound_load_dataframes, backend_identifier, dispatch_by, output_type, metadata_version
 ):
     if output_type == "table":
         pytest.skip()
@@ -389,7 +389,7 @@ def test_read_dataset_as_dataframes_dispatch_by_single_col(
         df_generator=partitions,
         store=store_factory,
         dataset_uuid="partitioned_uuid",
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["A", "B"],
         secondary_indices=["C"],
     )
@@ -412,7 +412,7 @@ def test_read_dataset_as_dataframes_dispatch_by_single_col(
 
 
 def test_read_dataset_as_dataframes_dispatch_by_multi_col(
-    store_factory, bound_load_dataframes, backend_identifier, output_type
+    store_factory, bound_load_dataframes, backend_identifier, output_type, metadata_version
 ):
     if output_type == "table":
         pytest.skip()
@@ -433,7 +433,7 @@ def test_read_dataset_as_dataframes_dispatch_by_multi_col(
         df_generator=partitions,
         store=store_factory,
         dataset_uuid="partitioned_uuid",
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["A", "B"],
         secondary_indices=["C"],
     )
@@ -501,7 +501,7 @@ def test_load_dataset_metadata(
 
 
 def test_read_dataset_as_dataframes_columns_projection(
-    store_factory, bound_load_dataframes
+    store_factory, bound_load_dataframes, metadata_version
 ):
     table_name = "core"
 
@@ -516,7 +516,7 @@ def test_read_dataset_as_dataframes_columns_projection(
         dfs=in_partitions,
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
 
@@ -540,7 +540,7 @@ def test_read_dataset_as_dataframes_columns_projection(
 
 
 def test_read_dataset_as_dataframes_columns_primary_index_only(
-    store_factory, bound_load_dataframes
+    store_factory, bound_load_dataframes, metadata_version
 ):
     table_name = "core"
 
@@ -556,7 +556,7 @@ def test_read_dataset_as_dataframes_columns_primary_index_only(
         dfs=in_partitions,
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
     result = bound_load_dataframes(
@@ -603,7 +603,7 @@ def test_empty_predicate_pushdown_empty_col_projection(
 
 
 def test_datetime_predicate_with_dates_as_object(
-    dataset, store_factory, bound_load_dataframes
+    dataset, store_factory, bound_load_dataframes, metadata_version
 ):
     table_name = "core"
 
@@ -618,7 +618,7 @@ def test_datetime_predicate_with_dates_as_object(
         dfs=in_partitions,
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
 
