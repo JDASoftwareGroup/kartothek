@@ -248,17 +248,18 @@ class MetaPartition(Iterable):
                 indices[column] = ExplicitSecondaryIndex(
                     column=column, index_dct=index_dct
                 )
+        self.logical_conjunction = logical_conjunction
         self.metapartitions = [
             {
                 "label": label,
                 "data": data or {},
                 "files": files or {},
                 "indices": indices,
+                "logical_conjunction": logical_conjunction,
             }
         ]
         self.dataset_metadata = dataset_metadata or {}
         self.partition_keys = partition_keys or []
-        self.logical_conjunction = logical_conjunction
 
     def __repr__(self):
         if len(self.metapartitions) > 1:
