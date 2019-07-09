@@ -35,6 +35,8 @@ Version 3.1.0 (2019-XX-XX)
 
 - Add :meth:`~karothek.io.dask.bag.build_dataset_indices__bag`
 
+- Return :class:`~dask.bag.Item` object from :meth:`~kartothek.io.dask.bag.store_bag_as_dataset` to avoid misoptimization
+
 **Breaking:**
 
 - categorical normalization was moved from :meth:`~kartothek.core.common_metadata.make_meta` to
