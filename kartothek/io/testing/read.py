@@ -331,7 +331,11 @@ def _gen_partition(b_c):
 
 
 def test_read_dataset_as_dataframes_concat_primary(
-    store_factory, custom_read_parameters, bound_load_dataframes, output_type, metadata_version
+    store_factory,
+    custom_read_parameters,
+    bound_load_dataframes,
+    output_type,
+    metadata_version,
 ):
     if output_type != "dataframe":
         pytest.skip()
@@ -368,7 +372,12 @@ def test_read_dataset_as_dataframes_concat_primary(
 
 @pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
 def test_read_dataset_as_dataframes_dispatch_by_single_col(
-    store_factory, bound_load_dataframes, backend_identifier, dispatch_by, output_type, metadata_version
+    store_factory,
+    bound_load_dataframes,
+    backend_identifier,
+    dispatch_by,
+    output_type,
+    metadata_version,
 ):
     if output_type == "table":
         pytest.skip()
@@ -412,7 +421,11 @@ def test_read_dataset_as_dataframes_dispatch_by_single_col(
 
 
 def test_read_dataset_as_dataframes_dispatch_by_multi_col(
-    store_factory, bound_load_dataframes, backend_identifier, output_type, metadata_version
+    store_factory,
+    bound_load_dataframes,
+    backend_identifier,
+    output_type,
+    metadata_version,
 ):
     if output_type == "table":
         pytest.skip()
