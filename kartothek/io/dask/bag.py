@@ -57,7 +57,7 @@ def store_bag_as_dataset(
 
     Returns
     -------
-    A dask.delayed dataset object.
+    A dask.bag.Item dataset object.
     """
     _check_callable(store)
     if dataset_uuid is None:
@@ -93,9 +93,7 @@ def store_bag_as_dataset(
         metadata_storage_format=metadata_storage_format,
     )
 
-    result = mps.reduction(perpartition=list, aggregate=aggregate, split_every=False)
-
-    return result.to_delayed()
+    return mps.reduction(perpartition=list, aggregate=aggregate, split_every=False)
 
 
 @default_docs
