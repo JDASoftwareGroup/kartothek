@@ -3,7 +3,7 @@ Changelog
 =========
 
 
-Version 3.1.0 (2019-XX-XX)
+Version 3.1.0 (2019-07-10)
 ==========================
 
 - fix ``getargspec`` ``DeprecationWarning``
