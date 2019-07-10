@@ -596,7 +596,6 @@ class MetaPartition(Iterable):
 
     @default_docs
     @_apply_to_list
-    @default_docs
     def load_dataframes(
         self,
         store,
