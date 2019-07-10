@@ -32,6 +32,9 @@ _PARAMETER_MAPPING = {
     columns : dict of list of string, optional
         A dictionary mapping tables to list of columns. Only the specified
         columns are loaded for the corresponding table.""",
+    "dispatch_by": """
+    dispatch_by: list of strings, optional
+        List of index columns to group and partition the dataframe by.""",
     "df_serializer": """
     df_serializer : DataFrameSerializer, optional
         A pandas DataFrame serialiser from `kartothek.serialization`""",
@@ -149,6 +152,7 @@ def default_docs(func):
             line = buf.readline()
 
             if "Parameters" in line:
+                indentation_level = len(line) - len(line.lstrip())
                 artificial_param_docs = [line, buf.readline()]
                 # Include the `-----` line
                 for param in signature.parameters.keys():
@@ -158,7 +162,16 @@ def default_docs(func):
                             doc += "\n"
                         if doc.startswith("\n"):
                             doc = doc[1:]
-                        artificial_param_docs.append(doc)
+                        doc_indentation_level = len(doc) - len(doc.lstrip())
+                        whitespaces_to_add = indentation_level - doc_indentation_level
+                        if whitespaces_to_add < 0:
+                            raise RuntimeError("Indentation detection went wrong")
+                        # Adjust the indentation dynamically
+                        whitespaces = " " * whitespaces_to_add
+                        doc = whitespaces + doc
+                        doc = doc.replace("\n", "\n" + whitespaces).rstrip() + "\n"
+                        if whitespaces + param not in docs:
+                            artificial_param_docs.append(doc)
                 new_docs += "".join(artificial_param_docs)
                 continue
             new_docs = "".join([new_docs, line])

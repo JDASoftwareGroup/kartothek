@@ -273,6 +273,7 @@ def read_dataset_as_delayed_metapartitions(
     load_dataset_metadata=False,
     predicates=None,
     factory=None,
+    dispatch_by=None,
 ):
     """
     A collection of dask.delayed objects to retrieve a dataset from store where each
@@ -298,9 +299,10 @@ def read_dataset_as_delayed_metapartitions(
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         label_filter=label_filter,
         predicates=predicates,
+        dispatch_by=dispatch_by,
     )
 
-    if concat_partitions_on_primary_index:
+    if concat_partitions_on_primary_index or dispatch_by:
         mps = _load_and_concat_metapartitions(
             mps,
             store=store,
@@ -364,6 +366,7 @@ def read_dataset_as_delayed(
     dates_as_object=False,
     predicates=None,
     factory=None,
+    dispatch_by=None,
 ):
     """
     A collection of dask.delayed objects to retrieve a dataset from store
@@ -385,6 +388,7 @@ def read_dataset_as_delayed(
         dates_as_object=dates_as_object,
         load_dataset_metadata=False,
         predicates=predicates,
+        dispatch_by=dispatch_by,
     )
     return map_delayed(mps, _get_data)
 
@@ -402,6 +406,7 @@ def read_table_as_delayed(
     dates_as_object=False,
     predicates=None,
     factory=None,
+    dispatch_by=None,
 ):
     """
     A collection of dask.delayed objects to retrieve a single table from
@@ -439,6 +444,7 @@ def read_table_as_delayed(
         load_dataset_metadata=False,
         predicates=predicates,
         factory=factory,
+        dispatch_by=dispatch_by,
     )
     return map_delayed(mps, partial(_get_data, table=table))
 

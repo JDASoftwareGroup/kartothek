@@ -33,6 +33,7 @@ The following fixtures should be present (see tests.read.conftest)
 
 import datetime
 from functools import wraps
+from itertools import permutations
 
 import pandas as pd
 import pandas.testing as pdt
@@ -40,6 +41,7 @@ import pytest
 
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.metapartition import MetaPartition
 
 
@@ -329,7 +331,11 @@ def _gen_partition(b_c):
 
 
 def test_read_dataset_as_dataframes_concat_primary(
-    store_factory, custom_read_parameters, bound_load_dataframes, output_type
+    store_factory,
+    custom_read_parameters,
+    bound_load_dataframes,
+    output_type,
+    metadata_version,
 ):
     if output_type != "dataframe":
         pytest.skip()
@@ -341,7 +347,7 @@ def test_read_dataset_as_dataframes_concat_primary(
         dfs=partitions,
         store=store_factory,
         dataset_uuid="partitioned_uuid",
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
 
@@ -362,6 +368,105 @@ def test_read_dataset_as_dataframes_concat_primary(
     expected_df.index = [0, 0]
 
     pdt.assert_frame_equal(expected_df, result_df, check_like=True)
+
+
+@pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
+def test_read_dataset_as_dataframes_dispatch_by_single_col(
+    store_factory,
+    bound_load_dataframes,
+    backend_identifier,
+    dispatch_by,
+    output_type,
+    metadata_version,
+):
+    if output_type == "table":
+        pytest.skip()
+    cluster1 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
+    )
+    cluster2 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [2, 3], "Content": ["cluster2", "cluster2"]}
+    )
+    cluster3 = pd.DataFrame({"A": [1], "B": [20], "C": [1], "Content": ["cluster3"]})
+    cluster4 = pd.DataFrame(
+        {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
+    )
+    clusters = [cluster1, cluster2, cluster3, cluster4]
+    partitions = [{"data": [("data", c)]} for c in clusters]
+
+    store_dataframes_as_dataset__iter(
+        df_generator=partitions,
+        store=store_factory,
+        dataset_uuid="partitioned_uuid",
+        metadata_version=metadata_version,
+        partition_on=["A", "B"],
+        secondary_indices=["C"],
+    )
+
+    # Dispatch by primary index "A"
+    dispatched_a = bound_load_dataframes(
+        dataset_uuid="partitioned_uuid", store=store_factory, dispatch_by=[dispatch_by]
+    )
+
+    unique_a = set()
+    for part in dispatched_a:
+        if isinstance(part, MetaPartition):
+            data = part.data["data"]
+        else:
+            data = part["data"]
+        unique_dispatch = data[dispatch_by].unique()
+        assert len(unique_dispatch) == 1
+        unique_dispatch[0] not in unique_a
+        unique_a.add(unique_dispatch[0])
+
+
+def test_read_dataset_as_dataframes_dispatch_by_multi_col(
+    store_factory,
+    bound_load_dataframes,
+    backend_identifier,
+    output_type,
+    metadata_version,
+):
+    if output_type == "table":
+        pytest.skip()
+    cluster1 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
+    )
+    cluster2 = pd.DataFrame(
+        {"A": [1, 1], "B": [10, 10], "C": [2, 3], "Content": ["cluster2", "cluster2"]}
+    )
+    cluster3 = pd.DataFrame({"A": [1], "B": [20], "C": [1], "Content": ["cluster3"]})
+    cluster4 = pd.DataFrame(
+        {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
+    )
+    clusters = [cluster1, cluster2, cluster3, cluster4]
+    partitions = [{"data": [("data", c)]} for c in clusters]
+
+    store_dataframes_as_dataset__iter(
+        df_generator=partitions,
+        store=store_factory,
+        dataset_uuid="partitioned_uuid",
+        metadata_version=metadata_version,
+        partition_on=["A", "B"],
+        secondary_indices=["C"],
+    )
+    for dispatch_by in permutations(("A", "B", "C"), 2):
+        dispatched = bound_load_dataframes(
+            dataset_uuid="partitioned_uuid",
+            store=store_factory,
+            dispatch_by=dispatch_by,
+        )
+        uniques = pd.DataFrame(columns=dispatch_by)
+        for part in dispatched:
+            if isinstance(part, MetaPartition):
+                data = part.data["data"]
+            else:
+                data = part["data"]
+            unique_dispatch = data[list(dispatch_by)].drop_duplicates()
+            assert len(unique_dispatch) == 1
+            row = unique_dispatch
+            uniques.append(row)
+        assert not any(uniques.duplicated())
 
 
 def test_read_dataset_as_dataframes(
@@ -409,7 +514,7 @@ def test_load_dataset_metadata(
 
 
 def test_read_dataset_as_dataframes_columns_projection(
-    store_factory, bound_load_dataframes
+    store_factory, bound_load_dataframes, metadata_version
 ):
     table_name = "core"
 
@@ -424,7 +529,7 @@ def test_read_dataset_as_dataframes_columns_projection(
         dfs=in_partitions,
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
 
@@ -448,7 +553,7 @@ def test_read_dataset_as_dataframes_columns_projection(
 
 
 def test_read_dataset_as_dataframes_columns_primary_index_only(
-    store_factory, bound_load_dataframes
+    store_factory, bound_load_dataframes, metadata_version
 ):
     table_name = "core"
 
@@ -464,7 +569,7 @@ def test_read_dataset_as_dataframes_columns_primary_index_only(
         dfs=in_partitions,
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
     result = bound_load_dataframes(
@@ -511,7 +616,7 @@ def test_empty_predicate_pushdown_empty_col_projection(
 
 
 def test_datetime_predicate_with_dates_as_object(
-    dataset, store_factory, bound_load_dataframes
+    dataset, store_factory, bound_load_dataframes, metadata_version
 ):
     table_name = "core"
 
@@ -526,7 +631,7 @@ def test_datetime_predicate_with_dates_as_object(
         dfs=in_partitions,
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        metadata_version=4,
+        metadata_version=metadata_version,
         partition_on=["a", "b"],
     )
 
