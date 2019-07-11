@@ -1,8 +1,10 @@
 import types
 from collections import OrderedDict
 
+import pandas as pd
 import pytest
 
+from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.read import dispatch_metapartitions
 
@@ -107,3 +109,26 @@ def test_dispatch_metapartitions_query_no_effect(
     )
     partitions = list(generator)
     assert len(partitions) == 2
+
+
+def test_dispatch_metapartitions_concat_regression(store):
+    dataset = store_dataframes_as_dataset(
+        dfs=[pd.DataFrame({"p": [0], "x": [0]}), pd.DataFrame({"p": [0], "x": [1]})],
+        dataset_uuid="test",
+        store=store,
+        partition_on=["p"],
+    )
+
+    mps = list(
+        dispatch_metapartitions(
+            dataset.uuid, store, concat_partitions_on_primary_index=False
+        )
+    )
+    assert len(mps) == 2
+
+    mps = list(
+        dispatch_metapartitions(
+            dataset.uuid, store, concat_partitions_on_primary_index=True
+        )
+    )
+    assert len(mps) == 1

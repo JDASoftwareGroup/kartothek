@@ -8,6 +8,8 @@ Version 3.1.1 (unreleased)
 
 - make :meth:`~karothek.io.dask.bag.build_dataset_indices__bag` more efficient
 - make :meth:`~kartothek.io.eager.build_dataset_indices` more efficient
+- fix pseudo-private :meth:`~kartothek.io_components.read.dispatch_metapartitions` handling of
+  ``concat_partitions_on_primary_index``
 
 
 Version 3.1.0 (2019-07-10)
