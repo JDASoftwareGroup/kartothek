@@ -3,6 +3,12 @@ Changelog
 =========
 
 
+Version 3.1.1 (unreleased)
+==========================
+
+- make :meth:`~karothek.io.dask.bag.build_dataset_indices__bag` more efficient
+
+
 Version 3.1.0 (2019-07-10)
 ==========================
 
