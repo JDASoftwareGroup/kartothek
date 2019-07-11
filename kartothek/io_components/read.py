@@ -227,4 +227,5 @@ def dispatch_metapartitions(
         label_filter=label_filter,
         predicates=predicates,
         dispatch_by=dispatch_by,
+        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
     )
