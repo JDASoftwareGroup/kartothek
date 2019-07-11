@@ -19,7 +19,6 @@ from kartothek.core.naming import (
     get_partition_file_prefix,
 )
 from kartothek.core.uuid import gen_uuid
-from kartothek.io.iter import read_dataset_as_metapartitions__iterator
 from kartothek.io_components.delete import (
     delete_common_metadata,
     delete_indices,
@@ -725,8 +724,19 @@ def build_dataset_indices(store, dataset_uuid, columns, factory=None):
         load_dataset_metadata=False,
     )
 
+    cols_to_load = {
+        table: set(columns) & set(meta.names)
+        for table, meta in ds_factory.table_meta.items()
+    }
+    cols_to_load = {table: cols for table, cols in cols_to_load.items() if cols}
+
     new_partitions = []
-    for mp in read_dataset_as_metapartitions__iterator(factory=ds_factory):
+    for mp in dispatch_metapartitions_from_factory(ds_factory):
+        mp = mp.load_dataframes(
+            store=ds_factory.store,
+            tables=list(cols_to_load.keys()),
+            columns=cols_to_load,
+        )
         mp = mp.build_indices(columns=columns)
         mp = mp.remove_dataframes()  # Remove dataframe from memory
         new_partitions.append(mp)

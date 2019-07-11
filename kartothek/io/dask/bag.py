@@ -7,13 +7,13 @@ from kartothek.core import naming
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.utils import _check_callable
 from kartothek.core.uuid import gen_uuid
-from kartothek.io.eager import read_dataset_as_metapartitions
 from kartothek.io_components.docs import default_docs
 from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,
 )
+from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.utils import normalize_args
 from kartothek.io_components.write import (
     raise_if_dataset_exists,
@@ -123,10 +123,22 @@ def build_dataset_indices__bag(
         load_dataset_metadata=False,
     )
 
-    mps = read_dataset_as_metapartitions(factory=ds_factory)
+    cols_to_load = {
+        table: set(columns) & set(meta.names)
+        for table, meta in ds_factory.table_meta.items()
+    }
+    cols_to_load = {table: cols for table, cols in cols_to_load.items() if cols}
+
+    mps = dispatch_metapartitions_from_factory(ds_factory)
 
     return (
         db.from_sequence(seq=mps, partition_size=partition_size)
+        .map(
+            MetaPartition.load_dataframes,
+            store=ds_factory.store_factory,
+            tables=list(cols_to_load.keys()),
+            columns=cols_to_load,
+        )
         .map(MetaPartition.build_indices, columns=columns)
         .map(MetaPartition.remove_dataframes)
         .reduction(list, list, split_every=False, out_type=db.Bag)
