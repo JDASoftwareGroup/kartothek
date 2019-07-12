@@ -239,8 +239,17 @@ def filter_array_like(
     elif is_list_like(value) and len(value) and isinstance(value[0], date_type_to_cast):
         value = [pd.Timestamp(val).to_datetime64() for val in value]
 
+    if pd.api.types.is_categorical(array_like) and (">" in op or "<" in op):
+        if array_like.cat.categories.is_monotonic:
+            array_like = array_like.cat.as_ordered()
+        else:
+            array_like = array_like.cat.reorder_categories(
+                array_like.cat.categories.sort_values(), ordered=True
+            )
+
     # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
-    if np.issubdtype(array_like.dtype, np.floating) and np.isnan(array_like).all():
+    # Determine the type using the `kind` interface since this is common for a numpy array, pandas series and pandas extension arrays
+    if array_like.dtype.kind == "f" and np.isnan(array_like).all():
         value_dtype = np.array([value]).dtype
         if array_like.dtype.kind != value_dtype.kind:
             array_like = array_like.astype(value_dtype)

@@ -120,6 +120,15 @@ _PARAMETER_MAPPING = {
         larger predicate. The most outer list then combines all predicates
         with a disjunction (OR). By this, we should be able to express all
         kinds of predicates that are possible using boolean logic.
+
+        Available operators are: `==`, `!=`, `<=`, `>=`, `<`, `>` and `in`.
+
+        .. admonition:: Categorical data
+
+            When using order sensitive operators on categorical data we will
+            assume that the categories obey a lexicographical ordering.
+            This filtering may result in less than optimal performance and may
+            be slower than the evaluation on non-categorical data.
 """,
     "secondary_indices": """
     secondary_indices: List[str]

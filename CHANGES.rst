@@ -2,6 +2,8 @@
 Changelog
 =========
 
+- Predicate pushdown and :func:`~kartothek.serialization.filter_array_like` will now properly handle pandas Categoricals
+
 
 Version 3.1.1 (2019-07-12)
 ==========================
