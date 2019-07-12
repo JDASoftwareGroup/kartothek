@@ -28,7 +28,7 @@ before_script:
   - python setup.py docs
 
 script:
-  - pytest
+  - pytest --cov kartothek --cov-report xml --cov-report html
 
 after_success:
   - pip install codecov
