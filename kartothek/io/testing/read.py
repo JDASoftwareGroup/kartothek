@@ -618,6 +618,7 @@ def test_empty_predicate_pushdown_empty_col_projection(
 @pytest.mark.parametrize("partition_on", [["a", "b"], ["c"], ["a", "b", "c"]])
 @pytest.mark.parametrize("datetype", [datetime.datetime, datetime.date])
 @pytest.mark.parametrize("comp", ["==", ">="])
+@pytest.mark.parametrize("categorical", [False, True])
 def test_datetime_predicate_with_dates_as_object(
     dataset,
     store_factory,
@@ -628,12 +629,16 @@ def test_datetime_predicate_with_dates_as_object(
     partition_on,
     datetype,
     comp,
+    categorical,
 ):
     table_name = "core"
 
     def _f(b_c):
         b, c = b_c
         df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
+        if categorical:
+            for col in df.columns:
+                df[col] = df[col].astype("category")
         return {"label": gen_uuid(), "data": [(table_name, df)]}
 
     in_partitions = [_f([1, datetype(2000, 1, 1)])]
