@@ -14,7 +14,7 @@ import pytz
 from hypothesis import assume, given
 from pandas.testing import assert_series_equal
 
-from kartothek.core.index import ExplicitSecondaryIndex, merge_indices
+from kartothek.core.index import ExplicitSecondaryIndex, IndexBase, merge_indices
 from kartothek.core.testing import get_numpy_array_strategy
 
 
@@ -556,6 +556,21 @@ def test_eval_operators(index_data, op, value, expected):
     result = index.eval_operator(op, index_data[value])
 
     assert result == expected
+
+
+def test_eval_operators_type_safety():
+    # gh66
+    ind = IndexBase(column="col", index_dct={1234: ["part"]}, dtype=pa.int64())
+    with pytest.raises(
+        TypeError, match="Unexpected type encountered. Expected i but got O."
+    ):
+        ind.eval_operator("==", "1234")
+    with pytest.raises(
+        TypeError, match="Unexpected type encountered. Expected i but got f."
+    ):
+        ind.eval_operator("==", 1234.0)
+
+    assert ind.eval_operator("==", 1234) == {"part"}
 
 
 @pytest.mark.parametrize("inplace", [True, False])

@@ -1,3 +1,5 @@
+import datetime
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -66,3 +68,23 @@ def test_filter_array_like_categoricals(op, expected, cat_type):
     res = filter_array_like(ser, op, "B")
 
     assert all(res == expected)
+
+
+@pytest.mark.parametrize(
+    "value, filter_value",
+    [
+        (1, 1.0),
+        ("1", 1.0),
+        ("1", 1),
+        (1, "1"),
+        (datetime.date(2019, 1, 1), 1),
+        (datetime.datetime(2019, 1, 1), 1),
+        (datetime.datetime(2019, 1, 1), datetime.date(2019, 1, 1)),
+        (datetime.date(2019, 1, 1), datetime.datetime(2019, 1, 1)),
+    ],
+)
+@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
+def test_raise_on_type(value, filter_value, op):
+    array_like = pd.Series([value])
+    with pytest.raises(TypeError, match="Unexpected type encountered."):
+        filter_array_like(array_like, op, filter_value, strict_date_types=True)
