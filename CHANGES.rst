@@ -10,6 +10,9 @@ Version 3.1.1 (unreleased)
 - make :meth:`~kartothek.io.eager.build_dataset_indices` more efficient
 - fix pseudo-private :meth:`~kartothek.io_components.read.dispatch_metapartitions` handling of
   ``concat_partitions_on_primary_index``
+- fix internal errors if querying (e.g. via :meth:`~kartothek.io.eager.read_dataset_as_dataframes`) with
+  ``datetime.date`` predicates that use the dataset index; this affects all code paths using
+  :meth:`~kartothek.io_components.metapartition.MetaPartition.load_dataframes`
 
 
 Version 3.1.0 (2019-07-10)
