@@ -43,6 +43,9 @@ def read_dataset_as_ddf(
     Please take care when using categoricals with Dask. For index columns, this function will construct dataset
     wide categoricals. For all other columns, Dask will determine the categories on a partition level and will
     need to merge them when shuffling data.
+
+    Parameters
+    ----------
     """
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
