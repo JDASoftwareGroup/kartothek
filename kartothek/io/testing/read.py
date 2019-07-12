@@ -615,8 +615,19 @@ def test_empty_predicate_pushdown_empty_col_projection(
     pdt.assert_frame_equal(res, pd.DataFrame(index=pd.RangeIndex(start=0, stop=0)))
 
 
+@pytest.mark.parametrize("partition_on", [["a", "b"], ["c"], ["a", "b", "c"]])
+@pytest.mark.parametrize("datetype", [datetime.datetime, datetime.date])
+@pytest.mark.parametrize("comp", ["==", ">="])
 def test_datetime_predicate_with_dates_as_object(
-    dataset, store_factory, bound_load_dataframes, metadata_version
+    dataset,
+    store_factory,
+    bound_load_dataframes,
+    metadata_version,
+    custom_read_parameters,
+    output_type,
+    partition_on,
+    datetype,
+    comp,
 ):
     table_name = "core"
 
@@ -625,23 +636,34 @@ def test_datetime_predicate_with_dates_as_object(
         df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
         return {"label": gen_uuid(), "data": [(table_name, df)]}
 
-    in_partitions = [_f([1, datetime.datetime(2000, 1, 1)])]
+    in_partitions = [_f([1, datetype(2000, 1, 1)])]
     dataset_uuid = "partitioned_uuid"
     store_dataframes_as_dataset(
         dfs=in_partitions,
         store=store_factory,
         dataset_uuid=dataset_uuid,
         metadata_version=metadata_version,
-        partition_on=["a", "b"],
+        partition_on=partition_on,
     )
 
-    bound_load_dataframes(
+    result = bound_load_dataframes(
         dataset_uuid="partitioned_uuid",
         tables=table_name,
         store=store_factory,
-        predicates=[[("c", ">=", datetime.datetime(2000, 1, 1))]],
+        predicates=[[("c", comp, datetype(2000, 1, 1))]],
         dates_as_object=True,
+        **custom_read_parameters,
     )
+    if output_type != "dataframe":
+        return
+
+    assert len(result) == 1
+    dct = result[0]
+    assert set(dct.keys()) == {table_name}
+    df_actual = dct[table_name]
+
+    df_expected = in_partitions[0]["data"][0][1]
+    pdt.assert_frame_equal(df_actual, df_expected, check_like=True)
 
 
 def test_binary_column_metadata(store_factory, bound_load_dataframes):
