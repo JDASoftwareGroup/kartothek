@@ -3,6 +3,8 @@ Changelog
 =========
 
 - Predicate pushdown and :func:`~kartothek.serialization.filter_array_like` will now properly handle pandas Categoricals
+- Add :meth:`~karothek.io.dask.bag.read_dataset_as_dataframes_bag`
+- Add :meth:`~karothek.io.dask.bag.read_dataset_as_metapartitions_bag`
 
 
 Version 3.1.1 (2019-07-12)
