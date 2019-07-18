@@ -38,7 +38,13 @@ from kartothek.io_components.write import (
 )
 
 from ._update import _update_dask_partitions_one_to_one
-from ._utils import _maybe_get_categoricals_from_index, map_delayed
+from ._utils import (
+    _cast_categorical_to_index_cat,
+    _get_data,
+    _identity,
+    _maybe_get_categoricals_from_index,
+    map_delayed,
+)
 
 
 def _delete_all_additional_metadata(dataset_factory):
@@ -252,13 +258,6 @@ def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
     ]
 
 
-def _identity():
-    def _id(x):
-        return x
-
-    return _id
-
-
 @default_docs
 def read_dataset_as_delayed_metapartitions(
     dataset_uuid=None,
@@ -341,16 +340,6 @@ def read_dataset_as_delayed_metapartitions(
         mps = map_delayed(mps, MetaPartition.apply, func_dict, type_safe=True)
 
     return mps
-
-
-def _get_data(mp, table=None):
-    """
-    Task to avoid serialization of lambdas
-    """
-    if table:
-        return mp.data[table]
-    else:
-        return mp.data
 
 
 @default_docs
@@ -447,20 +436,6 @@ def read_table_as_delayed(
         dispatch_by=dispatch_by,
     )
     return map_delayed(mps, partial(_get_data, table=table))
-
-
-def _cast_categorical_to_index_cat(df, categories):
-    try:
-        return df.astype(categories)
-    except ValueError as verr:
-        # Should be fixed by pandas>=0.24.0
-        if "buffer source array is read-only" in str(verr):
-            new_cols = {}
-            for cat in categories:
-                new_cols[cat] = df[cat].astype(df[cat].dtype.categories.dtype)
-                new_cols[cat] = new_cols[cat].astype(categories[cat])
-            return df.assign(**new_cols)
-        raise
 
 
 @default_docs

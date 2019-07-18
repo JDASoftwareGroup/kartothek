@@ -9,6 +9,37 @@ from dask import delayed
 CATEGORICAL_EFFICIENCY_WARN_LIMIT = 100000
 
 
+def _identity():
+    def _id(x):
+        return x
+
+    return _id
+
+
+def _get_data(mp, table=None):
+    """
+    Task to avoid serialization of lambdas
+    """
+    if table:
+        return mp.data[table]
+    else:
+        return mp.data
+
+
+def _cast_categorical_to_index_cat(df, categories):
+    try:
+        return df.astype(categories)
+    except ValueError as verr:
+        # Should be fixed by pandas>=0.24.0
+        if "buffer source array is read-only" in str(verr):
+            new_cols = {}
+            for cat in categories:
+                new_cols[cat] = df[cat].astype(df[cat].dtype.categories.dtype)
+                new_cols[cat] = new_cols[cat].astype(categories[cat])
+            return df.assign(**new_cols)
+        raise
+
+
 def _construct_categorical(column, dataset_metadata_factory):
     dataset_metadata = dataset_metadata_factory.load_index(column)
     values = dataset_metadata.indices[column].index_dct.keys()
