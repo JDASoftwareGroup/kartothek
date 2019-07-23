@@ -4,8 +4,6 @@
 This module contains functionality for persisting/serialising DataFrames.
 """
 
-
-import datetime
 from typing import Dict
 
 import numpy as np
@@ -203,6 +201,42 @@ def filter_df_from_predicates(df, predicates, strict_date_types=False):
     return df[indexer]
 
 
+def _handle_categorical_data(array_like, require_ordered):
+    if require_ordered and pd.api.types.is_categorical(array_like):
+        if isinstance(array_like, pd.Categorical):
+            categorical = array_like
+        else:
+            categorical = array_like.cat
+        array_value_type = categorical.categories.dtype
+        if categorical.categories.is_monotonic:
+            array_like = categorical.as_ordered()
+        else:
+            array_like = categorical.reorder_categories(
+                categorical.categories.sort_values(), ordered=True
+            )
+    else:
+        array_value_type = array_like.dtype
+    return array_like, array_value_type
+
+
+def _handle_null_arrays(array_like, value_dtype):
+    # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
+    # Determine the type using the `kind` interface since this is common for a numpy array, pandas series and pandas extension arrays
+    if array_like.dtype.kind == "f" and np.isnan(array_like).all():
+        if array_like.dtype.kind != value_dtype.kind:
+            array_like = array_like.astype(value_dtype)
+    return array_like, array_like.dtype
+
+
+def _handle_timelike_values(array_value_type, value, value_dtype, strict_date_types):
+    if is_list_like(value):
+        value = [pd.Timestamp(val).to_datetime64() for val in value]
+    else:
+        value = pd.Timestamp(value).to_datetime64()
+    value_dtype = pd.Series(value).dtype
+    return value, value_dtype
+
+
 def _ensure_type_stability(array_like, value, strict_date_types, require_ordered):
     """
     Ensure that the provided value and the provided array will have compatible
@@ -229,48 +263,34 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
         ordering. In the case of pd.Categorical we will then assume a
         lexicographical ordering and cast the pd.CategoricalDtype accordingly
     """
-    # datetime is a subclass of date which is why we need this double check
-    date_type_to_cast = datetime.datetime if strict_date_types else datetime.date
-    if isinstance(value, date_type_to_cast):
-        value = pd.Timestamp(value).to_datetime64()
-    elif is_list_like(value) and len(value) and isinstance(value[0], date_type_to_cast):
-        value = [pd.Timestamp(val).to_datetime64() for val in value]
 
     value_dtype = pd.Series(value).dtype
-
-    if require_ordered and pd.api.types.is_categorical(array_like):
-        if isinstance(array_like, pd.Categorical):
-            categorical = array_like
-        else:
-            categorical = array_like.cat
-        array_value_type = categorical.categories.dtype
-        if categorical.categories.is_monotonic:
-            array_like = categorical.as_ordered()
-        else:
-            array_like = categorical.reorder_categories(
-                categorical.categories.sort_values(), ordered=True
-            )
-    else:
-        array_value_type = array_like.dtype
-
-    # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
-    # Determine the type using the `kind` interface since this is common for a numpy array, pandas series and pandas extension arrays
-    if array_like.dtype.kind == "f" and np.isnan(array_like).all():
-        if array_like.dtype.kind != value_dtype.kind:
-            array_like = array_like.astype(value_dtype)
-            array_value_type = array_like.dtype
+    array_like, array_value_type = _handle_categorical_data(array_like, require_ordered)
+    array_like, array_value_type = _handle_null_arrays(array_like, value_dtype)
 
     type_comp = {value_dtype.kind, array_value_type.kind}
-    if (
-        len(type_comp) > 1
-        # UINT and INT are accepted
-        and not type_comp == {"u", "i"}
+
+    compatible_types = [
+        # UINT and INT
+        {"u", "i"},
         # various string kinds
-        and not type_comp == {"S", "O"}
-        and not type_comp == {"U", "O"}
-    ):
+        {"S", "O"},
+        {"U", "O"},
+    ]
+
+    if not strict_date_types:
+        # objects (datetime.date) and datetime64
+        compatible_types.append({"O", "M"})
+
+    type_comp = {value_dtype.kind, array_value_type.kind}
+
+    if len(type_comp) > 1 and type_comp not in compatible_types:
         raise TypeError(
             f"Unexpected type encountered. Expected {array_value_type.kind} but got {value_dtype.kind}."
+        )
+    if "M" in type_comp:
+        value, value_dtype = _handle_timelike_values(
+            array_value_type, value, value_dtype, strict_date_types
         )
     return array_like, value
 
