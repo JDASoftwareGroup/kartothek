@@ -1,9 +1,6 @@
 #!/bin/bash
 set -xeo pipefail
 
-productionIndex=platform
-developmentIndex=platform_dev
-
 if [ ! -z ${KARTOTHEK_ARROW_VERSION} ];
 then
     echo pyarrow==$KARTOTHEK_ARROW_VERSION > kartothek_env_reqs.txt
