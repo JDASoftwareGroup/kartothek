@@ -239,12 +239,16 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
     value_dtype = pd.Series(value).dtype
 
     if require_ordered and pd.api.types.is_categorical(array_like):
-        array_value_type = array_like.cat.categories.dtype
-        if array_like.cat.categories.is_monotonic:
-            array_like = array_like.cat.as_ordered()
+        if isinstance(array_like, pd.Categorical):
+            categorical = array_like
         else:
-            array_like = array_like.cat.reorder_categories(
-                array_like.cat.categories.sort_values(), ordered=True
+            categorical = array_like.cat
+        array_value_type = categorical.categories.dtype
+        if categorical.categories.is_monotonic:
+            array_like = categorical.as_ordered()
+        else:
+            array_like = categorical.reorder_categories(
+                categorical.categories.sort_values(), ordered=True
             )
     else:
         array_value_type = array_like.dtype

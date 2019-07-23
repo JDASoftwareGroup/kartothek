@@ -3,8 +3,9 @@ import datetime
 import numpy as np
 import pandas as pd
 import pytest
+from pandas import testing as pdt
 
-from kartothek.serialization import filter_array_like
+from kartothek.serialization import filter_array_like, filter_df_from_predicates
 
 
 @pytest.fixture(
@@ -88,3 +89,52 @@ def test_raise_on_type(value, filter_value, op):
     array_like = pd.Series([value])
     with pytest.raises(TypeError, match="Unexpected type encountered."):
         filter_array_like(array_like, op, filter_value, strict_date_types=True)
+
+
+def test_filter_df_from_predicates():
+    df = pd.DataFrame(
+        {
+            "A": range(10),
+            "B": ["A", "B"] * 5,
+            "C": pd.Series(["X", "Y"] * 5).astype("category"),
+            "D": [datetime.date(2019, 1, 1), datetime.date(2019, 1, 2)] * 5,
+            "E": [datetime.datetime(2019, 1, 1), datetime.datetime(2019, 1, 2)] * 5,
+        }
+    )
+
+    op = "=="
+    ix = 4
+    for col in df.columns:
+        value = df[col][ix]
+        predicates = [[(col, op, value)]]
+        actual = filter_df_from_predicates(df, predicates)
+        expected = df[df[col] == value]
+        pdt.assert_frame_equal(actual, expected)
+
+    op = "!="
+    for col in df.columns:
+        value = df[col][ix]
+        predicates = [[(col, op, value)]]
+        actual = filter_df_from_predicates(df, predicates)
+        expected = df[df[col] != value]
+        pdt.assert_frame_equal(actual, expected)
+
+    op = ">"
+    for col in df.columns:
+        value = df[col][ix]
+        predicates = [[(col, op, value)]]
+        actual = filter_df_from_predicates(df, predicates)
+        if pd.api.types.is_categorical(df[col]):
+            df[col] = df[col].astype(df[col].cat.as_ordered().dtype)
+        expected = df[df[col] > value]
+        pdt.assert_frame_equal(actual, expected, check_categorical=False)
+
+    op = "<"
+    for col in df.columns:
+        value = df[col][ix]
+        predicates = [[(col, op, value)]]
+        actual = filter_df_from_predicates(df, predicates)
+        if pd.api.types.is_categorical(df[col]):
+            df[col] = df[col].astype(df[col].cat.as_ordered().dtype)
+        expected = df[df[col] < value]
+        pdt.assert_frame_equal(actual, expected, check_categorical=False)
