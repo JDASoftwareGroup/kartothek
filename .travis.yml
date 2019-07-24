@@ -13,7 +13,7 @@ env:
 
 before_install:
   # https://github.com/JDASoftwareGroup/kartothek/issues/94
-  - pip install --upgrade pip!=19.2
+  - pip install --upgrade pip==19.1.*
   - pip install pip-tools
   - ./compile_requirements.sh
   - python setup.py bdist_wheel
