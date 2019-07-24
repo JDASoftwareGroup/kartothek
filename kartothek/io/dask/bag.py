@@ -55,6 +55,7 @@ def read_dataset_as_metapartitions_bag(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    partition_size=None,
 ):
     """
     Retrieve dataset as `dask.bag` of `MetaPartition` objects.
@@ -73,7 +74,7 @@ def read_dataset_as_metapartitions_bag(
         predicates=predicates,
         dispatch_by=dispatch_by,
     )
-    mps = db.from_sequence(mps)
+    mps = db.from_sequence(mps, partition_size=partition_size)
 
     if concat_partitions_on_primary_index or dispatch_by:
         mps = mps.map(
@@ -128,6 +129,7 @@ def read_dataset_as_dataframe_bag(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    partition_size=None,
 ):
     """
     Retrieve data as dataframe from a `dask.bag` of `MetaPartition` objects
@@ -146,6 +148,7 @@ def read_dataset_as_dataframe_bag(
         load_dataset_metadata=False,
         predicates=predicates,
         dispatch_by=dispatch_by,
+        partition_size=partition_size,
     )
     return mps.map(_get_data)
 
