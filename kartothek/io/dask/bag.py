@@ -59,6 +59,13 @@ def read_dataset_as_metapartitions_bag(
 ):
     """
     Retrieve dataset as `dask.bag` of `MetaPartition` objects.
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    A dask.bag object containing the metapartions.
     """
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
@@ -133,6 +140,14 @@ def read_dataset_as_dataframe_bag(
 ):
     """
     Retrieve data as dataframe from a `dask.bag` of `MetaPartition` objects
+
+    Parameters
+    ----------
+
+    Returns
+    -------
+    dask.bag
+        A dask.bag which contains the metapartitions and mapped to a function for retrieving the data.
     """
     mps = read_dataset_as_metapartitions_bag(
         dataset_uuid=dataset_uuid,
