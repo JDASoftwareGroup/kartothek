@@ -2,6 +2,7 @@
 Changelog
 =========
 
+- Make the size of partitions controllable by introducing the `partition_size` parameter in `kartothek.io.dask.bag.read_dataset_as_metapartitions_bag` and `karothek.io.dask.bag.read_dataset_as_dataframes_bag`
 - Predicate pushdown and :func:`~kartothek.serialization.filter_array_like` will now properly handle pandas Categoricals
 - Add :meth:`~karothek.io.dask.bag.read_dataset_as_dataframes_bag`
 - Add :meth:`~karothek.io.dask.bag.read_dataset_as_metapartitions_bag`

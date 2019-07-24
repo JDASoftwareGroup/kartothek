@@ -142,6 +142,10 @@ _PARAMETER_MAPPING = {
     factory: kartothek.core.factory.DatasetFactory
         A DatasetFactory holding the store and UUID to the source dataset.
 """,
+    "partition_size": """
+    partition_size: int
+        Amount of metapartitions to cluster into one dask partition.
+""",
 }
 
 
