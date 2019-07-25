@@ -15,7 +15,7 @@ env:
 matrix:
   include:
   - name: "Integration test for Numpy Pandas"
-    if: branch=numpan_nightly
+    if: branch=nightly_numpy_pandas_pyarrow
     python: "3.7"
     env:
       - NUMPY_PANDAS_INTEGRATION=1
@@ -23,7 +23,7 @@ matrix:
       - ./ci/before_script.sh
       - ./ci/set_numpy_pandas_integration.sh
   - name: "Integration test for PyArrow"
-    if: branch=numpan_nightly
+    if: branch=nightly_numpy_pandas_pyarrow
     python: "3.7"
     env:
       - PYARROW_INTEGRATION=1
@@ -31,7 +31,7 @@ matrix:
       - ./ci/before_script.sh
       - ./ci/set_pyarrow_integration.sh
     script:
-      - pytest ./tests/integration
+      - pytest ./tests/integration/
 
 
 before_install:
@@ -50,7 +50,7 @@ before_script:
   - ./ci/before_script.sh
 
 script:
-  - pytest --ignore=./tests/integration --cov kartothek --cov-report xml --cov-report html
+  - pytest --ignore=./tests/integration/ --cov kartothek --cov-report xml --cov-report html
 
 after_success:
   - pip install codecov
