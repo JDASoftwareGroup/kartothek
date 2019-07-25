@@ -22,16 +22,17 @@ matrix:
     before_script:
       - ./ci/before_script.sh
       - ./ci/set_numpy_pandas_integration.sh
-  - name: "Integration test for PyArrow"
-    if: branch=nightly_numpy_pandas_pyarrow
-    python: "3.7"
-    env:
-      - PYARROW_INTEGRATION=1
-    before_script:
-      - ./ci/before_script.sh
-      - ./ci/set_pyarrow_integration.sh
-    script:
-      - pytest ./tests/integration/
+  allow_failures:
+    - name: "Integration test for PyArrow"
+      if: branch=nightly_numpy_pandas_pyarrow
+      python: "3.7"
+      env:
+        - PYARROW_INTEGRATION=1
+      before_script:
+        - ./ci/before_script.sh
+        - ./ci/set_pyarrow_integration.sh
+      script:
+        - pytest ./tests/integration/
 
 
 before_install:
