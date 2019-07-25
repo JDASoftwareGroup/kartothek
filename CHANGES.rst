@@ -5,6 +5,7 @@ Changelog
 - Fix gh:66 where predicate pushdown may evalute false results if evaluated
   using improper types. The behavior now is to raise in these situations.
 - Predicate pushdown and :func:`~kartothek.serialization.filter_array_like` will now properly handle pandas Categoricals.
+- Make the size of partitions controllable by introducing the `partition_size` parameter in `kartothek.io.dask.bag.read_dataset_as_metapartitions_bag` and `karothek.io.dask.bag.read_dataset_as_dataframes_bag`
 - Predicate pushdown and :func:`~kartothek.serialization.filter_array_like` will now properly handle pandas Categoricals
 - Add :meth:`~karothek.io.dask.bag.read_dataset_as_dataframes_bag`
 - Add :meth:`~karothek.io.dask.bag.read_dataset_as_metapartitions_bag`

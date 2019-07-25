@@ -12,7 +12,8 @@ env:
   - KARTOTHEK_ARROW_VERSION=0.13.0
 
 before_install:
-  - pip install --upgrade pip
+  # https://github.com/JDASoftwareGroup/kartothek/issues/94
+  - pip install --upgrade pip==19.1.*
   - pip install pip-tools
   - ./compile_requirements.sh
   - python setup.py bdist_wheel
