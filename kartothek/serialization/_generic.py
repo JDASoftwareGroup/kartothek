@@ -4,8 +4,6 @@
 This module contains functionality for persisting/serialising DataFrames.
 """
 
-
-import datetime
 from typing import Dict
 
 import numpy as np
@@ -187,7 +185,7 @@ def filter_df_from_predicates(df, predicates, strict_date_types=False):
     -------
     pd.DataFrame
     """
-    indexer = np.broadcast_to(False, len(df))
+    indexer = np.zeros(len(df), dtype=bool)
     for conjunction in predicates:
         inner_indexer = np.ones(len(df), dtype=bool)
         for column, op, value in conjunction:
@@ -201,6 +199,100 @@ def filter_df_from_predicates(df, predicates, strict_date_types=False):
             )
         indexer = inner_indexer | indexer
     return df[indexer]
+
+
+def _handle_categorical_data(array_like, require_ordered):
+    if require_ordered and pd.api.types.is_categorical(array_like):
+        if isinstance(array_like, pd.Categorical):
+            categorical = array_like
+        else:
+            categorical = array_like.cat
+        array_value_type = categorical.categories.dtype
+        if categorical.categories.is_monotonic:
+            array_like = categorical.as_ordered()
+        else:
+            array_like = categorical.reorder_categories(
+                categorical.categories.sort_values(), ordered=True
+            )
+    else:
+        array_value_type = array_like.dtype
+    return array_like, array_value_type
+
+
+def _handle_null_arrays(array_like, value_dtype):
+    # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
+    # Determine the type using the `kind` interface since this is common for a numpy array, pandas series and pandas extension arrays
+    if array_like.dtype.kind == "f" and np.isnan(array_like).all():
+        if array_like.dtype.kind != value_dtype.kind:
+            array_like = array_like.astype(value_dtype)
+    return array_like, array_like.dtype
+
+
+def _handle_timelike_values(array_value_type, value, value_dtype, strict_date_types):
+    if is_list_like(value):
+        value = [pd.Timestamp(val).to_datetime64() for val in value]
+    else:
+        value = pd.Timestamp(value).to_datetime64()
+    value_dtype = pd.Series(value).dtype
+    return value, value_dtype
+
+
+def _ensure_type_stability(array_like, value, strict_date_types, require_ordered):
+    """
+    Ensure that the provided value and the provided array will have compatible
+    types, such that comparisons are unambiguous.
+
+    The type check is based on the numpy type system and accesses the arrays
+    `kind` attribute and asserts equality. The provided value will be
+    interpreted as a scalar in this case. For scalars which do not have a proper
+    python representation, we will relax the strictness as long as there is a
+    valid and unambiguous interpretation of a comparison operation. In
+    particular we consider the following combinations valid:
+
+        * unsigned integer (u) <> integer (i)
+        * zero-terminated bytes (S) <> Python Object (O)
+        * Unicode string (U) <> Python Object (O)
+
+    Parameters
+    ----------
+    strict_date_types: bool
+        If False, assume that datetime.date and datetime.datetime are
+        compatible types. In this case, the value is cast appropriately
+    require_ordered: bool
+        Indicate if the operator to be evaluated will require a notion of
+        ordering. In the case of pd.Categorical we will then assume a
+        lexicographical ordering and cast the pd.CategoricalDtype accordingly
+    """
+
+    value_dtype = pd.Series(value).dtype
+    array_like, array_value_type = _handle_categorical_data(array_like, require_ordered)
+    array_like, array_value_type = _handle_null_arrays(array_like, value_dtype)
+
+    type_comp = {value_dtype.kind, array_value_type.kind}
+
+    compatible_types = [
+        # UINT and INT
+        {"u", "i"},
+        # various string kinds
+        {"S", "O"},
+        {"U", "O"},
+    ]
+
+    if not strict_date_types:
+        # objects (datetime.date) and datetime64
+        compatible_types.append({"O", "M"})
+
+    type_comp = {value_dtype.kind, array_value_type.kind}
+
+    if len(type_comp) > 1 and type_comp not in compatible_types:
+        raise TypeError(
+            f"Unexpected type encountered. Expected {array_value_type.kind} but got {value_dtype.kind}."
+        )
+    if "M" in type_comp:
+        value, value_dtype = _handle_timelike_values(
+            array_value_type, value, value_dtype, strict_date_types
+        )
+    return array_like, value
 
 
 def filter_array_like(
@@ -230,29 +322,18 @@ def filter_array_like(
         mask = np.ones(len(array_like), dtype=bool)
 
     if out is None:
-        out = np.empty(len(array_like), dtype=bool)
+        out = np.zeros(len(array_like), dtype=bool)
 
-    # datetime is a subclass of date which is why we need this double check
-    date_type_to_cast = datetime.datetime if strict_date_types else datetime.date
-    if isinstance(value, date_type_to_cast):
-        value = pd.Timestamp(value).to_datetime64()
-    elif is_list_like(value) and len(value) and isinstance(value[0], date_type_to_cast):
-        value = [pd.Timestamp(val).to_datetime64() for val in value]
+    # In the case of an empty list, don't bother with evaluating types, etc.
+    if is_list_like(value) and len(value) == 0:
+        false_arr = np.zeros(len(array_like), dtype=bool)
+        np.logical_and(false_arr, mask, out=out)
+        return out
 
-    if pd.api.types.is_categorical(array_like) and (">" in op or "<" in op):
-        if array_like.cat.categories.is_monotonic:
-            array_like = array_like.cat.as_ordered()
-        else:
-            array_like = array_like.cat.reorder_categories(
-                array_like.cat.categories.sort_values(), ordered=True
-            )
-
-    # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
-    # Determine the type using the `kind` interface since this is common for a numpy array, pandas series and pandas extension arrays
-    if array_like.dtype.kind == "f" and np.isnan(array_like).all():
-        value_dtype = np.array([value]).dtype
-        if array_like.dtype.kind != value_dtype.kind:
-            array_like = array_like.astype(value_dtype)
+    require_ordered = "<" in op or ">" in op
+    array_like, value = _ensure_type_stability(
+        array_like, value, strict_date_types, require_ordered
+    )
 
     with np.errstate(invalid="ignore"):
         if op == "==":
