@@ -14,8 +14,7 @@ from pyarrow.parquet import ParquetFile
 from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 from kartothek.serialization._util import _check_contains_null
-from kartothek.serialization.testing import (BINARY_COLUMNS,
-                                             get_dataframe_not_nested)
+from kartothek.serialization.testing import BINARY_COLUMNS, get_dataframe_not_nested
 
 
 @pytest.fixture(params=BINARY_COLUMNS)

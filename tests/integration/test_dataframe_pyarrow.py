@@ -11,8 +11,12 @@ import pandas.util.testing as pdtest
 import pyarrow as pa
 import pytest
 
-from kartothek.serialization import (CsvSerializer, DataFrameSerializer,
-                                     ParquetSerializer, default_serializer)
+from kartothek.serialization import (
+    CsvSerializer,
+    DataFrameSerializer,
+    ParquetSerializer,
+    default_serializer,
+)
 from kartothek.serialization._util import ensure_unicode_string_type
 
 TYPE_STABLE_SERIALISERS = [ParquetSerializer()]

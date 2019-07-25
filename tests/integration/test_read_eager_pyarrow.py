@@ -5,8 +5,11 @@ import pandas as pd
 import pandas.util.testing as pdt
 import pytest
 
-from kartothek.io.eager import (read_dataset_as_dataframes,
-                                read_dataset_as_metapartitions, read_table)
+from kartothek.io.eager import (
+    read_dataset_as_dataframes,
+    read_dataset_as_metapartitions,
+    read_table,
+)
 from kartothek.io.testing.read import *  # noqa
 
 
