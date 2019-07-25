@@ -11,8 +11,30 @@ env:
   - KARTOTHEK_ARROW_VERSION=0.12.1
   - KARTOTHEK_ARROW_VERSION=0.13.0
 
+
+matrix:
+  include:
+  - name: "Integration test for Numpy Pandas"
+    if: branch=numpan_nightly
+    python: "3.7"
+    env:
+      - NUMPY_PANDAS_INTEGRATION=1
+    before_script:
+      - ./ci/before_script.sh
+      - ./ci/set_numpy_pandas_integration.sh
+  - name: "Integration test for PyArrow"
+    if: branch=numpan_nightly
+    python: "3.7"
+    env:
+      - PYARROW_INTEGRATION=1
+    before_script:
+      - ./ci/before_script.sh
+      - ./ci/set_pyarrow_integration.sh
+    script:
+      - pytest ./tests/integration
+
+
 before_install:
-  # https://github.com/JDASoftwareGroup/kartothek/issues/94
   - pip install --upgrade pip==19.1.*
   - pip install pip-tools
   - ./compile_requirements.sh
@@ -22,18 +44,25 @@ install:
   - pip install -r test-requirements-pinned.txt
   - pip install --no-deps dist/*
 
+
 # If docs break or formatting, linting is off, I'd like to know immediately
 before_script:
-  - pip freeze
-  - pip install pre-commit && pre-commit run -a
-  - python setup.py docs
+  - ./ci/before_script.sh
 
 script:
-  - pytest --cov kartothek --cov-report xml --cov-report html
+  - pytest --ignore=./tests/integration --cov kartothek --cov-report xml --cov-report html
 
 after_success:
   - pip install codecov
   - codecov
+
+notifications:
+  email:
+    recipients:
+      - ganesh.m@jda.com
+      - usha.nemani@jda.com
+    on_success: never # default: change
+    on_failure: always # default: always
 
 deploy:
   provider: pypi
