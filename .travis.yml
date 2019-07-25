@@ -13,16 +13,16 @@ env:
 
 
 matrix:
-  include:
-  - name: "Integration test for Numpy Pandas"
-    if: branch=nightly_numpy_pandas_pyarrow
-    python: "3.7"
-    env:
-      - NUMPY_PANDAS_INTEGRATION=1
-    before_script:
-      - ./ci/before_script.sh
-      - ./ci/set_numpy_pandas_integration.sh
   allow_failures:
+  include:
+    - name: "Integration test for Numpy Pandas"
+      if: branch=nightly_numpy_pandas_pyarrow
+      python: "3.7"
+      env:
+        - NUMPY_PANDAS_INTEGRATION=1
+      before_script:
+        - ./ci/before_script.sh
+        - ./ci/set_numpy_pandas_integration.sh
     - name: "Integration test for PyArrow"
       if: branch=nightly_numpy_pandas_pyarrow
       python: "3.7"
