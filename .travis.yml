@@ -14,8 +14,8 @@ env:
 
 matrix:
   allow_failures:
-    - env: NUMPY_PANDAS_INTEGRATION=1
-    - env: PYARROW_INTEGRATION=1
+    - name: "Integration test for Numpy Pandas"
+    - name: "Integration test for PyArrow"
   include:
     - name: "Integration test for Numpy Pandas"
       if: branch=nightly_numpy_pandas_pyarrow
