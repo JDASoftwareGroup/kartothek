@@ -598,7 +598,7 @@ def test_empty_predicate_pushdown_empty_col_projection(
         tables=table_name,
         store=store_session_factory,
         columns={table_name: []},
-        predicates=[[("P", "==", 12345678)]],  # this product doesn't exist
+        predicates=[[("P", "==", 12_345_678)]],  # this product doesn't exist
     )
 
     if backend_identifier.startswith("dask"):

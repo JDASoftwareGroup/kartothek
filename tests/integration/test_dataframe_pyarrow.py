@@ -11,12 +11,8 @@ import pandas.util.testing as pdtest
 import pyarrow as pa
 import pytest
 
-from kartothek.serialization import (
-    CsvSerializer,
-    DataFrameSerializer,
-    ParquetSerializer,
-    default_serializer,
-)
+from kartothek.serialization import (CsvSerializer, DataFrameSerializer,
+                                     ParquetSerializer, default_serializer)
 from kartothek.serialization._util import ensure_unicode_string_type
 
 TYPE_STABLE_SERIALISERS = [ParquetSerializer()]
@@ -186,7 +182,7 @@ def assert_frame_almost_equal(df_left, df_right):
     [
         (pd.DataFrame({"string_ü": ["abc", "affe", "banane", "buchstabe_ü"]}), {}),
         (pd.DataFrame({"integer_ü": np.arange(4)}), {}),
-        (pd.DataFrame({"float_ü": [-3.141591, 0.0, 3.141593, 3.141595]}), {}),
+        (pd.DataFrame({"float_ü": [-3.141_591, 0.0, 3.141_593, 3.141_595]}), {}),
         (
             pd.DataFrame(
                 {
@@ -387,10 +383,10 @@ def test_predicate_pushdown(
 @predicate_serialisers
 @pytest.mark.parametrize("predicate_pushdown_to_io", [True, False])
 def test_predicate_float_equal_big(predicate_pushdown_to_io, store, serialiser):
-    df = pd.DataFrame({"float": [3141590.0, 3141592.0, 3141594.0]})
+    df = pd.DataFrame({"float": [3_141_590.0, 3_141_592.0, 3_141_594.0]})
     key = serialiser.store(store, "prefix", df)
 
-    predicates = [[("float", "==", 3141592.0)]]
+    predicates = [[("float", "==", 3_141_592.0)]]
     result_df = serialiser.restore_dataframe(
         store,
         key,
@@ -407,11 +403,11 @@ def test_predicate_float_equal_big(predicate_pushdown_to_io, store, serialiser):
 @predicate_serialisers
 @pytest.mark.parametrize("predicate_pushdown_to_io", [True, False])
 def test_predicate_float_equal_small(predicate_pushdown_to_io, store, serialiser):
-    df = pd.DataFrame({"float": [0.3141590, 0.3141592, 0.3141594]})
+    df = pd.DataFrame({"float": [0.314_159_0, 0.314_159_2, 0.314_159_4]})
 
     key = serialiser.store(store, "prefix", df)
 
-    predicates = [[("float", "==", 0.3141592)]]
+    predicates = [[("float", "==", 0.314_159_2)]]
     result_df = serialiser.restore_dataframe(
         store,
         key,

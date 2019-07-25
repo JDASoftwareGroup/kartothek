@@ -19,7 +19,6 @@ def bound_update_dataset():
     return _update_dataset
 
 
-
 @pytest.fixture()
 def backend_identifier():
     return "dask.dataframe"

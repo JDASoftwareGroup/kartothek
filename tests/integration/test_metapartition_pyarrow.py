@@ -13,12 +13,10 @@ import pytest
 from kartothek.core.common_metadata import make_meta, store_schema_metadata
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
-from kartothek.io_components.metapartition import (
-    MetaPartition,
-    _unique_label,
-    parse_input_to_metapartition,
-    partition_labels_from_mps,
-)
+from kartothek.io_components.metapartition import (MetaPartition,
+                                                   _unique_label,
+                                                   parse_input_to_metapartition,
+                                                   partition_labels_from_mps)
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 
 

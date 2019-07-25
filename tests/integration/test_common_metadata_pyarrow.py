@@ -14,17 +14,13 @@ import simplejson
 from dask.dataframe.utils import make_meta as dask_make_meta
 
 from kartothek.core._compat import ARROW_LARGER_EQ_0130
-from kartothek.core.common_metadata import (
-    SchemaWrapper,
-    _diff_schemas,
-    _get_common_metadata_key,
-    empty_dataframe_from_schema,
-    make_meta,
-    read_schema_metadata,
-    store_schema_metadata,
-    validate_compatible,
-    validate_shared_columns,
-)
+from kartothek.core.common_metadata import (SchemaWrapper, _diff_schemas,
+                                            _get_common_metadata_key,
+                                            empty_dataframe_from_schema,
+                                            make_meta, read_schema_metadata,
+                                            store_schema_metadata,
+                                            validate_compatible,
+                                            validate_shared_columns)
 from kartothek.serialization import ParquetSerializer
 
 
