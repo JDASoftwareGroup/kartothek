@@ -17,7 +17,6 @@ from kartothek.serialization import (
     ParquetSerializer,
     default_serializer,
 )
-from kartothek.serialization._util import ensure_unicode_string_type
 
 TYPE_STABLE_SERIALISERS = [ParquetSerializer()]
 
@@ -40,105 +39,12 @@ predicate_serialisers = pytest.mark.parametrize(
 )
 
 
-def test_load_df_from_store_unsupported_format(store):
-    with pytest.raises(ValueError):
-        DataFrameSerializer.restore_dataframe(store, "test.unknown")
-
-
-def test_store_df_to_store(store):
-    df = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0], "c": ["∆", "€"]})
-    dataframe_format = default_serializer()
-    assert isinstance(dataframe_format, ParquetSerializer)
-    key = dataframe_format.store(store, "prefix", df)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-
 @pytest.mark.parametrize("serialiser", SERLIALISERS)
 def test_store_table_to_store(serialiser, store):
     df = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0], "c": ["∆", "€"]})
     table = pa.Table.from_pandas(df)
     key = serialiser.store(store, "prefix", table)
     pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-
-@pytest.mark.parametrize("serialiser", SERLIALISERS)
-def test_dataframe_roundtrip(serialiser, store):
-    if serialiser in TYPE_STABLE_SERIALISERS:
-        df = pd.DataFrame(
-            {"a": [1, 2], "b": [3.0, 4.0], "c": ["∆", "€"], b"d": ["#", ";"]}
-        )
-        key = serialiser.store(store, "prefix", df)
-        df.columns = [ensure_unicode_string_type(col) for col in df.columns]
-    else:
-        df = pd.DataFrame(
-            {"a": [1, 2], "b": [3.0, 4.0], "c": ["∆", "€"], "d": ["#", ";"]}
-        )
-        key = serialiser.store(store, "prefix", df)
-
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-    # Test partial restore
-    pdtest.assert_frame_equal(
-        DataFrameSerializer.restore_dataframe(store, key, columns=["a", "c"]),
-        df[["a", "c"]],
-    )
-
-    # Test that all serialisers can ingest predicate_pushdown_to_io
-    pdtest.assert_frame_equal(
-        DataFrameSerializer.restore_dataframe(
-            store, key, columns=["a", "c"], predicate_pushdown_to_io=False
-        ),
-        df[["a", "c"]],
-    )
-
-    # Test that all serialisers can deal with categories
-    expected = df[["c", "d"]].copy()
-    expected["c"] = expected["c"].astype("category")
-    # Check that the dtypes match but don't care about the order of the categoricals.
-    pdtest.assert_frame_equal(
-        DataFrameSerializer.restore_dataframe(
-            store, key, columns=["c", "d"], categories=["c"]
-        ),
-        expected,
-        check_categorical=False,
-    )
-
-    # Test restore w/ empty col list
-    pdtest.assert_frame_equal(
-        DataFrameSerializer.restore_dataframe(store, key, columns=[]), df[[]]
-    )
-
-
-@pytest.mark.parametrize("serialiser", SERLIALISERS)
-def test_missing_column(serialiser, store):
-    df = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0], "c": ["∆", "€"], "d": ["#", ";"]})
-    key = serialiser.store(store, "prefix", df)
-
-    with pytest.raises(ValueError):
-        DataFrameSerializer.restore_dataframe(store, key, columns=["a", "x"])
-
-
-@pytest.mark.parametrize("serialiser", SERLIALISERS)
-def test_dataframe_roundtrip_empty(serialiser, store):
-    df = pd.DataFrame({})
-    key = serialiser.store(store, "prefix", df)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-    # Test partial restore
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-
-@pytest.mark.parametrize("serialiser", SERLIALISERS)
-def test_dataframe_roundtrip_no_rows(serialiser, store):
-    df = pd.DataFrame({"a": [], "b": [], "c": []}).astype(object)
-    key = serialiser.store(store, "prefix", df)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-    # Test partial restore
-    pdtest.assert_frame_equal(
-        DataFrameSerializer.restore_dataframe(store, key, columns=["a", "c"]),
-        df[["a", "c"]],
-    )
 
 
 def test_filter_query_predicate_exclusion(store):
@@ -425,63 +331,6 @@ def test_predicate_float_equal_small(predicate_pushdown_to_io, store, serialiser
     )
 
 
-@type_stable_serialisers
-@pytest.mark.parametrize("predicate_pushdown_to_io", [True, False])
-def test_predicate_eval_string_types(serialiser, store, predicate_pushdown_to_io):
-    df = pd.DataFrame({b"a": [1, 2], "b": [3.0, 4.0]})
-    key = serialiser.store(store, "prefix", df)
-    df.columns = [ensure_unicode_string_type(col) for col in df.columns]
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-    for col in ["a", b"a", "a"]:
-        predicates = [[(col, "==", 1)]]
-        result_df = serialiser.restore_dataframe(
-            store,
-            key,
-            predicate_pushdown_to_io=predicate_pushdown_to_io,
-            predicates=predicates,
-        )
-
-        expected_df = df.iloc[[0], :].copy()
-
-        pdt.assert_frame_equal(
-            result_df.reset_index(drop=True), expected_df.reset_index(drop=True)
-        )
-
-    for col in ["b", b"b", "b"]:
-        predicates = [[(col, "==", 3.0)]]
-        result_df = serialiser.restore_dataframe(
-            store,
-            key,
-            predicate_pushdown_to_io=predicate_pushdown_to_io,
-            predicates=predicates,
-        )
-
-        expected_df = df.iloc[[0], :].copy()
-
-        pdt.assert_frame_equal(
-            result_df.reset_index(drop=True), expected_df.reset_index(drop=True)
-        )
-
-    for preds in (
-        [[("a", "==", 1), ("b", "==", 3.0)]],
-        [[("a", "==", 1), (b"b", "==", 3.0)]],
-        [[(b"a", "==", 1), ("b", "==", 3.0)]],
-    ):
-        result_df = serialiser.restore_dataframe(
-            store,
-            key,
-            predicate_pushdown_to_io=predicate_pushdown_to_io,
-            predicates=preds,
-        )
-
-        expected_df = df.iloc[[0], :].copy()
-
-        pdt.assert_frame_equal(
-            result_df.reset_index(drop=True), expected_df.reset_index(drop=True)
-        )
-
-
 @pytest.mark.parametrize(
     "df,value",
     [
@@ -514,55 +363,3 @@ def test_predicate_pushdown_null_col(
         expected.reset_index(drop=True),
         check_dtype=serialiser.type_stable,
     )
-
-
-@pytest.mark.parametrize(
-    "df,value",
-    [
-        (pd.DataFrame({"nan": pd.Series([np.nan, -1.0, 1.0], dtype=float)}), 0.0),
-        (pd.DataFrame({"inf": pd.Series([np.inf, -1.0, 1.0], dtype=float)}), 0.0),
-        (pd.DataFrame({"ninf": pd.Series([-np.inf, -1.0, 1.0], dtype=float)}), 0.0),
-        (
-            pd.DataFrame(
-                {"inf2": pd.Series([-np.inf, np.inf, -1.0, 1.0], dtype=float)}
-            ),
-            0.0,
-        ),
-        (
-            pd.DataFrame(
-                {"inf2": pd.Series([-np.inf, np.inf, -1.0, 1.0], dtype=float)}
-            ),
-            0.0,
-        ),
-        (
-            pd.DataFrame(
-                {"inf2": pd.Series([-np.inf, np.inf, -1.0, 1.0], dtype=float)}
-            ),
-            np.inf,
-        ),
-        (
-            pd.DataFrame(
-                {"inf2": pd.Series([-np.inf, np.inf, -1.0, 1.0], dtype=float)}
-            ),
-            -np.inf,
-        ),
-    ],
-)
-@predicate_serialisers
-@pytest.mark.parametrize("predicate_pushdown_to_io", [True, False])
-def test_predicate_pushdown_weird_floats_col(
-    store, df, value, predicate_pushdown_to_io, serialiser
-):
-    key = serialiser.store(store, "prefix", df)
-
-    col = df.columns[0]
-
-    expected = df.loc[df[col] >= value].copy()
-    predicates = [[(col, ">=", value)]]
-    result = serialiser.restore_dataframe(
-        store,
-        key,
-        predicate_pushdown_to_io=predicate_pushdown_to_io,
-        predicates=predicates,
-    )
-    assert_frame_almost_equal(result, expected)

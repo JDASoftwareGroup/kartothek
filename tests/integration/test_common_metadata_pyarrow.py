@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import pickle
 from itertools import permutations
 
 import numpy as np
@@ -16,14 +15,11 @@ from dask.dataframe.utils import make_meta as dask_make_meta
 from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.core.common_metadata import (
     SchemaWrapper,
-    _diff_schemas,
     _get_common_metadata_key,
-    empty_dataframe_from_schema,
     make_meta,
     read_schema_metadata,
     store_schema_metadata,
     validate_compatible,
-    validate_shared_columns,
 )
 from kartothek.serialization import ParquetSerializer
 
@@ -76,24 +72,6 @@ def test_store_schema_metadata(store, df_all_types):
     assert actual_schema.remove_metadata() == expected_schema
 
 
-def test_schema_roundtrip(df_all_types, store):
-    expected_meta = make_meta(df_all_types, origin="df_all_types")
-    store_schema_metadata(
-        expected_meta, dataset_uuid="dataset_uuid", store=store, table="table"
-    )
-    result = read_schema_metadata(
-        dataset_uuid="dataset_uuid", store=store, table="table"
-    )
-    assert result == expected_meta
-
-
-def test_pickle(df_all_types):
-    obj1 = make_meta(df_all_types, origin="df_all_types")
-    s = pickle.dumps(obj1)
-    obj2 = pickle.loads(s)
-    assert obj1 == obj2
-
-
 def test_wrapper(df_all_types):
     obj = make_meta(df_all_types, origin="df_all_types")
     assert isinstance(obj, SchemaWrapper)
@@ -110,11 +88,6 @@ def test_wrapper(df_all_types):
     assert isinstance(obj[0], pa.Field)
 
 
-def test_unicode_col():
-    df = pd.DataFrame({"fö": [1]})
-    make_meta(df, origin="df")
-
-
 def test_strip_categories():
     input_df = pd.DataFrame(
         {"categories": pd.Series(["a", "b", "c", "a"], dtype="category")}
@@ -126,28 +99,6 @@ def test_strip_categories():
     # Categories also include their categorical values as type information,
     # we're not interested in keeping them the same in all partitions.
     assert not pa.types.is_dictionary(meta[0].type)
-
-
-def test_reorder(df_all_types):
-    df2 = df_all_types.copy()
-    df2 = df2.reindex(reversed(df_all_types.columns), axis=1)
-    expected = make_meta(df_all_types, origin="df_all_types")
-    actual = make_meta(df2, origin="df2")
-    assert expected == actual
-
-
-def test_reorder_partition_keys(df_all_types):
-    partition_keys = ["int8", "uint8", "array_unicode"]
-    df2 = df_all_types.copy()
-    df2 = df2.reindex(reversed(df_all_types.columns), axis=1)
-
-    expected = make_meta(
-        df_all_types, origin="df_all_types", partition_keys=partition_keys
-    )
-    assert expected.names[: len(partition_keys)] == partition_keys
-
-    actual = make_meta(df2, origin="df2", partition_keys=partition_keys)
-    assert expected == actual
 
 
 def test_compat_old_rw_path(df_all_types, store):
@@ -192,16 +143,6 @@ def test_compat_old_rw_path(df_all_types, store):
     pdt.assert_frame_equal(actual_df, old_meta)
 
 
-def test_validate_compatible_same(df_all_types):
-    schema1 = make_meta(df_all_types, origin="1")
-    schema2 = make_meta(df_all_types, origin="2")
-    schema3 = make_meta(df_all_types, origin="3")
-    validate_compatible([])
-    validate_compatible([schema1])
-    validate_compatible([schema1, schema2])
-    validate_compatible([schema1, schema2, schema3])
-
-
 @pytest.mark.parametrize("remove_metadata", [True, False])
 @pytest.mark.parametrize("ignore_pandas", [True, False])
 def test_validate_compatible_other_pandas(df_all_types, remove_metadata, ignore_pandas):
@@ -228,119 +169,6 @@ def test_validate_compatible_other_pandas(df_all_types, remove_metadata, ignore_
             )
         schema1 = schema1.remove_metadata()
     validate_compatible([schema1, schema2, schema3], ignore_pandas=ignore_pandas)
-
-
-def test_validate_compatible_different(df_all_types):
-    df2 = df_all_types.loc[:, df_all_types.columns[:2]].copy()
-    schema1 = make_meta(df_all_types, origin="1")
-    schema2 = make_meta(df2, origin="2")
-    with pytest.raises(ValueError) as exc:
-        validate_compatible([schema1, schema2])
-    assert str(exc.value).startswith("Schema violation")
-
-
-def test_validate_shared_columns_same(df_all_types):
-    schema1 = make_meta(df_all_types, origin="1")
-    schema2 = make_meta(df_all_types, origin="2")
-    schema3 = make_meta(df_all_types, origin="3").remove_metadata()
-    validate_shared_columns([])
-    validate_shared_columns([schema1])
-    validate_shared_columns([schema1, schema2])
-    with pytest.raises(ValueError):
-        validate_shared_columns([schema1, schema2, schema3])
-    validate_shared_columns([schema1, schema2, schema3], ignore_pandas=True)
-    validate_shared_columns(
-        [schema1.remove_metadata(), schema2.remove_metadata(), schema3]
-    )
-
-
-def test_validate_shared_columns_no_share(df_all_types):
-    schema1 = make_meta(df_all_types.loc[:, df_all_types.columns[0:2]], origin="1")
-    schema2 = make_meta(df_all_types.loc[:, df_all_types.columns[2:4]], origin="2")
-    schema3 = make_meta(df_all_types.loc[:, df_all_types.columns[4:6]], origin="3")
-    validate_shared_columns([])
-    validate_shared_columns([schema1])
-    validate_shared_columns([schema1, schema2])
-    validate_shared_columns([schema1, schema2, schema3])
-
-
-@pytest.mark.parametrize("remove_metadata", [True, False])
-def test_validate_shared_columns_fail(df_all_types, remove_metadata):
-    df2 = df_all_types.copy()
-    df2["uint16"] = df2["uint16"].astype(float)
-    schema1 = make_meta(df_all_types, origin="1")
-    schema2 = make_meta(df2, origin="2")
-    if remove_metadata:
-        schema1 = schema1.remove_metadata()
-        schema2 = schema2.remove_metadata()
-    with pytest.raises(ValueError) as exc:
-        validate_shared_columns([schema1, schema2])
-    assert str(exc.value).startswith('Found incompatible entries for column "uint16"')
-
-
-def test_validate_empty_dataframe(
-    df_all_types, df_all_types_schema, df_all_types_empty_schema
-):
-    # Do not raise in case one of the schemas is of an empty dataframe
-    # Test all permutations to avoid that the implementation is sensitive on whether
-    # the first schema is empty/non-empty
-    for schemas in permutations([df_all_types_schema, df_all_types_empty_schema]):
-        validate_compatible(schemas)
-    validate_compatible([df_all_types_empty_schema, df_all_types_empty_schema])
-
-
-@pytest.mark.parametrize(
-    "corrupt_column,corrupt_value,corrupt_dtype",
-    [
-        # reference column is a native type
-        ("int8", -1.1, np.float64),
-        ("int8", "a", np.object),
-        # reference column is an object
-        ("unicode", -1.1, np.float64),
-        ("unicode", 1, np.int64),
-        pytest.param(
-            "unicode",
-            None,
-            None,
-            marks=pytest.mark.xfail(
-                strict=True,
-                reason="This results in a `null` column which cannot be compared and must not fail",
-            ),
-        ),
-        # reference column is a native typed array
-        ("array_int64", np.array([1.0], dtype=np.float64), np.object),
-        ("array_int64", np.array(["a"], dtype=np.object), np.object),
-        # reference column is an object types arrayarray
-        ("array_unicode", np.array([1], dtype=np.int8), np.object),
-        ("array_unicode", np.array([1.0], dtype=np.float64), np.object),
-    ],
-)
-def test_validate_empty_dataframe_corrupt_raises(
-    df_all_types,
-    df_all_types_schema,
-    df_all_types_empty_schema,
-    corrupt_column,
-    corrupt_value,
-    corrupt_dtype,
-):
-    # In case there is something wrong with the schema, raise!
-
-    # First, an integer column carries a float or an object.
-    df_corrupt = df_all_types.copy()
-    # for value, dtype in [(-1.1, np.float64), ('a', np.object)]:
-    df_corrupt[corrupt_column] = pd.Series([corrupt_value], dtype=corrupt_dtype)
-    df_corrupt_meta = make_meta(df_corrupt, origin="1")
-    # Raise when comparing the proper to the corrupt schema
-    for schemas in permutations([df_all_types_schema, df_corrupt_meta]):
-        with pytest.raises(ValueError):
-            validate_compatible(schemas)
-    # Also raise if there is a schema originating from an empty DF to make
-    # sure the emptiness doesn't cancel the validation
-    for schemas in permutations(
-        [df_all_types_schema, df_corrupt_meta, df_all_types_empty_schema]
-    ):
-        with pytest.raises(ValueError):
-            validate_compatible(schemas)
 
 
 def test_validate_different_cats_same_type():
@@ -370,119 +198,6 @@ def test_validate_different_cats_different_type():
     meta_2 = make_meta(input_df_2, origin="2")
     with pytest.raises(ValueError):
         validate_compatible([meta, meta_2])
-
-
-@pytest.mark.parametrize("index", [pd.Int64Index([0]), pd.RangeIndex(start=0, stop=1)])
-def test_schema_dataframe_rountrip(index, df_all_types):
-    df = pd.DataFrame(df_all_types, index=index)
-
-    schema = make_meta(df, origin="1")
-    actual_df = empty_dataframe_from_schema(schema, date_as_object=True)
-    validate_compatible([schema, make_meta(actual_df, origin="2")])
-
-
-def test_empty_dataframe_from_schema(df_all_types):
-    schema = make_meta(df_all_types, origin="1")
-    actual_df = empty_dataframe_from_schema(schema)
-
-    expected_df = df_all_types.loc[[]]
-    expected_df["date"] = pd.Series([], dtype="datetime64[ns]")
-    for c in expected_df.columns:
-        if c.startswith("float"):
-            expected_df[c] = pd.Series([], dtype=float)
-        if c.startswith("int"):
-            expected_df[c] = pd.Series([], dtype=int)
-        if c.startswith("uint"):
-            expected_df[c] = pd.Series([], dtype=np.uint64)
-
-    pdt.assert_frame_equal(actual_df, expected_df)
-
-
-def test_empty_dataframe_from_schema_columns(df_all_types):
-    schema = make_meta(df_all_types, origin="1")
-    actual_df = empty_dataframe_from_schema(schema, ["uint64", "int64"])
-
-    expected_df = df_all_types.loc[[], ["uint64", "int64"]]
-    pdt.assert_frame_equal(actual_df, expected_df)
-
-
-def test_diff_schemas(df_all_types):
-    # Prepare a schema with one missing, one additional and one changed column
-    df2 = df_all_types.drop(columns=df_all_types.columns[0])
-    df2["new_col"] = pd.Series(df_all_types["bool"])
-    df2["int16"] = df2["int16"].astype(float)
-    df2 = df2.reset_index(drop=True)
-
-    schema2 = make_meta(df2, origin="2")
-    schema1 = make_meta(df_all_types, origin="1")
-    diff = _diff_schemas(schema1, schema2)
-    expected_arrow_diff = """Arrow schema:
-@@ -1,5 +1,3 @@
-
--array_float32: list<item: double>
--  child 0, item: double
- array_float64: list<item: double>
-   child 0, item: double
- array_int16: list<item: int64>
-@@ -26,10 +24,11 @@
-
- datetime64: timestamp[ns]
- float32: double
- float64: double
--int16: int64
-+int16: double
- int32: int64
- int64: int64
- int8: int64
-+new_col: bool
- null: null
- uint16: uint64
- uint32: uint64
-
-"""
-    expected_pandas_diff = """Pandas_metadata:
-@@ -3,12 +3,7 @@
-
-                      'name': None,
-                      'numpy_type': 'object',
-                      'pandas_type': 'unicode'}],
-- 'columns': [{'field_name': 'array_float32',
--              'metadata': None,
--              'name': 'array_float32',
--              'numpy_type': 'object',
--              'pandas_type': 'list[float64]'},
--             {'field_name': 'array_float64',
-+ 'columns': [{'field_name': 'array_float64',
-               'metadata': None,
-               'name': 'array_float64',
-               'numpy_type': 'object',
-@@ -91,8 +86,8 @@
-
-              {'field_name': 'int16',
-               'metadata': None,
-               'name': 'int16',
--              'numpy_type': 'int64',
--              'pandas_type': 'int64'},
-+              'numpy_type': 'float64',
-+              'pandas_type': 'float64'},
-              {'field_name': 'int32',
-               'metadata': None,
-               'name': 'int32',
-@@ -108,6 +103,11 @@
-
-               'name': 'int8',
-               'numpy_type': 'int64',
-               'pandas_type': 'int64'},
-+             {'field_name': 'new_col',
-+              'metadata': None,
-+              'name': 'new_col',
-+              'numpy_type': 'bool',
-+              'pandas_type': 'bool'},
-              {'field_name': 'null',
-               'metadata': None,
-               'name': 'null',"""
-
-    assert diff == expected_arrow_diff + expected_pandas_diff
 
 
 def test_validate_schema_non_overlapping_nulls(df_all_types_schema):
