@@ -21,7 +21,6 @@ matrix:
       if: branch=master
       python: "3.7"
       env:
-        - NUMPY_PANDAS_INTEGRATION=1
       before_script:
         - ./ci/before_script.sh
         - ./ci/set_numpy_pandas_integration.sh
@@ -29,12 +28,11 @@ matrix:
       if: branch=master
       python: "3.7"
       env:
-        - PYARROW_INTEGRATION=1
       before_script:
         - ./ci/before_script.sh
         - ./ci/set_pyarrow_integration.sh
       script:
-        - pytest ./tests/integration/
+        - pytest --cov kartothek --cov-report xml --cov-report html
 
 
 before_install:
@@ -53,7 +51,7 @@ before_script:
   - ./ci/before_script.sh
 
 script:
-  - pytest --ignore=./tests/integration/ --cov kartothek --cov-report xml --cov-report html
+  - pytest --cov kartothek --cov-report xml --cov-report html
 
 after_success:
   - pip install codecov
