@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 from functools import partial
-from typing import cast
 
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import (
@@ -26,6 +25,8 @@ from kartothek.io_components.write import (
     store_dataset_from_partitions,
 )
 
+from ._storepool import MapStorepool, MapStorepoolThreaded
+
 
 @default_docs
 def read_dataset_as_metapartitions__iterator(
@@ -42,6 +43,7 @@ def read_dataset_as_metapartitions__iterator(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    nthreads=0,
 ):
     """
 
@@ -68,33 +70,37 @@ def read_dataset_as_metapartitions__iterator(
         dispatch_by=dispatch_by,
     )
 
-    for mp in mps:
+    func = partial(
+        MetaPartition.load_dataframes,
+        tables=tables,
+        columns=columns,
+        categoricals=categoricals,
+        predicate_pushdown_to_io=predicate_pushdown_to_io,
+        dates_as_object=dates_as_object,
+        predicates=predicates,
+    )
+
+    if nthreads != 0:
+        map_ctx = MapStorepoolThreaded(
+            nthreads=nthreads, store_factory=ds_factory.store_factory
+        )
+    else:
+        map_ctx = MapStorepool(store_factory=ds_factory.store_factory)
+
+    with map_ctx as _map:
         if concat_partitions_on_primary_index or dispatch_by:
-            mp = MetaPartition.concat_metapartitions(
-                [
-                    mp_inner.load_dataframes(
-                        store=store,
-                        tables=tables,
-                        columns=columns,
-                        categoricals=categoricals,
-                        predicate_pushdown_to_io=predicate_pushdown_to_io,
-                        predicates=predicates,
-                    )
-                    for mp_inner in mp
-                ]
-            )
-        else:
-            mp = cast(MetaPartition, mp)
-            mp = mp.load_dataframes(
-                store=store,
-                tables=tables,
-                columns=columns,
-                categoricals=categoricals,
-                predicate_pushdown_to_io=predicate_pushdown_to_io,
-                dates_as_object=dates_as_object,
-                predicates=predicates,
-            )
-        yield mp
+
+            def func_concat(func, mps, store, *args, **kwargs):
+                # must not use theaded map from outside since all threads share
+                # one result queue and share one concurrency limit. This might
+                # lead to either a deadlock, inconsistent results or both
+                res = map(partial(func, store=store), mps)
+                return MetaPartition.concat_metapartitions(list(res))
+
+            func = partial(func_concat, func)
+
+        for mp in _map(func, mps):
+            yield mp
 
 
 @default_docs
@@ -111,6 +117,7 @@ def read_dataset_as_dataframes__iterator(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    nthreads=0,
 ):
     """
     A Python iterator to retrieve a dataset from store where each
@@ -167,6 +174,7 @@ def read_dataset_as_dataframes__iterator(
         predicates=predicates,
         factory=factory,
         dispatch_by=dispatch_by,
+        nthreads=nthreads,
     )
     for mp in mp_iter:
         yield mp.data

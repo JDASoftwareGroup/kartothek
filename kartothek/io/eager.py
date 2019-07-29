@@ -95,6 +95,7 @@ def read_dataset_as_dataframes(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    nthreads=0,
 ):
     """
     Read a dataset as a list of dataframes.
@@ -142,6 +143,7 @@ def read_dataset_as_dataframes(
         predicates=predicates,
         factory=ds_factory,
         dispatch_by=dispatch_by,
+        nthreads=nthreads,
     )
     return [mp.data for mp in mps]
 
@@ -161,6 +163,7 @@ def read_dataset_as_metapartitions(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    nthreads=0,
 ):
     """
     Read a dataset as a list of :class:`kartothek.io_components.metapartition.MetaPartition`.
@@ -209,6 +212,7 @@ def read_dataset_as_metapartitions(
         predicates=predicates,
         factory=ds_factory,
         dispatch_by=dispatch_by,
+        nthreads=nthreads,
     )
     return list(ds_iter)
 
@@ -247,6 +251,7 @@ def read_table(
     dates_as_object=False,
     predicates=None,
     factory=None,
+    nthreads=0,
 ):
     """
     A utility function to load a single table with multiple partitions as a single dataframe in one go.
@@ -312,6 +317,7 @@ def read_table(
         dates_as_object=dates_as_object,
         predicates=predicates,
         factory=ds_factory,
+        nthreads=nthreads,
     )
 
     empty_df = empty_dataframe_from_schema(

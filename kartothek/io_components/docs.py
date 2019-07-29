@@ -146,6 +146,11 @@ _PARAMETER_MAPPING = {
     partition_size: int
         Amount of metapartitions to cluster into one dask partition.
 """,
+    "nthreads": """
+    nthreads: Union[int, None]
+        If non-zero use a ThreadPool to fetch partitions concurrently.
+        If `None` use NUM_CPUS * 5 worker threads.
+""",
 }
 
 

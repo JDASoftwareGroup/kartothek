@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Version 3.4.0 (Unreleased)
+==========================
+
+- Add keyword argument `nthreads` for `eager` and `iter` reading interfaces
+  which controls how many threads are being used to fetch partitions
+  concurrently.
+
 Version 3.3.0 (2019-08-15)
 ==========================
 - Fix rejection of bool predicates in :func:`~kartothek.serialization.filter_array_like` when bool columns contains
