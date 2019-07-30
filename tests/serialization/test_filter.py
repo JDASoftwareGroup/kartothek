@@ -16,6 +16,8 @@ from kartothek.serialization import filter_array_like, filter_df_from_predicates
         pd.Series(np.array(range(10)).astype(float)),
         pd.Series(np.array([str(x) for x in range(10)])),
         pd.Series(np.array([str(x) for x in range(10)])).astype("category"),
+        np.array(["A", "B", "C", "D", "E", "F"], dtype="<U1"),
+        np.array(["A", "B", "C", "D", "E", "F"], dtype="S"),
     ]
 )
 def array_like(request):
@@ -82,6 +84,10 @@ def test_filter_array_like_categoricals(op, expected, cat_type):
         (datetime.datetime(2019, 1, 1), 1),
         (datetime.datetime(2019, 1, 1), datetime.date(2019, 1, 1)),
         (datetime.date(2019, 1, 1), datetime.datetime(2019, 1, 1)),
+        (True, 1),
+        (True, 1.0),
+        (True, "True"),
+        (True, None),
     ],
 )
 @pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
@@ -92,20 +98,76 @@ def test_raise_on_type(value, filter_value, op):
 
 
 @pytest.mark.parametrize("op", ["==", "!=", ">=", "<=", ">", "<"])
-@pytest.mark.parametrize("col", list("ABCDE"))
-def test_filter_df_from_predicates(op, col):
+@pytest.mark.parametrize(
+    "data,value",
+    [
+        (
+            # data
+            range(10),
+            # value
+            4,
+        ),
+        (
+            # data
+            ["A", "B"] * 5,
+            # value
+            "A",
+        ),
+        (
+            # data
+            pd.Series(["X", "Y"] * 5).astype("category"),
+            # value
+            "X",
+        ),
+        (
+            # data
+            pd.Series([datetime.date(2019, 1, 1), datetime.date(2019, 1, 2)] * 5),
+            # value
+            datetime.date(2019, 1, 1),
+        ),
+        (
+            # data
+            [datetime.datetime(2019, 1, 1), datetime.datetime(2019, 1, 2)] * 5,
+            # value
+            datetime.datetime(2019, 1, 1),
+        ),
+        (
+            # data
+            [datetime.datetime(2019, 1, 1), datetime.datetime(2019, 1, 2)] * 5,
+            # value
+            datetime.date(2019, 1, 1),
+        ),
+        (
+            # data
+            np.arange(10, dtype=np.uint8),
+            # value
+            4,
+        ),
+    ],
+)
+def test_filter_df_from_predicates(op, data, value):
+    df = pd.DataFrame({"A": data})
+    df["B"] = range(len(df))
+
+    predicates = [[("A", op, value)]]
+    actual = filter_df_from_predicates(df, predicates)
+    if pd.api.types.is_categorical(df["A"]):
+        df["A"] = df["A"].astype(df["A"].cat.as_ordered().dtype)
+    if isinstance(value, datetime.date) and (df["A"].dtype == "datetime64[ns]"):
+        # silence pandas warning
+        value = pd.Timestamp(value)
+    expected = eval(f"df[df['A'] {op} value]")
+    pdt.assert_frame_equal(actual, expected, check_categorical=False)
+
+
+@pytest.mark.parametrize("op", ["==", "!="])
+@pytest.mark.parametrize("col", list("AB"))
+def test_filter_df_from_predicates_bool(op, col):
     df = pd.DataFrame(
-        {
-            "A": range(10),
-            "B": ["A", "B"] * 5,
-            "C": pd.Series(["X", "Y"] * 5).astype("category"),
-            "D": pd.Series([datetime.date(2019, 1, 1), datetime.date(2019, 1, 2)] * 5),
-            "E": [datetime.datetime(2019, 1, 1), datetime.datetime(2019, 1, 2)] * 5,
-        }
+        {"A": [True, False] * 5, "B": [True, False, None, True, False] * 2}
     )
 
-    ix = 4
-    value = df[col][ix]
+    value = True
     predicates = [[(col, op, value)]]
     actual = filter_df_from_predicates(df, predicates)
     if pd.api.types.is_categorical(df[col]):
