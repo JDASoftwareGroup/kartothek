@@ -11,6 +11,8 @@ junit.xml
 requirements-pinned.txt
 requirements.txt
 test-requirements-pinned.txt
+./ci/numpy_pandas_req_pinned.txt
+./ci/pyarrow_req_pinned.txt
 
 .asv
 
