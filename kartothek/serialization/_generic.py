@@ -268,23 +268,26 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
     array_like, array_value_type = _handle_categorical_data(array_like, require_ordered)
     array_like, array_value_type = _handle_null_arrays(array_like, value_dtype)
 
-    type_comp = {value_dtype.kind, array_value_type.kind}
+    type_comp = (value_dtype.kind, array_value_type.kind)
 
     compatible_types = [
         # UINT and INT
-        {"u", "i"},
+        ("u", "i"),
+        ("i", "u"),
         # various string kinds
-        {"S", "O"},
-        {"U", "O"},
+        ("O", "S"),
+        ("O", "U"),
+        # bool w/ Nones
+        ("b", "O"),
     ]
 
     if not strict_date_types:
         # objects (datetime.date) and datetime64
-        compatible_types.append({"O", "M"})
+        compatible_types.append(("O", "M"))
 
-    type_comp = {value_dtype.kind, array_value_type.kind}
+    type_comp = (value_dtype.kind, array_value_type.kind)
 
-    if len(type_comp) > 1 and type_comp not in compatible_types:
+    if len(set(type_comp)) > 1 and type_comp not in compatible_types:
         raise TypeError(
             f"Unexpected type encountered. Expected {array_value_type.kind} but got {value_dtype.kind}."
         )
