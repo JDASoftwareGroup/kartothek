@@ -2,9 +2,9 @@
 
 set -xeo pipefail
 
-pip-compile integration_requirements.txt
+pip-compile ./ci/pyarrow_requirements.txt
 
-pip install -r integration_requirements.txt
+pip install -r ./ci/integration_requirements.txt
 
 echo "Upgrading to Nightly build of pyarrow"
 
