@@ -6,6 +6,7 @@ Version 3.2.1 (2019-XX-XX)
 ==========================
 - Fix rejection of bool predicates in :func:`~kartothek.serialization.filter_array_like` when bool columns contains
   ``None``
+- Fix an issue where a segmentation fault may be raised when comparing MetaPartition instances
 
 
 Version 3.2.0 (2019-07-25)
