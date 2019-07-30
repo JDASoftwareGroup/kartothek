@@ -13,5 +13,3 @@ pip install --pre --no-deps --upgrade --timeout=180 --no-cache-dir -f "https://g
 pip freeze
 
 rm -f ./ci/pyarrow_req_pinned.txt
-
-
