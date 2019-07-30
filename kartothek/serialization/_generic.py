@@ -219,13 +219,27 @@ def _handle_categorical_data(array_like, require_ordered):
     return array_like, array_value_type
 
 
-def _handle_null_arrays(array_like, value_dtype):
+def _handle_null_arrays(array_like, array_value_type, value_dtype):
     # NULL types might not be preserved well, so try to cast floats (pandas default type) to the value type
     # Determine the type using the `kind` interface since this is common for a numpy array, pandas series and pandas extension arrays
-    if array_like.dtype.kind == "f" and np.isnan(array_like).all():
-        if array_like.dtype.kind != value_dtype.kind:
+    if array_value_type.kind == "f" and np.isnan(array_like).all():
+        if array_value_type.kind != value_dtype.kind:
             array_like = array_like.astype(value_dtype)
-    return array_like, array_like.dtype
+            array_value_type = value_dtype
+    return array_like, array_value_type
+
+
+def _handle_bool_arrays(array_like, array_value_type, value_dtype):
+    # bool arrays might be of type object when containing Nones (missing values)
+    if (array_value_type.kind == "O") and (value_dtype.kind == "b"):
+        try:
+            if (len(array_like) > 0) and (
+                (array_like == True) | (array_like == False) | (array_like == None)
+            ).all():  # noqa
+                return np.dtype(np.bool_)
+        except TypeError:
+            pass
+    return array_value_type
 
 
 def _handle_timelike_values(array_value_type, value, value_dtype, strict_date_types):
@@ -266,28 +280,28 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
 
     value_dtype = pd.Series(value).dtype
     array_like, array_value_type = _handle_categorical_data(array_like, require_ordered)
-    array_like, array_value_type = _handle_null_arrays(array_like, value_dtype)
+    array_value_type = _handle_bool_arrays(array_like, array_value_type, value_dtype)
+    array_like, array_value_type = _handle_null_arrays(
+        array_like, array_value_type, value_dtype
+    )
 
-    type_comp = (value_dtype.kind, array_value_type.kind)
+    type_comp = {value_dtype.kind, array_value_type.kind}
 
     compatible_types = [
         # UINT and INT
-        ("u", "i"),
-        ("i", "u"),
+        {"u", "i"},
         # various string kinds
-        ("O", "S"),
-        ("O", "U"),
-        # bool w/ Nones
-        ("b", "O"),
+        {"S", "O"},
+        {"U", "O"},
     ]
 
     if not strict_date_types:
         # objects (datetime.date) and datetime64
-        compatible_types.append(("O", "M"))
+        compatible_types.append({"O", "M"})
 
-    type_comp = (value_dtype.kind, array_value_type.kind)
+    type_comp = {value_dtype.kind, array_value_type.kind}
 
-    if len(set(type_comp)) > 1 and type_comp not in compatible_types:
+    if len(type_comp) > 1 and type_comp not in compatible_types:
         raise TypeError(
             f"Unexpected type encountered. Expected {array_value_type.kind} but got {value_dtype.kind}."
         )

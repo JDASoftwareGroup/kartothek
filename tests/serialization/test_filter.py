@@ -79,6 +79,7 @@ def test_filter_array_like_categoricals(op, expected, cat_type):
         (1, 1.0),
         ("1", 1.0),
         ("1", 1),
+        ("1", True),
         (1, "1"),
         (datetime.date(2019, 1, 1), 1),
         (datetime.datetime(2019, 1, 1), 1),
@@ -174,3 +175,14 @@ def test_filter_df_from_predicates_bool(op, col):
         df[col] = df[col].astype(df[col].cat.as_ordered().dtype)
     expected = eval(f"df[df[col] {op} value]")
     pdt.assert_frame_equal(actual, expected, check_categorical=False)
+
+
+@pytest.mark.parametrize(
+    "value",
+    [1, 1.1, "1", True, datetime.date(2019, 1, 1), datetime.datetime(2019, 1, 1)],
+)
+@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
+def test_empty(value, op):
+    array_like = pd.Series([])
+    actual = filter_array_like(array_like, op, value, strict_date_types=True)
+    assert all(array_like == actual)
