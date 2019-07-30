@@ -12,11 +12,7 @@ env:
   - KARTOTHEK_ARROW_VERSION=0.13.0
 
 before_install:
-  # https://github.com/JDASoftwareGroup/kartothek/issues/94
-  - pip install --upgrade pip==19.1.*
-  - pip install pip-tools
-  - ./compile_requirements.sh
-  - python setup.py bdist_wheel
+  - ./ci/before_install.sh
 
 install:
   - pip install -r test-requirements-pinned.txt
@@ -34,6 +30,21 @@ script:
 after_success:
   - pip install codecov
   - codecov
+
+matrix:
+  allow_failures:
+    - os: osx
+  include:
+    - name: "osx + builtin python3"
+      os: osx
+      language: sh
+      env:
+        - KARTOTHEK_ARROW_VERSION=0.13.0
+      before_install:
+        - python3 -m pip install --upgrade virtualenv
+        - virtualenv -p python3 "$HOME/ktk_venv"
+        - source "$HOME/ktk_venv/bin/activate"
+        - ./ci/before_install.sh
 
 deploy:
   provider: pypi
