@@ -13,7 +13,7 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130
+from kartothek.core._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0141
 from kartothek.serialization._arrow_compat import (
     _fix_pyarrow_0130_table,
     _fix_pyarrow_07992_table,
@@ -291,7 +291,7 @@ def _timelike_to_arrow_encoding(value, pa_type):
     if pa.types.is_date32(pa_type):
         if isinstance(value, datetime.date):
             return value.toordinal() - EPOCH_ORDINAL
-    elif pa.types.is_temporal(pa_type):
+    elif pa.types.is_temporal(pa_type) and not ARROW_LARGER_EQ_0141:
         unit = pa_type.unit
         if unit == "ns":
             conversion_factor = 1
@@ -373,7 +373,7 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     max_value = parquet_statistics.max
     # Transform the predicate value to the respective type used in the statistics.
 
-    if pa.types.is_string(pa_type):
+    if pa.types.is_string(pa_type) and not ARROW_LARGER_EQ_0141:
         # String types are always UTF-8 encoded binary strings in parquet
         min_value = min_value.decode("utf-8")
         max_value = max_value.decode("utf-8")
@@ -388,9 +388,9 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
         min_value -= _epsilon(min_value)
         max_value += _epsilon(max_value)
     if op == "==":
-        return (min_value <= val) and (val <= max_value)
+        return (min_value <= val) and (max_value >= val)
     elif op == "!=":
-        return not ((min_value >= val) and (val >= max_value))
+        return not ((min_value >= val) and (max_value <= val))
     elif op == "<=":
         return min_value <= val
     elif op == ">=":

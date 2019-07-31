@@ -6,6 +6,7 @@ import pyarrow as pa
 import simplejson
 
 ARROW_LARGER_EQ_0130 = LooseVersion(pa.__version__) >= "0.13.0"
+ARROW_LARGER_EQ_0141 = LooseVersion(pa.__version__) >= "0.14.1"
 DASK_LARGER_EQ_121 = LooseVersion(dask.__version__) >= "1.2.1"
 
 

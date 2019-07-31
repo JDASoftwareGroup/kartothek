@@ -339,7 +339,7 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
         return pa.list_(t_pa2), "list[{}]".format(t_pd2), "object", None
     elif pa.types.is_dictionary(t_pa):
         # downcast to dictionary content, `t_pd` is useless in that case
-        return normalize_type(t_pa.dictionary.type, t_np, t_np, None)
+        return normalize_type(t_pa.value_type, t_np, t_np, None)
     else:
         return t_pa, t_pd, t_np, metadata
 
