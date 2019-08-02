@@ -8,32 +8,11 @@ python:
   - 3.7
 
 env:
-  - KARTOTHEK_ARROW_VERSION=0.12.1
-  - KARTOTHEK_ARROW_VERSION=0.13.0
-
-
-matrix:
-  allow_failures:
-    - name: "Integration test for Numpy Pandas"
-    - name: "Integration test for PyArrow"
-  include:
-    - name: "Integration test for Numpy Pandas"
-      if: branch=master
-      python: "3.7"
-      env:
-      before_script:
-        - ./ci/before_script.sh
-        - ./ci/set_numpy_pandas_integration.sh
-    - name: "Integration test for PyArrow"
-      if: branch=master
-      python: "3.7"
-      env:
-      before_script:
-        - ./ci/before_script.sh
-        - ./ci/set_pyarrow_integration.sh
-      script:
-        - pytest --cov kartothek --cov-report xml --cov-report html
-
+  - KARTOTHEK_ARROW_VERSION=0.12.1 KARTOTHEK_NP_PD_NIGHTLY=0
+  - KARTOTHEK_ARROW_VERSION=0.13.0 KARTOTHEK_NP_PD_NIGHTLY=0
+  - KARTOTHEK_ARROW_VERSION=NIGHTLY KARTOTHEK_NP_PD_NIGHTLY=0
+  - KARTOTHEK_ARROW_VERSION=0.13.0 KARTOTHEK_NP_PD_NIGHTLY=1
+  - KARTOTHEK_ARROW_VERSION=NIGHTLY KARTOTHEK_NP_PD_NIGHTLY=1
 
 before_install:
   - pip install --upgrade pip==19.1.*

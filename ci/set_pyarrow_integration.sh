@@ -1,13 +1,19 @@
 #!/bin/bash
 
-set -xeo pipefail
+echo "getting pyarrow latest build URL"
 
-pip-compile ./ci/pyarrow_requirements.txt -o ./ci/pyarrow_req_pinned.txt
+PYARROW_NIGHTLY=`python get_pyarrow_nightly.py`
 
-pip install -r ./ci/pyarrow_req_pinned.txt
+echo " $PYARROW_NIGHTLY"
 
-echo "Upgrading to Nightly build of pyarrow"
+if [ ! -z ${PYARROW_NIGHTLY} ] && [! ${PYARROW_NIGHTLY} = "NULL" ];
+then
+    echo "Upgrading to Nightly build of pyarrow"
 
-pip install --pre --no-deps --upgrade --timeout=180 --no-cache-dir -f "https://github.com/ursa-labs/crossbow/releases/download/latest" pyarrow
+    pip install --pre --no-deps --upgrade --timeout=180 --no-cache-dir -f "$PYARROW_NIGHTLY" pyarrow
 
-pip freeze
+
+else
+    echo "Nightly Build is not present. Failing the Travis Job"
+    exit 1
+fi
