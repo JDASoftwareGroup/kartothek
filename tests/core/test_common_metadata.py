@@ -56,7 +56,8 @@ def test_store_schema_metadata(store, df_all_types):
         pa.field("byte", pa.binary()),
         pa.field("date", pa.date32()),
         pa.field("datetime64", pa.timestamp("us")),
-        pa.field("datetime64_ts", pa.timestamp("ns", tz="Europe/Berlin")),
+        pa.field("datetime64_ts", pa.timestamp("us", tz="UTC")),
+        # pa.field("datetime64_ts", pa.timestamp("ns", tz="Europe/Berlin")),
         pa.field("float32", pa.float64()),
         pa.field("float64", pa.float64()),
         pa.field("int16", pa.int64()),
@@ -425,9 +426,9 @@ def test_diff_schemas(df_all_types):
  array_float64: list<item: double>
    child 0, item: double
  array_int16: list<item: int64>
-@@ -26,10 +24,11 @@
+@@ -27,10 +25,11 @@
 
- datetime64: timestamp[ns]
+ datetime64_ts: timestamp[ns, tz=Europe/Berlin]
  float32: double
  float64: double
 -int16: int64
@@ -457,7 +458,7 @@ def test_diff_schemas(df_all_types):
                'metadata': None,
                'name': 'array_float64',
                'numpy_type': 'object',
-@@ -91,8 +86,8 @@
+@@ -96,8 +91,8 @@
 
               {'field_name': 'int16',
                'metadata': None,
@@ -469,7 +470,7 @@ def test_diff_schemas(df_all_types):
               {'field_name': 'int32',
                'metadata': None,
                'name': 'int32',
-@@ -108,6 +103,11 @@
+@@ -113,6 +108,11 @@
 
                'name': 'int8',
                'numpy_type': 'int64',

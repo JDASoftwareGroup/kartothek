@@ -17,7 +17,7 @@ from kartothek.core import naming
 from kartothek.core._compat import load_json
 from kartothek.core.utils import ensure_string_type
 
-from ._compat import ARROW_LARGER_EQ_0130
+from ._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0141
 
 _logger = logging.getLogger()
 
@@ -339,7 +339,10 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
         return pa.list_(t_pa2), "list[{}]".format(t_pd2), "object", None
     elif pa.types.is_dictionary(t_pa):
         # downcast to dictionary content, `t_pd` is useless in that case
-        return normalize_type(t_pa.value_type, t_np, t_np, None)
+        if ARROW_LARGER_EQ_0141:
+            return normalize_type(t_pa.value_type, t_np, t_np, None)
+        else:
+            return normalize_type(t_pa.dictionary.type, t_np, t_np, None)
     else:
         return t_pa, t_pd, t_np, metadata
 

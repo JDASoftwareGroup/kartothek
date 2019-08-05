@@ -61,8 +61,7 @@ def get_dataframe_not_nested():
             "date": pd.Series([date(2018, 1, 1)], dtype=object),
             "datetime64": pd.Series(["2018-01-01"], dtype="datetime64[ns]"),
             "datetime64_ts": pd.Series(
-                [pd.Timestamp(datetime.datetime(2018, 1, 1), tz="Europe/Berlin")],
-                dtype="datetime64[ns]",
+                [pd.Timestamp(datetime.datetime(2018, 1, 1), tz="Europe/Berlin")]
             ),
             "unicode": pd.Series(["Ö"], dtype=np.unicode),
             "null": pd.Series([None], dtype=object),
