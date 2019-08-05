@@ -16,7 +16,7 @@ env:
 before_install:
   - pip install --upgrade pip==19.1.*
   - pip install pip-tools
-  - ./compile_requirements.sh
+  - travis_wait 8 ./compile_requirements.sh
   - python setup.py bdist_wheel
 
 install:

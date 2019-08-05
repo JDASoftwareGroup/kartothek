@@ -21,6 +21,6 @@ if len(dict_nightly_builds) == 0:
 else:
     sorted(dict_nightly_builds.items(), reverse=True)
     for key, value in dict_nightly_builds.items():
-        if str(value).__contains__("osx") & str(value).__contains__("cp37"):
+        if str(value).__contains__("manylinux") & str(value).__contains__("cp37"):
             print(value)
             break

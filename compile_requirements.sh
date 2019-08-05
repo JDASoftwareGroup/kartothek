@@ -1,5 +1,6 @@
 #!/bin/bash
 set -xeo pipefail
+KARTOTHEK_ARROW_VERSION=NIGHTLY
 
 if [ -z ${KARTOTHEK_NP_PD_NIGHTLY} ]; then
   KARTOTHEK_NP_PD_NIGHTLY=0
@@ -28,6 +29,7 @@ elif [ ${KARTOTHEK_ARROW_VERSION} == "NIGHTLY" ] ;
 then
     echo " KARTOTHEK_ARROW_VERSION Value--->  $KARTOTHEK_ARROW_VERSION"
     pyarrow_url=$(python ci/get_pyarrow_nightly.py)
+    echo "pyarrow URl --> $pyarrow_url"
     KARTOTHEK_ARROW_VERSION=$(python -c "print('$pyarrow_url'.split('/')[-1].split('-')[1])")
     echo pyarrow=="$KARTOTHEK_ARROW_VERSION" > kartothek_env_reqs.txt
     trap 'rm -f kartothek_env_reqs.txt requirements-pinned.txt' EXIT
