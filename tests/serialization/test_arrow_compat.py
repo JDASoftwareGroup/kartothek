@@ -5,10 +5,10 @@ import os
 import uuid
 
 import pandas.testing as pdt
-import pyarrow as pa
 import pytest
 from storefact import get_store_from_url
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0141
 from kartothek.core.testing import get_dataframe_alltypes
 from kartothek.serialization import ParquetSerializer
 
@@ -16,13 +16,6 @@ from kartothek.serialization import ParquetSerializer
 @pytest.fixture(params=["0.12.1", "0.13.0", "0.14.1"])
 def arrow_version(request):
     yield request.param
-
-
-@pytest.fixture
-def forward_compatibility(arrow_version):
-    from packaging.version import parse
-
-    return parse(arrow_version) > parse(pa.__version__)
 
 
 @pytest.fixture
@@ -36,7 +29,7 @@ def reference_store():
     return get_store_from_url("hfs://{}".format(path))
 
 
-def test_arrow_compat(arrow_version, reference_store, mocker, forward_compatibility):
+def test_arrow_compat(arrow_version, reference_store, mocker):
     """
     Test if reading/writing across the supported arrow versions is actually
     compatible
@@ -53,13 +46,9 @@ def test_arrow_compat(arrow_version, reference_store, mocker, forward_compatibil
     )
 
     orig = get_dataframe_alltypes()
-    try:
-        restored = ParquetSerializer().restore_dataframe(
-            store=reference_store, key=arrow_version + ".parquet", date_as_object=True
-        )
+    restored = ParquetSerializer().restore_dataframe(
+        store=reference_store, key=arrow_version + ".parquet", date_as_object=True
+    )
+    if arrow_version == "0.14.1" and not ARROW_LARGER_EQ_0141:
+        orig = orig.astype({"null": float})
         pdt.assert_frame_equal(orig, restored)
-    except Exception:
-        if forward_compatibility:
-            pytest.xfail()
-        else:
-            raise
