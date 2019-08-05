@@ -284,6 +284,8 @@ def test_eq():
     df = pd.DataFrame({"a": [1]})
     df_same = pd.DataFrame({"a": [1]})
     df_other = pd.DataFrame({"a": [2]})
+    df_diff_col = pd.DataFrame({"b": [1]})
+    df_diff_type = pd.DataFrame({"b": [1.0]})
 
     meta_partition = MetaPartition.from_dict(
         {"label": "test_label", "data": {"core": df}}
@@ -294,6 +296,40 @@ def test_eq():
         {"label": "test_label", "data": {"core": df_same}}
     )
     assert meta_partition == meta_partition_same
+
+    meta_partition_diff_label = MetaPartition.from_dict(
+        {"label": "another_label", "data": {"core": df}}
+    )
+    assert meta_partition != meta_partition_diff_label
+    assert meta_partition_diff_label != meta_partition
+
+    meta_partition_diff_files = MetaPartition.from_dict(
+        {"label": "another_label", "data": {"core": df}, "files": {"core": "something"}}
+    )
+    assert meta_partition != meta_partition_diff_files
+    assert meta_partition_diff_files != meta_partition
+
+    meta_partition_diff_col = MetaPartition.from_dict(
+        {"label": "test_label", "data": {"core": df_diff_col}}
+    )
+    assert meta_partition != meta_partition_diff_col
+    assert meta_partition_diff_col != meta_partition
+
+    meta_partition_diff_type = MetaPartition.from_dict(
+        {"label": "test_label", "data": {"core": df_diff_type}}
+    )
+    assert meta_partition != meta_partition_diff_type
+    assert meta_partition_diff_type != meta_partition
+
+    meta_partition_diff_metadata = MetaPartition.from_dict(
+        {
+            "label": "test_label",
+            "data": {"core": df_diff_type},
+            "dataset_metadata": {"some": "metadata"},
+        }
+    )
+    assert meta_partition != meta_partition_diff_metadata
+    assert meta_partition_diff_metadata != meta_partition
 
     meta_partition_different_df = MetaPartition.from_dict(
         {"label": "test_label", "data": {"core": df_other}}
@@ -391,7 +427,7 @@ def test_add_nested_to_nested():
 
 
 def test_eq_nested():
-    mp = MetaPartition(
+    mp_1 = MetaPartition(
         label="label_1",
         files={"core": "file"},
         data={"core": pd.DataFrame({"test": [1, 2, 3]})},
@@ -404,8 +440,19 @@ def test_eq_nested():
         data={"core": pd.DataFrame({"test": [4, 5, 6]})},
         indices={"test": [4, 5, 6]},
     )
-    mp = mp.add_metapartition(mp_2)
+
+    mp = mp_1.add_metapartition(mp_2)
+
     assert mp == mp
+    assert mp != mp_2
+    assert mp_2 != mp
+
+    mp_other = MetaPartition(
+        label="label_3", data={"core": pd.DataFrame({"test": [4, 5, 6]})}
+    )
+    mp_other = mp_1.add_metapartition(mp_other)
+    assert mp != mp_other
+    assert mp_other != mp
 
 
 def test_nested_incompatible_meta():
