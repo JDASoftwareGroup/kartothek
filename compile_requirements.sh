@@ -1,6 +1,5 @@
 #!/bin/bash
 set -xeo pipefail
-KARTOTHEK_ARROW_VERSION=NIGHTLY
 
 if [ -z ${KARTOTHEK_NP_PD_NIGHTLY} ]; then
   KARTOTHEK_NP_PD_NIGHTLY=0
