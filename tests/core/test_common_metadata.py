@@ -56,6 +56,7 @@ def test_store_schema_metadata(store, df_all_types):
         pa.field("byte", pa.binary()),
         pa.field("date", pa.date32()),
         pa.field("datetime64", pa.timestamp("us")),
+        pa.field("datetime64_ts", pa.timestamp("ns", tz="Europe/Berlin")),
         pa.field("float32", pa.float64()),
         pa.field("float64", pa.float64()),
         pa.field("int16", pa.int64()),

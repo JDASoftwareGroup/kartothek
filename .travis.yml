@@ -35,10 +35,10 @@ install:
 before_script:
   - pip freeze
   - pip install pre-commit && pre-commit run -a
-  - python setup.py docs
 
 script:
   - pytest --cov kartothek --cov-report xml --cov-report html
+  - python setup.py docs
 
 after_success:
   - pip install codecov
