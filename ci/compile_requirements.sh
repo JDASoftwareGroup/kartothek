@@ -1,27 +1,13 @@
 #!/bin/bash
 set -xeo pipefail
 
-if [ ! -z ${KARTOTHEK_ARROW_VERSION} ];
-then
-    echo pyarrow==$KARTOTHEK_ARROW_VERSION > kartothek_env_reqs.txt
-    trap 'rm -f kartothek_env_reqs.txt' EXIT
-    pip-compile \
-        --upgrade \
-        --no-index \
-        -o requirements-pinned.txt \
-        kartothek_env_reqs.txt \
-        requirements.txt
-else
-    pip-compile \
-        --upgrade \
-        --no-index \
-        -o requirements-pinned.txt \
-        requirements.txt
-fi
+pip-compile \
+    $PIP_COMPILE_ARGS \
+    -o requirements-pinned.txt \
+    requirements.txt
 
 pip-compile \
-    --upgrade \
-    --no-index \
+    $PIP_COMPILE_ARGS \
     -o test-requirements-pinned.txt \
     requirements-pinned.txt \
     test-requirements.txt

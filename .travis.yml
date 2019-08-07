@@ -8,8 +8,8 @@ python:
   - 3.7
 
 env:
-  - KARTOTHEK_ARROW_VERSION=0.12.1
-  - KARTOTHEK_ARROW_VERSION=0.13.0
+  - PIP_COMPILE_ARGS="-P pyarrow==0.12.1 -P dask<2.2.0"
+  - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
 
 before_install:
   - ./ci/before_install.sh
@@ -39,7 +39,7 @@ matrix:
       os: osx
       language: sh
       env:
-        - KARTOTHEK_ARROW_VERSION=0.13.0
+        - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
       before_install:
         - python3 -m pip install --upgrade virtualenv
         - virtualenv -p python3 "$HOME/ktk_venv"
