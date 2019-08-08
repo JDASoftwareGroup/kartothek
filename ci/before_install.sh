@@ -1,6 +1,6 @@
 #!/bin/bash
 
-set -xeo pipefail
+set -xueo pipefail
 
 # https://github.com/JDASoftwareGroup/kartothek/issues/94
 pip install --upgrade pip==19.1.*

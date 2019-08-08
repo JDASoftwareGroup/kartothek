@@ -8,9 +8,14 @@ python:
   - 3.7
 
 env:
-  - PIP_COMPILE_ARGS="-P pyarrow==0.12.1 -P dask<2.2.0"
-  - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
-  - PIP_COMPILE_ARGS="-P pyarrow==0.13.0 --pre -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+  global:
+    - GITHUB_CLIENT_ID=32eb43d9e96045689676
+    - secure: "MvdUzU2BrcgAKWjeeF0X2ajZ7fNpn5373edG2/bUXAsBImCUhSHxS33Pzp9pwSjxAxkhFW+Ic5FUg9JpxS6C2m+BxgQry43YHizNZY6yBaM1i7Tm+LXZJv68ppUdkSVRhnm0aAxz+TLa+lYCKyc2H5DmmF/R8d1FiPXWtA/9xQItV4ME9G+6s6VxuZtpUpndUYdZWhBzFQUIQh9vn9ymoDww7NRKYEnYQbBtyZoIS9aZC1zAcYfuUjxri0LL/UpDm+MszAH7VTJwGdjOgFHmAsJzHw7irYLBOxtEc3PvRB2EvLh0QxJpcWXw/KKie9xwtJBqWc+l+aXaWUYKQ5dyrZ6c/Q9RkBV0aK3680ri2WY6RGTxQVPIQTq5XvacsJ5b/S9UwdiIrZFjSI/kWtgXLFUoqiQiBfCvWBw5/lMY9Qv7SeNU2MzS6Sbz8Igki6gNQl9AaGuCcIBl/UGus3wmZDm8WppKgh0EMEA1sP1CsuBUNm9+VK1UUkgNhcDP7Ac6F6hIPHcH8mCsjU8CAyaGVyQiJGoghSCjgDAjIhT3q5YKzFdBtgMZGvP6k0Wl1iE7Pr54qyrEiOYY9bDz7WN9Kl41lUJU5A5F4Y3BkFrWDXCEy7se/HgqpWft+taMVZxrXaZ1N8pv0ahEfbBVZL04rnw4+hWO9HeFBqFKlu23czE="
+  matrix:
+    - PIP_COMPILE_ARGS="-P pyarrow==0.12.1 -P dask<2.2.0"
+    - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
+    - PIP_COMPILE_ARGS="-P pyarrow==0.13.0 --pre -f https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+    - ARROW_NIGHTLY=1
 
 before_install:
   - ./ci/before_install.sh
@@ -33,6 +38,8 @@ after_success:
   - codecov
 
 matrix:
+  allow_failures:
+    - env: ARROW_NIGHTLY=1
   include:
     - name: "osx + builtin python3"
       os: osx
