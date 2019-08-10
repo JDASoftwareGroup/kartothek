@@ -343,7 +343,10 @@ def test_index_as_flat_series_highly_degenerated_asym():
     assert_series_equal(ser_inv, expected_inv)
 
 
-def test_index_as_flat_series_date():
+@pytest.mark.parametrize(
+    "dtype, date_as_object", [(None, True), ("datetime64[ns]", False)]
+)
+def test_index_as_flat_series_date(dtype, date_as_object):
     index1 = ExplicitSecondaryIndex(
         column="col",
         index_dct={
@@ -352,7 +355,7 @@ def test_index_as_flat_series_date():
         },
         dtype=pa.date32(),
     )
-    ser = index1.as_flat_series()
+    ser = index1.as_flat_series(date_as_object=date_as_object)
     ser = ser.sort_index()
     expected = pd.Series(
         ["part_1", "part_2", "part_1"],
@@ -362,6 +365,7 @@ def test_index_as_flat_series_date():
                 datetime.date(2017, 1, 2),
                 datetime.date(2018, 2, 3),
             ],
+            dtype=dtype,
             name="col",
         ),
         name="partition",

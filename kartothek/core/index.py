@@ -407,7 +407,9 @@ class IndexBase(CopyMixin):
     def __ne__(self, other):
         return not (self == other)
 
-    def as_flat_series(self, compact=False, partitions_as_index=False):
+    def as_flat_series(
+        self, compact=False, partitions_as_index=False, date_as_object=True
+    ):
         """
         Convert the Index object to a pandas.Series
 
@@ -417,9 +419,11 @@ class IndexBase(CopyMixin):
             If True, the index will be unique and the Series.values will be a list of partitions/values
         partitions_as_index: bool, optional
             If True, the relation between index values and partitions will be reverted for the output
+        date_as_object: bool, optional
+            Cast dates to objects.
         """
         table = _index_dct_to_table(self.index_dct, column=self.column)
-        df = table.to_pandas(date_as_object=True)
+        df = table.to_pandas(date_as_object=date_as_object)
         result_column = _PARTITION_COLUMN_NAME
         # This is the way the dictionary is directly translated
         # value: [partition]
