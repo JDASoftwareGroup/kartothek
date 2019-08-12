@@ -204,3 +204,16 @@ def test_update_shuffle_buckets(
     tasks = pickle.loads(s)
 
     tasks.compute()
+
+
+@pytest.mark.parametrize("shuffle", [True, False])
+def test_update_dataset_from_ddf_empty(store_factory, shuffle):
+    with pytest.raises(ValueError, match="Cannot store empty datasets"):
+        update_dataset_from_ddf(
+            dask.dataframe.from_delayed([], meta=(("a", int),)),
+            store_factory,
+            dataset_uuid="output_dataset_uuid",
+            table="core",
+            shuffle=shuffle,
+            partition_on=["a"],
+        ).compute()
