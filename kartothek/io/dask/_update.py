@@ -27,6 +27,9 @@ def _update_dask_partitions_shuffle(
     num_buckets,
     sort_partitions_by,
 ):
+    if ddf.npartitions == 0:
+        return ddf
+
     splits = np.array_split(
         np.arange(ddf.npartitions), min(ddf.npartitions, num_buckets)
     )
