@@ -6,6 +6,9 @@ Version 3.2.1 (2019-XX-XX)
 ==========================
 - Fix rejection of bool predicates in :func:`~kartothek.serialization.filter_array_like` when bool columns contains
   ``None``
+- Streamline behavior of `store_dataset_from_ddf` when passing empty ddf.
+- Fix an issue where a segmentation fault may be raised when comparing MetaPartition instances
+- Expose a ``date_as_object`` flag in ``kartothek.core.index.as_flat_series``
 
 
 Version 3.2.0 (2019-07-25)

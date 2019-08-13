@@ -340,7 +340,7 @@ class DatasetMetadataBase(CopyMixin):
         indices.update(self.indices)
         return self.copy(indices=indices)
 
-    def get_indices_as_dataframe(self, columns=None):
+    def get_indices_as_dataframe(self, columns=None, date_as_object=True):
         """
         Converts the dataset indices to a pandas dataframe.
 
@@ -359,6 +359,8 @@ class DatasetMetadataBase(CopyMixin):
         columns: list of str
             If provided, the dataframe will only be constructed for the provided columns/indices.
             If `None` is given, all indices are included.
+        date_as_object: bool, optional
+            Cast dates to objects.
         """
         if columns is None:
             columns = sorted(self.indices.keys())
@@ -373,7 +375,9 @@ class DatasetMetadataBase(CopyMixin):
                     )
                 raise ValueError("Index `{}` unknown.")
             df = pd.DataFrame(
-                self.indices[col].as_flat_series(partitions_as_index=True)
+                self.indices[col].as_flat_series(
+                    partitions_as_index=True, date_as_object=date_as_object
+                )
             )
             dfs.append(df)
 

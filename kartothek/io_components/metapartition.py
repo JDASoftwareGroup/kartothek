@@ -340,7 +340,11 @@ class MetaPartition(Iterable):
             return False
 
         for table, meta in self.table_meta.items():
-            if not meta.equals(other.table_meta.get(table, None)):
+            # https://issues.apache.org/jira/browse/ARROW-5873
+            other_meta = other.table_meta.get(table, None)
+            if other_meta is None:
+                return False
+            if not meta.equals(other_meta):
                 return False
 
         if self.dataset_metadata != other.dataset_metadata:

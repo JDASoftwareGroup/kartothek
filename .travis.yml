@@ -32,8 +32,6 @@ after_success:
   - codecov
 
 matrix:
-  allow_failures:
-    - os: osx
   include:
     - name: "osx + builtin python3"
       os: osx
