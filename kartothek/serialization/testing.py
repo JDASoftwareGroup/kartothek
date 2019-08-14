@@ -7,10 +7,7 @@ import pandas as pd
 
 
 def _to_binary(x):
-    x = str(x)
-    if isinstance(x, str):
-        x = x.encode("utf-8")
-    return x
+    return str(x).encode("utf-8")
 
 
 BINARY_COLUMNS = [
