@@ -7,7 +7,7 @@ from urlquote.quoting import PYTHON_3_7_QUOTING
 def quote(value):
     """
     Performs percent encoding on a sequence of bytes. if the given value is of string type, it will
-    be encoded. If it value is neither of string type, or bytes type it will be cast using `str`
+    be encoded. If the value is neither of string type nor bytes type, it will be cast using the `str`
     constructor before being encoded in UTF-8.
     """
     return urlquote_quote(value, quoting=PYTHON_3_7_QUOTING).decode("utf-8")
