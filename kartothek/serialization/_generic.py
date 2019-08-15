@@ -268,8 +268,6 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
     array_like, array_value_type = _handle_categorical_data(array_like, require_ordered)
     array_like, array_value_type = _handle_null_arrays(array_like, value_dtype)
 
-    type_comp = (value_dtype.kind, array_value_type.kind)
-
     compatible_types = [
         # UINT and INT
         ("u", "i"),
