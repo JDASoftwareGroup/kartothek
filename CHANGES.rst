@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 3.2.1 (2019-XX-XX)
+Version 3.3.0 (2019-08-15)
 ==========================
 - Fix rejection of bool predicates in :func:`~kartothek.serialization.filter_array_like` when bool columns contains
   ``None``
