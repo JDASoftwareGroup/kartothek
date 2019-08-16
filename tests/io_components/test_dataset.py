@@ -67,3 +67,53 @@ def test_dataset_get_indices_as_dataframe_duplicates():
     )
     result = ds.get_indices_as_dataframe()
     pdt.assert_frame_equal(result, expected)
+
+
+def test_dataset_get_indices_as_dataframe_predicates():
+    ds = DatasetMetadata(
+        "some_uuid",
+        indices={
+            "l_external_code": ExplicitSecondaryIndex(
+                "l_external_code", {"1": ["part1", "part2"], "2": ["part1", "part2"]}
+            ),
+            "p_external_code": ExplicitSecondaryIndex(
+                "p_external_code", {"1": ["part1"], "2": ["part2"]}
+            ),
+        },
+    )
+    expected = pd.DataFrame(
+        OrderedDict([("p_external_code", ["1"])]),
+        index=pd.Index(["part1"], name="partition"),
+    )
+    result = ds.get_indices_as_dataframe(
+        columns=["p_external_code"], predicates=[[("p_external_code", "==", "1")]]
+    )
+    pdt.assert_frame_equal(result, expected)
+
+    result = ds.get_indices_as_dataframe(
+        columns=["l_external_code"], predicates=[[("l_external_code", "==", "1")]]
+    )
+    expected = pd.DataFrame(
+        OrderedDict([("l_external_code", "1")]),
+        index=pd.Index(["part1", "part2"], name="partition"),
+    )
+    pdt.assert_frame_equal(result, expected)
+
+    result = ds.get_indices_as_dataframe(
+        columns=["l_external_code"],
+        predicates=[[("l_external_code", "==", "1"), ("p_external_code", "==", "1")]],
+    )
+    expected = pd.DataFrame(
+        OrderedDict([("l_external_code", "1")]),
+        index=pd.Index(["part1"], name="partition"),
+    )
+    pdt.assert_frame_equal(result, expected)
+
+    result = ds.get_indices_as_dataframe(
+        columns=["l_external_code"],
+        predicates=[[("l_external_code", "==", "1"), ("p_external_code", "==", "3")]],
+    )
+    expected = pd.DataFrame(
+        columns=["l_external_code"], index=pd.Index([], name="partition")
+    )
+    pdt.assert_frame_equal(result, expected)

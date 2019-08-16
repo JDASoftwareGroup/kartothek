@@ -63,11 +63,10 @@ def test_dispatch_metapartitions_without_dataset_metadata(dataset, store_session
 
 @pytest.mark.parametrize("predicates", [[], [[]]])
 def test_dispatch_metapartition_undefined_behaviour(dataset, store_session, predicates):
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(ValueError, match="Malformed predicates"):
         list(
             dispatch_metapartitions(dataset.uuid, store_session, predicates=predicates)
         )
-    assert "The behaviour on an empty" in str(exc.value)
 
 
 @pytest.mark.parametrize(
@@ -95,6 +94,7 @@ def test_dispatch_metapartitions_query_partition_on(
 @pytest.mark.parametrize(
     "predicates",
     [
+        # These predicates are OR connected, therefore they need to allow all partitions
         [[("P", "==", 2)], [("TARGET", "==", 500)]],
         [[("P", "in", [2])], [("TARGET", "in", [500])]],
         [[("L", "==", 2)], [("TARGET", "==", 500)]],
@@ -103,7 +103,7 @@ def test_dispatch_metapartitions_query_partition_on(
 def test_dispatch_metapartitions_query_no_effect(
     dataset_partition_keys, store_session, predicates
 ):
-    # These predicates should still lead to loading the whole set of partitionss
+    # These predicates should still lead to loading the whole set of partitions
     generator = dispatch_metapartitions(
         dataset_partition_keys.uuid, store_session, predicates=predicates
     )
@@ -126,9 +126,13 @@ def test_dispatch_metapartitions_concat_regression(store):
     )
     assert len(mps) == 2
 
-    mps = list(
-        dispatch_metapartitions(
-            dataset.uuid, store, concat_partitions_on_primary_index=True
+    with pytest.deprecated_call():
+        mps = list(
+            dispatch_metapartitions(
+                dataset.uuid, store, concat_partitions_on_primary_index=True
+            )
         )
-    )
+        assert len(mps) == 1
+
+    mps = list(dispatch_metapartitions(dataset.uuid, store, dispatch_by=["p"]))
     assert len(mps) == 1

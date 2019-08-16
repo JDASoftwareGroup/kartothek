@@ -20,6 +20,15 @@ Version 3.X.X (2019-09-XX)
   messages will be less verbose in these cases as before.
 - Add support for pyarrow 0.15.0
 - Remove support for pyarrow < 0.13.0
+- Fix an issue where the `dispatch_by` keyword would disable partition pruning
+- Additional functions in `kartothek.serialization` module for dealing with predicates
+  * :func:`~kartothek.serialization.check_predicates`
+  * :func:`~kartothek.serialization.filter_predicates_by_column`
+  * :func:`~kartothek.serialization.columns_in_predicates`
+- Added available types for type annotation when dealing with predicates
+  * `~kartothek.serialization.PredicatesType`
+  * `~kartothek.serialization.ConjunctionType`
+  * `~kartothek.serialization.LiteralType`
 
 
 Version 3.4.0 (2019-09-17)

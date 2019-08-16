@@ -16,7 +16,13 @@ from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core._mixins import CopyMixin
 from kartothek.core.common_metadata import normalize_type
 from kartothek.core.urlencode import quote
-from kartothek.serialization import filter_array_like
+from kartothek.serialization import (
+    PredicatesType,
+    check_predicates,
+    filter_array_like,
+    filter_df_from_predicates,
+    filter_predicates_by_column,
+)
 from kartothek.serialization._parquet import _fix_pyarrow_07992_table
 
 ValueType = TypeVar("ValueType")
@@ -422,24 +428,48 @@ class IndexBase(CopyMixin):
         return not (self == other)
 
     def as_flat_series(
-        self, compact=False, partitions_as_index=False, date_as_object=True
+        self,
+        compact: bool = False,
+        partitions_as_index: bool = False,
+        date_as_object: bool = False,
+        predicates: PredicatesType = None,
     ):
         """
         Convert the Index object to a pandas.Series
 
         Parameters
         ----------
-        compact: bool, optional
+        compact:
             If True, the index will be unique and the Series.values will be a list of partitions/values
-        partitions_as_index: bool, optional
+        partitions_as_index:
             If True, the relation between index values and partitions will be reverted for the output
-        date_as_object: bool, optional
-            Cast dates to objects.
+        predicates:
+            A list of predicates. If a literal within the provided predicates
+            references a column which is not part of this index, this literal is
+            interpreted as True.
         """
+        check_predicates(predicates)
         table = _index_dct_to_table(
             self.index_dct, column=self.column, dtype=self.dtype
         )
         df = table.to_pandas(date_as_object=date_as_object)
+
+        if predicates is not None:
+            # If there is a conjunction without any reference to the index
+            # column the entire predicates expression is evaluated to True. In
+            # this case we do not need to filter the dataframe anymore
+            for conjunction in predicates:
+                new_conjunction = filter_predicates_by_column(
+                    [conjunction], [self.column]
+                )
+                if new_conjunction is None:
+                    break
+            else:
+                filtered_predicates = filter_predicates_by_column(
+                    predicates, [self.column]
+                )
+                df = filter_df_from_predicates(df, predicates=filtered_predicates)
+
         result_column = _PARTITION_COLUMN_NAME
         # This is the way the dictionary is directly translated
         # value: [partition]
@@ -451,9 +481,13 @@ class IndexBase(CopyMixin):
         # value: part_2
         # value2: part_1
         if partitions_as_index or not compact:
-            keys = np.concatenate(df[_PARTITION_COLUMN_NAME].values)
+            if len(df) == 0:
+                keys = np.array([], dtype=df[_PARTITION_COLUMN_NAME].values.dtype)
+            else:
+                keys = np.concatenate(df[_PARTITION_COLUMN_NAME].values)
 
             lengths = df[_PARTITION_COLUMN_NAME].apply(len).values
+            lengths = lengths.astype(int)
             values_index = np.repeat(np.arange(len(df)), lengths)
             values = df[self.column].values[values_index]
 
