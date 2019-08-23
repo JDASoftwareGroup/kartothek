@@ -177,6 +177,23 @@ def test_store_dataframes_as_dataset_no_pipeline(metadata_version, store):
     assert dataset == stored_dataset
 
 
+def test_store_dataframes_as_dataset_dfs_input_formats(store):
+    df1 = pd.DataFrame({"B": [pd.Timestamp("2019")]})
+    df2 = pd.DataFrame({"A": [1.4]})
+    formats = [
+        {"data": {"D": df1, "S": df2}},
+        {"D": df1, "S": df2},
+        {"data": [("D", df1), ("S", df2)]},
+        [("D", df1), ("S", df2)],
+    ]
+    for input_format in formats:
+        dataset = store_dataframes_as_dataset(
+            store=store, dataset_uuid="dataset_uuid", dfs=input_format, overwrite=True
+        )
+        stored_dataset = DatasetMetadata.load_from_store("dataset_uuid", store)
+        assert dataset == stored_dataset
+
+
 def test_store_dataframes_as_dataset_mp(metadata_version, store):
     df = pd.DataFrame(
         {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
