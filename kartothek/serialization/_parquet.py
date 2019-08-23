@@ -369,6 +369,19 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     col_idx = parquet_reader.column_name_idx(col)
     pa_type = arrow_schema[col_idx].type
     parquet_statistics = row_meta.column(col_idx).statistics
+
+    # If the parquet statistics are None the file is corrupt and we cannot
+    # assess whether or not the predicates apply. To be sure we need to flag the
+    # RG as accepted
+    if parquet_statistics is None or (
+        # https://issues.apache.org/jira/browse/ARROW-6339
+        ARROW_LARGER_EQ_0141
+        and parquet_statistics.logical_type.type == "TIMESTAMP"
+        and parquet_statistics.null_count > 0
+        and parquet_statistics.distinct_count == 0
+    ):
+        return True
+
     min_value = parquet_statistics.min
     max_value = parquet_statistics.max
     # Transform the predicate value to the respective type used in the statistics.
