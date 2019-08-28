@@ -44,7 +44,7 @@ The dataset state is fully defined by:
 
 1. List of all physical partitions
 2. Schema specification for each table (`_common_metadata`)
-3. Seconary (inverted) indices
+3. Secondary (inverted) indices
 
 Minimal Example::
 
