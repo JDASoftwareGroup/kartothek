@@ -2,6 +2,12 @@
 Changelog
 =========
 
+
+Version 3.4.0 (2019-xx-xx)
+==========================
+- Use urlquote for faster quoting/unquoting
+
+
 Version 3.3.0 (2019-08-15)
 ==========================
 - Fix rejection of bool predicates in :func:`~kartothek.serialization.filter_array_like` when bool columns contains
@@ -9,7 +15,6 @@ Version 3.3.0 (2019-08-15)
 - Streamline behavior of `store_dataset_from_ddf` when passing empty ddf.
 - Fix an issue where a segmentation fault may be raised when comparing MetaPartition instances
 - Expose a ``date_as_object`` flag in ``kartothek.core.index.as_flat_series``
-- Use urlquote for faster quoting/unquoting
 
 
 Version 3.2.0 (2019-07-25)
