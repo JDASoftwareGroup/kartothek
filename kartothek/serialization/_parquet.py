@@ -369,6 +369,11 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     col_idx = parquet_reader.column_name_idx(col)
     pa_type = arrow_schema[col_idx].type
     parquet_statistics = row_meta.column(col_idx).statistics
+
+    # In that case that min/max is not set, we have to assume that the predicate matches.
+    if not parquet_statistics.has_min_max:
+        return True
+
     min_value = parquet_statistics.min
     max_value = parquet_statistics.max
     # Transform the predicate value to the respective type used in the statistics.
