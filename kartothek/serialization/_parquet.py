@@ -370,7 +370,7 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     pa_type = arrow_schema[col_idx].type
     parquet_statistics = row_meta.column(col_idx).statistics
 
-    # In that case that min/max is not set, we have to assume that the predicate matches.
+    # In case min/max is not set, we have to assume that the predicate matches.
     if not parquet_statistics.has_min_max:
         return True
 
