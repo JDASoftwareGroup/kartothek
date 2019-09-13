@@ -2,6 +2,11 @@
 Changelog
 =========
 
+
+Version 3.4.0 (2019-09-XX)
+==========================
+- Add support for pyarrow 0.14.1
+
 Version 3.3.0 (2019-08-15)
 ==========================
 - Fix rejection of bool predicates in :func:`~kartothek.serialization.filter_array_like` when bool columns contains
