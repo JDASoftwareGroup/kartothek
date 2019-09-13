@@ -1438,12 +1438,8 @@ def test_partition_on_scalar_intermediate(df_not_nested):
         label="somelabel", data={"table": df_not_nested}, metadata_version=4
     )
     for col in df_not_nested:
-        if col == "byte":
-            with pytest.raises(UnicodeDecodeError):
-                mp.partition_on(col)
-        else:
-            new_mp = mp.partition_on(col)
-            assert len(new_mp) == 1
+        new_mp = mp.partition_on(col)
+        assert len(new_mp) == 1
 
 
 def test_partition_on_with_primary_index_invalid(df_not_nested):

@@ -1,28 +1,23 @@
 # -*- coding: utf-8 -*-
-
-
-from urllib.parse import quote as urllib_quote
-from urllib.parse import unquote as urllib_unquote
+from urlquote import quote as urlquote_quote
+from urlquote import unquote as urlquote_unquote
+from urlquote.quoting import PYTHON_3_7_QUOTING
 
 
 def quote(value):
     """
-    Performs string encoding and urlencodes the given string. If the given value is not
-    of string type, it will be cast using the `str` constructor
+    Performs percent encoding on a sequence of bytes. if the given value is of string type, it will
+    be encoded. If the value is neither of string type nor bytes type, it will be cast using the `str`
+    constructor before being encoded in UTF-8.
     """
-    if not isinstance(value, (str, bytes)):
-        value = str(value)
-    if isinstance(value, bytes):
-        value = value.decode("utf-8")
-    r_val = urllib_quote(value.encode("utf-8"))
-    return r_val
+    return urlquote_quote(value, quoting=PYTHON_3_7_QUOTING).decode("utf-8")
 
 
 def unquote(value):
     """
     Decodes a urlencoded string and performs necessary decoding depending on the used python version.
     """
-    return urllib_unquote(value)
+    return urlquote_unquote(value).decode("utf-8")
 
 
 def decode_key(key):
