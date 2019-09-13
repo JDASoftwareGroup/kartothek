@@ -90,14 +90,14 @@ def test_filter_array_like_categoricals(op, expected, cat_type):
         (True, None),
     ],
 )
-@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">="])
+@pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">=", "in"])
 def test_raise_on_type(value, filter_value, op):
     array_like = pd.Series([value])
     with pytest.raises(TypeError, match="Unexpected type encountered."):
         filter_array_like(array_like, op, filter_value, strict_date_types=True)
 
 
-@pytest.mark.parametrize("op", ["==", "!=", ">=", "<=", ">", "<"])
+@pytest.mark.parametrize("op", ["==", "!=", ">=", "<=", ">", "<", "in"])
 @pytest.mark.parametrize(
     "data,value",
     [
@@ -149,6 +149,9 @@ def test_filter_df_from_predicates(op, data, value):
     df = pd.DataFrame({"A": data})
     df["B"] = range(len(df))
 
+    if op == "in":
+        value = [value]
+
     predicates = [[("A", op, value)]]
     actual = filter_df_from_predicates(df, predicates)
     if pd.api.types.is_categorical(df["A"]):
@@ -156,7 +159,11 @@ def test_filter_df_from_predicates(op, data, value):
     if isinstance(value, datetime.date) and (df["A"].dtype == "datetime64[ns]"):
         # silence pandas warning
         value = pd.Timestamp(value)
-    expected = eval(f"df[df['A'] {op} value]")
+
+    if op == "in":
+        expected = df[df["A"].isin(value)]
+    else:
+        expected = eval(f"df[df['A'] {op} value]")
     pdt.assert_frame_equal(actual, expected, check_categorical=False)
 
 
