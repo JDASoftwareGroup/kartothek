@@ -271,6 +271,28 @@ def test_load_dataframes_columns_raises_missing(
     assert str(e.value) == "Columns cannot be found in stored dataframe: bar, foo"
 
 
+def test_load_dataframes_columns_table_missing(
+    meta_partitions_evaluation_files_only, store_session
+):
+    # test behavior of load_dataframes for columns argument given
+    # specifying table that doesn't exist
+    mp = meta_partitions_evaluation_files_only[0]
+    assert len(mp.files) > 0
+    assert len(mp.data) == 0
+    with pytest.raises(
+        ValueError,
+        match=r"You are trying to read columns from invalid table\(s\). .*PRED_typo.*",
+    ):
+        mp.load_dataframes(
+            store=store_session,
+            columns={"PRED_typo": ["P", "L", "HORIZON", "foo", "bar"]},
+        )
+
+    # ensure typo in tables argument doesn't raise, as specified in docstring
+    dfs = mp.load_dataframes(store=store_session, tables=["PRED_typo"])
+    assert len(dfs) > 0
+
+
 def test_from_dict():
     df = pd.DataFrame({"a": [1]})
     dct = {"data": {"core": df}, "label": "test_label"}

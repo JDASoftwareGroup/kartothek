@@ -646,6 +646,15 @@ class MetaPartition(Iterable):
         """
         if columns is None:
             columns = {}
+        elif set(columns).difference(self.tables):
+            raise (
+                ValueError(
+                    "You are trying to read columns from invalid table(s): {}".format(
+                        set(columns).difference(self.tables)
+                    )
+                )
+            )
+
         if categoricals is None:
             categoricals = {}
 

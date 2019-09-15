@@ -31,7 +31,8 @@ _PARAMETER_MAPPING = {
     "columns": """
     columns : dict of list of string, optional
         A dictionary mapping tables to list of columns. Only the specified
-        columns are loaded for the corresponding table.""",
+        columns are loaded for the corresponding table. If a specfied table or column is
+        not present in the dataset, a ValueError is raised.""",
     "dispatch_by": """
     dispatch_by: list of strings, optional
         List of index columns to group and partition the dataframe by.""",

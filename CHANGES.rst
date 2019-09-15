@@ -3,6 +3,11 @@ Changelog
 =========
 
 
+Version 3.X.X (2019-09-XX)
+==========================
+- ``MetaPartition.load_dataframes`` now raises if table in ``columns`` argument doesn't exist
+
+
 Version 3.4.0 (2019-09-17)
 ==========================
 - Add support for pyarrow 0.14.1
