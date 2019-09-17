@@ -3,7 +3,7 @@ Changelog
 =========
 
 
-Version 3.4.0 (2019-09-XX)
+Version 3.4.0 (2019-09-17)
 ==========================
 - Add support for pyarrow 0.14.1
 - Use urlquote for faster quoting/unquoting
