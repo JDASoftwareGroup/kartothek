@@ -6,6 +6,7 @@ Changelog
 Version 3.X.X (2019-09-XX)
 ==========================
 - ``MetaPartition.load_dataframes`` now raises if table in ``columns`` argument doesn't exist
+- require ``urlquote>=1.1.0`` (where ``urlquote.quoting`` was introduced)
 
 
 Version 3.4.0 (2019-09-17)
