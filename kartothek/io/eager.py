@@ -345,6 +345,7 @@ def commit_dataset(
     default_metadata_version=DEFAULT_METADATA_VERSION,
     partition_on=None,
     factory=None,
+    secondary_indices=None,
 ):
     """
     Update an existing dataset with new, already written partitions. This should be used in combination with
@@ -411,6 +412,9 @@ def commit_dataset(
         new_partitions, metadata_version=metadata_version
     )
 
+    if secondary_indices:
+        mps = mps.build_indices(columns=secondary_indices)
+
     mps = [_maybe_infer_files_attribute(mp, dataset_uuid) for mp in mps]
 
     dmd = update_dataset_from_partitions(
@@ -461,6 +465,7 @@ def store_dataframes_as_dataset(
     partition_on=None,
     df_serializer=None,
     overwrite=False,
+    secondary_indices=None,
     metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
     metadata_version=DEFAULT_METADATA_VERSION,
 ):
@@ -489,6 +494,9 @@ def store_dataframes_as_dataset(
 
     if partition_on:
         mp = MetaPartition.partition_on(mp, partition_on)
+
+    if secondary_indices:
+        mp = mp.build_indices(columns=secondary_indices)
 
     mps = mp.store_dataframes(
         store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
@@ -578,6 +586,7 @@ def write_single_partition(
     metadata_version=DEFAULT_METADATA_VERSION,
     partition_on=None,
     factory=None,
+    secondary_indices=None,
 ):
     """
     Write the parquet file(s) for a single partition. This will **not** update the dataset header and can therefore
@@ -621,6 +630,9 @@ def write_single_partition(
     mp = parse_input_to_metapartition(obj=data, metadata_version=ds_metadata_version)
     if partition_on:
         mp = mp.partition_on(partition_on)
+
+    if secondary_indices:
+        mp = mp.build_indices(columns=secondary_indices)
 
     mp = mp.validate_schema_compatible(dataset_uuid=dataset_uuid, store=store)
 
