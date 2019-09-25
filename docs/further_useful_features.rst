@@ -98,7 +98,7 @@ column all get written to the same partition. To do this, we use the
 .. ipython:: python
 
     dm = store_dataframes_as_dataset(
-        store_factory, "partitioned_dataset", df, partition_on="B"
+        store_factory, "partitioned_dataset", [df], partition_on="B"
     )
 
 Partitioning based on a date column ussually makes sense for timeseries data.
@@ -184,7 +184,7 @@ with ``kartothek``. Specifically, we'll reuse the ``df`` dataframe that we'd cre
 
 .. ipython:: python
 
-    dm = store_dataframes_as_dataset(store_factory, "a_unique_dataset_identifier", df)
+    dm = store_dataframes_as_dataset(store_factory, "a_unique_dataset_identifier", [df])
     sorted(dm.partitions.keys())
 
 
@@ -386,7 +386,7 @@ with one update:
     df  # Column B includes 2 values for '2013-01-02' and another 2 for '2013-01-03'
 
     dm = store_dataframes_as_dataset(
-        store_factory, "replace_partition", df, partition_on="B"
+        store_factory, "replace_partition", [df], partition_on="B"
     )
     sorted(dm.partitions.keys())  # two partitions, one for each value of `B`
 

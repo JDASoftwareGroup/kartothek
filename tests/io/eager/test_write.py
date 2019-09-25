@@ -13,7 +13,22 @@ from kartothek.io.eager import (
     store_dataframes_as_dataset,
     write_single_partition,
 )
+from kartothek.io.testing.write import *  # noqa: F40
 from kartothek.io_components.metapartition import MetaPartition
+
+
+def _store_dataframes(dfs, **kwargs):
+    # Positional arguments in function but `None` is acceptable input
+    for kw in ("dataset_uuid", "store"):
+        if kw not in kwargs:
+            kwargs[kw] = None
+
+    return store_dataframes_as_dataset(dfs=dfs, **kwargs)
+
+
+@pytest.fixture()
+def bound_store_dataframes():
+    return _store_dataframes
 
 
 def test_write_single_partition(store_factory, mock_uuid, metadata_version):
@@ -112,6 +127,7 @@ def test_create_dataset_header(store, metadata_storage_format, frozen_time):
     read_schema_metadata(dataset_uuid=new_dataset.uuid, store=store, table="table")
 
 
+# TODO: move `store_dataframes_as_dataset` tests to generic tests or remove if redundant
 def test_store_dataframes_as_dataset_no_pipeline_partition_on(store):
     df = pd.DataFrame(
         {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
@@ -122,7 +138,7 @@ def test_store_dataframes_as_dataset_no_pipeline_partition_on(store):
     dataset = store_dataframes_as_dataset(
         store=store,
         dataset_uuid="dataset_uuid",
-        dfs={"core": df, "helper": df2},
+        dfs=[{"core": df, "helper": df2}],
         partition_on="P",
         metadata_version=4,
     )
@@ -147,7 +163,7 @@ def test_store_dataframes_as_dataset_partition_on_inconsistent(test_input, store
         store_dataframes_as_dataset(
             store=store,
             dataset_uuid="dataset_uuid",
-            dfs={"core": df, "helper": df2},
+            dfs=[{"core": df, "helper": df2}],
             partition_on=[test_input],
             metadata_version=4,
         )
@@ -164,7 +180,7 @@ def test_store_dataframes_as_dataset_no_pipeline(metadata_version, store):
     dataset = store_dataframes_as_dataset(
         store=store,
         dataset_uuid="dataset_uuid",
-        dfs={"core": df, "helper": df2},
+        dfs=[{"core": df, "helper": df2}],
         metadata_version=metadata_version,
     )
 
@@ -188,7 +204,7 @@ def test_store_dataframes_as_dataset_dfs_input_formats(store):
     ]
     for input_format in formats:
         dataset = store_dataframes_as_dataset(
-            store=store, dataset_uuid="dataset_uuid", dfs=input_format, overwrite=True
+            store=store, dataset_uuid="dataset_uuid", dfs=[input_format], overwrite=True
         )
         stored_dataset = DatasetMetadata.load_from_store("dataset_uuid", store)
         assert dataset == stored_dataset
@@ -210,7 +226,7 @@ def test_store_dataframes_as_dataset_mp(metadata_version, store):
     dataset = store_dataframes_as_dataset(
         store=store,
         dataset_uuid="dataset_uuid",
-        dfs=mp,
+        dfs=[mp],
         metadata_version=metadata_version,
     )
 
