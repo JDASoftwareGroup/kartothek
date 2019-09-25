@@ -482,9 +482,6 @@ def store_dataframes_as_dataset(
     if dataset_uuid is None:
         dataset_uuid = gen_uuid()
 
-    if isinstance(dfs, dict):
-        dfs = {"data": [(table, df) for table, df in dfs.items()]}
-
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
 

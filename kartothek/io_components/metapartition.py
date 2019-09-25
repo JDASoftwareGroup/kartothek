@@ -1591,6 +1591,16 @@ def parse_input_to_metapartition(
 
         If a MetaPartition is passed directly, it is simply passed through.
 
+    4. Mode - List of tuples
+
+        The first item represents the table name and the second is the actual payload data \
+        as a pandas.DataFrame.
+
+        Example::
+
+            # A partition with no explicit label, no metadata and one table
+            input_obj = [('table', pd.DataFrame())]
+
     Nested MetaPartitions:
 
         The input may also be provided as a list to ease batch processing. The returned MetaPartition
@@ -1599,7 +1609,7 @@ def parse_input_to_metapartition(
 
     Parameters
     ----------
-    obj : Union[Dict, pd.DataFrame, kartothek.io_components.metapartition.MetaPartition]
+    obj : Union[Dict, pd.DataFrame, kartothek.io_components.metapartition.MetaPartition, List]
     metadata_version : int, optional
         The kartothek dataset specification version
     expected_secondary_indices : Optional[Union[Iterable[str], Literal[False]]]
@@ -1624,6 +1634,13 @@ def parse_input_to_metapartition(
         if len(obj) == 0:
             return MetaPartition(label=None, metadata_version=metadata_version)
         first_element = obj[0]
+        if isinstance(first_element, tuple):
+            data = {"data": [df] for df in obj}
+            return parse_input_to_metapartition(
+                obj=data,
+                metadata_version=metadata_version,
+                expected_secondary_indices=expected_secondary_indices,
+            )
         mp = parse_input_to_metapartition(
             obj=first_element,
             metadata_version=metadata_version,
@@ -1638,7 +1655,9 @@ def parse_input_to_metapartition(
                 )
             )
     elif isinstance(obj, dict):
-        if isinstance(obj["data"], list):
+        if not obj.get("data"):
+            data = obj
+        elif isinstance(obj["data"], list):
             data = dict(obj["data"])
         else:
             data = obj["data"]

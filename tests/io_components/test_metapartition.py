@@ -1627,3 +1627,16 @@ def test_parse_nested_input_schema_compatible_but_different():
     mp = parse_input_to_metapartition(df_input, metadata_version=4)
     expected_schema = make_meta(pd.DataFrame({"A": ["str"]}), origin="expected")
     assert mp.table_meta["table"] == expected_schema
+
+
+def test_parse_input_schema_formats():
+    df = pd.DataFrame({"B": [pd.Timestamp("2019")]})
+    formats_obj = [
+        {"data": {"table1": df}},
+        {"table1": df},
+        {"data": [("table1", df)]},
+        [("table1", df)],
+    ]
+    for obj in formats_obj:
+        mp = parse_input_to_metapartition(obj=obj, metadata_version=4)
+        assert mp.data == {"table1": df}
