@@ -86,6 +86,19 @@ def test_normalize_args(test_input, expected):
 
 
 @pytest.mark.parametrize(
+    "test_input", [("a", {"a"}, "c"), ("a", frozenset("a"), None), ("abc", {"c": 6}, 4)]
+)
+def test_normalize_args__incompatible_types(test_input):
+    @normalize_args
+    def func(arg1, partition_on, delete_scope=None):
+        return arg1, partition_on, delete_scope
+
+    test_arg1, test_partition_on, test_delete_scope = test_input
+    with pytest.raises(ValueError):
+        func(test_arg1, test_partition_on, delete_scope=test_delete_scope)
+
+
+@pytest.mark.parametrize(
     "lst, expected",
     [
         ([], []),
