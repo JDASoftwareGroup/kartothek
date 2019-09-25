@@ -71,6 +71,7 @@ def testcombine_metadata_lists():
         (("a", "abc", None), ("a", ["abc"], [])),
         (("a", None, "abc"), ("a", [], ["abc"])),
         (("a", None, None), ("a", [], [])),
+        (("a", (1, 2), ("a", "b")), ("a", [1, 2], ["a", "b"])),
     ],
 )
 def test_normalize_args(test_input, expected):
