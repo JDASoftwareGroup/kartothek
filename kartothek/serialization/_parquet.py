@@ -263,13 +263,9 @@ def _normalize_predicates(parquet_file, predicates, for_pushdown):
             if op == "in":
                 values = [_normalize_value(l, pa_type) for l in literal[2]]
                 if for_pushdown and values:
-                    # In the case of predicate pushdown, we only compare ranges
-                    # and their overlap. Therefore we only need the min and max
-                    # values of the values.
-                    normalized_value = (
-                        _timelike_to_arrow_encoding(min(values), pa_type),
-                        _timelike_to_arrow_encoding(max(values), pa_type),
-                    )
+                    normalized_value = [
+                        _timelike_to_arrow_encoding(value, pa_type) for value in values
+                    ]
                 else:
                     normalized_value = values
             else:
@@ -405,7 +401,14 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     elif op == ">":
         return max_value > val
     elif op == "in":
-        return bool(val) and not ((max_value < val[0]) or (min_value > val[1]))
+        # This implementation is chosen for performance reasons. See
+        # https://github.com/JDASoftwareGroup/kartothek/pull/130 for more information/benchmarks.
+        # We accept the predicate if there is any value in the provided array which is equal to or between
+        # the parquet min and max statistics. Otherwise, it is rejected.
+        for x in val:
+            if min_value <= x <= max_value:
+                return True
+        return False
     else:
         raise NotImplementedError("op not supported")
 
