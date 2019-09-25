@@ -13,6 +13,7 @@ from pyarrow.parquet import ParquetFile
 
 from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
+from kartothek.serialization._parquet import _predicate_accepts
 from kartothek.serialization._util import _check_contains_null
 
 
@@ -400,3 +401,37 @@ def test_int64_statistics_overflow(reference_store, predicate_pushdown_to_io):
     )
     assert not result.empty
     assert (result["x"] == v).all()
+
+
+@pytest.mark.parametrize(
+    ["predicate_value", "expected"],
+    [
+        ([0, 4, 1], True),
+        ([-2, 44], False),
+        ([-3, 0], True),
+        ([-1, 10 ** 4], False),
+        ([2, 3], True),
+        ([-1, 20], True),
+        ([-30, -5, 50, 10], True),
+        ([], False),
+    ],
+)
+def test_predicate_accept_in(store, predicate_value, expected):
+    df = pd.DataFrame({"A": [0, 4, 13, 29]})  # min = 0, max = 29
+    predicate = ("A", "in", predicate_value)
+    serialiser = ParquetSerializer(chunk_size=None)
+    key = serialiser.store(store, "prefix", df)
+
+    parquet_file = ParquetFile(store.open(key))
+    row_meta = parquet_file.metadata.row_group(0)
+    arrow_schema = parquet_file.schema.to_arrow_schema()
+    parquet_reader = parquet_file.reader
+    assert (
+        _predicate_accepts(
+            predicate,
+            row_meta=row_meta,
+            arrow_schema=arrow_schema,
+            parquet_reader=parquet_reader,
+        )
+        == expected
+    )
