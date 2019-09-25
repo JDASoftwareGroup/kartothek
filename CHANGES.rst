@@ -5,6 +5,7 @@ Changelog
 
 Version 3.X.X (2019-09-XX)
 ==========================
+- Input to ``normalize_args`` is properly normalized to ``list``
 - ``MetaPartition.load_dataframes`` now raises if table in ``columns`` argument doesn't exist
 - require ``urlquote>=1.1.0`` (where ``urlquote.quoting`` was introduced)
 - ``MetaPartition.parse_input_to_metapartition`` accepts dicts and list of tuples equivalents as ``obj`` input
