@@ -4,9 +4,11 @@ from datetime import date
 import pandas as pd
 import pandas.util.testing as pdt
 
+from kartothek.io_components.metapartition import SINGLE_TABLE
+
 MERGE_TASKS = [
     {
-        "left": "core",
+        "left": SINGLE_TABLE,
         "right": "helper",
         "merge_kwargs": {"how": "left", "sort": False, "copy": False},
         "output_label": "first_output",

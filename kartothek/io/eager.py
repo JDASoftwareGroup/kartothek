@@ -28,6 +28,7 @@ from kartothek.io_components.docs import default_docs
 from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
 from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
     MetaPartition,
     parse_input_to_metapartition,
 )
@@ -235,7 +236,7 @@ def _check_compatible_list(table, obj, argument_name=""):
 def read_table(
     dataset_uuid=None,
     store=None,
-    table=None,
+    table=SINGLE_TABLE,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -253,8 +254,8 @@ def read_table(
 
     Parameters
     ----------
-    table: str
-        The table to be loaded
+    table: str, optional
+        The table to be loaded. If none is specified, the default 'table' is used.
     columns: List[str]
         The columns to be loaded
     categoricals: List[str]
@@ -285,8 +286,6 @@ def read_table(
             DeprecationWarning,
         )
 
-    if table is None:
-        raise TypeError("Parameter `table` is not optional.")
     if not isinstance(table, str):
         raise TypeError("Argument `table` needs to be a string")
 

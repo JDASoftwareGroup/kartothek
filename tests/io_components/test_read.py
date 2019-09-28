@@ -5,7 +5,7 @@ import pandas as pd
 import pytest
 
 from kartothek.io.eager import store_dataframes_as_dataset
-from kartothek.io_components.metapartition import MetaPartition
+from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
 from kartothek.io_components.read import dispatch_metapartitions
 
 
@@ -24,7 +24,7 @@ def test_dispatch_metapartitions(dataset, store_session):
     assert isinstance(mp, MetaPartition)
     assert dict(mp.dataset_metadata) == dict(dataset.metadata)
 
-    assert set(mp.table_meta.keys()) == {"core", "helper"}
+    assert set(mp.table_meta.keys()) == {SINGLE_TABLE, "helper"}
 
 
 def test_dispatch_metapartitions_label_filter(dataset, store_session):

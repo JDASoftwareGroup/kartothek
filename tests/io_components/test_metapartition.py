@@ -14,6 +14,7 @@ from kartothek.core.common_metadata import make_meta, store_schema_metadata
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
     MetaPartition,
     _unique_label,
     parse_input_to_metapartition,
@@ -200,7 +201,7 @@ def test_load_dataframes(
     assert len(mp.data) == 2
     data = mp.data
 
-    pdt.assert_frame_equal(data["core"], expected_df, check_dtype=False)
+    pdt.assert_frame_equal(data[SINGLE_TABLE], expected_df, check_dtype=False)
     pdt.assert_frame_equal(data["helper"], expected_df_2, check_dtype=False)
 
     empty_mp = MetaPartition("empty_mp", metadata_version=mp.metadata_version)
@@ -232,12 +233,12 @@ def test_load_dataframes_selective(meta_partitions_files_only, store_session):
     assert len(mp.files) > 0
     assert len(mp.data) == 0
     mp = meta_partitions_files_only[0].load_dataframes(
-        store=store_session, tables=["core"]
+        store=store_session, tables=[SINGLE_TABLE]
     )
     assert len(mp.data) == 1
     data = mp.data
 
-    pdt.assert_frame_equal(data["core"], expected_df, check_dtype=False)
+    pdt.assert_frame_equal(data[SINGLE_TABLE], expected_df, check_dtype=False)
 
 
 def test_load_dataframes_columns_projection(
