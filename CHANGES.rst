@@ -10,6 +10,7 @@ Version 3.X.X (2019-09-XX)
 - ``MetaPartition.parse_input_to_metapartition`` accepts dicts and list of tuples equivalents as ``obj`` input
 - Improve performance for some cases where predicates are used with the `in` operator.
 - Correctly preserve :class:`~kartothek.core.index.ExplicitSecondaryIndex` dtype when index is empty
+- Fixed DeprecationWarning in pandas ``CategoricalDtype``
 
 
 Version 3.4.0 (2019-09-17)

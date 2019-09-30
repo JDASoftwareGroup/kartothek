@@ -61,8 +61,8 @@ def test_filter_array_like_lower_eq(array_like):
     "cat_type",
     [
         "category",
-        pd.CategoricalDtype(["A", "B", "C"]),
-        pd.CategoricalDtype(["B", "C", "A"]),
+        pd.CategoricalDtype(["A", "B", "C"], ordered=False),
+        pd.CategoricalDtype(["B", "C", "A"], ordered=False),
         pd.CategoricalDtype(["A", "B", "C"], ordered=True),
     ],
 )
