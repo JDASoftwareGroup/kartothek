@@ -167,7 +167,15 @@ _ARGS_TO_TYPE = {"partition_on": list, "delete_scope": list, "secondary_indices"
 
 
 def normalize_arg(arg_name, old_value):
-    def _make_list(*_args):
+    def _make_list(_args):
+        if isinstance(_args, (str, bytes, int, float)):
+            return [_args]
+        if _args is None:
+            return []
+        if isinstance(_args, (set, frozenset, dict)):
+            raise ValueError(
+                "{} is incompatible for normalisation.".format(type(_args))
+            )
         return list(_args)
 
     type_to_normalize = {list: _make_list}
@@ -179,7 +187,7 @@ def normalize_arg(arg_name, old_value):
     if isinstance(old_value, _ARGS_TO_TYPE[arg_name]):
         return old_value
     elif old_value is None:
-        new_value = args_to_normalize[arg_name]()
+        new_value = _ARGS_TO_TYPE[arg_name]()
     elif not isinstance(old_value, _ARGS_TO_TYPE[arg_name]):
         new_value = args_to_normalize[arg_name](old_value)
     else:
