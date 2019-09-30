@@ -273,7 +273,7 @@ def align_categories(dfs, categoricals):
         categories = list(largest_df_categories) + sorted(
             set(categories) - set(largest_df_categories)
         )
-        cat_dtype = pd.api.types.CategoricalDtype(categories)
+        cat_dtype = pd.api.types.CategoricalDtype(categories, ordered=False)
         col_dtype[column] = cat_dtype
 
     return_dfs = []

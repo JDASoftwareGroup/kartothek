@@ -49,7 +49,7 @@ def _construct_categorical(column, dataset_metadata_factory):
             column,
             len(values),
         )
-    return pd.api.types.CategoricalDtype(values)
+    return pd.api.types.CategoricalDtype(values, ordered=False)
 
 
 def _maybe_get_categoricals_from_index(dataset_metadata_factory, categoricals):
