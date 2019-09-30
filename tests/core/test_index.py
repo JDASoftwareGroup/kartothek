@@ -144,8 +144,15 @@ def test_index_update_wrong_col():
     )
 
 
-def test_index_empty():
-    ExplicitSecondaryIndex(column="col", index_dct={})
+def test_index_empty(store):
+    storage_key = "dataset_uuid/some_index.parquet"
+    index1 = ExplicitSecondaryIndex(
+        column="col", index_dct={}, dtype=pa.int64(), index_storage_key=storage_key
+    )
+    key1 = index1.store(store, "dataset_uuid")
+
+    index2 = ExplicitSecondaryIndex(column="col", index_storage_key=key1).load(store)
+    assert index1 == index2
 
 
 def test_index_no_source():
