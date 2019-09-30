@@ -50,7 +50,7 @@ class IndexBase(CopyMixin):
             )
         if (dtype is None) and index_dct:
             # do dtype given but index_dct is present => auto-derive dtype
-            table = _index_dct_to_table(index_dct, column)
+            table = _index_dct_to_table(index_dct, column, None)
             schema = table.schema
             dtype = schema[0].type
 
@@ -422,7 +422,9 @@ class IndexBase(CopyMixin):
         date_as_object: bool, optional
             Cast dates to objects.
         """
-        table = _index_dct_to_table(self.index_dct, column=self.column)
+        table = _index_dct_to_table(
+            self.index_dct, column=self.column, dtype=self.dtype
+        )
         df = table.to_pandas(date_as_object=date_as_object)
         result_column = _PARTITION_COLUMN_NAME
         # This is the way the dictionary is directly translated
@@ -602,7 +604,7 @@ class ExplicitSecondaryIndex(IndexBase):
                 timestamp=quote(self.creation_time.isoformat()),
             )
 
-        table = _index_dct_to_table(self.index_dct, self.column)
+        table = _index_dct_to_table(self.index_dct, self.column, self.dtype)
         buf = pa.BufferOutputStream()
         pq.write_table(table, buf)
 
@@ -642,7 +644,7 @@ class ExplicitSecondaryIndex(IndexBase):
         if self.index_dct is None:
             return (self.column, self.index_storage_key, self.dtype, None)
 
-        table = _index_dct_to_table(self.index_dct, self.column)
+        table = _index_dct_to_table(self.index_dct, self.column, self.dtype)
         buf = pa.BufferOutputStream()
         pq.write_table(table, buf)
         parquet_bytes = buf.getvalue().to_pybytes()
@@ -770,18 +772,17 @@ def _parquet_bytes_to_dict(column, index_buffer):
     return index_dct, column_type
 
 
-def _index_dct_to_table(index_dct, column):
+def _index_dct_to_table(index_dct, column, dtype):
     keys = index_dct.keys()
-    keys_type = None
-    if len(keys) > 0:
+    if (dtype is None) and (len(keys) > 0):
         probe = next(iter(keys))
         if isinstance(probe, np.datetime64):
-            keys_type = pa.timestamp(
+            dtype = pa.timestamp(
                 "ns"
             )  # workaround pyarrow type inference bug (ARROW-2554)
         elif isinstance(probe, pd.Timestamp):
             keys = [d.to_datetime64() for d in keys]
-            keys_type = pa.timestamp(
+            dtype = pa.timestamp(
                 "ns"
             )  # workaround pyarrow type inference bug (ARROW-2554)
         elif isinstance(probe, np.bool_):
@@ -794,7 +795,7 @@ def _index_dct_to_table(index_dct, column):
     # upstream Arrow, we have to retain the following line
     keys = np.array(list(keys))
 
-    labeled_array = pa.array(keys, type=keys_type)
+    labeled_array = pa.array(keys, type=dtype)
     partition_array = pa.array(list(index_dct.values()))
 
     return pa.Table.from_arrays(
