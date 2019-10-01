@@ -12,6 +12,7 @@ Version 3.X.X (2019-09-XX)
 - Improve performance for some cases where predicates are used with the `in` operator.
 - Correctly preserve :class:`~kartothek.core.index.ExplicitSecondaryIndex` dtype when index is empty
 - Fixed DeprecationWarning in pandas ``CategoricalDtype``
+- Fixed broken docstring for `store_dataframes_as_dataset`
 
 
 Version 3.4.0 (2019-09-17)
