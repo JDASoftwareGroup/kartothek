@@ -18,7 +18,7 @@ from kartothek.core.naming import (
     PARQUET_FILE_SUFFIX,
     get_partition_file_prefix,
 )
-from kartothek.core.uuid import gen_uuid
+from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.delete import (
     delete_common_metadata,
     delete_indices,
@@ -42,10 +42,7 @@ from kartothek.io_components.utils import (
     sort_values_categorical,
     validate_partition_keys,
 )
-from kartothek.io_components.write import (
-    raise_if_dataset_exists,
-    store_dataset_from_partitions,
-)
+from kartothek.io_components.write import raise_if_dataset_exists
 
 
 @default_docs
@@ -345,6 +342,7 @@ def commit_dataset(
     default_metadata_version=DEFAULT_METADATA_VERSION,
     partition_on=None,
     factory=None,
+    secondary_indices=None,
 ):
     """
     Update an existing dataset with new, already written partitions. This should be used in combination with
@@ -411,6 +409,9 @@ def commit_dataset(
         new_partitions, metadata_version=metadata_version
     )
 
+    if secondary_indices:
+        mps = mps.build_indices(columns=secondary_indices)
+
     mps = [_maybe_infer_files_attribute(mp, dataset_uuid) for mp in mps]
 
     dmd = update_dataset_from_partitions(
@@ -461,6 +462,7 @@ def store_dataframes_as_dataset(
     partition_on=None,
     df_serializer=None,
     overwrite=False,
+    secondary_indices=None,
     metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
     metadata_version=DEFAULT_METADATA_VERSION,
 ):
@@ -479,27 +481,17 @@ def store_dataframes_as_dataset(
     The stored dataset
 
     """
-    if dataset_uuid is None:
-        dataset_uuid = gen_uuid()
-
-    if not overwrite:
-        raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
-
-    mp = parse_input_to_metapartition(dfs, metadata_version)
-
-    if partition_on:
-        mp = MetaPartition.partition_on(mp, partition_on)
-
-    mps = mp.store_dataframes(
-        store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
-    )
-
-    return store_dataset_from_partitions(
-        partition_list=mps,
-        dataset_uuid=dataset_uuid,
+    return store_dataframes_as_dataset__iter(
+        dfs,
         store=store,
-        dataset_metadata=metadata,
+        dataset_uuid=dataset_uuid,
+        metadata=metadata,
+        partition_on=partition_on,
+        df_serializer=df_serializer,
+        overwrite=overwrite,
+        secondary_indices=secondary_indices,
         metadata_storage_format=metadata_storage_format,
+        metadata_version=metadata_version,
     )
 
 
@@ -578,6 +570,7 @@ def write_single_partition(
     metadata_version=DEFAULT_METADATA_VERSION,
     partition_on=None,
     factory=None,
+    secondary_indices=None,
 ):
     """
     Write the parquet file(s) for a single partition. This will **not** update the dataset header and can therefore
@@ -621,6 +614,9 @@ def write_single_partition(
     mp = parse_input_to_metapartition(obj=data, metadata_version=ds_metadata_version)
     if partition_on:
         mp = mp.partition_on(partition_on)
+
+    if secondary_indices:
+        mp = mp.build_indices(columns=secondary_indices)
 
     mp = mp.validate_schema_compatible(dataset_uuid=dataset_uuid, store=store)
 
