@@ -7,6 +7,7 @@ import pytest
 
 from kartothek.core.common_metadata import make_meta, read_schema_metadata
 from kartothek.core.dataset import DatasetMetadata
+from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import (
     create_empty_dataset_header,
@@ -289,3 +290,23 @@ def test_write_single_partition_different_partitioning(store_factory):
         store=store_factory, dataset_uuid=dataset.uuid, data=new_data
     )
     assert initial_keys + 2 == len(list(store_factory().keys()))
+
+
+def test_store_dataframes_as_dataset_does_not_allow_invalid_indices(store_factory):
+    partitions = [
+        {
+            "label": "part1",
+            "data": [("core", pd.DataFrame({"p": [1, 2]}))],
+            "indices": {"x": ExplicitSecondaryIndex("x", {1: ["part1"], 2: ["part2"]})},
+        }
+    ]
+
+    with pytest.raises(
+        ValueError, match="In table core, no column corresponding to index x"
+    ):
+        store_dataframes_as_dataset(
+            dfs=partitions,
+            store=store_factory,
+            metadata={"dataset": "metadata"},
+            dataset_uuid="dataset_uuid",
+        )

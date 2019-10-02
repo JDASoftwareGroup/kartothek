@@ -33,7 +33,11 @@ from kartothek.core.partition import Partition
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_string_type, verify_metadata_version
 from kartothek.core.uuid import gen_uuid
-from kartothek.io_components.utils import _instantiate_store, combine_metadata
+from kartothek.io_components.utils import (
+    _ensure_valid_indices,
+    _instantiate_store,
+    combine_metadata,
+)
 from kartothek.serialization import (
     DataFrameSerializer,
     default_serializer,
@@ -1575,9 +1579,9 @@ def parse_input_to_metapartition(
             # A partition with explicit label, no metadata, one table and index information
             input_obj = {
                 'label': 'partition_label',
-                'data': [('table', pd.DataFrame())],
+                'data': [('table', pd.DataFrame([{'column_1':values_1, 'column_2':values_2}]))],
                 'indices': {
-                    "column": {
+                    "column_1": {
                         value: ['partition_label']
                     }
                 }
@@ -1674,11 +1678,9 @@ def parse_input_to_metapartition(
                 'Use the `secondary_indices` keyword argument of "write" and "update" functions instead.',
                 DeprecationWarning,
             )
-        if expected_secondary_indices not in (False, None):
-            # Validate explicit input of indices
-            _ensure_valid_indices(
-                secondary_indices=expected_secondary_indices, mp_indices=indices
-            )
+        _ensure_valid_indices(
+            mp_indices=indices, secondary_indices=expected_secondary_indices, data=data
+        )
 
         mp = MetaPartition(
             # TODO: Deterministic hash for the input?
@@ -1699,24 +1701,3 @@ def parse_input_to_metapartition(
         raise ValueError("Unexpected type: {}".format(type(obj)))
 
     return mp
-
-
-def _ensure_valid_indices(secondary_indices, mp_indices):
-    if not secondary_indices:
-        if mp_indices:
-            raise ValueError(
-                "Incorrect indices provided for dataset.\n"
-                f"Expected index columns: {secondary_indices}"
-                f"Provided index: {mp_indices}"
-            )
-    else:
-        secondary_indices = set(secondary_indices)
-        # If the dataset has `secondary_indices` defined, then these indices will be build later so there is no need to
-        # ensure that they are also defined here (on a partition level).
-        # Hence,  we just check that no new indices are defined on the partition level.
-        if not secondary_indices.issuperset(mp_indices.keys()):
-            raise ValueError(
-                "Incorrect indices provided for dataset.\n"
-                f"Expected index columns: {secondary_indices}"
-                f"Provided index: {mp_indices}"
-            )

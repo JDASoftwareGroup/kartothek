@@ -22,16 +22,12 @@ def create_dataset(dataset_uuid, store_factory, metadata_version):
         {
             "label": "cluster_1",
             "data": [(SINGLE_TABLE, df.copy(deep=True)), ("helper", df_helper)],
-            "indices": {
-                SINGLE_TABLE: {val: ["cluster_2"] for val in df.TARGET.unique()}
-            },
+            "indices": {"P": {val: ["cluster_2"] for val in df.TARGET.unique()}},
         },
         {
             "label": "cluster_2",
             "data": [(SINGLE_TABLE, df.copy(deep=True)), ("helper", df_helper)],
-            "indices": {
-                SINGLE_TABLE: {val: ["cluster_2"] for val in df.TARGET.unique()}
-            },
+            "indices": {"P": {val: ["cluster_2"] for val in df.TARGET.unique()}},
         },
     ]
 

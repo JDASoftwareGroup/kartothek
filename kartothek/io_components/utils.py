@@ -128,6 +128,28 @@ def _ensure_compatible_indices(dataset, secondary_indices):
         return secondary_indices or False
 
 
+def _ensure_valid_indices(mp_indices, secondary_indices=None, data=None):
+    # TODO (Kshitij68): Behavior is closely matches `_ensure_compatible_indices`. Refactoring can prove to be helpful
+    if data:
+        for table_name in data:
+            for index in mp_indices.keys():
+                if index not in data[table_name].columns:
+                    raise ValueError(
+                        f"In table {table_name}, no column corresponding to index {index}"
+                    )
+    if secondary_indices not in (False, None):
+        secondary_indices = set(secondary_indices)
+        # If the dataset has `secondary_indices` defined, then these indices will be build later so there is no need to
+        # ensure that they are also defined here (on a partition level).
+        # Hence,  we just check that no new indices are defined on the partition level.
+        if not secondary_indices.issuperset(mp_indices.keys()):
+            raise ValueError(
+                "Incorrect indices provided for dataset.\n"
+                f"Expected index columns: {secondary_indices}"
+                f"Provided index: {mp_indices}"
+            )
+
+
 def validate_partition_keys(
     dataset_uuid,
     store,
