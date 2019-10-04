@@ -31,7 +31,7 @@ def update_dataset_from_partitions(
 ):
     store = _instantiate_store(store_factory)
 
-    if ds_factory:
+    if ds_factory and ds_factory.exists:
         ds_factory = ds_factory.load_all_indices()
         remove_partitions = _get_partitions(ds_factory, delete_scope)
 

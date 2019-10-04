@@ -137,13 +137,13 @@ def _perform_read_test(
         dates_as_object=dates_as_object,
         **read_kwargs,
     )
-
-    # The filter should allow only a single partition
-    if not label_filter:
-        assert len(result) == 2
-    else:
+    if output_type != "table":
         # The filter should allow only a single partition
-        assert len(result) == 1
+        if not label_filter:
+            assert len(result) == 2
+        else:
+            # The filter should allow only a single partition
+            assert len(result) == 1
 
     if output_type == "metapartition":
         for res in result:

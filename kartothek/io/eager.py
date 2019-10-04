@@ -692,12 +692,12 @@ def update_dataset_from_dataframes(
         mp = mp.build_indices(secondary_indices)
 
     mp = mp.store_dataframes(
-        store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
+        store=ds_factory.store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
     )
 
     return update_dataset_from_partitions(
         mp,
-        store_factory=store,
+        store_factory=ds_factory.store_factory,
         dataset_uuid=dataset_uuid,
         ds_factory=ds_factory,
         delete_scope=delete_scope,

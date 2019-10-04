@@ -111,7 +111,7 @@ def _instantiate_store(store):
 
 
 def _ensure_compatible_indices(dataset, secondary_indices):
-    if dataset:
+    if dataset and dataset.exists:
         ds_secondary_indices = list(dataset.secondary_indices.keys())
 
         if secondary_indices and set(ds_secondary_indices) != set(secondary_indices):
@@ -158,7 +158,9 @@ def validate_partition_keys(
     partition_on,
     **load_kwargs,
 ):
-    if ds_factory or DatasetMetadata.exists(dataset_uuid, _instantiate_store(store)):
+    if ds_factory and not ds_factory.exists:
+        return ds_factory, default_metadata_version, partition_on
+    elif ds_factory or DatasetMetadata.exists(dataset_uuid, _instantiate_store(store)):
         ds_factory = _ensure_factory(
             dataset_uuid=dataset_uuid,
             store=store,

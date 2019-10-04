@@ -81,11 +81,18 @@ class DatasetFactory(DatasetMetadataBase):
         self.is_loaded = False
         self.load_dataset_metadata = load_dataset_metadata
         self.load_all_indices_flag = load_all_indices
+        self._exists = None
 
     def __repr__(self):
         return "<DatasetFactory: uuid={} is_loaded={}>".format(
             self.dataset_uuid, self.is_loaded
         )
+
+    @property
+    def exists(self):
+        if self._exists is None:
+            self._instantiate_metadata_cache()
+        return self._exists
 
     @property
     def store(self):
@@ -99,12 +106,17 @@ class DatasetFactory(DatasetMetadataBase):
                 # backwards compat
                 self._cache_metadata = self._ds_callable()
             else:
-                self._cache_metadata = DatasetMetadata.load_from_store(
-                    uuid=self.dataset_uuid,
-                    store=self.store,
-                    load_schema=self.load_schema,
-                    load_all_indices=self.load_all_indices_flag,
-                )
+                try:
+                    self._cache_metadata = DatasetMetadata.load_from_store(
+                        uuid=self.dataset_uuid,
+                        store=self.store,
+                        load_schema=self.load_schema,
+                        load_all_indices=self.load_all_indices_flag,
+                    )
+                    self._exists = True
+                except KeyError:
+                    self._exists = False
+                    return self
             if not self.load_dataset_metadata:
                 self._cache_metadata.metadata = {}
         self.is_loaded = True
@@ -112,13 +124,15 @@ class DatasetFactory(DatasetMetadataBase):
 
     @property
     def dataset_metadata(self):
-        self._instantiate_metadata_cache()
+        if self._exists is not False:
+            self._instantiate_metadata_cache()
         return self._cache_metadata
 
     def invalidate(self):
         self.is_loaded = False
         self._cache_metadata = None
         self._cache_store = None
+        self._exists = None
 
     def __getattr__(self, name):
         # __getattr__ should only be called if the attribute cannot be found. if the
