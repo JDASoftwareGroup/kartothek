@@ -16,7 +16,7 @@ env:
 
   matrix:
     # required builds
-    - PIP_COMPILE_ARGS="-P pyarrow==0.12.1 -P dask<2.2.0"
+    - PIP_COMPILE_ARGS="-P pyarrow==0.12.1 -P dask<2.2.0 -P distributed<2.2.0"
     - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
     - PIP_COMPILE_ARGS="-P pyarrow==0.14.1"
 
