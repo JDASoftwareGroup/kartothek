@@ -152,7 +152,7 @@ def test_write_and_read_default_table_name(store_session):
     from kartothek.io.eager import store_dataframes_as_dataset
 
     df_write = pd.DataFrame({"P": [3.14, 2.71]})
-    store_dataframes_as_dataset(store_session, "test_default_table_name", df_write)
+    store_dataframes_as_dataset(store_session, "test_default_table_name", [df_write])
 
     # assert default table name "table" is used
     df_read_as_dfs = read_dataset_as_dataframes(
