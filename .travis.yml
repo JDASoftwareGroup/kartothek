@@ -21,7 +21,7 @@ env:
     - PIP_COMPILE_ARGS="-P pyarrow==0.14.1"
 
     # optional builds
-    - PIP_COMPILE_ARGS="-P pyarrow==0.13.0" NUMFOCUS_NIGHTLY=1
+    - PIP_COMPILE_ARGS="-P pyarrow==0.14.1" NUMFOCUS_NIGHTLY=1
     - ARROW_NIGHTLY=1
 
 before_install:
