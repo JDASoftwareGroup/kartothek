@@ -16,6 +16,10 @@ if [[ "${ARROW_NIGHTLY-0}" == 1 ]]; then
     wget -O "$ARROW_PATH" "$ARROW_URL"
 
     PIP_COMPILE_ARGS="$PIP_COMPILE_ARGS -P pyarrow==$ARROW_VERSION -f file://$PACKAGE_PATH"
+
+    # we limit the upper version of pyarrow by default, so we need to remove this
+    grep --invert-match pyarrow requirements.txt > requirements.txt.tmp
+    mv requirements.txt.tmp requirements.txt
 fi
 
 if [[ "${NUMFOCUS_NIGHTLY-0}" == 1 ]]; then
