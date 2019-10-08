@@ -473,14 +473,22 @@ def store_dataframes_as_dataset(
 
     Parameters
     ----------
-    dfs : dict of pd.DataFrame or pd.DataFrame
-        The dataframe(s) to be stored. If only a single dataframe is passed, it will be stored as the `core` table.
+    dfs: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]
+        The dataframe(s) to be stored.
 
     Returns
     -------
     The stored dataset
 
     """
+    if isinstance(dfs, (pd.DataFrame, dict)):
+        dfs = [dfs]
+        warnings.warn(
+            "Passing a single dataframe instead of an iterable is deprecated and may "
+            "be removed in the next major release.",
+            DeprecationWarning,
+        )
+
     return store_dataframes_as_dataset__iter(
         dfs,
         store=store,
