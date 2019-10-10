@@ -2,11 +2,13 @@
 
 import logging
 from copy import copy
+from typing import Any, Dict, List, Optional, Set, TypeVar, Union
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from simplekv import KeyValueStore
 
 import kartothek.core._time
 from kartothek.core import naming
@@ -17,31 +19,39 @@ from kartothek.core.urlencode import quote
 from kartothek.serialization import filter_array_like
 from kartothek.serialization._parquet import _fix_pyarrow_07992_table
 
+ValueType = TypeVar("ValueType")
+IndexDictType = Dict[ValueType, List[str]]
+
 _logger = logging.getLogger(__name__)
 
 _PARTITION_COLUMN_NAME = "partition"
 
 
 class IndexBase(CopyMixin):
-    """
-    Base class for all index types.
+    def __init__(
+        self,
+        column: str,
+        index_dct: Optional[IndexDictType] = None,
+        dtype: Optional[pa.DataType] = None,
+        normalize_dtype: bool = True,
+    ):
+        """
+        Initialize an IndexBase.
 
-
-    Parameters
-    ----------
-    column: string
-        Name of the column this index is for.
-    index_dct: Union[None, Dict[String, List[String]]]
-        Mapping from index values to partition labels
-    dtype: Union[None, pyarrow.Type]
-        Type of index. If left out and ``index_dct`` is present, this will be inferred.
-    normalize_dtype: bool
-        Normalize type information and values within ``index_dct``. The user may disable this when it the index was
-        already normalized, e.g. when the index python objects gets copied, or when the index data is restored from a
-        parquet file that was written by a trusted write path.
-    """
-
-    def __init__(self, column, index_dct=None, dtype=None, normalize_dtype=True):
+        Parameters
+        ----------
+        column:
+            Name of the column this index is for.
+        index_dct:
+            Mapping from index values to partition labels
+        dtype:
+            Type of index. If left out and ``index_dct`` is present, this will be inferred.
+        normalize_dtype:
+            Normalize type information and values within ``index_dct``. The user may
+            disable this when it the index was already normalized, e.g. when the
+            index python objects gets copied, or when the index data is restored
+            from a parquet file that was written by a trusted write path.
+        """
         if column == _PARTITION_COLUMN_NAME:
             raise ValueError(
                 "Cannot create an index for column {} due to an internal implementation conflict. "
@@ -66,10 +76,12 @@ class IndexBase(CopyMixin):
         self.column = column
         self.dtype = dtype
         self.creation_time = kartothek.core._time.datetime_utcnow()
+        self.index_dct: IndexDictType
 
-        if index_dct is None:
-            self.index_dct = None
-        else:
+        self.index_dct = {}
+        self._index_dct_available = False
+        if index_dct is not None:
+            self._index_dct_available = True
             if normalize_dtype:
                 # index_dct may be from an untrusted or weakly typed source, so we need to normalize and fuse values
                 self.index_dct = {}
@@ -97,12 +109,12 @@ class IndexBase(CopyMixin):
                 # use the fast path and don't re-normalize the values
                 self.index_dct = index_dct
 
-            super(IndexBase, self).__init__()
+        super(IndexBase, self).__init__()
 
-    def copy(self, **kwargs):
+    def copy(self, **kwargs) -> "IndexBase":
         return super(IndexBase, self).copy(normalize_dtype=False, **kwargs)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         repr_str = []
         for key, val in self.__dict__.items():
             if isinstance(val, dict):
@@ -114,7 +126,7 @@ class IndexBase(CopyMixin):
         )
 
     @staticmethod
-    def normalize_value(dtype, value):
+    def normalize_value(dtype: pa.DataType, value: Any) -> Any:
         """
         Normalize value according to index dtype.
 
@@ -176,13 +188,13 @@ class IndexBase(CopyMixin):
             )
 
     @property
-    def loaded(self):
+    def loaded(self) -> bool:
         """
         Check if the index was already loaded into memory.
         """
-        return self.index_dct is not None
+        return self._index_dct_available
 
-    def eval_operator(self, op, value):
+    def eval_operator(self, op: str, value: ValueType) -> Set[str]:
         """
         Evaluates a given operator on the index for a given value and returns all
         partition labels allowed by this index.
@@ -219,7 +231,7 @@ class IndexBase(CopyMixin):
             result.update(set(self.index_dct[value]))
         return result
 
-    def query(self, value):
+    def query(self, value: ValueType) -> List[str]:
         """
         Query this index for a given value. Raises an exception if the index is external
         and not loaded.
@@ -231,7 +243,7 @@ class IndexBase(CopyMixin):
 
         Returns
         -------
-        keys: [str]
+        keys:
             A list of keys of partitions that contain the corresponding value.
         """
         if self.index_dct is None:
@@ -241,18 +253,16 @@ class IndexBase(CopyMixin):
 
         return self.index_dct.get(IndexBase.normalize_value(self.dtype, value), [])
 
-    def to_dict(self):
+    def to_dict(self) -> IndexDictType:
         """
         Serialise the object to Python object that can be part of a larger
         dictionary that may be serialised to JSON.
-
-        Returns
-        -------
-        obj: dict or str
         """
+        if self.index_dct is None:
+            raise RuntimeError("Index dict not set.")
         return self.index_dct
 
-    def update(self, index, inplace=False):
+    def update(self, index: "IndexBase", inplace: bool = False) -> "IndexBase":
         """
 
         Returns a new Index object in case of a change.
@@ -271,7 +281,6 @@ class IndexBase(CopyMixin):
                     type(index)
                 )
             )
-
         # Assume that if one of the indices dtypes is None, they are compatible. In future versions we should make
         # dtype a non-optional parameter
         if self.dtype is not None and index.dtype is not None:
@@ -301,7 +310,9 @@ class IndexBase(CopyMixin):
             new_index_dict[value] = list(set(old + partition_list))
         return self.copy(column=self.column, index_dct=new_index_dict, dtype=self.dtype)
 
-    def remove_partitions(self, list_of_partitions, inplace=False):
+    def remove_partitions(
+        self, list_of_partitions: List[str], inplace=False
+    ) -> "IndexBase":
         """
         Removes a partition from the internal index dictionary
 
@@ -343,7 +354,9 @@ class IndexBase(CopyMixin):
                 column=self.column, index_dct=new_index_dict, dtype=self.dtype
             )
 
-    def remove_values(self, list_of_values, inplace=False):
+    def remove_values(
+        self, list_of_values: List[str], inplace: bool = False
+    ) -> "IndexBase":
         """
         Removes a value from the internal index dictionary
 
@@ -385,7 +398,7 @@ class IndexBase(CopyMixin):
                 normalize_dtype=False,
             )
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, IndexBase):
             return False
         if self.column != other.column:
@@ -405,7 +418,7 @@ class IndexBase(CopyMixin):
                 return False
         return True
 
-    def __ne__(self, other):
+    def __ne__(self, other) -> bool:
         return not (self == other)
 
     def as_flat_series(
@@ -470,7 +483,13 @@ class PartitionIndex(IndexBase):
     :meth:`kartothek.core.dataset.DatasetMetadataBase.load_partition_indices`
     """
 
-    def __init__(self, column, index_dct=None, dtype=None, normalize_dtype=True):
+    def __init__(
+        self,
+        column: str,
+        index_dct: Optional[IndexDictType] = None,
+        dtype: pa.DataType = None,
+        normalize_dtype: bool = True,
+    ):
         if dtype is None:
             raise ValueError(
                 'PartitionIndex dtype of column "{}" cannot be None!'.format(column)
@@ -498,11 +517,11 @@ class ExplicitSecondaryIndex(IndexBase):
 
     def __init__(
         self,
-        column,
-        index_dct=None,
-        index_storage_key=None,
-        dtype=None,
-        normalize_dtype=True,
+        column: str,
+        index_dct: Optional[IndexDictType] = None,
+        index_storage_key: Optional[str] = None,
+        dtype: Optional[pa.DataType] = None,
+        normalize_dtype: bool = True,
     ):
         if (index_dct is None) and not index_storage_key:
             raise ValueError("No valid index source specified")
@@ -514,7 +533,7 @@ class ExplicitSecondaryIndex(IndexBase):
             normalize_dtype=normalize_dtype,
         )
 
-    def copy(self, **kwargs):
+    def copy(self, **kwargs) -> "IndexBase":
         if kwargs:
             index_storage_key = None
         else:
@@ -523,7 +542,7 @@ class ExplicitSecondaryIndex(IndexBase):
             index_storage_key=index_storage_key, **kwargs
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other) -> bool:
         if not isinstance(other, ExplicitSecondaryIndex):
             return False
         if self.index_storage_key != other.index_storage_key:
@@ -536,15 +555,15 @@ class ExplicitSecondaryIndex(IndexBase):
             return True
 
     @staticmethod
-    def from_v2(column, dct_or_str):
+    def from_v2(column: str, dct_or_str: Union[str, IndexDictType]) -> "IndexBase":
         """
         Create an index instance from a version 2 Python structure.
 
         Parameters
         ----------
-        column: str
+        column:
             Name of the column this index provides lookup for
-        dct_or_str: dict or str
+        dct_or_str:
             Either the storage key of the external index or the index itself
             as a Python object structure.
 
@@ -558,22 +577,7 @@ class ExplicitSecondaryIndex(IndexBase):
         else:
             return ExplicitSecondaryIndex(column=column, index_dct=dct_or_str)
 
-    def to_dict(self):
-        """
-        Serialise the object to Python object that can be part of a larger
-        dictionary that may be serialised to JSON.
-
-        Returns
-        -------
-        obj: dict or str
-        """
-        if self.index_dct is None:
-            # FIXME: This should not return a simple string
-            return self.index_storage_key
-        else:
-            return self.index_dct
-
-    def store(self, store, dataset_uuid):
+    def store(self, store: KeyValueStore, dataset_uuid: str) -> str:
         """
         Store the index as a parquet file
 
@@ -586,8 +590,8 @@ class ExplicitSecondaryIndex(IndexBase):
 
         Parameters
         ----------
-        store: object
-        dataset_uuid: str
+        store:
+        dataset_uuid:
         """
         storage_key = None
 
@@ -612,7 +616,7 @@ class ExplicitSecondaryIndex(IndexBase):
         store.put(storage_key, buf.getvalue().to_pybytes())
         return storage_key
 
-    def load(self, store):
+    def load(self, store: KeyValueStore):
         """
         Load an external index into memory. Returns a new index object that
         contains the index dictionary. Returns itself if the index is internal
@@ -627,22 +631,22 @@ class ExplicitSecondaryIndex(IndexBase):
         -------
         index: [kartothek.core.index.ExplicitSecondaryIndex]
         """
-        if self.index_dct is None:
-            index_buffer = store.get(self.index_storage_key)
-            index_dct, column_type = _parquet_bytes_to_dict(self.column, index_buffer)
-
-            return ExplicitSecondaryIndex(
-                column=self.column,
-                index_dct=index_dct,
-                dtype=column_type,
-                index_storage_key=self.index_storage_key,
-                normalize_dtype=False,
-            )
-        else:
+        if self.loaded:
             return self
 
+        index_buffer = store.get(self.index_storage_key)
+        index_dct, column_type = _parquet_bytes_to_dict(self.column, index_buffer)
+
+        return ExplicitSecondaryIndex(
+            column=self.column,
+            index_dct=index_dct,
+            dtype=column_type,
+            index_storage_key=self.index_storage_key,
+            normalize_dtype=False,
+        )
+
     def __getstate__(self):
-        if self.index_dct is None:
+        if not self.loaded:
             return (self.column, self.index_storage_key, self.dtype, None)
 
         table = _index_dct_to_table(self.index_dct, self.column, self.dtype)
@@ -668,7 +672,12 @@ class ExplicitSecondaryIndex(IndexBase):
         )
 
 
-def merge_indices(list_of_indices):
+_MULTI_COLUMN_INDEX_DCT_TYPE = Dict[str, IndexBase]
+
+
+def merge_indices(
+    list_of_indices: List[_MULTI_COLUMN_INDEX_DCT_TYPE]
+) -> _MULTI_COLUMN_INDEX_DCT_TYPE:
     """
     Merge a list of index dictionaries
 
@@ -679,7 +688,7 @@ def merge_indices(list_of_indices):
 
         Format: [ (partition_label, index_dict) ]
     """
-    final_indices = {}
+    final_indices: _MULTI_COLUMN_INDEX_DCT_TYPE = {}
     if not list_of_indices:
         return final_indices
 
@@ -701,7 +710,9 @@ def merge_indices(list_of_indices):
     return final_indices
 
 
-def remove_partitions_from_indices(index_dict, partitions):
+def remove_partitions_from_indices(
+    index_dict: _MULTI_COLUMN_INDEX_DCT_TYPE, partitions: List[str]
+):
     """
     Remove a given list of partitions from a kartothek index dictionary
 
@@ -718,7 +729,7 @@ def remove_partitions_from_indices(index_dict, partitions):
     return new_index_dict
 
 
-def filter_indices(index_dict, partitions):
+def filter_indices(index_dict: _MULTI_COLUMN_INDEX_DCT_TYPE, partitions: List[str]):
     """
     Filter a kartothek index dictionary such that only the provided list of partitions is included
     in the index dictionary
@@ -732,26 +743,27 @@ def filter_indices(index_dict, partitions):
     partition_list: list
         A list of partition labels which are allowed in the output dictionary
     """
-    new_index_dict = {}
     index_types = {}
     types = {}
+    temp_index_dct: Dict[str, Dict[Any, List[str]]] = {}
     for column, index in index_dict.items():
-        new_index_dict[column] = {}
+        temp_index_dct[column] = {}
         types[column] = index.dtype
         index_types[column] = type(index)
         for index_value, partition_list in index.to_dict().items():
-            new_index_dict[column][index_value] = [
+            temp_index_dct[column][index_value] = [
                 part_label for part_label in partition_list if part_label in partitions
             ]
 
-    for column, index_dict in new_index_dict.items():
-        new_index_dict[column] = index_types[column](
-            column=column, index_dct=index_dict, dtype=types[column]
+    final_index_dict: _MULTI_COLUMN_INDEX_DCT_TYPE = {}
+    for column, column_index in temp_index_dct.items():
+        final_index_dict[column] = index_types[column](
+            column=column, index_dct=column_index, dtype=types[column]
         )
-    return new_index_dict
+    return final_index_dict
 
 
-def _parquet_bytes_to_dict(column, index_buffer):
+def _parquet_bytes_to_dict(column: str, index_buffer: bytes):
     reader = pa.BufferReader(index_buffer)
     # This can be done much more efficient but would take a lot more
     # time to implement so this will be only done on request.
@@ -776,7 +788,7 @@ def _parquet_bytes_to_dict(column, index_buffer):
     return index_dct, column_type
 
 
-def _index_dct_to_table(index_dct, column, dtype):
+def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataType):
     keys = index_dct.keys()
     if (dtype is None) and (len(keys) > 0):
         probe = next(iter(keys))

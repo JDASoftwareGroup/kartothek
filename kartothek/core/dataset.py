@@ -188,7 +188,10 @@ class DatasetMetadataBase(CopyMixin):
             ]
         )
         if self.indices:
-            dct["indices"] = {k: v.to_dict() for k, v in self.indices.items()}
+            dct["indices"] = {
+                k: v.to_dict() if v.loaded else v.index_storage_key
+                for k, v in self.indices.items()
+            }
         if self.metadata:
             dct["metadata"] = self.metadata
         if self.partitions or self.explicit_partitions:
@@ -858,8 +861,10 @@ class DatasetMetadataBuilder(CopyMixin):
             for column, index in self.indices.items():
                 if isinstance(index, str):
                     dct["indices"][column] = index
-                else:
+                elif index.loaded:
                     dct["indices"][column] = index.to_dict()
+                else:
+                    dct["indices"][column] = index.index_storage_key
         if self.metadata:
             dct["metadata"] = self.metadata
 
