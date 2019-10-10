@@ -18,13 +18,14 @@ from kartothek.io.eager import (
     store_dataframes_as_dataset,
     write_single_partition,
 )
+from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
 def test_commit_dataset_from_metapartition(dataset_function, store):
 
     new_data = {
         "data": {
-            "core": pd.DataFrame(
+            SINGLE_TABLE: pd.DataFrame(
                 OrderedDict(
                     [
                         ("P", [5]),
@@ -67,7 +68,9 @@ def test_commit_dataset_from_metapartition(dataset_function, store):
     # Read the data and check whether the rows above are included.
     # This checks whether all necessary informations were updated in the header
     # (e.g. files attributes of the partitions)
-    actual = read_table(store=store, table="core", dataset_uuid=dataset_function.uuid)
+    actual = read_table(
+        store=store, table=SINGLE_TABLE, dataset_uuid=dataset_function.uuid
+    )
     df_expected = pd.DataFrame(
         OrderedDict(
             [
@@ -96,7 +99,7 @@ def test_commit_dataset_from_dict(dataset_function, store):
 
     new_data = {
         "data": {
-            "core": pd.DataFrame(
+            SINGLE_TABLE: pd.DataFrame(
                 OrderedDict(
                     [
                         ("P", [5]),
@@ -113,7 +116,10 @@ def test_commit_dataset_from_dict(dataset_function, store):
         store=store, dataset_uuid=dataset_function.uuid, data=new_data
     )
     new_partition = [
-        {"label": new_metapartition.label, "data": [("core", None), ("helper", None)]}
+        {
+            "label": new_metapartition.label,
+            "data": [(SINGLE_TABLE, None), ("helper", None)],
+        }
     ]
     pre_commit_dataset = DatasetMetadata.load_from_store(
         uuid=dataset_function.uuid, store=store
@@ -143,7 +149,9 @@ def test_commit_dataset_from_dict(dataset_function, store):
     # Read the data and check whether the rows above are included.
     # This checks whether all necessary informations were updated in the header
     # (e.g. files attributes of the partitions)
-    actual = read_table(store=store, table="core", dataset_uuid=dataset_function.uuid)
+    actual = read_table(
+        store=store, table=SINGLE_TABLE, dataset_uuid=dataset_function.uuid
+    )
     df_expected = pd.DataFrame(
         OrderedDict(
             [

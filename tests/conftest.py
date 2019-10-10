@@ -20,6 +20,7 @@ from kartothek.core.testing import (
 )
 from kartothek.io.testing.utils import no_pickle_store_from_url
 from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
     MetaPartition,
     gen_uuid,
     parse_input_to_metapartition,
@@ -202,7 +203,7 @@ def _get_meta_partitions_with_dataframe(metadata_version):
     df_2 = pd.DataFrame(OrderedDict([("P", [1]), ("info", ["a"])]))
     mp = MetaPartition(
         label="cluster_1",
-        data={"core": df, "helper": df_2},
+        data={SINGLE_TABLE: df, "helper": df_2},
         metadata_version=metadata_version,
     )
     df_3 = pd.DataFrame(
@@ -218,7 +219,7 @@ def _get_meta_partitions_with_dataframe(metadata_version):
     df_4 = pd.DataFrame(OrderedDict([("P", [2]), ("info", ["b"])]))
     mp2 = MetaPartition(
         label="cluster_2",
-        data={"core": df_3, "helper": df_4},
+        data={SINGLE_TABLE: df_3, "helper": df_4},
         metadata_version=metadata_version,
     )
     return [mp, mp2]

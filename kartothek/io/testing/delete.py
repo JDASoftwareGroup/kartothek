@@ -81,7 +81,7 @@ def test_delete_dataset_unreferenced_files(
     create_dataset(uuid, store_factory, metadata_version)
 
     store = store_factory()
-    store.put(f"{uuid}/core/trash.parquet", b"trash")
+    store.put(f"{uuid}/table/trash.parquet", b"trash")
 
     assert len(list(store.keys())) > 0
     bound_delete_dataset(uuid, store_factory)

@@ -6,6 +6,7 @@ import pytest
 
 from kartothek.io.dask.dataframe import read_dataset_as_ddf
 from kartothek.io.testing.read import *  # noqa
+from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
 @pytest.fixture()
@@ -22,7 +23,7 @@ def _read_as_ddf(
     dataset_has_index=False,
     **kwargs,
 ):
-    table = tables or "core"
+    table = tables or SINGLE_TABLE
     if categoricals:
         categoricals = categoricals[table]
     ddf = read_dataset_as_ddf(

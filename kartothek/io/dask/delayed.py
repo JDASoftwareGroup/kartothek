@@ -21,6 +21,7 @@ from kartothek.io_components.docs import default_docs
 from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
 from kartothek.io_components.merge import align_datasets
 from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
     MetaPartition,
     parse_input_to_metapartition,
 )
@@ -386,7 +387,7 @@ def read_dataset_as_delayed(
 def read_table_as_delayed(
     dataset_uuid=None,
     store=None,
-    table=None,
+    table=SINGLE_TABLE,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -415,9 +416,9 @@ def read_table_as_delayed(
 
     Parameters
     ----------
+    table: str, optional
+    The table to be loaded. If none is specified, the default 'table' is used.
     """
-    if table is None:
-        raise TypeError("Parameter `table` is not optional.")
     if not isinstance(columns, dict):
         columns = {table: columns}
     mps = read_dataset_as_delayed_metapartitions(

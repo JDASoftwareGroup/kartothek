@@ -24,7 +24,7 @@ def _load_dataframes(output_type, *args, **kwargs):
     elif output_type == "table":
         if "tables" in kwargs:
             kwargs.pop("tables")
-        func = partial(read_table_as_delayed, table="core")
+        func = partial(read_table_as_delayed)
     tasks = func(*args, **kwargs)
 
     s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
