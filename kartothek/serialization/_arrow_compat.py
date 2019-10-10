@@ -1,6 +1,6 @@
 import json
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130
+from kartothek.core._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0150
 from kartothek.core.common_metadata import SchemaWrapper
 
 
@@ -34,11 +34,11 @@ def _fix_pyarrow_07992_table(table):
             if ARROW_LARGER_EQ_0130:
                 pandas_type = "int64"
             else:
-                pandas_type = (
-                    table.schema.field_by_name("__index_level_0__")
-                    .type.to_pandas_dtype()
-                    .__name__
-                )
+                if ARROW_LARGER_EQ_0150:
+                    field = table.schema.field("__index_level_0__")
+                else:
+                    field = table.schema.field_by_name("__index_level_0__")
+                pandas_type = field.type.to_pandas_dtype().__name__
             new_columns.append(
                 {
                     "metadata": None,
