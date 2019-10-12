@@ -12,7 +12,9 @@ Version 3.X.X (2019-09-XX)
 - Added `secondary_indices` as a default argument to the `write` pipelines
 - Correctly preserve :class:`~kartothek.core.index.ExplicitSecondaryIndex` dtype when index is empty
 - Fixed DeprecationWarning in pandas ``CategoricalDtype``
+- Fixed broken docstring for `store_dataframes_as_dataset`
 - Make ``kartothek.io.*read_table*`` methods use default table name if unspecified
+
 
 Version 3.4.0 (2019-09-17)
 ==========================
