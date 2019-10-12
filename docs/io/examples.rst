@@ -34,7 +34,7 @@ Setup a store
     }
 
     store_dataframes_as_dataset(
-        store=store_factory, dataset_uuid=dataset_uuid, dfs=df, metadata=metadata
+        store=store_factory, dataset_uuid=dataset_uuid, dfs=[df], metadata=metadata
     )
 
     # Load your data

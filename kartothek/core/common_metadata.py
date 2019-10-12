@@ -17,7 +17,7 @@ from kartothek.core import naming
 from kartothek.core._compat import load_json
 from kartothek.core.utils import ensure_string_type
 
-from ._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0141
+from ._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0141, ARROW_LARGER_EQ_0150
 
 _logger = logging.getLogger()
 
@@ -95,9 +95,12 @@ class SchemaWrapper:
                     else:
                         pass
 
-            schema = schema.remove_metadata().add_metadata(
-                {b"pandas": _dict_to_binary(pandas_metadata)}
-            )
+            schema = schema.remove_metadata()
+            md = {b"pandas": _dict_to_binary(pandas_metadata)}
+            if ARROW_LARGER_EQ_0150:
+                schema = schema.with_metadata(md)
+            else:
+                schema = schema.add_metadata(md)
             self.__schema = schema
 
     def internal(self):
@@ -537,7 +540,10 @@ def _determine_schemas_to_compare(schemas, ignore_pandas):
 
 
 def _swap_fields_by_name(reference, current, field_name):
-    current_field = current.field_by_name(field_name)
+    if ARROW_LARGER_EQ_0150:
+        current_field = current.field(field_name)
+    else:
+        current_field = current.field_by_name(field_name)
     reference_index = reference.get_field_index(field_name)
     return reference.set(reference_index, current_field)
 

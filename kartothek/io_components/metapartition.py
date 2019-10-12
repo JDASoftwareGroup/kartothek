@@ -17,6 +17,7 @@ import pandas as pd
 import pyarrow as pa
 
 from kartothek.core import naming
+from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core.common_metadata import (
     make_meta,
     normalize_column_order,
@@ -797,7 +798,10 @@ class MetaPartition(Iterable):
             if columns is not None and primary_key not in columns:
                 continue
 
-            pa_dtype = schema.field_by_name(primary_key).type
+            if ARROW_LARGER_EQ_0150:
+                pa_dtype = schema.field(primary_key).type
+            else:
+                pa_dtype = schema.field_by_name(primary_key).type
             dtype = pa_dtype.to_pandas_dtype()
             convert_to_date = False
             if date_as_object and pa_dtype in [pa.date32(), pa.date64()]:

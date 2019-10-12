@@ -42,7 +42,7 @@ import pytest
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io.iter import store_dataframes_as_dataset__iter
-from kartothek.io_components.metapartition import MetaPartition
+from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
 
 
 @pytest.fixture(
@@ -124,7 +124,7 @@ def _perform_read_test(
         read_kwargs = {}
     if use_categoricals:
         # dataset_with_index has an index on L but not on P
-        categoricals = {"core": ["P", "L"]}
+        categoricals = {SINGLE_TABLE: ["P", "L"]}
     else:
         categoricals = None
 
@@ -151,7 +151,7 @@ def _perform_read_test(
         result = [mp.data for mp in result]
 
         def sort_by(obj):
-            return obj["core"].P.iloc[0]
+            return obj[SINGLE_TABLE].P.iloc[0]
 
     elif output_type == "table":
 
@@ -163,11 +163,11 @@ def _perform_read_test(
 
     else:
         assert isinstance(result[0], dict)
-        assert "core" in result[0]
-        assert "P" in result[0]["core"]
+        assert SINGLE_TABLE in result[0]
+        assert "P" in result[0][SINGLE_TABLE]
 
         def sort_by(obj):
-            return obj["core"].P.iloc[0]
+            return obj[SINGLE_TABLE].P.iloc[0]
 
     result = sorted(result, key=sort_by)
 
@@ -202,7 +202,7 @@ def _perform_read_test(
                 check_like=True,
             )
         else:
-            actual_core = _strip_unused_categoricals(res["core"])
+            actual_core = _strip_unused_categoricals(res[SINGLE_TABLE])
             actual_helper = _strip_unused_categoricals(res["helper"])
             assert len(res) == 2
             pdt.assert_frame_equal(
@@ -240,7 +240,7 @@ def test_read_dataset_as_dataframes_predicate(
         predicates=predicates,
         **custom_read_parameters,
     )
-    core_result = pd.concat([data["core"] for data in result])
+    core_result = pd.concat([data[SINGLE_TABLE] for data in result])
 
     expected_core = pd.DataFrame(
         {
@@ -285,11 +285,11 @@ def test_read_dataset_as_dataframes_predicate_with_partition_keys(
         dataset_uuid=dataset_partition_keys.uuid,
         store=store_session_factory,
         predicates=predicates,
-        tables=["core"],
+        tables=[SINGLE_TABLE],
         **custom_read_parameters,
     )
 
-    core_result = pd.concat([data["core"] for data in result])
+    core_result = pd.concat([data[SINGLE_TABLE] for data in result])
 
     expected_core = pd.DataFrame(
         {
@@ -317,8 +317,8 @@ def test_read_dataset_as_dataframes_predicate_empty(
         dataset_uuid=dataset_partition_keys.uuid,
         store=store_session_factory,
         predicates=[[("P", "==", -42)]],
-        tables=["core"],
-        columns={"core": ["P", "L", "TARGET"]},
+        tables=[SINGLE_TABLE],
+        columns={SINGLE_TABLE: ["P", "L", "TARGET"]},
         **custom_read_parameters,
     )
     assert len(result) == 0
@@ -516,7 +516,7 @@ def test_load_dataset_metadata(
 def test_read_dataset_as_dataframes_columns_projection(
     store_factory, bound_load_dataframes, metadata_version
 ):
-    table_name = "core"
+    table_name = SINGLE_TABLE
 
     def _f(b_c):
         b, c = b_c
@@ -555,7 +555,7 @@ def test_read_dataset_as_dataframes_columns_projection(
 def test_read_dataset_as_dataframes_columns_primary_index_only(
     store_factory, bound_load_dataframes, metadata_version
 ):
-    table_name = "core"
+    table_name = SINGLE_TABLE
 
     def _f(b_c):
         b, c = b_c
@@ -592,7 +592,7 @@ def test_read_dataset_as_dataframes_columns_primary_index_only(
 def test_empty_predicate_pushdown_empty_col_projection(
     dataset, store_session_factory, bound_load_dataframes, backend_identifier
 ):
-    table_name = "core"
+    table_name = SINGLE_TABLE
     result = bound_load_dataframes(
         dataset_uuid=dataset.uuid,
         tables=table_name,
@@ -629,7 +629,7 @@ def test_datetime_predicate_with_dates_as_object(
     datetype,
     comp,
 ):
-    table_name = "core"
+    table_name = SINGLE_TABLE
 
     def _f(b_c):
         b, c = b_c
@@ -667,7 +667,7 @@ def test_datetime_predicate_with_dates_as_object(
 
 
 def test_binary_column_metadata(store_factory, bound_load_dataframes):
-    table_name = "core"
+    table_name = SINGLE_TABLE
     df = {
         "label": "part1",
         "data": [(table_name, pd.DataFrame({b"int_col": [1], "🙈".encode(): [2]}))],

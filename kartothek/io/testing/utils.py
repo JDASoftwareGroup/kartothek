@@ -6,6 +6,7 @@ import storefact
 from simplekv.decorator import StoreDecorator
 
 from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
 def create_dataset(dataset_uuid, store_factory, metadata_version):
@@ -20,13 +21,17 @@ def create_dataset(dataset_uuid, store_factory, metadata_version):
     df_list = [
         {
             "label": "cluster_1",
-            "data": [("core", df.copy(deep=True)), ("helper", df_helper)],
-            "indices": {"core": {val: ["cluster_2"] for val in df.TARGET.unique()}},
+            "data": [(SINGLE_TABLE, df.copy(deep=True)), ("helper", df_helper)],
+            "indices": {
+                SINGLE_TABLE: {val: ["cluster_2"] for val in df.TARGET.unique()}
+            },
         },
         {
             "label": "cluster_2",
-            "data": [("core", df.copy(deep=True)), ("helper", df_helper)],
-            "indices": {"core": {val: ["cluster_2"] for val in df.TARGET.unique()}},
+            "data": [(SINGLE_TABLE, df.copy(deep=True)), ("helper", df_helper)],
+            "indices": {
+                SINGLE_TABLE: {val: ["cluster_2"] for val in df.TARGET.unique()}
+            },
         },
     ]
 

@@ -10,6 +10,7 @@ import pyarrow.parquet as pq
 
 import kartothek.core._time
 from kartothek.core import naming
+from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core._mixins import CopyMixin
 from kartothek.core.common_metadata import normalize_type
 from kartothek.core.urlencode import quote
@@ -755,7 +756,10 @@ def _parquet_bytes_to_dict(column, index_buffer):
     # This can be done much more efficient but would take a lot more
     # time to implement so this will be only done on request.
     table = pq.read_table(reader)
-    column_type = table.schema.field_by_name(column).type
+    if ARROW_LARGER_EQ_0150:
+        column_type = table.schema.field(column).type
+    else:
+        column_type = table.schema.field_by_name(column).type
 
     # `datetime.datetime` objects have a precision of up to microseconds only, so arrow
     # parses the type to `pa.timestamp("us")`. Since the

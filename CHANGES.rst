@@ -2,7 +2,6 @@
 Changelog
 =========
 
-
 Version 3.X.X (2019-09-XX)
 ==========================
 - Input to ``normalize_args`` is properly normalized to ``list``
@@ -10,9 +9,11 @@ Version 3.X.X (2019-09-XX)
 - require ``urlquote>=1.1.0`` (where ``urlquote.quoting`` was introduced)
 - ``MetaPartition.parse_input_to_metapartition`` accepts dicts and list of tuples equivalents as ``obj`` input
 - Improve performance for some cases where predicates are used with the `in` operator.
+- Added `secondary_indices` as a default argument to the `write` pipelines
 - Correctly preserve :class:`~kartothek.core.index.ExplicitSecondaryIndex` dtype when index is empty
 - Fixed DeprecationWarning in pandas ``CategoricalDtype``
 - Fixed broken docstring for `store_dataframes_as_dataset`
+- Make ``kartothek.io.*read_table*`` methods use default table name if unspecified
 
 
 Version 3.4.0 (2019-09-17)
