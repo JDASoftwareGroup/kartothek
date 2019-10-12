@@ -2,7 +2,7 @@
 
 import logging
 from copy import copy
-from typing import Any, Dict, List, Optional, Set, TypeVar, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar, Union
 
 import numpy as np
 import pandas as pd
@@ -729,7 +729,7 @@ def remove_partitions_from_indices(
     return new_index_dict
 
 
-def filter_indices(index_dict: _MULTI_COLUMN_INDEX_DCT_TYPE, partitions: List[str]):
+def filter_indices(index_dict: _MULTI_COLUMN_INDEX_DCT_TYPE, partitions: Iterable[str]):
     """
     Filter a kartothek index dictionary such that only the provided list of partitions is included
     in the index dictionary
@@ -738,9 +738,9 @@ def filter_indices(index_dict: _MULTI_COLUMN_INDEX_DCT_TYPE, partitions: List[st
 
     Parameters
     ----------
-    index_dict: dict of Index
+    index_dict:
         A dictionary holding kartothek indices
-    partition_list: list
+    partition_list:
         A list of partition labels which are allowed in the output dictionary
     """
     index_types = {}
