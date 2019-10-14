@@ -396,6 +396,11 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     if pa.types.is_integer(pa_type) and (max_value < min_value):
         return True
 
+    if pa.types.is_timestamp(pa_type):
+        # timestamps in the parquet statistic might be of type datetime.datetime, which is not compatible w/ numpy
+        min_value = np.datetime64(min_value)
+        max_value = np.datetime64(max_value)
+
     # The statistics for floats only contain the 6 most significant digits.
     # So a suitable epsilon has to be considered below min and above max.
     if isinstance(val, float):
