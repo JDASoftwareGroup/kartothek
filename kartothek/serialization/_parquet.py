@@ -322,6 +322,9 @@ def _timelike_to_arrow_encoding(value, pa_type):
 
 
 def _normalize_value(value, pa_type):
+    if pa.types.is_dictionary(pa_type):
+        pa_type = pa_type.value_type
+
     if pa.types.is_string(pa_type):
         if isinstance(value, bytes):
             return value.decode("utf-8")
