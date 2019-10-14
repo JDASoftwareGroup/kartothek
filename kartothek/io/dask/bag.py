@@ -5,6 +5,7 @@ from functools import partial
 import dask.bag as db
 
 from kartothek.core import naming
+from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.utils import _check_callable
 from kartothek.core.uuid import gen_uuid
@@ -14,7 +15,6 @@ from kartothek.io.dask._utils import (
     _identity,
     _maybe_get_categoricals_from_index,
 )
-from kartothek.io_components.docs import default_docs
 from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.metapartition import (
     MetaPartition,

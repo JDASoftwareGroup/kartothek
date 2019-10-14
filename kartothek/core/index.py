@@ -15,6 +15,7 @@ from kartothek.core import naming
 from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core._mixins import CopyMixin
 from kartothek.core.common_metadata import normalize_type
+from kartothek.core.docs import default_docs
 from kartothek.core.urlencode import quote
 from kartothek.serialization import (
     PredicatesType,
@@ -427,6 +428,7 @@ class IndexBase(CopyMixin):
     def __ne__(self, other) -> bool:
         return not (self == other)
 
+    @default_docs
     def as_flat_series(
         self,
         compact: bool = False,

@@ -30,6 +30,10 @@ Version 3.X.X (2019-09-XX)
   * `~kartothek.serialization.ConjunctionType`
   * `~kartothek.serialization.LiteralType`
 
+Internal changes
+^^^^^^^^^^^^^^^^
+- Move the docs module from `io_components` to `core`
+
 
 Version 3.4.0 (2019-09-17)
 ==========================

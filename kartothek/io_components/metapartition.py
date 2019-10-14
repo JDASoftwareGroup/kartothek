@@ -25,6 +25,7 @@ from kartothek.core.common_metadata import (
     validate_compatible,
     validate_shared_columns,
 )
+from kartothek.core.docs import default_docs
 from kartothek.core.index import ExplicitSecondaryIndex, IndexBase
 from kartothek.core.index import merge_indices as merge_indices_algo
 from kartothek.core.naming import get_partition_file_prefix
@@ -32,7 +33,6 @@ from kartothek.core.partition import Partition
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_string_type, verify_metadata_version
 from kartothek.core.uuid import gen_uuid
-from kartothek.io_components.docs import default_docs
 from kartothek.io_components.utils import _instantiate_store, combine_metadata
 from kartothek.serialization import (
     DataFrameSerializer,

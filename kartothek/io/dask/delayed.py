@@ -8,6 +8,7 @@ import dask
 from dask import delayed
 
 from kartothek.core import naming
+from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.core.utils import _check_callable
@@ -17,7 +18,6 @@ from kartothek.io_components.delete import (
     delete_indices,
     delete_top_level_metadata,
 )
-from kartothek.io_components.docs import default_docs
 from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
 from kartothek.io_components.merge import align_datasets
 from kartothek.io_components.metapartition import (

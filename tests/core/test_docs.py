@@ -2,6 +2,7 @@ import inspect
 
 import pytest
 
+from kartothek.core.docs import _PARAMETER_MAPPING
 from kartothek.io.dask.bag import (
     build_dataset_indices__bag,
     read_dataset_as_dataframe_bag,
@@ -37,7 +38,6 @@ from kartothek.io.iter import (
     store_dataframes_as_dataset__iter,
     update_dataset_from_dataframes__iter,
 )
-from kartothek.io_components.docs import _PARAMETER_MAPPING
 
 
 @pytest.mark.parametrize(
