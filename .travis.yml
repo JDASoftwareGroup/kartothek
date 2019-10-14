@@ -45,6 +45,8 @@ after_success:
   - codecov
 
 matrix:
+  # When marking the build as finished, do not wait for allowed failures to complete
+  fast_finish: true
   allow_failures:
     - env: ARROW_NIGHTLY=1
     - env: PIP_COMPILE_ARGS="-P pyarrow==0.13.0" NUMFOCUS_NIGHTLY=1
