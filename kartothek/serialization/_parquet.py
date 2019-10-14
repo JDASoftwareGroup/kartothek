@@ -46,12 +46,28 @@ EPOCH_ORDINAL = datetime.date(1970, 1, 1).toordinal()
 
 def _empty_table_from_schema(parquet_file):
     schema = parquet_file.schema.to_arrow_schema()
-    arrays = []
-    names = []
-    for field in schema:
-        arrays.append(pa.array([], type=field.type))
-        names.append(field.name)
-    return pa.Table.from_arrays(arrays=arrays, names=names, metadata=schema.metadata)
+
+    if ARROW_LARGER_EQ_0150:
+        # ARROW-6872: empty dictionary columns raise ArrowNotImplementedError
+        for i in range(len(schema)):
+            field = schema[i]
+            if pa.types.is_dictionary(field.type):
+                new_field = pa.field(
+                    field.name, field.type.value_type, field.nullable, field.metadata
+                )
+                schema = schema.remove(i).insert(i, new_field)
+
+    if ARROW_LARGER_EQ_0130:
+        return schema.empty_table()
+    else:
+        arrays = []
+        names = []
+        for field in schema:
+            arrays.append(pa.array([], type=field.type))
+            names.append(field.name)
+        return pa.Table.from_arrays(
+            arrays=arrays, names=names, metadata=schema.metadata
+        )
 
 
 def _reset_dictionary_columns(table):
@@ -139,10 +155,7 @@ class ParquetSerializer(DataFrameSerializer):
                     )
 
                     if len(tables) == 0:
-                        if ARROW_LARGER_EQ_0130:
-                            table = parquet_file.schema.to_arrow_schema().empty_table()
-                        else:
-                            table = _empty_table_from_schema(parquet_file)
+                        table = _empty_table_from_schema(parquet_file)
                     else:
                         table = pa.concat_tables(tables)
                 else:
