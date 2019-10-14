@@ -730,8 +730,8 @@ def test_schema_check_write_nice_error(store_factory, bound_store_dataframes):
 
 Schema violation
 
-Origin schema: {core/P=2/Q=1/uuid2, core/P=2/Q=2/uuid2}
-Origin reference: {core/P=1/Q=1/uuid1, core/P=1/Q=2/uuid1}
+Origin schema: {core/P=2/Q=2/uuid2}
+Origin reference: {core/P=1/Q=2/uuid1}
 
 Diff:
 """
@@ -770,8 +770,8 @@ def test_schema_check_write_cut_error(store_factory, bound_store_dataframes):
 
 Schema violation
 
-Origin schema: {core/P=2/Q=0/uuid2, core/P=2/Q=1/uuid2, core/P=2/Q=10/uuid2, core/P=2/Q=11/uuid2, core/P=2/Q=12/uuid2, core/P=2/Q=13/uuid2, core/P=2/Q=14/uuid2, core/P=2/Q=15/uuid2, core/P=2/Q=16/uuid2, core/P=2/Q=17...}
-Origin reference: {core/P=1/Q=0/uuid1, core/P=1/Q=1/uuid1, core/P=1/Q=10/uuid1, core/P=1/Q=11/uuid1, core/P=1/Q=12/uuid1, core/P=1/Q=13/uuid1, core/P=1/Q=14/uuid1, core/P=1/Q=15/uuid1, core/P=1/Q=16/uuid1, core/P=1/Q=17...}
+Origin schema: {core/P=2/Q=99/uuid2}
+Origin reference: {core/P=1/Q=99/uuid1}
 
 Diff:
 """
