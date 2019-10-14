@@ -13,7 +13,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0141
+from kartothek.core._compat import (
+    ARROW_LARGER_EQ_0130,
+    ARROW_LARGER_EQ_0141,
+    ARROW_LARGER_EQ_0150,
+)
 from kartothek.serialization._arrow_compat import (
     _fix_pyarrow_0130_table,
     _fix_pyarrow_07992_table,
@@ -56,9 +60,18 @@ def _reset_dictionary_columns(table):
     2. Massive performance issue due to non-fast path implementation https://issues.apache.org/jira/browse/ARROW-5089
     """
     for i in range(table.num_columns):
-        if pa.types.is_dictionary(table[i].type):
-            new_col = table[i].cast(table[i].data.chunk(0).dictionary.type)
-            table = table.remove_column(i).add_column(i, new_col)
+        col = table[i]
+        if pa.types.is_dictionary(col.type):
+            new_type = col.data.chunk(0).dictionary.type
+            new_col = col.cast(new_type)
+            if ARROW_LARGER_EQ_0150:
+                field = table.field(i)
+                new_field = pa.field(
+                    field.name, new_type, field.nullable, field.metadata
+                )
+                table = table.remove_column(i).add_column(i, new_field, new_col)
+            else:
+                table = table.remove_column(i).add_column(i, new_col)
     return table
 
 
