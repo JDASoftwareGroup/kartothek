@@ -148,20 +148,20 @@ class DatasetMetadataBase(CopyMixin):
         return key in store
 
     @staticmethod
-    def storage_keys(uuid: str, store: KeyValueStore):
+    def storage_keys(uuid: str, store: KeyValueStore) -> List[str]:
         """
         Retrieve all keys that belong to the given dataset.
 
         Parameters
         ----------
-        uuid: str or unicode
+        uuid:
             UUID of the dataset.
-        store: Object
+        store:
             Object that implements the .iter_keys method for key retrieval loading.
 
         Returns
         -------
-        keys: List[Union[str, unicode]]
+        keys:
             Sorted list of storage keys.
         """
         start_markers = ["{}.".format(uuid), "{}/".format(uuid)]
