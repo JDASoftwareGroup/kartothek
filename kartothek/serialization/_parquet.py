@@ -412,7 +412,7 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     if pa.types.is_integer(pa_type) and (max_value < min_value):
         return True
 
-    if pa.types.is_timestamp(pa_type):
+    if pa.types.is_timestamp(pa_type) and ARROW_LARGER_EQ_0150:
         # timestamps in the parquet statistic might be of type datetime.datetime, which is not compatible w/ numpy
         min_value = np.datetime64(min_value)
         max_value = np.datetime64(max_value)
