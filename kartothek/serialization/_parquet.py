@@ -211,7 +211,11 @@ class ParquetSerializer(DataFrameSerializer):
         else:
             table = pa.Table.from_pandas(df)
         buf = pa.BufferOutputStream()
-        if self.chunk_size and self.chunk_size < len(table):
+        if (
+            self.chunk_size
+            and self.chunk_size < len(table)
+            and not ARROW_LARGER_EQ_0150
+        ):
             table = _reset_dictionary_columns(table)
         pq.write_table(
             table,
