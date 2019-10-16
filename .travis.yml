@@ -19,9 +19,10 @@ env:
     - PIP_COMPILE_ARGS="-P pyarrow==0.12.1 -P dask<2.2.0 -P distributed<2.2.0"
     - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
     - PIP_COMPILE_ARGS="-P pyarrow==0.14.1"
+    - PIP_COMPILE_ARGS="-P pyarrow==0.15.0"
 
     # optional builds
-    - PIP_COMPILE_ARGS="-P pyarrow==0.14.1" NUMFOCUS_NIGHTLY=1
+    - PIP_COMPILE_ARGS="-P pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
     - ARROW_NIGHTLY=1
 
 before_install:

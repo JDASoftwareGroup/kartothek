@@ -18,6 +18,7 @@ Version 3.X.X (2019-09-XX)
   performance for batched partition operations (e.g. `partition_on`) but will
   defer the validation in case of inconsistencies to the final commit. Exception
   messages will be less verbose in these cases as before.
+- Add support for pyarrow 0.15.0
 
 
 Version 3.4.0 (2019-09-17)

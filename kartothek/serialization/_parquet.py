@@ -13,7 +13,11 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0141
+from kartothek.core._compat import (
+    ARROW_LARGER_EQ_0130,
+    ARROW_LARGER_EQ_0141,
+    ARROW_LARGER_EQ_0150,
+)
 from kartothek.serialization._arrow_compat import (
     _fix_pyarrow_0130_table,
     _fix_pyarrow_07992_table,
@@ -42,12 +46,28 @@ EPOCH_ORDINAL = datetime.date(1970, 1, 1).toordinal()
 
 def _empty_table_from_schema(parquet_file):
     schema = parquet_file.schema.to_arrow_schema()
-    arrays = []
-    names = []
-    for field in schema:
-        arrays.append(pa.array([], type=field.type))
-        names.append(field.name)
-    return pa.Table.from_arrays(arrays=arrays, names=names, metadata=schema.metadata)
+
+    if ARROW_LARGER_EQ_0150:
+        # ARROW-6872: empty dictionary columns raise ArrowNotImplementedError
+        for i in range(len(schema)):
+            field = schema[i]
+            if pa.types.is_dictionary(field.type):
+                new_field = pa.field(
+                    field.name, field.type.value_type, field.nullable, field.metadata
+                )
+                schema = schema.remove(i).insert(i, new_field)
+
+    if ARROW_LARGER_EQ_0130:
+        return schema.empty_table()
+    else:
+        arrays = []
+        names = []
+        for field in schema:
+            arrays.append(pa.array([], type=field.type))
+            names.append(field.name)
+        return pa.Table.from_arrays(
+            arrays=arrays, names=names, metadata=schema.metadata
+        )
 
 
 def _reset_dictionary_columns(table):
@@ -56,8 +76,10 @@ def _reset_dictionary_columns(table):
     2. Massive performance issue due to non-fast path implementation https://issues.apache.org/jira/browse/ARROW-5089
     """
     for i in range(table.num_columns):
-        if pa.types.is_dictionary(table[i].type):
-            new_col = table[i].cast(table[i].data.chunk(0).dictionary.type)
+        col = table[i]
+        if pa.types.is_dictionary(col.type):
+            new_type = col.data.chunk(0).dictionary.type
+            new_col = col.cast(new_type)
             table = table.remove_column(i).add_column(i, new_col)
     return table
 
@@ -126,10 +148,7 @@ class ParquetSerializer(DataFrameSerializer):
                     )
 
                     if len(tables) == 0:
-                        if ARROW_LARGER_EQ_0130:
-                            table = parquet_file.schema.to_arrow_schema().empty_table()
-                        else:
-                            table = _empty_table_from_schema(parquet_file)
+                        table = _empty_table_from_schema(parquet_file)
                     else:
                         table = pa.concat_tables(tables)
                 else:
@@ -185,7 +204,11 @@ class ParquetSerializer(DataFrameSerializer):
         else:
             table = pa.Table.from_pandas(df)
         buf = pa.BufferOutputStream()
-        if self.chunk_size and self.chunk_size < len(table):
+        if (
+            self.chunk_size
+            and self.chunk_size < len(table)
+            and not ARROW_LARGER_EQ_0150
+        ):
             table = _reset_dictionary_columns(table)
         pq.write_table(
             table,
@@ -309,6 +332,9 @@ def _timelike_to_arrow_encoding(value, pa_type):
 
 
 def _normalize_value(value, pa_type):
+    if pa.types.is_dictionary(pa_type):
+        pa_type = pa_type.value_type
+
     if pa.types.is_string(pa_type):
         if isinstance(value, bytes):
             return value.decode("utf-8")
@@ -382,6 +408,11 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     # integer overflow protection since statistics are stored as signed integer, see ARROW-5166
     if pa.types.is_integer(pa_type) and (max_value < min_value):
         return True
+
+    if pa.types.is_timestamp(pa_type) and ARROW_LARGER_EQ_0150:
+        # timestamps in the parquet statistic might be of type datetime.datetime, which is not compatible w/ numpy
+        min_value = np.datetime64(min_value)
+        max_value = np.datetime64(max_value)
 
     # The statistics for floats only contain the 6 most significant digits.
     # So a suitable epsilon has to be considered below min and above max.
