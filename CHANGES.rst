@@ -14,6 +14,10 @@ Version 3.X.X (2019-09-XX)
 - Fixed DeprecationWarning in pandas ``CategoricalDtype``
 - Fixed broken docstring for `store_dataframes_as_dataset`
 - Make ``kartothek.io.*read_table*`` methods use default table name if unspecified
+- Internal operations no longer perform schema validations. This will improve
+  performance for batched partition operations (e.g. `partition_on`) but will
+  defer the validation in case of inconsistencies to the final commit. Exception
+  messages will be less verbose in these cases as before.
 
 
 Version 3.4.0 (2019-09-17)

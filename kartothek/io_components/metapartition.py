@@ -130,7 +130,7 @@ def _apply_to_list(method):
                     result = method_return
                 else:
                     for mp in method_return:
-                        result = result.add_metapartition(mp)
+                        result = result.add_metapartition(mp, schema_validation=False)
         if not isinstance(result, MetaPartition):
             raise ValueError(
                 "Result for method {} is not a `MetaPartition` but".format(
@@ -1187,7 +1187,8 @@ class MetaPartition(Iterable):
                         logical_conjunction=kwargs.get(
                             "logical_conjunction", self.logical_conjunction
                         ),
-                    )
+                    ),
+                    schema_validation=False,
                 )
             return mp_parent
         else:
@@ -1316,7 +1317,7 @@ class MetaPartition(Iterable):
                 },
                 partition_keys=partition_on,
             )
-            new_mp = new_mp.add_metapartition(tmp_mp)
+            new_mp = new_mp.add_metapartition(tmp_mp, schema_validation=False)
         if self.indices:
             new_mp = new_mp.build_indices(columns=self.indices.keys())
         return new_mp
