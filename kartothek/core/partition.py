@@ -1,8 +1,12 @@
-# -*- coding: utf-8 -*-
+from typing import Any, Dict, Optional, Union
+
+PartitionDictType = Dict[str, Dict[str, str]]
 
 
 class Partition:
-    def __init__(self, label, files=None, metadata=None):
+    def __init__(
+        self, label: str, files: Optional[Dict[str, str]] = None, metadata: Dict = None
+    ):
         """
         An object for the internal representation of the metadata of a partition.
 
@@ -10,17 +14,17 @@ class Partition:
 
         Parameters
         ----------
-        label: str
+        label:
             A label identifying the partition, e.g. `partition_1` or `P=0/L=A`
-        files: dict, optional
+        files:
             A dictionary containing the keys of the files contained in this partition
-        metadata: dict, optional
+        metadata:
             Partition level, custom metadata
         """
         self.label = label
         self.files = files if files else {}
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Partition):
             return False
         if self.label != other.label:
@@ -30,7 +34,7 @@ class Partition:
         return True
 
     @staticmethod
-    def from_dict(label, dct):
+    def from_dict(label: str, dct: Union[str, PartitionDictType]):
         if isinstance(dct, str):
             raise ValueError(
                 "Trying to load a partition from a string. Probably the dataset file uses the multifile "
@@ -39,5 +43,5 @@ class Partition:
             )
         return Partition(label, files=dct.get("files", {}))
 
-    def to_dict(self, version=None):
+    def to_dict(self, version: Any = None) -> PartitionDictType:
         return {"files": self.files}
