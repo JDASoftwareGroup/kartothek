@@ -80,14 +80,7 @@ def _reset_dictionary_columns(table):
         if pa.types.is_dictionary(col.type):
             new_type = col.data.chunk(0).dictionary.type
             new_col = col.cast(new_type)
-            if ARROW_LARGER_EQ_0150:
-                field = table.field(i)
-                new_field = pa.field(
-                    field.name, new_type, field.nullable, field.metadata
-                )
-                table = table.remove_column(i).add_column(i, new_field, new_col)
-            else:
-                table = table.remove_column(i).add_column(i, new_col)
+            table = table.remove_column(i).add_column(i, new_col)
     return table
 
 
