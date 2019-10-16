@@ -13,15 +13,8 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
 
-from kartothek.core._compat import (
-    ARROW_LARGER_EQ_0130,
-    ARROW_LARGER_EQ_0141,
-    ARROW_LARGER_EQ_0150,
-)
-from kartothek.serialization._arrow_compat import (
-    _fix_pyarrow_0130_table,
-    _fix_pyarrow_07992_table,
-)
+from kartothek.core._compat import ARROW_LARGER_EQ_0141, ARROW_LARGER_EQ_0150
+from kartothek.serialization._arrow_compat import _fix_pyarrow_07992_table
 
 from ._generic import (
     DataFrameSerializer,
@@ -57,17 +50,7 @@ def _empty_table_from_schema(parquet_file):
                 )
                 schema = schema.remove(i).insert(i, new_field)
 
-    if ARROW_LARGER_EQ_0130:
-        return schema.empty_table()
-    else:
-        arrays = []
-        names = []
-        for field in schema:
-            arrays.append(pa.array([], type=field.type))
-            names.append(field.name)
-        return pa.Table.from_arrays(
-            arrays=arrays, names=names, metadata=schema.metadata
-        )
+    return schema.empty_table()
 
 
 def _reset_dictionary_columns(table):
@@ -153,7 +136,7 @@ class ParquetSerializer(DataFrameSerializer):
                         table = pa.concat_tables(tables)
                 else:
                     # ARROW-5139 Column projection with empty columns returns a table w/out index
-                    if ARROW_LARGER_EQ_0130 and columns == []:
+                    if columns == []:
                         # Create an arrow table with expected index length.
                         df = (
                             parquet_file.schema.to_arrow_schema()
@@ -172,8 +155,6 @@ class ParquetSerializer(DataFrameSerializer):
                 reader.close()
 
         table = _fix_pyarrow_07992_table(table)
-
-        table = _fix_pyarrow_0130_table(table)
 
         if columns is not None:
             missing_columns = set(columns) - set(table.schema.names)
