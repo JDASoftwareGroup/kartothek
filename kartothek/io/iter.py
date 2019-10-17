@@ -51,6 +51,9 @@ def read_dataset_as_metapartitions__iterator(
     .. seealso:
 
         :func:`~kartothek.io_components.read.read_dataset_as_dataframes__iterator`
+
+    Parameters
+    ----------
     """
 
     ds_factory = _ensure_factory(
