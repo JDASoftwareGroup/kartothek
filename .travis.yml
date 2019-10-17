@@ -65,9 +65,8 @@ matrix:
 
 deploy:
   provider: pypi
-  user: fjetter
-  password:
-    secure: pO3DOtJa2xrqRWPUutUpF44veWQ34MoiAHLDXps+g//ZHLMqcdZ4YX2M4eHDUSDA9kqd0kc1Rj0un6mPzcKVq2c5AsceNT4qh0eojlStfqGh4Lr5EsfIs7nsrK+gtpKdvogECHxv+Rz07nFXKPqh2TGuIwiHmSVQ56Mo89S1xGD66mqEJf7MTyIM2vo/n9Bs4nWYapqDWs2ExkVfXfc1oasEyled3PF7NdtBokWhQmFcULBSunh57hFtPOuD4v2WyhAdnBR3ivzDYQS7n9+lOO6cdkdkZy0Agm0+FdP+18GFFcwHAamIPEAspfmI9+h+/3pm5TvUp5pU+lvuUtypp3eYt20AIYjmqUdDj8HHGSYINl9ef4zlQu+ARFWlO/+B8gtWjsBHtaJIq/wsBNsAJjjLZByHZwjzm+NQKTP7z18EtIhNqjIb/v/6Qgapo6BDjbbVajFLtj5esLcAAhg8Hw+wzoNxrOSnALDUiQd0Tro1DnXkl+WrTKtz0pu4h7yKpQiwOS6hv4ltjDyL7gyW+N9O2yAJBH8r6aI1UjyXyAO57v/GXjjF7JOTEnl9lvEufBFwnQYTjcoSo0bupXRELz1ytabk3IP5Z7meoAoA73DdyPYSltZx88SuP7jACZOjkXjOLrJi02V/vz8+bMl+I8M5MvPoTnLY7cn1cjZv4BU=
+  user: __token__
+  # API token used in env var PYPI_PASSWORD, set in Travis CI
   on:
     tags: true
   distributions: "sdist bdist_wheel"
