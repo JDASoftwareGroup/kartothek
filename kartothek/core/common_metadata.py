@@ -753,6 +753,8 @@ def validate_shared_columns(schemas, ignore_pandas=False):
             obj = (field, col)
             if col in seen:
                 ref = seen[col]
+                if pa.types.is_null(ref[0].type) or pa.types.is_null(field.type):
+                    continue
                 if ref != obj:
                     raise ValueError(
                         'Found incompatible entries for column "{}"\n{}\n{}'.format(
