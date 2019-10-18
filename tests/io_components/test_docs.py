@@ -18,7 +18,25 @@ from kartothek.io.dask.delayed import (
     store_delayed_as_dataset,
     update_dataset_from_delayed,
 )
-from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io.eager import (
+    build_dataset_indices,
+    commit_dataset,
+    create_empty_dataset_header,
+    delete_dataset,
+    garbage_collect_dataset,
+    read_dataset_as_dataframes,
+    read_dataset_as_metapartitions,
+    read_table,
+    store_dataframes_as_dataset,
+    update_dataset_from_dataframes,
+    write_single_partition,
+)
+from kartothek.io.iter import (
+    read_dataset_as_dataframes__iterator,
+    read_dataset_as_metapartitions__iterator,
+    store_dataframes_as_dataset__iter,
+    update_dataset_from_dataframes__iter,
+)
 from kartothek.io_components.docs import _PARAMETER_MAPPING
 
 
@@ -38,11 +56,26 @@ from kartothek.io_components.docs import _PARAMETER_MAPPING
         read_table_as_delayed,
         update_dataset_from_delayed,
         store_delayed_as_dataset,
+        delete_dataset,
+        read_dataset_as_dataframes,
+        read_dataset_as_metapartitions,
+        read_table,
+        commit_dataset,
+        store_dataframes_as_dataset,
+        create_empty_dataset_header,
+        write_single_partition,
+        update_dataset_from_dataframes,
+        build_dataset_indices,
+        garbage_collect_dataset,
+        read_dataset_as_metapartitions__iterator,
+        read_dataset_as_dataframes__iterator,
+        update_dataset_from_dataframes__iter,
+        store_dataframes_as_dataset__iter,
     ],
 )
 def test_docs(function):
-    docstrings = store_dataframes_as_dataset.__doc__
-    arguments = inspect.signature(store_dataframes_as_dataset).parameters
+    docstrings = function.__doc__
+    arguments = inspect.signature(function).parameters
     assert all(
         [
             _PARAMETER_MAPPING.get(argument, "Parameters") in docstrings
