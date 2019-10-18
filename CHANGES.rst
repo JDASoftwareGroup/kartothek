@@ -19,6 +19,7 @@ Version 3.X.X (2019-09-XX)
   defer the validation in case of inconsistencies to the final commit. Exception
   messages will be less verbose in these cases as before.
 - Add support for pyarrow 0.15.0
+- Remove support for pyarrow < 0.13.0
 
 
 Version 3.4.0 (2019-09-17)

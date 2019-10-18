@@ -11,7 +11,6 @@ import pytest
 import storefact
 from pyarrow.parquet import ParquetFile
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 from kartothek.serialization._parquet import _predicate_accepts
 from kartothek.serialization._util import _check_contains_null
@@ -134,12 +133,9 @@ def _validate_predicate_pushdown(df, column, value, store, chunk_size):
 
     expected = df.iloc[[3]]
     # ARROW-5138 index isn't preserved when doing predicate pushdown
-    if ARROW_LARGER_EQ_0130:
-        pdt.assert_frame_equal(
-            df_restored.reset_index(drop=True), expected.reset_index(drop=True)
-        )
-    else:
-        pdt.assert_frame_equal(df_restored, expected)
+    pdt.assert_frame_equal(
+        df_restored.reset_index(drop=True), expected.reset_index(drop=True)
+    )
 
 
 @pytest.mark.parametrize("column", _INT_TYPES)

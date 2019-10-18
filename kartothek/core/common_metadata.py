@@ -17,7 +17,7 @@ from kartothek.core import naming
 from kartothek.core._compat import load_json
 from kartothek.core.utils import ensure_string_type
 
-from ._compat import ARROW_LARGER_EQ_0130, ARROW_LARGER_EQ_0141, ARROW_LARGER_EQ_0150
+from ._compat import ARROW_LARGER_EQ_0141, ARROW_LARGER_EQ_0150
 
 _logger = logging.getLogger()
 
@@ -59,41 +59,22 @@ class SchemaWrapper:
         # https://issues.apache.org/jira/browse/ARROW-5104
         schema = self.__schema
         if self.__schema is not None and self.__schema.metadata is not None:
-            pandas_metadata = _pandas_meta_from_schema(schema)
+            pandas_metadata = schema.pandas_metadata
             index_cols = pandas_metadata["index_columns"]
             if len(index_cols) > 1:
                 raise NotImplementedError("Treatement of MultiIndex not implemented.")
 
             for ix, col in enumerate(index_cols):
-                if ARROW_LARGER_EQ_0130:
-                    # Range index is now serialized using start/end information. This special treatment
-                    # removes it from the columns which is fine
-                    if isinstance(col, dict):
-                        pass
-                    # other indices are still tracked as a column
-                    else:
-                        index_level_ix = schema.get_field_index(col)
-                        # this may happen for the schema of an empty df
-                        if index_level_ix >= 0:
-                            schema = schema.remove(index_level_ix)
+                # Range index is now serialized using start/end information. This special treatment
+                # removes it from the columns which is fine
+                if isinstance(col, dict):
+                    pass
+                # other indices are still tracked as a column
                 else:
-                    if isinstance(col, dict):
-                        index_name = "__index_level_{}__".format(ix)
-                        schema = schema.append(
-                            pa.field("index_name", pa.int64(), False)
-                        )
-                        pandas_metadata["index_columns"][ix] = index_name
-                        pandas_metadata["columns"].append(
-                            {
-                                "name": index_name,
-                                "field_name": index_name,
-                                "pandas_type": "int64",
-                                "numpy_type": "int64",
-                                "metadata": None,
-                            }
-                        )
-                    else:
-                        pass
+                    index_level_ix = schema.get_field_index(col)
+                    # this may happen for the schema of an empty df
+                    if index_level_ix >= 0:
+                        schema = schema.remove(index_level_ix)
 
             schema = schema.remove_metadata()
             md = {b"pandas": _dict_to_binary(pandas_metadata)}
@@ -196,7 +177,7 @@ def normalize_column_order(schema, partition_keys=None):
     else:
         partition_keys = list(partition_keys)
 
-    pandas_metadata = _pandas_meta_from_schema(schema)
+    pandas_metadata = schema.pandas_metadata
     origin = schema.origin
 
     cols_partition = {}
@@ -273,13 +254,8 @@ def make_meta(obj, origin, partition_keys=None):
     if not isinstance(obj, pd.DataFrame):
         raise ValueError("Input must be a pyarrow schema, or a pandas dataframe")
 
-    if ARROW_LARGER_EQ_0130:
-        schema = pa.Schema.from_pandas(obj)
-    else:
-        table = pa.Table.from_pandas(obj)
-        schema = table.schema
-        del table
-    pandas_metadata = _pandas_meta_from_schema(schema)
+    schema = pa.Schema.from_pandas(obj)
+    pandas_metadata = schema.pandas_metadata
 
     # normalize types
     fields = dict([(field.name, field.type) for field in schema])
@@ -348,14 +324,6 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
             return normalize_type(t_pa.dictionary.type, t_np, t_np, None)
     else:
         return t_pa, t_pd, t_np, metadata
-
-
-def _pandas_meta_from_schema(schema):
-    if ARROW_LARGER_EQ_0130:
-        pandas_metadata = schema.pandas_metadata
-    else:
-        pandas_metadata = load_json(schema.metadata[b"pandas"].decode("utf8"))
-    return pandas_metadata
 
 
 def _get_common_metadata_key(dataset_uuid, table):
@@ -587,8 +555,8 @@ def _diff_schemas(first, second):
         )
     )
 
-    first_pandas_info = _pandas_meta_from_schema(first)
-    second_pandas_info = _pandas_meta_from_schema(second)
+    first_pandas_info = first.pandas_metadata
+    second_pandas_info = second.pandas_metadata
     pandas_meta_diff = _remove_diff_header(
         difflib.unified_diff(
             pprint.pformat(first_pandas_info).splitlines(),
@@ -785,18 +753,7 @@ def empty_dataframe_from_schema(schema, columns=None, date_as_object=False):
         Empty DataFrame with requested columns and types.
     """
 
-    if ARROW_LARGER_EQ_0130:
-        df = schema.internal().empty_table().to_pandas(date_as_object=date_as_object)
-    else:
-        arrays = []
-        names = []
-        for field in schema:
-            arrays.append(pa.array([], type=field.type))
-            names.append(field.name)
-        table = pa.Table.from_arrays(
-            arrays=arrays, names=names, metadata=schema.metadata
-        )
-        df = table.to_pandas(date_as_object=date_as_object)
+    df = schema.internal().empty_table().to_pandas(date_as_object=date_as_object)
 
     df.columns = df.columns.map(ensure_string_type)
     if columns is not None:
