@@ -21,6 +21,7 @@ Version 3.X.X (2019-09-XX)
 - Add support for pyarrow 0.15.0
 - Fix an issue where an empty dataframe of a partition in a multi-table dataset
   would raise a schema validation exception
+- Remove support for pyarrow < 0.13.0
 
 
 Version 3.4.0 (2019-09-17)

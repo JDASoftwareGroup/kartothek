@@ -13,7 +13,6 @@ import pytest
 import simplejson
 from dask.dataframe.utils import make_meta as dask_make_meta
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0130
 from kartothek.core.common_metadata import (
     SchemaWrapper,
     _diff_schemas,
@@ -69,8 +68,6 @@ def test_store_schema_metadata(store, df_all_types):
         pa.field("uint8", pa.uint64()),
         pa.field("unicode", pa.string()),
     ]
-    if not ARROW_LARGER_EQ_0130:
-        fields.append(pa.field("__index_level_0__", pa.int64()))
     expected_schema = pa.schema(fields)
 
     assert actual_schema.remove_metadata() == expected_schema
