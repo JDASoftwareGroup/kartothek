@@ -19,6 +19,8 @@ Version 3.X.X (2019-09-XX)
   defer the validation in case of inconsistencies to the final commit. Exception
   messages will be less verbose in these cases as before.
 - Add support for pyarrow 0.15.0
+- Fix an issue where an empty dataframe of a partition in a multi-table dataset
+  would raise a schema validation exception
 - Remove support for pyarrow < 0.13.0
 
 

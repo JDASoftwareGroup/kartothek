@@ -251,6 +251,21 @@ def test_validate_shared_columns_same(df_all_types):
     )
 
 
+def test_validate_shared_columns_null_value(df_all_types):
+    schema1 = make_meta(df_all_types, origin="1")
+    schema2 = make_meta(df_all_types.drop(0), origin="2")
+    schema3 = make_meta(df_all_types, origin="3").remove_metadata()
+    validate_shared_columns([])
+    validate_shared_columns([schema1])
+    validate_shared_columns([schema1, schema2])
+    with pytest.raises(ValueError):
+        validate_shared_columns([schema1, schema2, schema3])
+    validate_shared_columns([schema1, schema2, schema3], ignore_pandas=True)
+    validate_shared_columns(
+        [schema1.remove_metadata(), schema2.remove_metadata(), schema3]
+    )
+
+
 def test_validate_shared_columns_no_share(df_all_types):
     schema1 = make_meta(df_all_types.loc[:, df_all_types.columns[0:2]], origin="1")
     schema2 = make_meta(df_all_types.loc[:, df_all_types.columns[2:4]], origin="2")
