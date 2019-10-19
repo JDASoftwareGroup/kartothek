@@ -5,6 +5,8 @@ Changelog
 Version 3.5.2 (unreleased)
 ==========================
 - Fix addition of bogus index columns to Parquet files when using `sort_partitions_by`.
+- The partition on shuffle algorithm in :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf` will now produce
+  deterministic buckets based on hashed input data
 
 Version 3.5.1 (2019-10-25)
 ==========================
