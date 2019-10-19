@@ -249,9 +249,6 @@ def build_dataset_indices__bag(
 
     Parameters
     ----------
-    partition_size: Optional[int]
-        Dask bag partition size. Use a larger numbers to decrease scheduler load and overhead, use smaller numbers for a
-        fine-grained scheduling and better resilience against worker errors.
 
     Returns
     -------

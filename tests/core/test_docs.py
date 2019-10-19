@@ -2,7 +2,7 @@ import inspect
 
 import pytest
 
-from kartothek.core.docs import _PARAMETER_MAPPING
+from kartothek.core.docs import _PARAMETER_MAPPING, default_docs
 from kartothek.io.dask.bag import (
     build_dataset_indices__bag,
     read_dataset_as_dataframe_bag,
@@ -76,9 +76,35 @@ from kartothek.io.iter import (
 def test_docs(function):
     docstrings = function.__doc__
     arguments = inspect.signature(function).parameters
+
     assert all(
         [
             _PARAMETER_MAPPING.get(argument, "Parameters") in docstrings
             for argument in arguments
         ]
+    )
+
+    assert all([argument in docstrings for argument in arguments])
+
+
+def test_docs_duplicity():
+    # This test ensures that if a keyword argument has been listed out in the docs as well as under _PARAMETER_MAPPING
+    # then the parser does not end up pick the one under _PARAMETER_MAPPING
+    @default_docs
+    def dummy_function(store):
+        """
+        This is a dummy_function
+
+        Parameters
+        -----------
+        store: str
+            This is an argument
+
+        """
+
+    resultant_docstrings = str(dummy_function.__doc__)
+    assert "This is a dummy_function" in resultant_docstrings
+    assert "This is an argument" in resultant_docstrings
+    assert (
+        "Factory function producing a KeyValueStore" not in resultant_docstrings
     )
