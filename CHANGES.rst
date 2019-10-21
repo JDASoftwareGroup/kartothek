@@ -31,6 +31,7 @@ Version 3.X.X (2019-09-XX)
   * `~kartothek.serialization.PredicatesType`
   * `~kartothek.serialization.ConjunctionType`
   * `~kartothek.serialization.LiteralType`
+- Creating dataset with non existing columns as explicit index to raise a ValueError
 
 Internal changes
 ^^^^^^^^^^^^^^^^
