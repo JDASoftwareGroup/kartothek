@@ -2,27 +2,12 @@
 Changelog
 =========
 
-Version 3.X.X (2019-09-XX)
+Version 3.5.0 (2019-10-21)
 ==========================
-- Input to ``normalize_args`` is properly normalized to ``list``
-- ``MetaPartition.load_dataframes`` now raises if table in ``columns`` argument doesn't exist
-- require ``urlquote>=1.1.0`` (where ``urlquote.quoting`` was introduced)
-- ``MetaPartition.parse_input_to_metapartition`` accepts dicts and list of tuples equivalents as ``obj`` input
-- Improve performance for some cases where predicates are used with the `in` operator.
-- Added `secondary_indices` as a default argument to the `write` pipelines
-- Correctly preserve :class:`~kartothek.core.index.ExplicitSecondaryIndex` dtype when index is empty
-- Fixed DeprecationWarning in pandas ``CategoricalDtype``
-- Fixed broken docstring for `store_dataframes_as_dataset`
-- Make ``kartothek.io.*read_table*`` methods use default table name if unspecified
-- Internal operations no longer perform schema validations. This will improve
-  performance for batched partition operations (e.g. `partition_on`) but will
-  defer the validation in case of inconsistencies to the final commit. Exception
-  messages will be less verbose in these cases as before.
+
+New functionality
+^^^^^^^^^^^^^^^^^
 - Add support for pyarrow 0.15.0
-- Fix an issue where an empty dataframe of a partition in a multi-table dataset
-  would raise a schema validation exception
-- Remove support for pyarrow < 0.13.0
-- Fix an issue where the `dispatch_by` keyword would disable partition pruning
 - Additional functions in `kartothek.serialization` module for dealing with predicates
   * :func:`~kartothek.serialization.check_predicates`
   * :func:`~kartothek.serialization.filter_predicates_by_column`
@@ -31,10 +16,31 @@ Version 3.X.X (2019-09-XX)
   * `~kartothek.serialization.PredicatesType`
   * `~kartothek.serialization.ConjunctionType`
   * `~kartothek.serialization.LiteralType`
+- Make ``kartothek.io.*read_table*`` methods use default table name if unspecified
+- ``MetaPartition.parse_input_to_metapartition`` accepts dicts and list of tuples equivalents as ``obj`` input
+- Added `secondary_indices` as a default argument to the `write` pipelines
+
+Bug fixes
+^^^^^^^^^
+- Input to ``normalize_args`` is properly normalized to ``list``
+- ``MetaPartition.load_dataframes`` now raises if table in ``columns`` argument doesn't exist
+- require ``urlquote>=1.1.0`` (where ``urlquote.quoting`` was introduced)
+- Improve performance for some cases where predicates are used with the `in` operator.
+- Correctly preserve :class:`~kartothek.core.index.ExplicitSecondaryIndex` dtype when index is empty
+- Fixed DeprecationWarning in pandas ``CategoricalDtype``
+- Fixed broken docstring for `store_dataframes_as_dataset`
+- Internal operations no longer perform schema validations. This will improve
+  performance for batched partition operations (e.g. `partition_on`) but will
+  defer the validation in case of inconsistencies to the final commit. Exception
+  messages will be less verbose in these cases as before.
+- Fix an issue where an empty dataframe of a partition in a multi-table dataset
+  would raise a schema validation exception
+- Fix an issue where the `dispatch_by` keyword would disable partition pruning
 - Creating dataset with non existing columns as explicit index to raise a ValueError
 
-Internal changes
+Breaking changes
 ^^^^^^^^^^^^^^^^
+- Remove support for pyarrow < 0.13.0
 - Move the docs module from `io_components` to `core`
 
 
