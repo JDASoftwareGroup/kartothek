@@ -2,13 +2,13 @@
 from functools import partial
 from typing import cast
 
+from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import (
     DEFAULT_METADATA_STORAGE_FORMAT,
     DEFAULT_METADATA_VERSION,
 )
 from kartothek.core.uuid import gen_uuid
-from kartothek.io_components.docs import default_docs
 from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,

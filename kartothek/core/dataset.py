@@ -15,6 +15,7 @@ from kartothek.core import naming
 from kartothek.core._compat import load_json
 from kartothek.core._mixins import CopyMixin
 from kartothek.core.common_metadata import SchemaWrapper, read_schema_metadata
+from kartothek.core.docs import default_docs
 from kartothek.core.index import (
     ExplicitSecondaryIndex,
     IndexBase,
@@ -25,8 +26,11 @@ from kartothek.core.naming import EXTERNAL_INDEX_SUFFIX, PARQUET_FILE_SUFFIX
 from kartothek.core.partition import Partition
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import verify_metadata_version
+from kartothek.serialization import PredicatesType, columns_in_predicates
 
 _logger = logging.getLogger(__name__)
+
+TableMetaType = Dict[str, SchemaWrapper]
 
 
 def _validate_uuid(uuid: str) -> bool:
@@ -340,14 +344,19 @@ class DatasetMetadataBase(CopyMixin):
             partitions=self.partitions,
             table_meta=self.table_meta,
             default_dtype=pa.string() if self.metadata_version == 3 else None,
+            partition_keys=self.partition_keys,
         )
         combined_indices = self.indices.copy()
         combined_indices.update(indices)
         return self.copy(indices=combined_indices)
 
+    @default_docs
     def get_indices_as_dataframe(
-        self, columns: Optional[List[str]] = None, date_as_object: bool = True
-    ) -> pd.DataFrame:
+        self,
+        columns: Optional[List[str]] = None,
+        date_as_object: bool = True,
+        predicates: PredicatesType = None,
+    ):
         """
         Converts the dataset indices to a pandas dataframe.
 
@@ -363,18 +372,22 @@ class DatasetMetadataBase(CopyMixin):
 
         Parameters
         ----------
-        columns: list of str
-            If provided, the dataframe will only be constructed for the provided columns/indices.
-            If `None` is given, all indices are included.
-        date_as_object: bool, optional
-            Cast dates to objects.
         """
         if columns is None:
             columns = sorted(self.indices.keys())
+        elif columns == []:
+            return pd.DataFrame(index=self.partitions)
 
-        result = None
         dfs = []
-        for col in columns:
+        columns_to_scan = columns[:]
+        if predicates:
+            predicate_columns = columns_in_predicates(predicates)
+            # Don't use set logic to preserve order
+            for col in predicate_columns:
+                if col not in columns_to_scan and col in self.indices:
+                    columns_to_scan.append(col)
+
+        for col in columns_to_scan:
             if col not in self.indices:
                 if col in self.partition_keys:
                     raise RuntimeError(
@@ -383,19 +396,30 @@ class DatasetMetadataBase(CopyMixin):
                 raise ValueError("Index `{}` unknown.")
             df = pd.DataFrame(
                 self.indices[col].as_flat_series(
-                    partitions_as_index=True, date_as_object=date_as_object
+                    partitions_as_index=True,
+                    date_as_object=date_as_object,
+                    predicates=predicates,
                 )
             )
             dfs.append(df)
 
         # start joining with the small ones
-        for df in sorted(dfs, key=lambda df: len(df)):
-            if result is None:
-                result = df
-                continue
+        sorted_dfs = sorted(dfs, key=lambda df: len(df))
+        result = sorted_dfs.pop(0)
+        for df in sorted_dfs:
             result = result.merge(df, left_index=True, right_index=True, copy=False)
 
-        return result
+        if predicates:
+            index_name = result.index.name
+            result = (
+                result.loc[:, columns]
+                .reset_index()
+                .drop_duplicates()
+                .set_index(index_name)
+            )
+            return result
+        else:
+            return result
 
 
 class DatasetMetadata(DatasetMetadataBase):
@@ -618,13 +642,24 @@ def _get_type_from_meta(
     )
 
 
+def _empty_partition_indices(
+    partition_keys: List[str], table_meta: TableMetaType, default_dtype: pa.DataType
+):
+    indices = {}
+    for col in partition_keys:
+        arrow_type = _get_type_from_meta(table_meta, col, default_dtype)
+        indices[col] = PartitionIndex(column=col, index_dct={}, dtype=arrow_type)
+    return indices
+
+
 def _construct_dynamic_index_from_partitions(
     partitions: Dict[str, Partition],
-    table_meta: Dict[str, SchemaWrapper],
+    table_meta: TableMetaType,
     default_dtype: pa.DataType,
+    partition_keys: List[str],
 ) -> Dict[str, PartitionIndex]:
     if len(partitions) == 0:
-        return {}
+        return _empty_partition_indices(partition_keys, table_meta, default_dtype)
 
     def _get_files(part):
         if isinstance(part, dict):
@@ -638,7 +673,7 @@ def _construct_dynamic_index_from_partitions(
     )  # partitions is NOT empty here, see check above
     first_partition_files = _get_files(first_partition)
     if not first_partition_files:
-        return {}
+        return _empty_partition_indices(partition_keys, table_meta, default_dtype)
     key_table = next(iter(first_partition_files.keys()))
     storage_keys = (
         (key, _get_files(part)[key_table]) for key, part in partitions.items()

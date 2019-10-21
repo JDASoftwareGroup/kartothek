@@ -11,6 +11,7 @@ from kartothek.core.common_metadata import (
     store_schema_metadata,
 )
 from kartothek.core.dataset import DatasetMetadataBuilder
+from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import (
     DEFAULT_METADATA_STORAGE_FORMAT,
@@ -24,7 +25,6 @@ from kartothek.io_components.delete import (
     delete_indices,
     delete_top_level_metadata,
 )
-from kartothek.io_components.docs import default_docs
 from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
 from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.metapartition import (

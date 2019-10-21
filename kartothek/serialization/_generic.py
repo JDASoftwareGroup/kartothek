@@ -2,9 +2,17 @@
 # -*- coding: utf-8 -*-
 """
 This module contains functionality for persisting/serialising DataFrames.
+
+Available constants
+
+**PredicatesType** - A type describing the format of predicates which is a list of ConjuntionType
+**ConjunctionType** - A type describing a single Conjunction which is a list of literals
+**LiteralType**  - A type for a single literal
+
+**LiteralValue** - A type indicating the value of a predicate literal
 """
 
-from typing import Dict
+from typing import Dict, List, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -13,6 +21,13 @@ from pandas.api.types import is_list_like
 from kartothek.serialization._util import _check_contains_null
 
 from ._util import ensure_unicode_string_type
+
+LiteralValue = TypeVar("LiteralValue")
+LiteralType = Tuple[str, str, LiteralValue]
+ConjunctionType = List[LiteralType]
+# Optional is part of the actual type since predicate=None
+# is a sential for: All values
+PredicatesType = Optional[List[ConjunctionType]]
 
 
 class DataFrameSerializer:
@@ -167,7 +182,78 @@ def check_predicates(predicates):
                     )
 
 
-def filter_df_from_predicates(df, predicates, strict_date_types=False):
+def filter_predicates_by_column(
+    predicates: PredicatesType, columns: List[str]
+) -> Optional[PredicatesType]:
+    """
+    Takes a predicate list and removes all literals which are not referencing one of the given column
+
+    .. ipython:: python
+
+        from kartothek.serialization import filter_predicates_by_column
+        predicates = [
+            [
+                ("A", "==", 1),
+                ("B", "<", 5)
+            ],
+            [
+                ("C", "==", 4)
+            ]
+        ]
+
+        filter_predicates_by_column(
+            predicates, ["A"]
+        )
+
+    Parameters
+    ----------
+    predicates:
+        A list of predicates to be filtered
+    columns:
+        A list of all columns allowed in the output
+    """
+    if predicates is None:
+        return None
+    check_predicates(predicates)
+    filtered_predicates = []
+    for predicate in predicates:
+        new_conjunction = []
+        for col, op, val in predicate:
+            if col in columns:
+                new_conjunction.append((col, op, val))
+        if new_conjunction:
+            filtered_predicates.append(new_conjunction)
+    if filtered_predicates:
+        return filtered_predicates
+    else:
+        return None
+
+
+def columns_in_predicates(predicates: PredicatesType) -> Set[str]:
+    """
+    Determine all columns which are mentioned in the list of predicates.
+
+    Parameters
+    ----------
+    predicates:
+        The predicates to be scaned.
+    """
+    if predicates is None:
+        return set()
+    check_predicates(predicates)
+    # Determine the set of columns that are part of a predicate
+    columns = set()
+    for predicates_inner in predicates:
+        for col, _, _ in predicates_inner:
+            columns.add(col)
+    return columns
+
+
+def filter_df_from_predicates(
+    df: pd.DataFrame,
+    predicates: Optional[PredicatesType],
+    strict_date_types: bool = False,
+) -> PredicatesType:
     """
     Filter a `pandas.DataFrame` based on predicates in disjunctive normal form.
 
@@ -178,6 +264,7 @@ def filter_df_from_predicates(df, predicates, strict_date_types=False):
     predicates: list of lists
         Predicates in disjunctive normal form (DNF). For a thorough documentation, see
         :class:`DataFrameSerializer.restore_dataframe`
+        If None, the df is returned unmodified
     strict_date_types: bool
         If False (default), cast all datelike values to datetime64 for comparison.
 
@@ -185,6 +272,8 @@ def filter_df_from_predicates(df, predicates, strict_date_types=False):
     -------
     pd.DataFrame
     """
+    if predicates is None:
+        return df
     indexer = np.zeros(len(df), dtype=bool)
     for conjunction in predicates:
         inner_indexer = np.ones(len(df), dtype=bool)

@@ -372,40 +372,22 @@ def test_read_dataset_as_dataframes_concat_primary(
 
 @pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
 def test_read_dataset_as_dataframes_dispatch_by_single_col(
-    store_factory,
+    store_session_factory,
+    dataset_dispatch_by,
     bound_load_dataframes,
     backend_identifier,
     dispatch_by,
     output_type,
     metadata_version,
+    dataset_dispatch_by_uuid,
 ):
     if output_type == "table":
         pytest.skip()
-    cluster1 = pd.DataFrame(
-        {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
-    )
-    cluster2 = pd.DataFrame(
-        {"A": [1, 1], "B": [10, 10], "C": [2, 3], "Content": ["cluster2", "cluster2"]}
-    )
-    cluster3 = pd.DataFrame({"A": [1], "B": [20], "C": [1], "Content": ["cluster3"]})
-    cluster4 = pd.DataFrame(
-        {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
-    )
-    clusters = [cluster1, cluster2, cluster3, cluster4]
-    partitions = [{"data": [("data", c)]} for c in clusters]
-
-    store_dataframes_as_dataset__iter(
-        df_generator=partitions,
-        store=store_factory,
-        dataset_uuid="partitioned_uuid",
-        metadata_version=metadata_version,
-        partition_on=["A", "B"],
-        secondary_indices=["C"],
-    )
-
     # Dispatch by primary index "A"
     dispatched_a = bound_load_dataframes(
-        dataset_uuid="partitioned_uuid", store=store_factory, dispatch_by=[dispatch_by]
+        dataset_uuid=dataset_dispatch_by_uuid,
+        store=store_session_factory,
+        dispatch_by=[dispatch_by],
     )
 
     unique_a = set()
@@ -420,15 +402,17 @@ def test_read_dataset_as_dataframes_dispatch_by_single_col(
         unique_a.add(unique_dispatch[0])
 
 
-def test_read_dataset_as_dataframes_dispatch_by_multi_col(
-    store_factory,
-    bound_load_dataframes,
-    backend_identifier,
-    output_type,
-    metadata_version,
+@pytest.fixture(scope="session")
+def dataset_dispatch_by_uuid():
+    import uuid
+
+    return uuid.uuid1().hex
+
+
+@pytest.fixture(scope="session")
+def dataset_dispatch_by(
+    metadata_version, store_session_factory, dataset_dispatch_by_uuid
 ):
-    if output_type == "table":
-        pytest.skip()
     cluster1 = pd.DataFrame(
         {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
     )
@@ -440,20 +424,33 @@ def test_read_dataset_as_dataframes_dispatch_by_multi_col(
         {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
     )
     clusters = [cluster1, cluster2, cluster3, cluster4]
+
     partitions = [{"data": [("data", c)]} for c in clusters]
 
     store_dataframes_as_dataset__iter(
         df_generator=partitions,
-        store=store_factory,
-        dataset_uuid="partitioned_uuid",
+        store=store_session_factory,
+        dataset_uuid=dataset_dispatch_by_uuid,
         metadata_version=metadata_version,
         partition_on=["A", "B"],
         secondary_indices=["C"],
     )
+    return pd.concat(clusters).sort_values(["A", "B", "C"]).reset_index(drop=True)
+
+
+def test_read_dataset_as_dataframes_dispatch_by_multi_col(
+    store_session_factory,
+    bound_load_dataframes,
+    output_type,
+    dataset_dispatch_by,
+    dataset_dispatch_by_uuid,
+):
+    if output_type == "table":
+        pytest.skip()
     for dispatch_by in permutations(("A", "B", "C"), 2):
         dispatched = bound_load_dataframes(
-            dataset_uuid="partitioned_uuid",
-            store=store_factory,
+            dataset_uuid=dataset_dispatch_by_uuid,
+            store=store_session_factory,
             dispatch_by=dispatch_by,
         )
         uniques = pd.DataFrame(columns=dispatch_by)
@@ -467,6 +464,43 @@ def test_read_dataset_as_dataframes_dispatch_by_multi_col(
             row = unique_dispatch
             uniques.append(row)
         assert not any(uniques.duplicated())
+
+
+@pytest.mark.parametrize(
+    "dispatch_by, predicates, expected_dispatches",
+    [
+        # This should only dispatch one partition since there is only
+        # one file with valid data points
+        (["A"], [[("C", ">", 2)]], 1),
+        # We dispatch and restrict to one valie, i.e. one dispatch
+        (["B"], [[("B", "==", 10)]], 1),
+        # The same is true for a non-partition index col
+        (["C"], [[("C", "==", 1)]], 1),
+        # A condition where both primary and secondary indices need to work together
+        (["A", "C"], [[("A", ">", 1), ("C", "<", 3)]], 2),
+    ],
+)
+def test_read_dispatch_by_with_predicates(
+    store_session_factory,
+    dataset_dispatch_by_uuid,
+    bound_load_dataframes,
+    dataset_dispatch_by,
+    dispatch_by,
+    output_type,
+    expected_dispatches,
+    predicates,
+):
+    if output_type == "table":
+        pytest.skip()
+
+    dispatched = bound_load_dataframes(
+        dataset_uuid=dataset_dispatch_by_uuid,
+        store=store_session_factory,
+        dispatch_by=dispatch_by,
+        predicates=predicates,
+    )
+
+    assert len(dispatched) == expected_dispatches, dispatched
 
 
 def test_read_dataset_as_dataframes(
