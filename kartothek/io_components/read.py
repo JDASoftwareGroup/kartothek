@@ -65,7 +65,7 @@ def dispatch_metapartitions_from_factory(
         base_df = base_df[base_df.index.map(label_filter)]
 
     indices_to_dispatch = {
-        name: ix.copy(index_dct={})
+        name: ix.unload()
         for name, ix in dataset_factory.indices.items()
         if isinstance(ix, ExplicitSecondaryIndex)
     }

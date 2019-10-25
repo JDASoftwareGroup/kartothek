@@ -144,15 +144,50 @@ def test_index_update_wrong_col():
     )
 
 
-def test_index_empty(store):
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pa.binary(),
+        pa.bool_(),
+        pa.date32(),
+        pa.float32(),
+        pa.float64(),
+        pa.int64(),
+        pa.int8(),
+        pa.string(),
+        pa.timestamp("ns"),
+    ],
+)
+def test_index_empty(store, dtype):
     storage_key = "dataset_uuid/some_index.parquet"
     index1 = ExplicitSecondaryIndex(
-        column="col", index_dct={}, dtype=pa.int64(), index_storage_key=storage_key
+        column="col", index_dct={}, dtype=dtype, index_storage_key=storage_key
     )
     key1 = index1.store(store, "dataset_uuid")
 
     index2 = ExplicitSecondaryIndex(column="col", index_storage_key=key1).load(store)
     assert index1 == index2
+
+    index3 = pickle.loads(pickle.dumps(index1))
+    assert index1 == index3
+
+
+def test_pickle_without_load(store):
+    storage_key = "dataset_uuid/some_index.parquet"
+    index1 = ExplicitSecondaryIndex(
+        column="col", index_dct={1: ["part_1"]}, index_storage_key=storage_key
+    )
+    key1 = index1.store(store, "dataset_uuid")
+
+    index2 = ExplicitSecondaryIndex(column="col", index_storage_key=key1)
+    assert index2 != index1
+
+    index3 = pickle.loads(pickle.dumps(index2))
+    assert index3 == index2
+
+    index4 = index3.load(store)
+    assert index4 == index1
+    assert index4 != index2
 
 
 def test_index_no_source():
@@ -735,13 +770,23 @@ def test_serialization_normalization(key):
     )
 
 
-def test_serialization_no_indices(store):
-    index = ExplicitSecondaryIndex(column="col", index_dct={1: ["part_1"]})
-    storage_key = index.store(store=store, dataset_uuid="uuid")
+@pytest.mark.parametrize("with_index_dct", [True, False])
+def test_unload(with_index_dct):
+    storage_key = "dataset_uuid/some_index.parquet"
+    index1 = ExplicitSecondaryIndex(
+        column="col",
+        index_dct={1: ["part_1"]} if with_index_dct else None,
+        index_storage_key=storage_key,
+    )
 
-    # Create index without `index_dct`
-    index = ExplicitSecondaryIndex(column="col", index_storage_key=storage_key)
+    index2 = index1.unload()
+    assert not index2.loaded
+    assert index2.index_storage_key == storage_key
 
-    index2 = pickle.loads(pickle.dumps(index))
+    index3 = pickle.loads(pickle.dumps(index2))
+    assert index2 == index3
 
-    assert index == index2
+
+def test_fail_type_unsafe():
+    with pytest.raises(ValueError, match="Trying to create non-typesafe index"):
+        ExplicitSecondaryIndex(column="col", index_dct={})

@@ -2,7 +2,7 @@
 
 import logging
 from copy import copy
-from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -561,6 +561,8 @@ class ExplicitSecondaryIndex(IndexBase):
     ):
         if (index_dct is None) and not index_storage_key:
             raise ValueError("No valid index source specified")
+        if not index_storage_key and not index_dct and dtype is None:
+            raise ValueError("Trying to create non-typesafe index")
         self.index_storage_key = index_storage_key
         super(ExplicitSecondaryIndex, self).__init__(
             column=column,
@@ -569,14 +571,23 @@ class ExplicitSecondaryIndex(IndexBase):
             normalize_dtype=normalize_dtype,
         )
 
-    def copy(self, **kwargs) -> "IndexBase":
+    def copy(self, **kwargs) -> "ExplicitSecondaryIndex":
         if kwargs:
-            index_storage_key = None
+            index_storage_key = kwargs.pop("index_storage_key", None)
         else:
             index_storage_key = self.index_storage_key
-        return super(IndexBase, self).copy(
-            index_storage_key=index_storage_key, **kwargs
+        return cast(
+            ExplicitSecondaryIndex,
+            super(IndexBase, self).copy(index_storage_key=index_storage_key, **kwargs),
         )
+
+    def unload(self) -> "IndexBase":
+        """
+        Drop index data to safe memory.
+        """
+        idx = self.copy(index_dct={}, index_storage_key=self.index_storage_key)
+        idx._index_dct_available = False
+        return idx
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, ExplicitSecondaryIndex):
@@ -845,9 +856,13 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
     # Additional note: pyarrow.array is supposed to infer type automatically.
     # But the inferred type is not enough to hold np.uint64. Until this is fixed in
     # upstream Arrow, we have to retain the following line
-    keys = np.array(list(keys))
+    if not index_dct:
+        # the np.array dtype will be double which arrow cannot convert to the target type, so use an empty list instead
+        labeled_array = pa.array([], type=dtype)
+    else:
+        keys = np.array(list(keys))
+        labeled_array = pa.array(keys, type=dtype)
 
-    labeled_array = pa.array(keys, type=dtype)
     partition_array = pa.array(list(index_dct.values()))
 
     return pa.Table.from_arrays(

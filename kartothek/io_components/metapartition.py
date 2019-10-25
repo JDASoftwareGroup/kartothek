@@ -1221,6 +1221,9 @@ class MetaPartition(Iterable):
             are overwritten
         :return: self
         """
+        if self.label is None:
+            return self
+
         new_indices = {}
         for col in columns:
             possible_values = set()
@@ -1678,6 +1681,7 @@ def parse_input_to_metapartition(
                 'Use the `secondary_indices` keyword argument of "write" and "update" functions instead.',
                 DeprecationWarning,
             )
+        indices = {k: v for k, v in indices.items() if v}
         _ensure_valid_indices(
             mp_indices=indices, secondary_indices=expected_secondary_indices, data=data
         )
