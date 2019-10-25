@@ -16,32 +16,42 @@ env:
 
   matrix:
     # required builds
-    - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
-    - PIP_COMPILE_ARGS="-P pyarrow==0.14.1"
-    - PIP_COMPILE_ARGS="-P pyarrow==0.15.0"
+    - CONDA_CREATE_ARGS="pyarrow==0.13.0"
+    - CONDA_CREATE_ARGS="pyarrow==0.14.1"
+    - CONDA_CREATE_ARGS="pyarrow==0.15.0"
+
 
     # optional builds
-    - PIP_COMPILE_ARGS="-P pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
+    - CONDA_CREATE_ARGS="pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
     - ARROW_NIGHTLY=1
 
 before_install:
-  - ./ci/before_install.sh
+  - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
+  - bash miniconda.sh -b -p $HOME/miniconda
+  - source "$HOME/miniconda/etc/profile.d/conda.sh"
+  - export PATH=$HOME/miniconda/bin:$PATH
+  - conda config --set always_yes yes --set changeps1 no
+  - conda update -q conda
+  - conda config --add channels conda-forge
+  - conda config --set channel_priority strict
 
 install:
-  - pip install -r test-requirements-pinned.txt
-  - pip install --no-deps dist/*
+  - conda create -n test-env --file=conda-requirements.txt --file=conda-test-requirements.txt python=$TRAVIS_PYTHON_VERSION $CONDA_CREATE_ARGS
+  - conda activate test-env
+  - ci/nightlies_install.sh
+  - python setup.py install
 
 # If docs break or formatting, linting is off, I'd like to know immediately
 before_script:
-  - pip freeze
-  - pip install pre-commit && pre-commit run -a
+  - conda list
+  - pre-commit run -a
   - python setup.py docs
 
 script:
   - pytest --cov kartothek --cov-report xml --cov-report html
 
 after_success:
-  - pip install codecov
+  - conda install codecov
   - codecov
 
 matrix:
@@ -49,18 +59,22 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: ARROW_NIGHTLY=1
-    - env: PIP_COMPILE_ARGS="-P pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
+    - env: CONDA_CREATE_ARGS="pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
   include:
     - name: "osx + builtin python3"
       os: osx
       language: sh
       env:
-        - PIP_COMPILE_ARGS="-P pyarrow==0.13.0"
+        - CONDA_CREATE_ARGS="pyarrow==0.13.0"
       before_install:
-        - python3 -m pip install --upgrade virtualenv
-        - virtualenv -p python3 "$HOME/ktk_venv"
-        - source "$HOME/ktk_venv/bin/activate"
-        - ./ci/before_install.sh
+        - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
+        - bash miniconda.sh -b -p $HOME/miniconda
+        - source "$HOME/miniconda/etc/profile.d/conda.sh"
+        - export PATH="$HOME/miniconda/bin:$PATH"
+        - conda config --set always_yes yes --set changeps1 no
+        - conda update -q conda
+        - conda config --add channels conda-forge
+        - conda config --set channel_priority strict
 
 deploy:
   provider: pypi
