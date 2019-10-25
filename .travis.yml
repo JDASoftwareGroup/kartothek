@@ -49,7 +49,7 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: ARROW_NIGHTLY=1
-    - env: PIP_COMPILE_ARGS="-P pyarrow==0.13.0" NUMFOCUS_NIGHTLY=1
+    - env: PIP_COMPILE_ARGS="-P pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
   include:
     - name: "osx + builtin python3"
       os: osx
