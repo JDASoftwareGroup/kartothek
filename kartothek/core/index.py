@@ -561,6 +561,8 @@ class ExplicitSecondaryIndex(IndexBase):
     ):
         if (index_dct is None) and not index_storage_key:
             raise ValueError("No valid index source specified")
+        if not index_storage_key and not index_dct and dtype is None:
+            raise ValueError("Trying to create non-typesafe index")
         self.index_storage_key = index_storage_key
         super(ExplicitSecondaryIndex, self).__init__(
             column=column,
@@ -571,7 +573,7 @@ class ExplicitSecondaryIndex(IndexBase):
 
     def copy(self, **kwargs) -> "ExplicitSecondaryIndex":
         if kwargs:
-            index_storage_key = None
+            index_storage_key = kwargs.pop("index_storage_key", None)
         else:
             index_storage_key = self.index_storage_key
         return cast(
@@ -583,9 +585,8 @@ class ExplicitSecondaryIndex(IndexBase):
         """
         Drop index data to safe memory.
         """
-        idx = self.copy(index_dct={})
+        idx = self.copy(index_dct={}, index_storage_key=self.index_storage_key)
         idx._index_dct_available = False
-        idx.index_storage_key = self.index_storage_key
         return idx
 
     def __eq__(self, other) -> bool:

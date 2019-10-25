@@ -770,12 +770,14 @@ def test_serialization_normalization(key):
     )
 
 
-def test_unload():
+@pytest.mark.parametrize("with_index_dct", [True, False])
+def test_unload(with_index_dct):
     storage_key = "dataset_uuid/some_index.parquet"
     index1 = ExplicitSecondaryIndex(
-        column="col", index_dct={1: ["part_1"]}, index_storage_key=storage_key
+        column="col",
+        index_dct={1: ["part_1"]} if with_index_dct else None,
+        index_storage_key=storage_key,
     )
-    assert index1.loaded
 
     index2 = index1.unload()
     assert not index2.loaded
@@ -783,3 +785,8 @@ def test_unload():
 
     index3 = pickle.loads(pickle.dumps(index2))
     assert index2 == index3
+
+
+def test_fail_type_unsafe():
+    with pytest.raises(ValueError, match="Trying to create non-typesafe index"):
+        ExplicitSecondaryIndex(column="col", index_dct={})
