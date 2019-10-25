@@ -5,7 +5,7 @@ import distributed.utils_test
 import pytest
 from distributed import Client
 
-import kartothek
+import kartothek.core._time
 from kartothek.core.testing import cm_frozen_time
 
 _client = None
