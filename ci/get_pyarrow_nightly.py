@@ -14,11 +14,11 @@ import urllib.request
 GITHUB_REPO = "ursa-labs/crossbow"
 VERSION_TAG = "{}{}".format(sys.version_info.major, sys.version_info.minor)
 ASSET_PATTERN = re.compile(
-    r"^pyarrow-[0-9]+\.[0-9]+\.[0-9]+\.dev[0-9]+-cp"
+    r"^pyarrow-[0-9]+\.[0-9]+\.[0-9]+(\.dev[0-9]+)?-cp"
     + VERSION_TAG
     + r"-cp"
     + VERSION_TAG
-    + r"m-manylinux1_x86_64\.whl$"
+    + r"m-manylinux[0-9]+_x86_64\.whl$"
 )
 
 
