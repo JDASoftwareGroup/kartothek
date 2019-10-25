@@ -27,7 +27,12 @@ env:
 
 before_install:
   - wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
-  - bash miniconda.sh -b -p $HOME/miniconda
+  - >
+    RETRIES=0;
+    until (timeout 30 bash miniconda.sh -b -p $HOME/miniconda) || [[ $RETRIES -eq 4 ]]; do
+        rm -rf $HOME/miniconda;
+        echo "Try number: " $(( RETRIES++ ))
+    done
   - source "$HOME/miniconda/etc/profile.d/conda.sh"
   - export PATH=$HOME/miniconda/bin:$PATH
   - conda config --set always_yes yes --set changeps1 no
@@ -67,8 +72,14 @@ matrix:
       env:
         - CONDA_CREATE_ARGS="pyarrow==0.13.0"
       before_install:
+        - HOMEBREW_NO_AUTO_UPDATE=1 brew install coreutils
         - wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
-        - bash miniconda.sh -b -p $HOME/miniconda
+        - >
+          RETRIES=0;
+          until (gtimeout 30 bash miniconda.sh -b -p $HOME/miniconda) || [[ $RETRIES -eq 4 ]]; do
+              rm -rf $HOME/miniconda;
+              echo "Try number: " $(( RETRIES++ ))
+          done
         - source "$HOME/miniconda/etc/profile.d/conda.sh"
         - export PATH="$HOME/miniconda/bin:$PATH"
         - conda config --set always_yes yes --set changeps1 no
