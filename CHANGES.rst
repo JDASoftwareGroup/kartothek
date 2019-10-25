@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 3.5.1 (2019-10-25)
+==========================
+- Fix potential ``pyarrow.lib.ArrowNotImplementedError`` when trying to store or pickle empty
+  :class:`~kartothek.core.index.ExplicitSecondaryIndex` objects
+
+
 Version 3.5.0 (2019-10-21)
 ==========================
 

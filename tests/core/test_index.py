@@ -144,10 +144,24 @@ def test_index_update_wrong_col():
     )
 
 
-def test_index_empty(store):
+@pytest.mark.parametrize(
+    "dtype",
+    [
+        pa.binary(),
+        pa.bool_(),
+        pa.date32(),
+        pa.float32(),
+        pa.float64(),
+        pa.int64(),
+        pa.int8(),
+        pa.string(),
+        pa.timestamp("ns"),
+    ],
+)
+def test_index_empty(store, dtype):
     storage_key = "dataset_uuid/some_index.parquet"
     index1 = ExplicitSecondaryIndex(
-        column="col", index_dct={}, dtype=pa.int64(), index_storage_key=storage_key
+        column="col", index_dct={}, dtype=dtype, index_storage_key=storage_key
     )
     key1 = index1.store(store, "dataset_uuid")
 
