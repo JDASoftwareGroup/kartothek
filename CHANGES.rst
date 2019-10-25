@@ -6,6 +6,8 @@ Version 3.5.1 (2019-10-25)
 ==========================
 - Fix potential ``pyarrow.lib.ArrowNotImplementedError`` when trying to store or pickle empty
   :class:`~kartothek.core.index.ExplicitSecondaryIndex` objects
+- Fix pickling of :class:`~kartothek.core.index.ExplicitSecondaryIndex` unloaded in
+  :func:`~kartothek.io_components.read.dispatch_metapartitions_from_factory`
 
 
 Version 3.5.0 (2019-10-21)

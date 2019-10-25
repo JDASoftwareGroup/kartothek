@@ -168,6 +168,27 @@ def test_index_empty(store, dtype):
     index2 = ExplicitSecondaryIndex(column="col", index_storage_key=key1).load(store)
     assert index1 == index2
 
+    index3 = pickle.loads(pickle.dumps(index1))
+    assert index1 == index3
+
+
+def test_pickle_without_load(store):
+    storage_key = "dataset_uuid/some_index.parquet"
+    index1 = ExplicitSecondaryIndex(
+        column="col", index_dct={1: ["part_1"]}, index_storage_key=storage_key
+    )
+    key1 = index1.store(store, "dataset_uuid")
+
+    index2 = ExplicitSecondaryIndex(column="col", index_storage_key=key1)
+    assert index2 != index1
+
+    index3 = pickle.loads(pickle.dumps(index2))
+    assert index3 == index2
+
+    index4 = index3.load(store)
+    assert index4 == index1
+    assert index4 != index2
+
 
 def test_index_no_source():
     with pytest.raises(ValueError) as e:
@@ -749,13 +770,16 @@ def test_serialization_normalization(key):
     )
 
 
-def test_serialization_no_indices(store):
-    index = ExplicitSecondaryIndex(column="col", index_dct={1: ["part_1"]})
-    storage_key = index.store(store=store, dataset_uuid="uuid")
+def test_unload():
+    storage_key = "dataset_uuid/some_index.parquet"
+    index1 = ExplicitSecondaryIndex(
+        column="col", index_dct={1: ["part_1"]}, index_storage_key=storage_key
+    )
+    assert index1.loaded
 
-    # Create index without `index_dct`
-    index = ExplicitSecondaryIndex(column="col", index_storage_key=storage_key)
+    index2 = index1.unload()
+    assert not index2.loaded
+    assert index2.index_storage_key == storage_key
 
-    index2 = pickle.loads(pickle.dumps(index))
-
-    assert index == index2
+    index3 = pickle.loads(pickle.dumps(index2))
+    assert index2 == index3

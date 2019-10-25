@@ -2,7 +2,7 @@
 
 import logging
 from copy import copy
-from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar, Union
+from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -569,14 +569,24 @@ class ExplicitSecondaryIndex(IndexBase):
             normalize_dtype=normalize_dtype,
         )
 
-    def copy(self, **kwargs) -> "IndexBase":
+    def copy(self, **kwargs) -> "ExplicitSecondaryIndex":
         if kwargs:
             index_storage_key = None
         else:
             index_storage_key = self.index_storage_key
-        return super(IndexBase, self).copy(
-            index_storage_key=index_storage_key, **kwargs
+        return cast(
+            ExplicitSecondaryIndex,
+            super(IndexBase, self).copy(index_storage_key=index_storage_key, **kwargs),
         )
+
+    def unload(self) -> "IndexBase":
+        """
+        Drop index data to safe memory.
+        """
+        idx = self.copy(index_dct={})
+        idx._index_dct_available = False
+        idx.index_storage_key = self.index_storage_key
+        return idx
 
     def __eq__(self, other) -> bool:
         if not isinstance(other, ExplicitSecondaryIndex):
