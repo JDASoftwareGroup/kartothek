@@ -2,6 +2,10 @@
 Changelog
 =========
 
+Version 3.5.2 (unreleased)
+==========================
+- Fix addition of bogus index columns to Parquet files when using `sort_partitions_by`.
+
 Version 3.5.1 (2019-10-25)
 ==========================
 - Fix potential ``pyarrow.lib.ArrowNotImplementedError`` when trying to store or pickle empty

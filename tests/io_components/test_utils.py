@@ -1,5 +1,6 @@
 import pandas as pd
 import pandas.testing as pdt
+import pyarrow as pa
 import pytest
 
 from kartothek.io_components.utils import (
@@ -188,3 +189,14 @@ def test_sort_cateogrical():
     assert sorted_df["cat"].is_monotonic
     assert sorted_df["cat"].cat.ordered
     assert all(sorted_df["cat"].cat.categories == sorted(categories))
+
+
+def test_sort_categorical_pyarrow_conversion():
+    """
+    Make sure sorting does not introduce indices that end up in the Arrow table.
+    """
+    df = pd.DataFrame(dict(a=[3, 2, 1]))
+    sorted_df = sort_values_categorical(df, "a")
+    table = pa.Table.from_pandas(df)
+    sorted_table = pa.Table.from_pandas(sorted_df)
+    assert table.schema.names == sorted_table.schema.names
