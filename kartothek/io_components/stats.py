@@ -29,7 +29,7 @@ def get_stats_df(
     """
     Get a statistics DataFrame for a given `dataset_uuid` and `store_factory`
     This DataFrame contains statistics the following statistics for each `.parquet` file:
-    umber of rows, number of row groups and the file size in bytes.
+    number of rows, number of row groups and the file size in bytes.
     It also adds ktk specific statistics like the name of the partition to the DataFrame.
 
     Parameters
@@ -53,8 +53,8 @@ def get_stats_df(
     ds_keys = list(_get_dataset_keys(ds_factory))
     get_data = partial(_fetch_stats, store_factory)
 
-    with ThreadPoolExecutor(max_workers=workers) as executer:
-        data = executer.map(get_data, ds_keys)
+    with ThreadPoolExecutor(max_workers=workers) as executor:
+        data = executor.map(get_data, ds_keys)
 
     df = pd.DataFrame(data, columns=["key", "num_rows", "num_row_group", "file_size"])
     df = _add_partition_col_to_stats_df(df)
