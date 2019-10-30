@@ -338,7 +338,7 @@ def sort_values_categorical(df, column):
         df[column] = cat_accesor.reorder_categories(
             sorted(cat_accesor.categories), ordered=True
         )
-    return df.sort_values(by=[column])
+    return df.sort_values(by=[column]).reset_index(drop=True)
 
 
 def check_single_table_dataset(dataset, expected_table=None):
