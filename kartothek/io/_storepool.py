@@ -9,7 +9,9 @@ class MapStorepoolThreaded:
     def __init__(self, nthreads, store_factory):
         """
         Context manager providing a map function which parallelizes the tasks
-        using threads. The implementation guarantees that at most nthreads partitions are held in memory. If the pool is saturated, all threads will sleep until a results is done processing and control flow is returned to the generator.
+        using threads. The implementation guarantees that at most nthreads partitions are held in memory.
+        If the pool is saturated, all threads will sleep until a results is done processing and control
+        flow is returned tothe generator.
 
         To avoid the opening a connection to a store for every thread
         individually, initialized stores are pooled and the threads can re-use
@@ -70,7 +72,9 @@ class MapStorepoolThreaded:
         return iter(self)
 
     def __exit__(self, exc_type, exc_val, tb):
-        # If the ctx is left ungracefully we need to clean up the scheduled tasks since otherwise the threadpool cannot properly close and will block. The logic will cancel all scheduled futures and sets the abort flag. All sleeping threads are then woken and are allowed to gracefully finish before the ThreadPool shuts down.
+        # If the ctx is left ungracefully we need to clean up the scheduled tasks since otherwise the threadpool
+        # cannot properly close and will block. The logic will cancel all scheduled futures and sets the abort flag.
+        # All sleeping threads are then woken and are allowed to gracefully finish before the ThreadPool shuts down.
         for fut in self._futures:
             fut.cancel()
         with self.cond:
@@ -109,7 +113,8 @@ class MapStorepoolThreaded:
 class MapStorepool:
     def __init__(self, store_factory):
         """
-        A contextmanager which offers a specialized map function which pool initialized stores/connections and allows them to be reused for every item in the map.
+        A contextmanager which offers a specialized map function which pool initialized stores/connections and allows
+        them to be reused for every item in the map.
 
         Usage::
 
