@@ -105,18 +105,16 @@ class DatasetFactory(DatasetMetadataBase):
             if self._ds_callable:
                 # backwards compat
                 self._cache_metadata = self._ds_callable()
+                self._exists = True
             else:
-                try:
+                self._exists = DatasetMetadata.exists(self.dataset_uuid, self.store)
+                if self._exists:
                     self._cache_metadata = DatasetMetadata.load_from_store(
                         uuid=self.dataset_uuid,
                         store=self.store,
                         load_schema=self.load_schema,
                         load_all_indices=self.load_all_indices_flag,
                     )
-                    self._exists = True
-                except KeyError:
-                    self._exists = False
-                    return self
             if not self.load_dataset_metadata:
                 self._cache_metadata.metadata = {}
         self.is_loaded = True

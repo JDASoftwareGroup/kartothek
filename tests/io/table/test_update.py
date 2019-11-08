@@ -6,25 +6,22 @@ from kartothek.io.testing.update import *  # noqa: F40
 
 def _update_from_table(*args, **kwargs):
     partitions = []
-    index_cols = None
+
     for part in args[0]:
         if part:
             partitions.append(dict(part["data"])["core"])
-            index_cols = list(part.get("indices", {}).keys())
-
-    table = (
-        Table(
-            dataset_uuid=kwargs["dataset_uuid"],
-            store_factory=kwargs["store"],
-            name="core",
-        )
-        .write()
-        .add_partitions(partitions)
-        .index_on(kwargs.get("secondary_indices", index_cols))
-        .remove_partitions(kwargs.get("delete_scope"))
-        .add_metadata(kwargs.get("metadata"))
-        .sort_by(kwargs.get("sort_partitions_by"))
+    table = Table(
+        dataset_uuid=kwargs["dataset_uuid"], store_factory=kwargs["store"], name="core"
     )
+    if "dataset_uuid" in kwargs:
+        del kwargs["dataset_uuid"]
+    del kwargs["store"]
+    if "label_filter" in kwargs:
+        del kwargs["label_filter"]
+    if "factory" in kwargs:
+        del kwargs["factory"]
+
+    table = table.write(**kwargs).add_partitions(partitions)
 
     return table.commit()
 

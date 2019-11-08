@@ -1,3 +1,4 @@
+attrs
 dask[dataframe]
 decorator
 msgpack>=0.5.2

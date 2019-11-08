@@ -19,25 +19,21 @@ def _read_table(*args, **kwargs):
         kwargs.pop("tables")
 
     if "factory" in kwargs and kwargs["factory"] is not None:
-        table = Table(
-            dataset_uuid=kwargs["factory"].dataset_uuid,
-            store_factory=kwargs["factory"].store_factory,
-            name="core",
-        ).read()
+        table = Table.from_factory(factory=kwargs["factory"], name="table")
     else:
         table = Table(
             dataset_uuid=kwargs["dataset_uuid"],
             store_factory=kwargs["store"],
-            name="core",
-        ).read()
-
-    table = (
-        table.filter(kwargs.get("predicates"))
-        .columns(kwargs.get("columns"))
-        .dispatch_by("dispatch_by")
-        .categories(kwargs.get("categoricals"))
-        .dates_as_object(kwargs.get("dates_as_object"))
-    )
+            name="table",
+        )
+    kwargs["categories"] = kwargs.pop("categoricals", None)
+    del kwargs["dataset_uuid"]
+    del kwargs["store"]
+    if "label_filter" in kwargs:
+        del kwargs["label_filter"]
+    if "factory" in kwargs:
+        del kwargs["factory"]
+    table = table.read(**kwargs)
 
     table.table.load_all_indices()
     res = table.to_pandas()
@@ -72,14 +68,14 @@ def backend_identifier():
 
 def test_read_table_eager(dataset, store_session, use_categoricals):
     if use_categoricals:
-        categories = {"core": ["P"]}
+        categories = {"table": ["P"]}
     else:
         categories = None
 
     df = read_table(
         store=store_session,
         dataset_uuid="dataset_uuid",
-        table="core",
+        table="table",
         categoricals=categories,
     )
     expected_df = pd.DataFrame(
@@ -138,7 +134,7 @@ def test_read_table_with_columns(dataset, store_session):
     df = read_table(
         store=store_session,
         dataset_uuid="dataset_uuid",
-        table="core",
+        table="table",
         columns=["P", "L"],
     )
 
@@ -155,7 +151,7 @@ def test_read_table_simple_list_for_cols_cats(dataset, store_session):
     df = read_table(
         store=store_session,
         dataset_uuid="dataset_uuid",
-        table="core",
+        table="table",
         columns=["P", "L"],
         categoricals=["P", "L"],
     )

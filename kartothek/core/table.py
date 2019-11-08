@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
 import attr
 import dask
@@ -10,21 +10,30 @@ from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.serialization import ParquetSerializer
 
 from .common_metadata import SchemaWrapper
+from .dataset import _validate_uuid
 from .factory import DatasetFactory
+from .utils import _check_callable
 
 
+def _wrap_simple_validator(func):
+    def _(self, attr, value):
+        return func(value)
+
+    return _
+
+
+@attr.s
 class Table:
-    def __init__(
-        self, dataset_uuid: str, store_factory: Callable, name: str = SINGLE_TABLE
-    ):
-        self.name = name
-        self.dataset_uuid = dataset_uuid
-        self.store_factory = store_factory
-        self._factory = DatasetFactory(dataset_uuid, store_factory)
+    dataset_uuid = attr.ib(validator=_wrap_simple_validator(_validate_uuid), type=str)
+    store_factory = attr.ib(validator=_wrap_simple_validator(_check_callable), type=Any)
+    name = attr.ib(default=SINGLE_TABLE, type=str)
+
+    def __attrs_post_init__(self):
+        self._factory = DatasetFactory(self.dataset_uuid, self.store_factory)
 
     @staticmethod
-    def from_factory(self, factory: DatasetFactory, name=SINGLE_TABLE) -> "Table":
-        inst = Table("__dummy__", lambda x: None, name=name)
+    def from_factory(factory: DatasetFactory, name=SINGLE_TABLE) -> "Table":
+        inst = Table(factory.dataset_uuid, factory.store_factory, name)
         inst._factory = factory
         return inst
 
@@ -32,11 +41,11 @@ class Table:
     def schema(self) -> SchemaWrapper:
         return self._factory.table_meta[self.name]
 
-    def read(self) -> "TableReader":
-        return TableReader(table=self)
+    def read(self, **kwargs) -> "TableReader":
+        return TableReader(self, **kwargs)
 
-    def write(self) -> "TableWriter":
-        return TableWriter(table=self)
+    def write(self, **kwargs) -> "TableWriter":
+        return TableWriter(self, **kwargs)
 
     def __getattr__(self, name: str):
         # __getattr__ should only be called if the attribute cannot be found. if the
@@ -45,50 +54,19 @@ class Table:
         return getattr(factory, name)
 
 
-class TableOperation:
-    def to_dict(self):
-        options = self.options()
-        options.update({"table": self.table})
-        return options
+@attr.s
+class TableReader:
+    table = attr.ib(type=Table)
 
-    def reset(self):
-        return type(self)(self.table)
+    predicates = attr.ib(type=Any, default=None, kw_only=True)
+    columns = attr.ib(type=Optional[List[str]], default=None, kw_only=True)
+    dispatch_by = attr.ib(type=Optional[List[str]], default=None, kw_only=True)
+    predicate_pushdown_to_io = attr.ib(type=Optional[bool], default=None, kw_only=True)
+    categories = attr.ib(type=Optional[List[str]], default=None, kw_only=True)
+    dates_as_object = attr.ib(type=Optional[bool], default=None, kw_only=True)
 
-    def bind(self, **kwargs):
-        dct = self.to_dict()
-        dct.update(kwargs)
-        return type(self)(**dct)
-
-
-class TableReader(TableOperation):
-    def __init__(
-        self,
-        table: Table,
-        *,
-        predicates: Optional[Any] = None,
-        columns: Optional[List[str]] = None,
-        dispatch_by: Optional[List[str]] = None,
-        predicate_pushdown_to_io: Optional[bool] = None,
-        categories: Optional[List[str]] = None,
-        dates_as_object: Optional[bool] = False,
-    ):
-        self.table = table
-        self._predicates = predicates
-        self._columns = columns
-        self._dispatch_by = dispatch_by
-        self._predicate_pushdown_to_io = predicate_pushdown_to_io
-        self._categories = categories
-        self._dates_as_object = dates_as_object
-
-    def options(self):
-        return {
-            "predicates": self._predicates,
-            "columns": self._columns,
-            "dispatch_by": self._dispatch_by,
-            "predicate_pushdown_to_io": self._predicate_pushdown_to_io,
-            "categories": self._categories,
-            "dates_as_object": self._dates_as_object,
-        }
+    def set_option(self, **kwargs):
+        return attr.evolve(self, **kwargs)
 
     def to_delayed(self) -> List[dask.delayed]:
         raise NotImplementedError
@@ -104,81 +82,33 @@ class TableReader(TableOperation):
 
         return read_table(
             factory=self.table._factory,
-            predicates=self._predicates,
-            columns=self._columns,
+            predicates=self.predicates,
+            columns=self.columns,
             table=self.table.name,
-            categoricals=self._categories,
-            dates_as_object=self._dates_as_object,
+            categoricals=self.categories,
+            dates_as_object=self.dates_as_object,
         )
 
-    def categories(self, categories):
-        if isinstance(categories, dict):
-            categories = categories[self.table.name]
-        return self.bind(categories=categories)
 
-    def dates_as_object(self, dates_as_object):
-        return self.bind(dates_as_object=dates_as_object)
+@attr.s
+class TableWriter:
 
-    def predicate_pushdown_to_io(self, value):
-        return self.bind(predicate_pushdown_to_io=value)
+    table = attr.ib(type=Table)
 
-    def filter(self, predicates) -> "TableReader":
-        return self.bind(predicates=predicates)
+    secondary_indices = attr.ib(type=Optional[List[str]], default=None, kw_only=True)
+    partition_on = attr.ib(type=Optional[List[str]], default=None, kw_only=True)
+    metadata = attr.ib(type=Optional[Dict], default=None, kw_only=True)
+    metadata_version = attr.ib(type=Optional[str], default=None, kw_only=True)
+    sort_partitions_by = attr.ib(type=Optional[str], default=None, kw_only=True)
+    append_partitions = attr.ib(type=Optional[List], default=None, kw_only=True)
+    delete_scope = attr.ib(type=Optional[List[Dict]], default=None, kw_only=True)
+    allow_override = attr.ib(type=Optional[bool], default=False, kw_only=True)
+    compression = attr.ib(type=Optional[str], default="zstd", kw_only=True)
+    parquet_chunksize = attr.ib(type=Optional[int], default=None, kw_only=True)
+    default_metadata_version = attr.ib(type=int, default=4, kw_only=True)
 
-    def columns(self, columns):
-        return self.bind(columns=columns)
-
-    def dispatch_by(self, columns) -> "TableReader":
-        return self.bind(dispatch_by=columns)
-
-
-class TableWriter(TableOperation):
-    def __init__(
-        self,
-        table: Table,
-        *,
-        secondary_indices: Optional[List[str]] = None,
-        partition_on: Optional[List[str]] = None,
-        metadata: Optional[Dict] = None,
-        metadata_version: Optional[str] = None,
-        sort_by: Optional[str] = None,
-        append_partitions: Optional[List] = None,
-        delete_scope: Optional[List[Dict]] = None,
-        allow_override: Optional[bool] = False,
-        compression: Optional[str] = "zstd",
-        parquet_chunksize: Optional[int] = None,
-    ):
-        self.table = table
-        self._secondary_indices = secondary_indices
-        self._partition_on = partition_on
-        self._metadata = metadata
-        self._metadata_version = metadata_version
-        self._sort_by = sort_by
-        self._append_partitions = append_partitions
-        self._delete_scope = delete_scope
-        self._allow_override = allow_override
-        self._compression = compression
-        self._parquet_chunksize = parquet_chunksize
-
-    def options(self):
-        return {
-            "secondary_indices": self._secondary_indices,
-            "partition_on": self._partition_on,
-            "metadata": self._metadata,
-            "metadata_version": self._metadata_version,
-            "sort_by": self._sort_by,
-            "append_partitions": self._append_partitions,
-            "delete_scope": self._delete_scope,
-            "allow_override": self._allow_override,
-            "compression": self._compression,
-            "parquet_chunksize": self._parquet_chunksize,
-        }
-
-    @property
-    def df_serializer(self):
-        return ParquetSerializer(
-            chunk_size=self._parquet_chunksize, compression=self._compression
-        )
+    def copy(self, **kwargs):
+        return attr.evolve(self, **kwargs)
 
     @property
     def TYPED_TABLEWRITER(self):
@@ -187,23 +117,14 @@ class TableWriter(TableOperation):
             db.Bag: DaskDataFrameTableWriter,
         }
 
-    def as_parquet(self):
-        return
+    @property
+    def df_serializer(self):
+        return ParquetSerializer(
+            chunk_size=self.parquet_chunksize, compression=self.compression
+        )
 
     def commit(self, compute=True):
         raise NotImplementedError
-
-    def index_on(self, columns):
-        return self.bind(secondary_indices=columns)
-
-    def partition_on(self, columns):
-        return self.bind(partition_on=columns)
-
-    def sort_by(self, columns):
-        return self.bind(sort_by=columns)
-
-    def add_metadata(self, metadata):
-        return self.bind(metadata=metadata)
 
     def _get_contructor_from_partitions(self, obj):
         if isinstance(obj, list) and obj:
@@ -213,9 +134,10 @@ class TableWriter(TableOperation):
 
     def add_partitions(self, partitions=None, ddf=None) -> "TableWriter":
         writer_class = self._get_contructor_from_partitions(partitions)
-
-        instance = writer_class(table=self.table)
-        return instance.bind(append_partitions=partitions)
+        options = attr.asdict(self)
+        del options["table"]
+        instance = writer_class(table=self.table, **options)
+        return instance.copy(append_partitions=partitions)
 
     append = add_partitions
 
@@ -229,7 +151,7 @@ class TableWriter(TableOperation):
             # allows only partition cols
             raise NotImplementedError()
 
-        return self.bind(delete_scope=delete_scope)
+        return self.copy(delete_scope=delete_scope)
 
 
 class BaseTableWriter(TableWriter):
@@ -242,16 +164,15 @@ class BaseTableWriter(TableWriter):
             from kartothek.io.iter import update_dataset_from_dataframes__iter
 
             func = update_dataset_from_dataframes__iter
-
         return func(
-            df_list=[{self.table.name: part} for part in self._append_partitions],
+            df_list=[{self.table.name: part} for part in self.append_partitions],
             factory=self.table._factory,
-            delete_scope=self._delete_scope,
-            metadata=self._metadata,
+            delete_scope=self.delete_scope,
+            metadata=self.metadata,
             df_serializer=self.df_serializer,
-            default_metadata_version=self._metadata_version,
-            sort_partitions_by=self._sort_by,
-            secondary_indices=self._secondary_indices,
+            default_metadata_version=self.metadata_version,
+            sort_partitions_by=self.sort_partitions_by,
+            secondary_indices=self.secondary_indices,
         )
 
 
