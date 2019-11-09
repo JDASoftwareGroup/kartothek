@@ -146,6 +146,12 @@ _PARAMETER_MAPPING = {
     "partition_size": """
     partition_size: int
         Amount of metapartitions to cluster into one dask partition.
+        Note: Do not pass this argument and `n_partitions` together.
+""",
+    "n_partitions": """
+    n_partitions: int
+        The number of desired partitions
+        Note: Do not pass this argument and `partition_size` together.
 """,
 }
 

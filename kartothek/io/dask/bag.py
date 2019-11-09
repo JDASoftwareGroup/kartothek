@@ -56,6 +56,7 @@ def read_dataset_as_metapartitions_bag(
     factory=None,
     dispatch_by=None,
     partition_size=None,
+    n_partitions=None,
 ):
     """
     Retrieve dataset as `dask.bag` of `MetaPartition` objects.
@@ -67,6 +68,11 @@ def read_dataset_as_metapartitions_bag(
     -------
     A dask.bag object containing the metapartions.
     """
+    if partition_size and n_partitions:
+        raise ValueError(
+            "Please provide only one of the argument `partition_size` or `n_partitions`"
+        )
+
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -81,7 +87,7 @@ def read_dataset_as_metapartitions_bag(
         predicates=predicates,
         dispatch_by=dispatch_by,
     )
-    mps = db.from_sequence(mps, partition_size=partition_size)
+    mps = db.from_sequence(mps, partition_size=partition_size, npartitions=n_partitions)
 
     if concat_partitions_on_primary_index or dispatch_by:
         mps = mps.map(
@@ -137,6 +143,7 @@ def read_dataset_as_dataframe_bag(
     factory=None,
     dispatch_by=None,
     partition_size=None,
+    n_partitions=None,
 ):
     """
     Retrieve data as dataframe from a `dask.bag` of `MetaPartition` objects
@@ -149,6 +156,11 @@ def read_dataset_as_dataframe_bag(
     dask.bag
         A dask.bag which contains the metapartitions and mapped to a function for retrieving the data.
     """
+    if partition_size and n_partitions:
+        raise ValueError(
+            "Please provide only one of the argument `partition_size` or `n_partitions`"
+        )
+
     mps = read_dataset_as_metapartitions_bag(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -164,6 +176,7 @@ def read_dataset_as_dataframe_bag(
         predicates=predicates,
         dispatch_by=dispatch_by,
         partition_size=partition_size,
+        n_partitions=n_partitions,
     )
     return mps.map(_get_data)
 
@@ -239,7 +252,7 @@ def store_bag_as_dataset(
 
 @default_docs
 def build_dataset_indices__bag(
-    store, dataset_uuid, columns, partition_size=None, factory=None
+    store, dataset_uuid, columns, partition_size=None, n_partitions=None, factory=None
 ):
     """
     Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
@@ -257,6 +270,11 @@ def build_dataset_indices__bag(
     -------
     A dask.delayed computation object.
     """
+    if partition_size and n_partitions:
+        raise ValueError(
+            "Please provide only one of the argument `partition_size` or `n_partitions`"
+        )
+
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,

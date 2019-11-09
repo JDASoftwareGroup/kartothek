@@ -5,6 +5,7 @@ Changelog
 Version 3.5.2 (unreleased)
 ==========================
 - Fix addition of bogus index columns to Parquet files when using `sort_partitions_by`.
+- Add an optional argument `n_partitions` in dask bag APIs. This can be used in-place of `partition_size`
 
 Version 3.5.1 (2019-10-25)
 ==========================
