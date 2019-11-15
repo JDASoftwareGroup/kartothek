@@ -7,6 +7,7 @@ import dask
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+import pandas.util.testing as pdt
 import pytest
 
 from kartothek.core.factory import DatasetFactory
@@ -17,7 +18,7 @@ from kartothek.io.testing.update import *  # noqa
 
 
 @pytest.mark.parametrize("col", ["range", "range_duplicated", "random"])
-def test_hash_bucket(col):
+def test_hash_bucket(col, num_buckets=5):
     df = pd.DataFrame(
         {
             "range": np.arange(10),
@@ -25,8 +26,27 @@ def test_hash_bucket(col):
             "random": np.random.randint(0, 100, 10),
         }
     )
-    hashed = _hash_bucket(df, [col], 5)
+    hashed = _hash_bucket(df, [col], num_buckets)
     assert (hashed.groupby(col).agg({_KTK_HASH_BUCKET: "nunique"}) == 1).all().all()
+
+    # Check that hashing is consistent for small dataframe sizes (where df.col.nunique() < num_buckets)
+    df_sample = df.iloc[[0, 7]]
+    hashed_sample = _hash_bucket(df_sample, [col], num_buckets)
+    expected = hashed.loc[df_sample.index]
+    pdt.assert_frame_equal(expected, hashed_sample)
+
+
+def test_hashing_determinism():
+    """Make sure that the hashing algorithm used by pandas is independent of any context variables"""
+    df = pd.DataFrame({"range": np.arange(10)})
+    hashed = _hash_bucket(df, ["range"], 5)
+    expected = pd.DataFrame(
+        {
+            "range": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+            _KTK_HASH_BUCKET: np.uint8([0, 0, 1, 2, 0, 3, 2, 0, 1, 4]),
+        }
+    )
+    pdt.assert_frame_equal(hashed, expected)
 
 
 @pytest.fixture
