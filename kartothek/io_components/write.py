@@ -55,7 +55,7 @@ def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid)
         for tab, tm in mp.table_meta.items():
             tm_dct[tab].add(tm)
 
-    if update_dataset:
+    if update_dataset and update_dataset.exists:
         if set(tm_dct.keys()) and set(update_dataset.tables) != set(tm_dct.keys()):
             raise ValueError(
                 (
@@ -106,7 +106,7 @@ def store_dataset_from_partitions(
 ):
     store = _instantiate_store(store)
 
-    if update_dataset:
+    if update_dataset and update_dataset.exists:
         dataset_builder = DatasetMetadataBuilder.from_dataset(update_dataset)
         metadata_version = dataset_builder.metadata_version
     else:

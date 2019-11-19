@@ -1,10 +1,17 @@
+from functools import partial
+
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
+from storefact import get_store_from_url
 
+from kartothek.core.factory import DatasetFactory
+from kartothek.core.uuid import gen_uuid
+from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io_components.utils import (
     align_categories,
+    check_single_table_dataset,
     combine_metadata,
     extract_duplicates,
     normalize_args,
@@ -200,3 +207,61 @@ def test_sort_categorical_pyarrow_conversion():
     table = pa.Table.from_pandas(df)
     sorted_table = pa.Table.from_pandas(sorted_df)
     assert table.schema.names == sorted_table.schema.names
+
+
+def test_check_single_table_factory_nonexistant():
+    dataset = DatasetFactory(
+        dataset_uuid="dataset_uuid",
+        store_factory=partial(get_store_from_url, "hmemory://"),
+    )
+    check_single_table_dataset(dataset, expected_table="table")
+
+
+@pytest.fixture(scope="session")
+def dataset_single_table(df_all_types, store_session_factory):
+    dataset_uuid = gen_uuid()
+    return store_dataframes_as_dataset(
+        dataset_uuid=dataset_uuid, store=store_session_factory, dfs=df_all_types
+    )
+
+
+@pytest.fixture(scope="session")
+def dataset_multi_table(df_all_types, store_session_factory):
+    dataset_uuid = gen_uuid()
+    return store_dataframes_as_dataset(
+        dataset_uuid=dataset_uuid,
+        store=store_session_factory,
+        dfs={"table1": df_all_types, "table2": df_all_types},
+    )
+
+
+def test_check_single_table_dataset(dataset_single_table):
+    check_single_table_dataset(dataset_single_table)
+    check_single_table_dataset(dataset_single_table, expected_table="table")
+    with pytest.raises(TypeError, match="Unexpected table in dataset"):
+        check_single_table_dataset(
+            dataset_single_table, expected_table="table_not_found"
+        )
+
+
+def test_check_single_table_factory(dataset_single_table, store_session_factory):
+    dataset_factory = DatasetFactory(
+        dataset_uuid=dataset_single_table.uuid, store_factory=store_session_factory
+    )
+    check_single_table_dataset(dataset_factory)
+    check_single_table_dataset(dataset_factory, expected_table="table")
+    with pytest.raises(TypeError, match="Unexpected table in dataset"):
+        check_single_table_dataset(dataset_factory, expected_table="table_not_found")
+
+
+def test_check_single_table_multi_raises(dataset_multi_table):
+    with pytest.raises(
+        TypeError, match="Expected single table dataset but found dataset with tables:"
+    ):
+        check_single_table_dataset(
+            dataset_multi_table, expected_table="table_not_found"
+        )
+    with pytest.raises(
+        TypeError, match="Expected single table dataset but found dataset with tables:"
+    ):
+        check_single_table_dataset(dataset_multi_table)

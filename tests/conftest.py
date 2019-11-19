@@ -167,24 +167,24 @@ def metadata_storage_format(request):
     return request.param
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def df_all_types_schema(df_all_types):
     return make_meta(df_all_types, origin="df_all_types")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def df_all_types_empty_schema(df_all_types):
     df_empty = df_all_types.drop(0)
     assert df_empty.empty
     return make_meta(df_empty, origin="df_empty")
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def df_all_types():
     return get_dataframe_alltypes()
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def df_not_nested():
     return get_dataframe_not_nested()
 

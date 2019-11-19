@@ -3,14 +3,17 @@
 
 from collections import defaultdict
 from functools import partial
+from typing import Any, Callable, Dict, List, Optional, Union, cast
 
 import dask
-from dask import delayed
+import pandas as pd
+from dask.delayed import Delayed, delayed
 
 from kartothek.core import naming
 from kartothek.core.docs import default_docs
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
+from kartothek.core.types import PredicatesType, StoreFactory
 from kartothek.core.utils import _check_callable
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.delete import (
@@ -37,6 +40,7 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.serialization import DataFrameSerializer
 
 from ._update import _update_dask_partitions_one_to_one
 from ._utils import (
@@ -47,15 +51,17 @@ from ._utils import (
     map_delayed,
 )
 
+DelayedList = List[Delayed]
 
-def _delete_all_additional_metadata(dataset_factory):
+
+def _delete_all_additional_metadata(dataset_factory: DatasetFactory) -> str:
     delete_indices(dataset_factory=dataset_factory)
     delete_common_metadata(dataset_factory=dataset_factory)
     # This is just a dummy return to chain
     return dataset_factory.dataset_uuid
 
 
-def _delete_tl_metadata(dataset_factory, *args):
+def _delete_tl_metadata(dataset_factory: DatasetFactory, *args) -> None:
     """
     This function serves as a collector function for delayed objects. Therefore
     allowing additional arguments which are not used.
@@ -64,7 +70,11 @@ def _delete_tl_metadata(dataset_factory, *args):
 
 
 @default_docs
-def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
+def delete_dataset__delayed(
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> Delayed:
     """
     Parameters
     ----------
@@ -97,8 +107,11 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
 
 @default_docs
 def garbage_collect_dataset__delayed(
-    dataset_uuid=None, store=None, chunk_size=100, factory=None
-):
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    chunk_size: int = 100,
+    factory: Optional[DatasetFactory] = None,
+) -> Delayed:
     """
     Remove auxiliary files that are no longer tracked by the dataset.
 
@@ -147,14 +160,14 @@ def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tas
 
 @default_docs
 def merge_datasets_as_delayed(
-    left_dataset_uuid,
-    right_dataset_uuid,
-    store,
-    merge_tasks,
-    match_how="exact",
-    label_merger=None,
-    metadata_merger=None,
-):
+    left_dataset_uuid: str,
+    right_dataset_uuid: str,
+    store: StoreFactory,
+    merge_tasks: List[Dict[str, str]],
+    match_how: str = "exact",
+    label_merger: Optional[Callable] = None,
+    metadata_merger: Optional[Callable] = None,
+) -> Delayed:
     """
     A dask.delayed graph to perform the merge of two full kartothek datasets.
 
@@ -233,35 +246,28 @@ def merge_datasets_as_delayed(
     return mps
 
 
-def _load_and_concat_metapartitions_inner(mps, args, kwargs):
+def _load_and_concat_metapartitions_inner(mps, *args, **kwargs):
     return MetaPartition.concat_metapartitions(
         [mp.load_dataframes(*args, **kwargs) for mp in mps]
     )
 
 
-def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
-    return [
-        delayed(_load_and_concat_metapartitions_inner)(mps, args, kwargs)
-        for mps in list_of_mps
-    ]
-
-
 @default_docs
 def read_dataset_as_delayed_metapartitions(
-    dataset_uuid=None,
-    store=None,
-    tables=None,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    load_dataset_metadata=False,
-    predicates=None,
-    factory=None,
-    dispatch_by=None,
-):
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    tables: Optional[str] = None,
+    columns: Optional[Dict[str, List[str]]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Optional[Dict[str, List[str]]] = None,
+    label_filter: Optional[Callable] = None,
+    dates_as_object: bool = False,
+    load_dataset_metadata: bool = False,
+    predicates: PredicatesType = None,
+    factory: Optional[DatasetFactory] = None,
+    dispatch_by: Optional[List[str]] = None,
+) -> DelayedList:
     """
     A collection of dask.delayed objects to retrieve a dataset from store where each
     partition is loaded as a :class:`~kartothek.io_components.metapartition.MetaPartition`.
@@ -290,8 +296,9 @@ def read_dataset_as_delayed_metapartitions(
     )
 
     if concat_partitions_on_primary_index or dispatch_by:
-        mps = _load_and_concat_metapartitions(
+        mps_delayed = map_delayed(
             mps,
+            _load_and_concat_metapartitions_inner,
             store=store,
             tables=tables,
             columns=columns,
@@ -301,7 +308,7 @@ def read_dataset_as_delayed_metapartitions(
             predicates=predicates,
         )
     else:
-        mps = map_delayed(
+        mps_delayed = map_delayed(
             mps,
             MetaPartition.load_dataframes,
             store=store,
@@ -312,39 +319,44 @@ def read_dataset_as_delayed_metapartitions(
             dates_as_object=dates_as_object,
             predicates=predicates,
         )
+    del mps
 
     categoricals_from_index = _maybe_get_categoricals_from_index(
         ds_factory, categoricals
     )
 
     if categoricals_from_index:
-        func_dict = defaultdict(_identity)
+        func_dict: Dict[str, Callable[[pd.DataFrame], pd.DataFrame]] = defaultdict(
+            _identity
+        )
         func_dict.update(
             {
                 table: partial(_cast_categorical_to_index_cat, categories=cats)
                 for table, cats in categoricals_from_index.items()
             }
         )
-        mps = map_delayed(mps, MetaPartition.apply, func_dict, type_safe=True)
+        mps_delayed = map_delayed(
+            mps_delayed, MetaPartition.apply, func_dict, type_safe=True
+        )
 
-    return mps
+    return mps_delayed
 
 
 @default_docs
 def read_dataset_as_delayed(
-    dataset_uuid=None,
-    store=None,
-    tables=None,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    predicates=None,
-    factory=None,
-    dispatch_by=None,
-):
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    tables: Optional[str] = None,
+    columns: Optional[Dict[str, List[str]]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Optional[Dict[str, List[str]]] = None,
+    label_filter: Optional[Callable] = None,
+    dates_as_object: bool = False,
+    predicates: PredicatesType = None,
+    factory: Optional[DatasetFactory] = None,
+    dispatch_by: Optional[List[str]] = None,
+) -> DelayedList:
     """
     A collection of dask.delayed objects to retrieve a dataset from store
     where each partition is loaded as a :class:`~pandas.DataFrame`.
@@ -372,19 +384,19 @@ def read_dataset_as_delayed(
 
 @default_docs
 def read_table_as_delayed(
-    dataset_uuid=None,
-    store=None,
-    table=SINGLE_TABLE,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    predicates=None,
-    factory=None,
-    dispatch_by=None,
-):
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    table: str = SINGLE_TABLE,
+    columns: Optional[Union[Dict[str, List[str]], List[str]]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Optional[List[str]] = None,
+    label_filter: Optional[Callable] = None,
+    dates_as_object: bool = False,
+    predicates: PredicatesType = None,
+    factory: Optional[DatasetFactory] = None,
+    dispatch_by: Optional[List[str]] = None,
+) -> DelayedList:
     """
     A collection of dask.delayed objects to retrieve a single table from
     a dataset as partition-individual :class:`~pandas.DataFrame` instances.
@@ -405,12 +417,18 @@ def read_table_as_delayed(
     ----------
     """
     if not isinstance(columns, dict):
-        columns = {table: columns}
+        if table is None:
+            raise TypeError(
+                "Need to provide an explicit table if columns are provided as a list!"
+            )
+        columns_dict = {table: cast(List[str], columns)}
+    else:
+        columns_dict = cast(Dict[str, List[str]], columns)
     mps = read_dataset_as_delayed_metapartitions(
         dataset_uuid=dataset_uuid,
         store=store,
         tables=[table],
-        columns=columns,
+        columns=columns_dict,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         categoricals=categoricals,
@@ -426,19 +444,19 @@ def read_table_as_delayed(
 
 @default_docs
 def update_dataset_from_delayed(
-    delayed_tasks,
-    store=None,
-    dataset_uuid=None,
-    delete_scope=None,
-    metadata=None,
-    df_serializer=None,
-    metadata_merger=None,
-    default_metadata_version=DEFAULT_METADATA_VERSION,
-    partition_on=None,
-    sort_partitions_by=None,
-    secondary_indices=None,
-    factory=None,
-):
+    delayed_tasks: DelayedList,
+    store: Optional[StoreFactory] = None,
+    dataset_uuid: Optional[str] = None,
+    delete_scope: Optional[List[Dict[str, str]]] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
+    metadata_merger: Optional[Callable] = None,
+    default_metadata_version: int = DEFAULT_METADATA_VERSION,
+    partition_on: Optional[List[str]] = None,
+    sort_partitions_by: Optional[str] = None,
+    secondary_indices: Optional[List[str]] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> Delayed:
     """
     A dask.delayed graph to add and store a list of dictionaries containing
     dataframes to a kartothek dataset in store. The input should be a list
@@ -468,9 +486,8 @@ def update_dataset_from_delayed(
         secondary_indices=secondary_indices,
         metadata_version=metadata_version,
         partition_on=partition_on,
-        store_factory=store,
         df_serializer=df_serializer,
-        dataset_uuid=dataset_uuid,
+        ds_factory=ds_factory,
         sort_partitions_by=sort_partitions_by,
     )
 
@@ -488,18 +505,18 @@ def update_dataset_from_delayed(
 @default_docs
 @normalize_args
 def store_delayed_as_dataset(
-    delayed_tasks,
-    store,
-    dataset_uuid=None,
-    metadata=None,
-    df_serializer=None,
-    overwrite=False,
-    metadata_merger=None,
-    metadata_version=naming.DEFAULT_METADATA_VERSION,
-    partition_on=None,
-    metadata_storage_format=naming.DEFAULT_METADATA_STORAGE_FORMAT,
-    secondary_indices=None,
-):
+    delayed_tasks: DelayedList,
+    store: Callable,
+    dataset_uuid: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
+    overwrite: bool = False,
+    metadata_merger: Callable = None,
+    metadata_version: int = naming.DEFAULT_METADATA_VERSION,
+    partition_on: Optional[List[str]] = None,
+    metadata_storage_format: str = naming.DEFAULT_METADATA_STORAGE_FORMAT,
+    secondary_indices: Optional[List[str]] = None,
+) -> Delayed:
     """
     Transform and store a list of dictionaries containing
     dataframes to a kartothek dataset in store.

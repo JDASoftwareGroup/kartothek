@@ -1,15 +1,20 @@
-# -*- coding: utf-8 -*-
-
+from typing import Callable, Dict, List, Optional, Union, cast
 
 import dask
 import dask.dataframe as dd
 import numpy as np
+import pandas as pd
+from dask.delayed import Delayed
 
 from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
-from kartothek.io_components.metapartition import parse_input_to_metapartition
+from kartothek.core.types import StoreFactory
+from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
+    parse_input_to_metapartition,
+)
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
@@ -17,6 +22,7 @@ from kartothek.io_components.utils import (
     normalize_arg,
     validate_partition_keys,
 )
+from kartothek.serialization import DataFrameSerializer, PredicatesType
 
 from ._update import _update_dask_partitions_one_to_one, _update_dask_partitions_shuffle
 from ._utils import _maybe_get_categoricals_from_index
@@ -25,18 +31,18 @@ from .delayed import read_table_as_delayed
 
 @default_docs
 def read_dataset_as_ddf(
-    dataset_uuid=None,
-    store=None,
-    table=None,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    predicates=None,
-    factory=None,
-):
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    table: Optional[str] = None,
+    columns: Optional[List[str]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Optional[List[str]] = None,
+    label_filter: Optional[Callable] = None,
+    dates_as_object: bool = False,
+    predicates: PredicatesType = None,
+    factory: DatasetFactory = None,
+) -> dd.DataFrame:
     """
     Retrieve a single table from a dataset as partition-individual :class:`~dask.dataframe.DataFrame` instance.
 
@@ -53,6 +59,8 @@ def read_dataset_as_ddf(
         factory=factory,
         load_dataset_metadata=False,
     )
+    if table is None:
+        table = SINGLE_TABLE
     if isinstance(columns, dict):
         columns = columns[table]
     meta = _get_dask_meta_for_dataset(
@@ -79,8 +87,12 @@ def read_dataset_as_ddf(
 
 
 def _get_dask_meta_for_dataset(
-    ds_factory, table, columns, categoricals, dates_as_object
-):
+    ds_factory: DatasetFactory,
+    table: str,
+    columns: Optional[List[str]],
+    categoricals: Optional[List[str]],
+    dates_as_object: bool,
+) -> pd.DataFrame:
     """
     Calculate a schema suitable for the dask dataframe meta from the dataset.
     """
@@ -89,12 +101,16 @@ def _get_dask_meta_for_dataset(
         table_schema, columns=columns, date_as_object=dates_as_object
     )
 
+    categoricals_dict: Optional[Dict]
     if categoricals:
         meta = meta.astype({col: "category" for col in categoricals})
         meta = dd.utils.clear_known_categories(meta, categoricals)
+        categoricals_dict = {table: cast(List[str], categoricals)}
+    else:
+        categoricals_dict = None
 
     categoricals_from_index = _maybe_get_categoricals_from_index(
-        ds_factory, {table: categoricals}
+        ds_factory, categoricals_dict
     )
     if categoricals_from_index:
         meta = meta.astype(categoricals_from_index[table])
@@ -103,23 +119,23 @@ def _get_dask_meta_for_dataset(
 
 @default_docs
 def update_dataset_from_ddf(
-    ddf,
-    store=None,
-    dataset_uuid=None,
-    table=None,
-    secondary_indices=None,
-    shuffle=False,
-    repartition_ratio=None,
-    num_buckets=1,
-    sort_partitions_by=None,
-    delete_scope=None,
-    metadata=None,
-    df_serializer=None,
-    metadata_merger=None,
-    default_metadata_version=DEFAULT_METADATA_VERSION,
-    partition_on=None,
-    factory=None,
-):
+    ddf: dd.DataFrame,
+    store: Optional[StoreFactory] = None,
+    dataset_uuid: Optional[str] = None,
+    table: Optional[str] = None,
+    secondary_indices: Optional[List[str]] = None,
+    shuffle: Optional[bool] = False,
+    repartition_ratio: Optional[Union[float, int]] = None,
+    num_buckets: int = 1,
+    sort_partitions_by: Optional[str] = None,
+    delete_scope: Optional[List[Dict[str, str]]] = None,
+    metadata: Optional[Dict[str, str]] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
+    metadata_merger: Optional[Callable] = None,
+    default_metadata_version: Optional[int] = DEFAULT_METADATA_VERSION,
+    partition_on: Optional[List[str]] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> Delayed:
     """
     Update a dataset from a dask.dataframe.
 
@@ -185,8 +201,7 @@ def update_dataset_from_ddf(
         raise ValueError(
             "If ``shuffle`` is requested, at least one ``partition_on`` column needs to be provided."
         )
-    if ds_factory is not None:
-        check_single_table_dataset(ds_factory, table)
+    check_single_table_dataset(ds_factory, table)
 
     if repartition_ratio and ddf is not None:
         ddf = ddf.repartition(
@@ -209,9 +224,8 @@ def update_dataset_from_ddf(
                 secondary_indices=secondary_indices,
                 metadata_version=metadata_version,
                 partition_on=partition_on,
-                store_factory=store,
+                ds_factory=ds_factory,
                 df_serializer=df_serializer,
-                dataset_uuid=dataset_uuid,
                 num_buckets=num_buckets,
                 sort_partitions_by=sort_partitions_by,
             )
@@ -223,9 +237,8 @@ def update_dataset_from_ddf(
                 secondary_indices=secondary_indices,
                 metadata_version=metadata_version,
                 partition_on=partition_on,
-                store_factory=store,
+                ds_factory=ds_factory,
                 df_serializer=df_serializer,
-                dataset_uuid=dataset_uuid,
                 sort_partitions_by=sort_partitions_by,
             )
     return dask.delayed(update_dataset_from_partitions)(

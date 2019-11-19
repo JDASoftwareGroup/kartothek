@@ -81,11 +81,18 @@ class DatasetFactory(DatasetMetadataBase):
         self.is_loaded = False
         self.load_dataset_metadata = load_dataset_metadata
         self.load_all_indices_flag = load_all_indices
+        self._exists = None
 
     def __repr__(self):
         return "<DatasetFactory: uuid={} is_loaded={}>".format(
             self.dataset_uuid, self.is_loaded
         )
+
+    @property
+    def exists(self):
+        if self._exists is None:
+            self._exists = DatasetMetadata.exists(self.dataset_uuid, self.store)
+        return self._exists
 
     @property
     def store(self):
@@ -125,13 +132,18 @@ class DatasetFactory(DatasetMetadataBase):
         # attribute is None, it still falls back to this call
         if name in self._nullable_attributes:
             return object.__getattribute__(self, name)
-        self._instantiate_metadata_cache()
-        ds = getattr(self, "dataset_metadata")
-        return getattr(ds, name)
+        if self.exists:
+            self._instantiate_metadata_cache()
+            ds = getattr(self, "dataset_metadata")
+            return getattr(ds, name)
+        else:
+            raise AttributeError(
+                f"Dataset doesn't yet exist and 'DatasetFactory' object has no attribute '{name}'"
+            )
 
     def __getstate__(self):
         # remove cache
-        return {k: v for k, v in self.__dict__.items() if not k.startswith("_cache_")}
+        return {k: v for k, v in self.__dict__.items() if not k.startswith("_cache")}
 
     def __setstate__(self, state):
         self.__init__(

@@ -1,32 +1,36 @@
-# -*- coding: utf-8 -*-
-
-
 from functools import partial
+from typing import List, Optional, cast
 
 import dask.array as da
+import dask.dataframe as dd
 import numpy as np
+import pandas as pd
+from dask.delayed import Delayed
 
+from kartothek.core.factory import DatasetFactory
 from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,
 )
 from kartothek.io_components.utils import sort_values_categorical
+from kartothek.serialization import DataFrameSerializer
 
 from ._utils import map_delayed
 
+DelayedList = List[Delayed]
+
 
 def _update_dask_partitions_shuffle(
-    ddf,
-    table,
-    secondary_indices,
-    metadata_version,
-    partition_on,
-    store_factory,
-    df_serializer,
-    dataset_uuid,
-    num_buckets,
-    sort_partitions_by,
-):
+    ddf: dd.DataFrame,
+    table: str,
+    secondary_indices: Optional[List[str]],
+    metadata_version: int,
+    partition_on: List[str],
+    ds_factory: DatasetFactory,
+    df_serializer: Optional[DataFrameSerializer],
+    num_buckets: int,
+    sort_partitions_by: Optional[str],
+) -> da.Array:
     if ddf.npartitions == 0:
         return ddf
 
@@ -38,7 +42,9 @@ def _update_dask_partitions_shuffle(
 
     final = []
     for lower, upper in zip(lower_bounds, upper_bounds):
-        chunk_ddf = ddf.partitions[lower : upper + 1]
+        lower_int = cast(int, lower)
+        upper_int = cast(int, upper)
+        chunk_ddf = ddf.partitions[lower_int : upper_int + 1]
         chunk_ddf = chunk_ddf.groupby(by=partition_on[0])
         chunk_ddf = chunk_ddf.apply(
             partial(
@@ -46,9 +52,8 @@ def _update_dask_partitions_shuffle(
                 secondary_indices=secondary_indices,
                 sort_partitions_by=sort_partitions_by,
                 table=table,
-                dataset_uuid=dataset_uuid,
+                ds_factory=ds_factory,
                 partition_on=partition_on,
-                store_factory=store_factory,
                 df_serializer=df_serializer,
                 metadata_version=metadata_version,
             ),
@@ -59,15 +64,14 @@ def _update_dask_partitions_shuffle(
 
 
 def _update_dask_partitions_one_to_one(
-    delayed_tasks,
-    secondary_indices,
-    metadata_version,
-    partition_on,
-    store_factory,
-    df_serializer,
-    dataset_uuid,
-    sort_partitions_by,
-):
+    delayed_tasks: List[Delayed],
+    secondary_indices: Optional[List[str]],
+    metadata_version: int,
+    partition_on: Optional[List[str]],
+    ds_factory: DatasetFactory,
+    df_serializer: Optional[DataFrameSerializer],
+    sort_partitions_by: Optional[str],
+) -> DelayedList:
     input_to_mps = partial(
         parse_input_to_metapartition,
         metadata_version=metadata_version,
@@ -89,24 +93,22 @@ def _update_dask_partitions_one_to_one(
     return map_delayed(
         mps,
         MetaPartition.store_dataframes,
-        store=store_factory,
+        store=ds_factory.store_factory,
         df_serializer=df_serializer,
-        dataset_uuid=dataset_uuid,
+        dataset_uuid=ds_factory.dataset_uuid,
     )
 
 
 def _store_partition(
-    df,
-    secondary_indices,
-    sort_partitions_by,
-    table,
-    dataset_uuid,
-    partition_on,
-    store_factory,
-    df_serializer,
-    metadata_version,
-):
-    store = store_factory()
+    df: pd.DataFrame,
+    secondary_indices: List[str],
+    sort_partitions_by: Optional[str],
+    table: Optional[str],
+    ds_factory: DatasetFactory,
+    partition_on: Optional[List[str]],
+    df_serializer: Optional[DataFrameSerializer],
+    metadata_version: int,
+) -> MetaPartition:
     # I don't have access to the group values
     mps = parse_input_to_metapartition(
         {"data": {table: df}}, metadata_version=metadata_version
@@ -120,5 +122,7 @@ def _store_partition(
     if secondary_indices:
         mps = mps.build_indices(secondary_indices)
     return mps.store_dataframes(
-        store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
+        store=ds_factory.store,
+        dataset_uuid=ds_factory.dataset_uuid,
+        df_serializer=df_serializer,
     )

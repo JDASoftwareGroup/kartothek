@@ -1,17 +1,16 @@
 """
 This module is a collection of helper functions
 """
-
-
 import collections
 import inspect
 import logging
+from typing import List, Optional, Union
 
 import decorator
 import pandas as pd
 
 from kartothek.core.dataset import DatasetMetadata
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
 
 signature = inspect.signature
 
@@ -110,8 +109,10 @@ def _instantiate_store(store):
         return store
 
 
-def _ensure_compatible_indices(dataset, secondary_indices):
-    if dataset:
+def _ensure_compatible_indices(
+    dataset: DatasetFactory, secondary_indices: Optional[List[str]]
+):
+    if dataset.exists:
         ds_secondary_indices = list(dataset.secondary_indices.keys())
 
         if secondary_indices and set(ds_secondary_indices) != set(secondary_indices):
@@ -158,14 +159,13 @@ def validate_partition_keys(
     partition_on,
     load_dataset_metadata=True,
 ):
-    if ds_factory or DatasetMetadata.exists(dataset_uuid, _instantiate_store(store)):
-        ds_factory = _ensure_factory(
-            dataset_uuid=dataset_uuid,
-            store=store,
-            factory=ds_factory,
-            load_dataset_metadata=load_dataset_metadata,
-        )
-
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=ds_factory,
+        load_dataset_metadata=load_dataset_metadata,
+    )
+    if ds_factory.exists:
         ds_metadata_version = ds_factory.metadata_version
         if partition_on:
             if not isinstance(partition_on, list):
@@ -180,7 +180,6 @@ def validate_partition_keys(
         else:
             partition_on = ds_factory.partition_keys
     else:
-        ds_factory = None
         ds_metadata_version = default_metadata_version
     return ds_factory, ds_metadata_version, partition_on
 
@@ -341,30 +340,35 @@ def sort_values_categorical(df, column):
     return df.sort_values(by=[column]).reset_index(drop=True)
 
 
-def check_single_table_dataset(dataset, expected_table=None):
+def check_single_table_dataset(
+    dataset: Union[DatasetFactory, DatasetMetadata],
+    expected_table: Optional[str] = None,
+):
     """
     Raise if the given dataset is not a single-table dataset.
 
     Parameters
     ----------
-    dataset: kartothek.core.dataset.DatasetMetadata
+    dataset: kartothek.core.factory.DatasetFactory
         The dataset to be validated
     expected_table: Optional[str]
         Ensure that the table in the dataset is the same as the given one.
     """
-
-    if len(dataset.tables) > 1:
-        raise TypeError(
-            "Expected single table dataset but found dataset with tables: `{}`".format(
-                dataset.tables
+    if (isinstance(dataset, DatasetFactory) and dataset.exists) or isinstance(
+        dataset, DatasetMetadata
+    ):
+        if len(dataset.tables) > 1:
+            raise TypeError(
+                "Expected single table dataset but found dataset with tables: `{}`".format(
+                    dataset.tables
+                )
             )
-        )
-    if expected_table and dataset.tables != [expected_table]:
-        raise TypeError(
-            "Unexpected table in dataset:\nFound:\t{}\nExpected:\t{}".format(
-                dataset.tables, expected_table
+        if expected_table and dataset.tables != [expected_table]:
+            raise TypeError(
+                "Unexpected table in dataset:\nFound:\t{}\nExpected:\t{}".format(
+                    dataset.tables, expected_table
+                )
             )
-        )
 
 
 class NoPickleFactory:

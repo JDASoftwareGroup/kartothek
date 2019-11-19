@@ -1,12 +1,15 @@
 # -*- coding: utf-8 -*-
 from collections import defaultdict
 from functools import partial
+from typing import Any, Callable, Dict, List, Optional
 
 import dask.bag as db
+import pandas as pd
 
 from kartothek.core import naming
 from kartothek.core.docs import default_docs
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
+from kartothek.core.types import PredicatesType, StoreFactory
 from kartothek.core.utils import _check_callable
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.dask._utils import (
@@ -26,11 +29,12 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.serialization import DataFrameSerializer
 
 
-def _store_dataset_from_partitions_flat(mpss, *args, **kwargs):
+def _store_dataset_from_partitions_flat(mps, *args, **kwargs):
     return store_dataset_from_partitions(
-        [mp for sublist in mpss for mp in sublist], *args, **kwargs
+        [mp for sublist in mps for mp in sublist], *args, **kwargs
     )
 
 
@@ -42,21 +46,21 @@ def _load_and_concat_metapartitions_inner(mps, *args, **kwargs):
 
 @default_docs
 def read_dataset_as_metapartitions_bag(
-    dataset_uuid=None,
-    store=None,
-    tables=None,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    load_dataset_metadata=False,
-    predicates=None,
-    factory=None,
-    dispatch_by=None,
-    partition_size=None,
-):
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    tables: Optional[str] = None,
+    columns: Optional[List[str]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Optional[Dict[str, List[str]]] = None,
+    label_filter: Optional[Callable] = None,
+    dates_as_object: bool = False,
+    load_dataset_metadata: bool = False,
+    predicates: PredicatesType = None,
+    factory: Optional[DatasetFactory] = None,
+    dispatch_by: Optional[List[str]] = None,
+    partition_size: Optional[int] = None,
+) -> db.Bag:
     """
     Retrieve dataset as `dask.bag` of `MetaPartition` objects.
 
@@ -81,10 +85,11 @@ def read_dataset_as_metapartitions_bag(
         predicates=predicates,
         dispatch_by=dispatch_by,
     )
-    mps = db.from_sequence(mps, partition_size=partition_size)
+    mp_bag = db.from_sequence(mps, partition_size=partition_size)
+    del mps
 
     if concat_partitions_on_primary_index or dispatch_by:
-        mps = mps.map(
+        mp_bag = mp_bag.map(
             _load_and_concat_metapartitions_inner,
             store=store,
             tables=tables,
@@ -95,7 +100,7 @@ def read_dataset_as_metapartitions_bag(
             predicates=predicates,
         )
     else:
-        mps = mps.map(
+        mp_bag = mp_bag.map(
             MetaPartition.load_dataframes,
             store=store,
             tables=tables,
@@ -111,33 +116,35 @@ def read_dataset_as_metapartitions_bag(
     )
 
     if categoricals_from_index:
-        func_dict = defaultdict(_identity)
+        func_dict: Dict[str, Callable[[pd.DataFrame], pd.DataFrame]] = defaultdict(
+            _identity
+        )
         func_dict.update(
             {
                 table: partial(_cast_categorical_to_index_cat, categories=cats)
                 for table, cats in categoricals_from_index.items()
             }
         )
-        mps = mps.map(MetaPartition.apply, func_dict, type_safe=True)
-    return mps
+        mp_bag = mp_bag.map(MetaPartition.apply, func_dict, type_safe=True)
+    return mp_bag
 
 
 @default_docs
 def read_dataset_as_dataframe_bag(
-    dataset_uuid=None,
-    store=None,
-    tables=None,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    predicates=None,
-    factory=None,
-    dispatch_by=None,
-    partition_size=None,
-):
+    dataset_uuid: Optional[str] = None,
+    store: Optional[StoreFactory] = None,
+    tables: Optional[str] = None,
+    columns: Optional[List[str]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Optional[List[str]] = None,
+    label_filter: Optional[Callable] = None,
+    dates_as_object: bool = False,
+    predicates: PredicatesType = None,
+    factory: Optional[DatasetFactory] = None,
+    dispatch_by: Optional[List[str]] = None,
+    partition_size: Optional[int] = None,
+) -> db.Bag:
     """
     Retrieve data as dataframe from a `dask.bag` of `MetaPartition` objects
 
@@ -171,18 +178,18 @@ def read_dataset_as_dataframe_bag(
 @default_docs
 @normalize_args
 def store_bag_as_dataset(
-    bag,
-    store,
-    dataset_uuid=None,
-    metadata=None,
-    df_serializer=None,
-    overwrite=False,
-    metadata_merger=None,
-    metadata_version=naming.DEFAULT_METADATA_VERSION,
-    partition_on=None,
-    metadata_storage_format=naming.DEFAULT_METADATA_STORAGE_FORMAT,
-    secondary_indices=None,
-):
+    bag: db.Bag,
+    store: Callable,
+    dataset_uuid: Optional[str] = None,
+    metadata: Optional[Dict[str, Any]] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
+    overwrite: bool = False,
+    metadata_merger: Callable = None,
+    metadata_version: int = naming.DEFAULT_METADATA_VERSION,
+    partition_on: Optional[List[str]] = None,
+    metadata_storage_format: str = naming.DEFAULT_METADATA_STORAGE_FORMAT,
+    secondary_indices: Optional[List[str]] = None,
+) -> db.Bag:
     """
     Transform and store a dask.bag of dictionaries containing
     dataframes to a kartothek dataset in store.
@@ -239,8 +246,12 @@ def store_bag_as_dataset(
 
 @default_docs
 def build_dataset_indices__bag(
-    store, dataset_uuid, columns, partition_size=None, factory=None
-):
+    store: StoreFactory,
+    dataset_uuid: str,
+    columns: List[str],
+    partition_size: Optional[int] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> db.Bag:
     """
     Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
 
