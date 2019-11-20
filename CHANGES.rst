@@ -19,7 +19,6 @@ New functionality
 - Make ``kartothek.io.*read_table*`` methods use default table name if unspecified
 - ``MetaPartition.parse_input_to_metapartition`` accepts dicts and list of tuples equivalents as ``obj`` input
 - Added `secondary_indices` as a default argument to the `write` pipelines
-- Updated docstrings
 
 Bug fixes
 ^^^^^^^^^
