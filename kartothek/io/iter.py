@@ -250,9 +250,7 @@ def update_dataset_from_dataframes__iter(
 
         # Store dataframe, thereby clearing up the dataframe from the `mp` metapartition
         mp = mp.store_dataframes(
-            store=store,
-            df_serializer=df_serializer,
-            dataset_uuid=dataset_uuid
+            store=store, df_serializer=df_serializer, dataset_uuid=dataset_uuid
         )
 
         new_partitions.append(mp)

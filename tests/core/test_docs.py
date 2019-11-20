@@ -105,6 +105,4 @@ def test_docs_duplicity():
     resultant_docstrings = str(dummy_function.__doc__)
     assert "This is a dummy_function" in resultant_docstrings
     assert "This is an argument" in resultant_docstrings
-    assert (
-        "Factory function producing a KeyValueStore" not in resultant_docstrings
-    )
+    assert "Factory function producing a KeyValueStore" not in resultant_docstrings
