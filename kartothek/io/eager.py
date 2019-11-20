@@ -254,12 +254,6 @@ def read_table(
 
     Parameters
     ----------
-    table: str, optional
-        The table to be loaded. If none is specified, the default 'table' is used.
-    columns: List[str]
-        The columns to be loaded
-    categoricals: List[str]
-        A list of columns names which should be retrieved as a `pandas.Categorical`
 
     Returns
     -------
@@ -280,7 +274,7 @@ def read_table(
         >>> df = read_table(store, 'dataset_uuid', 'core')
 
     """
-    if concat_partitions_on_primary_index:
+    if concat_partitions_on_primary_index is not False:
         warnings.warn(
             "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release.",
             DeprecationWarning,
@@ -393,6 +387,18 @@ def commit_dataset(
         Input partition to be committed.
 
     """
+    if output_dataset_uuid is not None:
+        warnings.warn(
+            "The keyword `output_dataset_uuid` has no use and will be removed in the next major release ",
+            DeprecationWarning,
+        )
+
+    if df_serializer is not None:
+        warnings.warn(
+            "The keyword `df_serializer` is deprecated and will be removed in the next major release.",
+            DeprecationWarning,
+        )
+
     if isinstance(new_partitions, NoDefault):
         raise TypeError("The parameter `new_partitions` is not optional")
     store = _make_callable(store)
@@ -608,6 +614,24 @@ def write_single_partition(
     -------
     An empty :class:`~kartothek.io_components.metapartition.MetaPartition` referencing the new files
     """
+    if metadata is not None:
+        warnings.warn(
+            "The keyword `metadata` has no use and will be removed in the next major release ",
+            DeprecationWarning,
+        )
+
+    if overwrite is not False:
+        warnings.warn(
+            "The keyword `overwrite` has no use and will be removed in the next major release ",
+            DeprecationWarning,
+        )
+
+    if metadata_merger is not None:
+        warnings.warn(
+            "The keyword `metadata_merger` has no use and will be removed in the next major release ",
+            DeprecationWarning,
+        )
+
     if data is None:
         raise TypeError("The parameter `data` is not optional")
     _, ds_metadata_version, partition_on = validate_partition_keys(
@@ -665,13 +689,24 @@ def update_dataset_from_dataframes(
     -------
     The dataset metadata object (:class:`~kartothek.core.dataset.DatasetMetadata`).
     """
+    if load_dynamic_metadata is not True:
+        warnings.warn(
+            "The keyword `load_dynamic_metadata` has no use and will be removed in the next major release ",
+            DeprecationWarning,
+        )
+
+    if central_partition_metadata is not True:
+        warnings.warn(
+            "The keyword `central_partition_metadata` has no use and will be removed in the next major release ",
+            DeprecationWarning,
+        )
+
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,
         ds_factory=factory,
         default_metadata_version=default_metadata_version,
         partition_on=partition_on,
-        load_dynamic_metadata=load_dynamic_metadata,
     )
 
     secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)

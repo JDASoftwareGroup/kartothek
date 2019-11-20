@@ -156,14 +156,14 @@ def validate_partition_keys(
     ds_factory,
     default_metadata_version,
     partition_on,
-    **load_kwargs,
+    load_dataset_metadata=True,
 ):
     if ds_factory or DatasetMetadata.exists(dataset_uuid, _instantiate_store(store)):
         ds_factory = _ensure_factory(
             dataset_uuid=dataset_uuid,
             store=store,
             factory=ds_factory,
-            load_dataset_metadata=load_kwargs.pop("load_dataset_metadata", True),
+            load_dataset_metadata=load_dataset_metadata,
         )
 
         ds_metadata_version = ds_factory.metadata_version
