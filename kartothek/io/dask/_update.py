@@ -47,16 +47,12 @@ def _update_dask_partitions_shuffle(
     dataset_uuid,
     num_buckets,
     sort_partitions_by,
+    bucket_by,
 ):
     if ddf.npartitions == 0:
         return ddf
 
     if num_buckets is not None:
-        if sort_partitions_by:
-            bucket_by = [sort_partitions_by]
-        else:
-            bucket_by = None
-
         meta = ddf._meta
         meta[_KTK_HASH_BUCKET] = np.uint64(0)
         ddf = ddf.map_partitions(_hash_bucket, bucket_by, num_buckets, meta=meta)
@@ -130,8 +126,6 @@ def _store_partition(
     df_serializer,
     metadata_version,
 ):
-    if _KTK_HASH_BUCKET in df:
-        df = df.drop(_KTK_HASH_BUCKET, axis=1)
     store = store_factory()
     # I don't have access to the group values
     mps = parse_input_to_metapartition(

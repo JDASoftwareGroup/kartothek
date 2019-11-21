@@ -85,6 +85,7 @@ def _return_none():
 @pytest.mark.parametrize("num_buckets", [1, 5])
 @pytest.mark.parametrize("repartition", [1, 2])
 @pytest.mark.parametrize("npartitions", [5, 10])
+@pytest.mark.parametrize("bucket_by", [None, "sorted_column"])
 def test_update_shuffle_buckets(
     store_factory,
     metadata_version,
@@ -93,6 +94,7 @@ def test_update_shuffle_buckets(
     num_buckets,
     repartition,
     npartitions,
+    bucket_by,
 ):
     """
     Assert that certain properties are always given for the output dataset
@@ -116,10 +118,16 @@ def test_update_shuffle_buckets(
     np.random.shuffle(primaries)
     np.random.shuffle(secondary)
 
-    bucket_by_col = "sorted_column"
     df = pd.DataFrame(
         {"primary": primaries, "secondary": secondary, "sorted_column": unsorted_column}
     )
+    secondary_indices = ["secondary"]
+    expected_num_indices = 2  # One primary
+
+    # used for tests later on to
+    if bucket_by:
+        secondary_indices.append(bucket_by)
+        expected_num_indices = 3
 
     # shuffle all rows. properties of result should be reproducible
     df = df.sample(frac=1).reset_index(drop=True)
@@ -130,8 +138,9 @@ def test_update_shuffle_buckets(
         store_factory,
         dataset_uuid="output_dataset_uuid",
         table="core",
-        secondary_indices=["secondary", bucket_by_col],
+        secondary_indices=secondary_indices,
         shuffle=True,
+        bucket_by=bucket_by,
         repartition_ratio=repartition,
         num_buckets=num_buckets,
         sort_partitions_by="sorted_column",
@@ -147,7 +156,8 @@ def test_update_shuffle_buckets(
 
     assert len(dataset.partitions) <= num_buckets * unique_primaries
     assert len(dataset.partitions) >= unique_primaries
-    assert len(dataset.indices) == 3
+
+    assert len(dataset.indices) == expected_num_indices
 
     assert set(dataset.indices["primary"].index_dct.keys()) == set(
         range(unique_primaries)
@@ -163,9 +173,11 @@ def test_update_shuffle_buckets(
 
     factory = DatasetFactory("output_dataset_uuid", store_factory)
     factory.load_all_indices()
-    ind_df = factory.get_indices_as_dataframe(["primary", bucket_by_col])
 
-    assert not ind_df.duplicated().any()
+    if bucket_by:
+        ind_df = factory.get_indices_as_dataframe(["primary", bucket_by])
+
+        assert not ind_df.duplicated().any()
 
     for data_dct in read_dataset_as_dataframes__iterator(
         dataset_uuid=dataset.uuid, store=store_factory
@@ -186,6 +198,7 @@ def test_update_shuffle_buckets(
         num_buckets=num_buckets,
         sort_partitions_by="sorted_column",
         default_metadata_version=metadata_version,
+        bucket_by=bucket_by,
     )
 
     s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
@@ -240,6 +253,7 @@ def test_update_shuffle_buckets(
         sort_partitions_by="sorted_column",
         default_metadata_version=metadata_version,
         delete_scope=dask.delayed(_return_none)(),
+        bucket_by=bucket_by,
     )
 
     s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)

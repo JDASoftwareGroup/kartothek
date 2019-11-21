@@ -119,6 +119,7 @@ def update_dataset_from_ddf(
     default_metadata_version=DEFAULT_METADATA_VERSION,
     partition_on=None,
     factory=None,
+    bucket_by=None,
 ):
     """
     Update a dataset from a dask.dataframe.
@@ -171,6 +172,9 @@ def update_dataset_from_ddf(
 
         This parameter ensures that groups of the given subset are never split
         across buckets within a given partition.
+
+        Without specifying this the buckets will be created randomly.
+
         This only has an effect if ``shuffle==True``
 
         .. admonition:: Secondary indices
@@ -179,6 +183,10 @@ def update_dataset_from_ddf(
             indices. Since it guarantees that a given tuple of the subset will
             be entirely put into the same file you can build efficient indices
             with this approach.
+
+        .. note::
+
+            Only columns with data types which can be hashed are allowed to be used in this.
     """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
@@ -227,6 +235,7 @@ def update_dataset_from_ddf(
                 dataset_uuid=dataset_uuid,
                 num_buckets=num_buckets,
                 sort_partitions_by=sort_partitions_by,
+                bucket_by=bucket_by,
             )
         else:
             delayed_tasks = ddf.to_delayed()
