@@ -166,6 +166,19 @@ def update_dataset_from_ddf(
         This effectively splits up the execution ``num_buckets`` times. Setting this parameter may be helpful when
         scaling.
         This only has an effect if ``shuffle==True``
+    bucket_by:
+        The subset of columns which should be considered for bucketing.
+
+        This parameter ensures that groups of the given subset are never split
+        across buckets within a given partition.
+        This only has an effect if ``shuffle==True``
+
+        .. admonition:: Secondary indices
+
+            This parameter has a strong effect on the performance of secondary
+            indices. Since it guarantees that a given tuple of the subset will
+            be entirely put into the same file you can build efficient indices
+            with this approach.
     """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
