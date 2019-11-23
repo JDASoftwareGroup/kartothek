@@ -22,5 +22,10 @@ exclude_lines =
     if 0:
     if __name__ == .__main__.:
 ignore_errors = True
+
 omit =
     tests/*
+    kartothek/io/testing/*
+    */__init__.py
+    */*/__init__.py
+    kartothek/core/_deprecation.py

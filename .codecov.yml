@@ -3,6 +3,3 @@ coverage:
     project:
       default:
         threshold: 0.1
-
-ignore:
-  - kartothek/core/_deprecation.py
