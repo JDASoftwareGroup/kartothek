@@ -5,6 +5,7 @@ Changelog
 Version 3.5.2 (unreleased)
 ==========================
 - Fix addition of bogus index columns to Parquet files when using `sort_partitions_by`.
+- Fix bug where ``partition_on`` in write path drops empty DataFrames and can lead to datasets without tables
 
 Version 3.5.1 (2019-10-25)
 ==========================

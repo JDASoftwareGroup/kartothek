@@ -840,3 +840,52 @@ def test_store_dataframes_as_dataset_overwrite(
     bound_store_dataframes(
         [pd.DataFrame()], store=store_factory, dataset_uuid="new_dataset_uuid"
     )
+
+
+def test_store_empty_dataframes_partition_on(store_factory, bound_store_dataframes):
+    df1 = pd.DataFrame({"x": [1], "y": [1]}).iloc[[]]
+    md1 = bound_store_dataframes(
+        [df1], store=store_factory, dataset_uuid="uuid", partition_on=["x"]
+    )
+    assert md1.tables == ["table"]
+    assert set(md1.table_meta["table"].names) == set(df1.columns)
+
+    df2 = pd.DataFrame({"x": [1], "y": [1], "z": [1]}).iloc[[]]
+    md2 = bound_store_dataframes(
+        [df2],
+        store=store_factory,
+        dataset_uuid="uuid",
+        partition_on=["x"],
+        overwrite=True,
+    )
+    assert md2.tables == ["table"]
+    assert set(md2.table_meta["table"].names) == set(df2.columns)
+
+    df3 = pd.DataFrame({"x": [1], "y": [1], "a": [1]}).iloc[[]]
+    md3 = bound_store_dataframes(
+        [{"table2": df3}],
+        store=store_factory,
+        dataset_uuid="uuid",
+        partition_on=["x"],
+        overwrite=True,
+    )
+    assert md3.tables == ["table2"]
+    assert set(md3.table_meta["table2"].names) == set(df3.columns)
+
+
+def test_store_overwrite_none(store_factory, bound_store_dataframes):
+    df1 = pd.DataFrame({"x": [1], "y": [1]})
+    md1 = bound_store_dataframes(
+        [df1], store=store_factory, dataset_uuid="uuid", partition_on=["x"]
+    )
+    assert md1.tables == ["table"]
+    assert set(md1.table_meta["table"].names) == set(df1.columns)
+
+    md2 = bound_store_dataframes(
+        [{}],
+        store=store_factory,
+        dataset_uuid="uuid",
+        partition_on=["x"],
+        overwrite=True,
+    )
+    assert md2.tables == []

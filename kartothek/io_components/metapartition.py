@@ -1300,7 +1300,13 @@ class MetaPartition(Iterable):
                 raise ValueError(
                     "Trying to `partition_on` on a column with an explicit index!"
                 )
-        new_mp = self.as_sentinel().copy(partition_keys=partition_on)
+        new_mp = self.as_sentinel().copy(
+            partition_keys=partition_on,
+            table_meta={
+                table: normalize_column_order(schema, partition_on)
+                for table, schema in self.table_meta.items()
+            },
+        )
 
         if isinstance(partition_on, str):
             partition_on = [partition_on]
