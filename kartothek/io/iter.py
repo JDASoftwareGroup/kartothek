@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+
+import warnings
 from functools import partial
 from typing import cast
 
@@ -54,6 +56,7 @@ def read_dataset_as_metapartitions__iterator(
 
     Parameters
     ----------
+
     """
 
     ds_factory = _ensure_factory(
@@ -121,9 +124,6 @@ def read_dataset_as_dataframes__iterator(
 
     Parameters
     ----------
-
-    concat_partitions_on_primary_index: bool
-        Concatenate partition based on their primary index values.
 
     Returns
     -------
@@ -200,21 +200,28 @@ def update_dataset_from_dataframes__iter(
 
     Parameters
     ----------
-    df_generator: Iterable[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]
-        The dataframe(s) to be stored.
 
     Returns
     -------
     The dataset metadata object (:class:`~kartothek.core.dataset.DatasetMetadata`).
     """
+    if load_dynamic_metadata is not True:
+        warnings.warn(
+            "The keyword `load_dynamic_metadata` has no use and will be removed soon",
+            DeprecationWarning,
+        )
 
+    if central_partition_metadata is not True:
+        warnings.warn(
+            "The keyword `central_partition_metadata` has no use and will be removed in the next major release ",
+            DeprecationWarning,
+        )
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,
         ds_factory=factory,
         default_metadata_version=default_metadata_version,
         partition_on=partition_on,
-        load_dynamic_metadata=load_dynamic_metadata,
     )
 
     secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
@@ -243,10 +250,7 @@ def update_dataset_from_dataframes__iter(
 
         # Store dataframe, thereby clearing up the dataframe from the `mp` metapartition
         mp = mp.store_dataframes(
-            store=store,
-            df_serializer=df_serializer,
-            dataset_uuid=dataset_uuid,
-            store_metadata=not central_partition_metadata,
+            store=store, df_serializer=df_serializer, dataset_uuid=dataset_uuid
         )
 
         new_partitions.append(mp)
@@ -283,8 +287,6 @@ def store_dataframes_as_dataset__iter(
 
     Parameters
     ----------
-    df_generator: Iterable[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]
-        The dataframe(s) to be stored.
 
     Returns
     -------

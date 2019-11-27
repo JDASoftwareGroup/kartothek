@@ -95,6 +95,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
     return delayed(_delete_tl_metadata)(dataset_factory, mps, gc)
 
 
+@default_docs
 def garbage_collect_dataset__delayed(
     dataset_uuid=None, store=None, chunk_size=100, factory=None
 ):
@@ -107,10 +108,6 @@ def garbage_collect_dataset__delayed(
 
     Parameters
     ----------
-    dataset_uuid: basestring
-        The UUID of the dataset to be deleted
-    store: callable
-        A function returning a KeyValueStore.
     chunk_size: int
         Number of files that should be deleted in a single job.
 
@@ -160,16 +157,6 @@ def merge_datasets_as_delayed(
 ):
     """
     A dask.delayed graph to perform the merge of two full kartothek datasets.
-
-    Parameters
-    ----------
-    left_dataset_uuid : basestring
-        UUID for left dataset (order does not matter in all merge schemas)
-    right_dataset_uuid : basestring
-        UUID for right dataset (order does not matter in all merge schemas)
-    match_how : basestring or callable, {left, right, prefix, exact}
-        Define the partition label matching scheme.
-        Available implementations are:
 
     Parameters
     ----------
@@ -416,8 +403,6 @@ def read_table_as_delayed(
 
     Parameters
     ----------
-    table: str, optional
-    The table to be loaded. If none is specified, the default 'table' is used.
     """
     if not isinstance(columns, dict):
         columns = {table: columns}
@@ -521,9 +506,6 @@ def store_delayed_as_dataset(
 
     Parameters
     ----------
-    delayed_tasks: list of dask.delayed
-        Every delayed object represents a partition and should be accepted by
-        :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition`
 
 
     Returns
