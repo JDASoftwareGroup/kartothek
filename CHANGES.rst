@@ -2,12 +2,19 @@
 Changelog
 =========
 
-Version 3.5.2 (unreleased)
+Version 3.6.0 (2019-12-03)
 ==========================
+
+New functionality
+^^^^^^^^^^^^^^^^^
+- The partition on shuffle algorithm in :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf` now supports
+  producing deterministic buckets based on hashed input data.
+
+Bug fixes
+^^^^^^^^^
 - Fix addition of bogus index columns to Parquet files when using `sort_partitions_by`.
-- The partition on shuffle algorithm in :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf` will now produce
-  deterministic buckets based on hashed input data
-- Fix bug where ``partition_on`` in write path drops empty DataFrames and can lead to datasets without tables
+- Fix bug where ``partition_on`` in write path drops empty DataFrames and can lead to datasets without tables.
+
 
 Version 3.5.1 (2019-10-25)
 ==========================
