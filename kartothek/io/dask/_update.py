@@ -2,9 +2,10 @@
 
 
 from functools import partial
+from typing import List
 
-import dask.array as da
 import numpy as np
+import pandas as pd
 
 from kartothek.io_components.metapartition import (
     MetaPartition,
@@ -13,6 +14,26 @@ from kartothek.io_components.metapartition import (
 from kartothek.io_components.utils import sort_values_categorical
 
 from ._utils import map_delayed
+
+_KTK_HASH_BUCKET = "__KTK_HASH_BUCKET"
+
+
+def _hash_bucket(df: pd.DataFrame, subset: List[str], num_buckets: int):
+    """
+    Categorize each row of `df` based on the data in the columns `subset`
+    into `num_buckets` values. This is based on `pandas.util.hash_pandas_object`
+    """
+
+    if subset is None:
+        subset = df.columns
+    hash_arr = pd.util.hash_pandas_object(df[subset], index=False)
+    buckets = hash_arr % num_buckets
+
+    available_bit_widths = np.array([8, 16, 32, 64])
+    mask = available_bit_widths > np.log2(num_buckets)
+    bit_width = min(available_bit_widths[mask])
+    df[_KTK_HASH_BUCKET] = buckets.astype(f"uint{bit_width}")
+    return df
 
 
 def _update_dask_partitions_shuffle(
@@ -26,36 +47,35 @@ def _update_dask_partitions_shuffle(
     dataset_uuid,
     num_buckets,
     sort_partitions_by,
+    bucket_by,
 ):
     if ddf.npartitions == 0:
         return ddf
 
-    splits = np.array_split(
-        np.arange(ddf.npartitions), min(ddf.npartitions, num_buckets)
-    )
-    lower_bounds = map(min, splits)
-    upper_bounds = map(max, splits)
+    if num_buckets is not None:
+        meta = ddf._meta
+        meta[_KTK_HASH_BUCKET] = np.uint64(0)
+        ddf = ddf.map_partitions(_hash_bucket, bucket_by, num_buckets, meta=meta)
+        group_cols = [partition_on[0], _KTK_HASH_BUCKET]
+    else:
+        group_cols = [partition_on[0]]
 
-    final = []
-    for lower, upper in zip(lower_bounds, upper_bounds):
-        chunk_ddf = ddf.partitions[lower : upper + 1]
-        chunk_ddf = chunk_ddf.groupby(by=partition_on[0])
-        chunk_ddf = chunk_ddf.apply(
-            partial(
-                _store_partition,
-                secondary_indices=secondary_indices,
-                sort_partitions_by=sort_partitions_by,
-                table=table,
-                dataset_uuid=dataset_uuid,
-                partition_on=partition_on,
-                store_factory=store_factory,
-                df_serializer=df_serializer,
-                metadata_version=metadata_version,
-            ),
-            meta=("MetaPartition", "object"),
-        )
-        final.append(chunk_ddf)
-    return da.concatenate([val.values for val in final])
+    ddf = ddf.groupby(by=group_cols)
+    ddf = ddf.apply(
+        partial(
+            _store_partition,
+            secondary_indices=secondary_indices,
+            sort_partitions_by=sort_partitions_by,
+            table=table,
+            dataset_uuid=dataset_uuid,
+            partition_on=partition_on,
+            store_factory=store_factory,
+            df_serializer=df_serializer,
+            metadata_version=metadata_version,
+        ),
+        meta=("MetaPartition", "object"),
+    )
+    return ddf
 
 
 def _update_dask_partitions_one_to_one(
