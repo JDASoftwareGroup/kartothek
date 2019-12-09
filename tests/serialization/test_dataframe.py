@@ -357,7 +357,7 @@ def test_predicate_pushdown(
             predicates=predicates,
             **read_kwargs,
         )
-    assert str(exc.value) == "Malformed predicates"
+    assert str(exc.value) == "Empty predicates"
 
     # Test malformed predicates 2
     predicates = [[]]
@@ -369,7 +369,7 @@ def test_predicate_pushdown(
             predicates=predicates,
             **read_kwargs,
         )
-    assert str(exc.value) == "Malformed predicates"
+    assert str(exc.value) == "Invalid predicates: Conjunction 0 is empty"
 
     # Test malformed predicates 3
     predicates = [[(df.columns[0], "<", df.iloc[0, 0])], []]
@@ -381,7 +381,22 @@ def test_predicate_pushdown(
             predicates=predicates,
             **read_kwargs,
         )
-    assert str(exc.value) == "Malformed predicates"
+    assert str(exc.value) == "Invalid predicates: Conjunction 1 is empty"
+
+    # Test malformed predicates 4
+    predicates = [[(df.columns[0], "<", df.iloc[0, 0])], ["foo"]]
+    with pytest.raises(ValueError) as exc:
+        serialiser.restore_dataframe(
+            store,
+            key,
+            predicate_pushdown_to_io=predicate_pushdown_to_io,
+            predicates=predicates,
+            **read_kwargs,
+        )
+    assert (
+        str(exc.value)
+        == "Invalid predicates: Clause 0 in conjunction 1 should be a 3-tuple, got object of type <class 'str'> instead"
+    )
 
 
 @predicate_serialisers

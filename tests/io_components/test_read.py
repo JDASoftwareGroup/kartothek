@@ -61,9 +61,14 @@ def test_dispatch_metapartitions_without_dataset_metadata(dataset, store_session
     assert mp.dataset_metadata == {}
 
 
-@pytest.mark.parametrize("predicates", [[], [[]]])
-def test_dispatch_metapartition_undefined_behaviour(dataset, store_session, predicates):
-    with pytest.raises(ValueError, match="Malformed predicates"):
+@pytest.mark.parametrize(
+    "predicates,error_msg",
+    [([], "Empty predicates"), ([[]], "Invalid predicates: Conjunction 0 is empty")],
+)
+def test_dispatch_metapartition_undefined_behaviour(
+    dataset, store_session, predicates, error_msg
+):
+    with pytest.raises(ValueError, match=error_msg):
         list(
             dispatch_metapartitions(dataset.uuid, store_session, predicates=predicates)
         )

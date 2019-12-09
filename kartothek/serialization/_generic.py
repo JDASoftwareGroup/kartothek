@@ -167,19 +167,37 @@ def check_predicates(predicates):
     """
     Check if predicates are well-formed.
     """
-    if predicates is not None:
-        if len(predicates) == 0 or any(len(p) == 0 for p in predicates):
-            raise ValueError("Malformed predicates")
-        for conjunction in predicates:
-            for col, op, val in conjunction:
-                if (
-                    isinstance(val, list)
-                    and any(_check_contains_null(v) for v in val)
-                    or _check_contains_null(val)
-                ):
-                    raise NotImplementedError(
-                        "Null-terminated binary strings are not supported as predicate values."
-                    )
+    if predicates is None:
+        return
+
+    if len(predicates) == 0:
+        raise ValueError("Empty predicates")
+
+    for conjunction_idx, conjunction in enumerate(predicates):
+        if not isinstance(conjunction, list):
+            raise ValueError(
+                f"Invalid predicates: Conjunction {conjunction_idx} should be a "
+                f"list of 3-tuples, got object of type {type(conjunction)} instead."
+            )
+        if len(conjunction) == 0:
+            raise ValueError(
+                f"Invalid predicates: Conjunction {conjunction_idx} is empty"
+            )
+        for clause_idx, clause in enumerate(conjunction):
+            if not isinstance(clause, tuple) and len(clause) == 3:
+                raise ValueError(
+                    f"Invalid predicates: Clause {clause_idx} in conjunction {conjunction_idx} "
+                    f"should be a 3-tuple, got object of type {type(clause)} instead"
+                )
+            _, _, val = clause
+            if (
+                isinstance(val, list)
+                and any(_check_contains_null(v) for v in val)
+                or _check_contains_null(val)
+            ):
+                raise NotImplementedError(
+                    "Null-terminated binary strings are not supported as predicate values."
+                )
 
 
 def filter_predicates_by_column(
