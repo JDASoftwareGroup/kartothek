@@ -278,13 +278,15 @@ def filter_df_from_predicates(
     for conjunction in predicates:
         inner_indexer = np.ones(len(df), dtype=bool)
         for column, op, value in conjunction:
+            column_name = ensure_unicode_string_type(column)
             filter_array_like(
-                df[ensure_unicode_string_type(column)].values,
+                df[column_name].values,
                 op,
                 value,
                 inner_indexer,
                 inner_indexer,
                 strict_date_types=strict_date_types,
+                column_name=column_name,
             )
         indexer = inner_indexer | indexer
     return df[indexer]
@@ -326,7 +328,9 @@ def _handle_timelike_values(array_value_type, value, value_dtype, strict_date_ty
     return value, value_dtype
 
 
-def _ensure_type_stability(array_like, value, strict_date_types, require_ordered):
+def _ensure_type_stability(
+    array_like, value, strict_date_types, require_ordered, column_name=None
+):
     """
     Ensure that the provided value and the provided array will have compatible
     types, such that comparisons are unambiguous.
@@ -351,6 +355,9 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
         Indicate if the operator to be evaluated will require a notion of
         ordering. In the case of pd.Categorical we will then assume a
         lexicographical ordering and cast the pd.CategoricalDtype accordingly
+    column_name: str, optional
+        Name of the column where `array_like` originates from, used for nicer
+        error messages.
     """
 
     value_dtype = pd.Series(value).dtype
@@ -375,8 +382,12 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
     type_comp = (value_dtype.kind, array_value_type.kind)
 
     if len(set(type_comp)) > 1 and type_comp not in compatible_types:
+        if column_name is None:
+            column_name = "<unknown>"
         raise TypeError(
-            f"Unexpected type encountered. Expected {array_value_type.kind} but got {value_dtype.kind}."
+            f"Unexpected type for predicate: Column {column_name!r} has pandas "
+            f"type '{array_value_type}', but predicate value {value!r} has "
+            f"pandas type '{value_dtype}' (Python type '{type(value)}')."
         )
     if "M" in type_comp:
         value, value_dtype = _handle_timelike_values(
@@ -386,7 +397,13 @@ def _ensure_type_stability(array_like, value, strict_date_types, require_ordered
 
 
 def filter_array_like(
-    array_like, op, value, mask=None, out=None, strict_date_types=False
+    array_like,
+    op,
+    value,
+    mask=None,
+    out=None,
+    strict_date_types=False,
+    column_name=None,
 ):
     """
     Filter an array-like object using operations defined in the predicates
@@ -407,6 +424,9 @@ def filter_array_like(
         array is returned.
     strict_date_types: bool
         If False (default), cast all datelike values to datetime64 for comparison.
+    column_name: str, optional
+        Name of the column where `array_like` originates from, used for nicer
+        error messages.
     """
     if mask is None:
         mask = np.ones(len(array_like), dtype=bool)
@@ -422,7 +442,7 @@ def filter_array_like(
 
     require_ordered = "<" in op or ">" in op
     array_like, value = _ensure_type_stability(
-        array_like, value, strict_date_types, require_ordered
+        array_like, value, strict_date_types, require_ordered, column_name
     )
 
     with np.errstate(invalid="ignore"):
