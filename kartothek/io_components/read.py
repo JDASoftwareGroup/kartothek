@@ -84,7 +84,7 @@ def dispatch_metapartitions_from_factory(
             logical_conjunction = list(
                 zip(dispatch_by, ["=="] * len(dispatch_by), group_name)
             )
-            for label in group.index:
+            for label in group.index.unique():
                 mps.append(
                     MetaPartition.from_partition(
                         partition=dataset_factory.partitions[label],
@@ -98,7 +98,7 @@ def dispatch_metapartitions_from_factory(
                 )
             yield mps
     else:
-        for part_label in base_df.index:
+        for part_label in base_df.index.unique():
             part = dataset_factory.partitions[part_label]
 
             yield MetaPartition.from_partition(
