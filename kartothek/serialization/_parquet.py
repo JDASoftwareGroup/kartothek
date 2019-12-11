@@ -258,6 +258,7 @@ def _normalize_predicates(parquet_file, predicates, for_pushdown):
             col, op, val = literal
             col_idx = parquet_file.reader.column_name_idx(col)
             pa_type = schema[col_idx].type
+            column_name = schema[col_idx].name
 
             if pa.types.is_null(pa_type):
                 # early exit, the entire conjunction evaluates to False
@@ -265,7 +266,10 @@ def _normalize_predicates(parquet_file, predicates, for_pushdown):
                 break
 
             if op == "in":
-                values = [_normalize_value(l, pa_type) for l in literal[2]]
+                values = [
+                    _normalize_value(l, pa_type, column_name=column_name)
+                    for l in literal[2]
+                ]
                 if for_pushdown and values:
                     normalized_value = [
                         _timelike_to_arrow_encoding(value, pa_type) for value in values
@@ -273,7 +277,9 @@ def _normalize_predicates(parquet_file, predicates, for_pushdown):
                 else:
                     normalized_value = values
             else:
-                normalized_value = _normalize_value(literal[2], pa_type)
+                normalized_value = _normalize_value(
+                    literal[2], pa_type, column_name=column_name
+                )
                 if for_pushdown:
                     normalized_value = _timelike_to_arrow_encoding(
                         normalized_value, pa_type
@@ -312,7 +318,7 @@ def _timelike_to_arrow_encoding(value, pa_type):
         return value
 
 
-def _normalize_value(value, pa_type):
+def _normalize_value(value, pa_type, column_name=None):
     if pa.types.is_dictionary(pa_type):
         pa_type = pa_type.value_type
 
@@ -347,14 +353,20 @@ def _normalize_value(value, pa_type):
         elif isinstance(value, bytes):
             value = value.decode("utf-8")
             return datetime.datetime.strptime(value, "%Y-%m-%d").date()
-        elif isinstance(value, datetime.date) and not isinstance(
-            value, datetime.datetime
-        ):
-            return value
+        elif isinstance(value, datetime.date):
+            if isinstance(value, datetime.datetime):
+                raise TypeError(
+                    f"Unexpected type for predicate: Column {column_name!r} is an "
+                    f"Arrow date ({pa_type}), but predicate value has type {type(value)}. "
+                    f"Use a Python 'datetime.date' object instead."
+                )
+            else:
+                return value
+    predicate_value_dtype = pd.Series(value).dtype
     raise TypeError(
-        "Unexpected type for predicate. Expected `{} ({})` but got `{} ({})`".format(
-            pa_type, pa_type.to_pandas_dtype(), value, type(value)
-        )
+        f"Unexpected type for predicate: Column {column_name!r} has pandas type "
+        f"{pa_type.to_pandas_dtype()} (Arrow type {pa_type}), but predicate value "
+        f"{value!r} has pandas type '{predicate_value_dtype}' (Python type '{type(value)}')"
     )
 
 
