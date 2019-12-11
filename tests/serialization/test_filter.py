@@ -93,7 +93,7 @@ def test_filter_array_like_categoricals(op, expected, cat_type):
 @pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">=", "in"])
 def test_raise_on_type(value, filter_value, op):
     array_like = pd.Series([value])
-    with pytest.raises(TypeError, match="Unexpected type encountered."):
+    with pytest.raises(TypeError, match="Unexpected type for predicate:"):
         filter_array_like(array_like, op, filter_value, strict_date_types=True)
 
 

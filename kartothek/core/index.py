@@ -231,7 +231,9 @@ class IndexBase(CopyMixin):
         if index_arr is None:
             index_arr = np.array(list(index_dct.keys()))
 
-        index = filter_array_like(index_arr, op, value, strict_date_types=True)
+        index = filter_array_like(
+            index_arr, op, value, strict_date_types=True, column_name=self.column
+        )
         allowed_values = index_arr[index]
         # Need to determine allowed values to include predicates like `in`
         for value in allowed_values:

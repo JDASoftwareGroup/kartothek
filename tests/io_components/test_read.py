@@ -136,3 +136,37 @@ def test_dispatch_metapartitions_concat_regression(store):
 
     mps = list(dispatch_metapartitions(dataset.uuid, store, dispatch_by=["p"]))
     assert len(mps) == 1
+
+
+def test_dispatch_metapartitions_dups_with_predicates(store):
+    dataset = store_dataframes_as_dataset(
+        dfs=[pd.DataFrame({"p": [0, 1], "x": 0})],
+        dataset_uuid="test",
+        store=store,
+        secondary_indices=["p"],
+    )
+
+    wout_preds = list(dispatch_metapartitions(dataset.uuid, store))
+    w_preds = list(
+        dispatch_metapartitions(dataset.uuid, store, predicates=[[("p", "in", [0, 1])]])
+    )
+
+    assert wout_preds == w_preds
+
+
+def test_dispatch_metapartitions_dups_with_predicates_dispatch_by(store):
+    dataset = store_dataframes_as_dataset(
+        dfs=[pd.DataFrame({"p": [0, 1], "x": 0})],
+        dataset_uuid="test",
+        store=store,
+        secondary_indices=["p", "x"],
+    )
+
+    wout_preds = list(dispatch_metapartitions(dataset.uuid, store, dispatch_by="x"))
+    w_preds = list(
+        dispatch_metapartitions(
+            dataset.uuid, store, predicates=[[("p", "in", [0, 1])]], dispatch_by="x"
+        )
+    )
+
+    assert wout_preds == w_preds

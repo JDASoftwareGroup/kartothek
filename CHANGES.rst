@@ -2,13 +2,21 @@
 Changelog
 =========
 
-Version 3.6.1 (2019-12-XX)
-==========================
+Version Unreleased
+==================
 
 Improvements
 ^^^^^^^^^^^^
 
 - Add more explicit typing to :mod:`kartothek.io.eager`.
+
+Version 3.6.1 (2019-12-11)
+==========================
+
+Bug fixes
+^^^^^^^^^
+* Fix a regression introduced in 3.5.0 where predicates which allow multiple
+  values for a field would generate duplicates
 
 Version 3.6.0 (2019-12-03)
 ==========================
