@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version Unreleased
+==================
+
+Improvements
+^^^^^^^^^^^^
+
+- Add more explicit typing to :mod:`kartothek.io.eager`.
+
 Version 3.6.1 (2019-12-11)
 ==========================
 

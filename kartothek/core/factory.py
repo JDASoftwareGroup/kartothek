@@ -1,14 +1,18 @@
 # -*- coding: utf-8 -*-
 
-
 import copy
+from typing import Optional
 
 from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
 from kartothek.core.utils import _check_callable
 
 
 def _ensure_factory(
-    dataset_uuid, store, factory, load_dataset_metadata, load_schema=True
+    dataset_uuid: Optional[str],
+    store,
+    factory,
+    load_dataset_metadata: bool,
+    load_schema: bool = True,
 ):
     if store is None and dataset_uuid is None and factory is not None:
         return factory

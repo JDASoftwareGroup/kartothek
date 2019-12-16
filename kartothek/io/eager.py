@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
 from functools import partial
-from typing import cast
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -10,9 +10,9 @@ from kartothek.core.common_metadata import (
     make_meta,
     store_schema_metadata,
 )
-from kartothek.core.dataset import DatasetMetadataBuilder
+from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBuilder
 from kartothek.core.docs import default_docs
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import (
     DEFAULT_METADATA_STORAGE_FORMAT,
     DEFAULT_METADATA_VERSION,
@@ -81,19 +81,19 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
 @default_docs
 @normalize_args
 def read_dataset_as_dataframes(
-    dataset_uuid=None,
+    dataset_uuid: Optional[str] = None,
     store=None,
-    tables=None,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    predicates=None,
-    factory=None,
-    dispatch_by=None,
-):
+    tables: Optional[List[str]] = None,
+    columns: Dict[str, List[str]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Dict[str, List[str]] = None,
+    label_filter: Callable = None,
+    dates_as_object: bool = False,
+    predicates: Optional[List[List[Tuple[str, str, Any]]]] = None,
+    factory: Optional[DatasetFactory] = None,
+    dispatch_by: Optional[List[str]] = None,
+) -> List[pd.DataFrame]:
     """
     Read a dataset as a list of dataframes.
 
@@ -660,21 +660,21 @@ def write_single_partition(
 @default_docs
 @normalize_args
 def update_dataset_from_dataframes(
-    df_list,
+    df_list: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
     store=None,
-    dataset_uuid=None,
+    dataset_uuid: Optional[str] = None,
     delete_scope=None,
     metadata=None,
     df_serializer=None,
-    metadata_merger=None,
-    central_partition_metadata=True,
+    metadata_merger: Callable = None,
+    central_partition_metadata: bool = True,
     default_metadata_version=DEFAULT_METADATA_VERSION,
-    partition_on=None,
-    load_dynamic_metadata=True,
-    sort_partitions_by=None,
-    secondary_indices=None,
-    factory=None,
-):
+    partition_on: Optional[List[str]] = None,
+    load_dynamic_metadata: bool = True,
+    sort_partitions_by: Optional[str] = None,
+    secondary_indices: List[str] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> DatasetMetadata:
     """
     Update a kartothek dataset in store at once, using a list of dataframes.
 
