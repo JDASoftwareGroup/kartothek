@@ -171,6 +171,12 @@ def test_update_shuffle_buckets(
         range(unique_secondaries)
     )
 
+    assert set(dataset.table_meta["core"].names) == {
+        "primary",
+        "secondary",
+        "sorted_column",
+    }
+
     factory = DatasetFactory("output_dataset_uuid", store_factory)
     factory.load_all_indices()
 
