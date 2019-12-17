@@ -126,6 +126,8 @@ def _store_partition(
     df_serializer,
     metadata_version,
 ):
+    if _KTK_HASH_BUCKET in df:
+        df = df.drop(_KTK_HASH_BUCKET, axis=1)
     store = store_factory()
     # I don't have access to the group values
     mps = parse_input_to_metapartition(

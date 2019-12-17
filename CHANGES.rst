@@ -2,13 +2,18 @@
 Changelog
 =========
 
-Version Unreleased
-==================
+Version 3.6.2 (2019-12-17)
+==========================
 
 Improvements
 ^^^^^^^^^^^^
 
-- Add more explicit typing to :mod:`kartothek.io.eager`.
+* Add more explicit typing to :mod:`kartothek.io.eager`.
+
+Bug fixes
+^^^^^^^^^
+* Fix an issue where :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf` would create a column named "_KTK_HASH_BUCKET" in the dataset
+
 
 Version 3.6.1 (2019-12-11)
 ==========================
