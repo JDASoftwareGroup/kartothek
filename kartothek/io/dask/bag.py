@@ -21,7 +21,7 @@ from kartothek.io_components.metapartition import (
     parse_input_to_metapartition,
 )
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
-from kartothek.io_components.utils import normalize_args
+from kartothek.io_components.utils import normalize_args, raise_if_indices_overlap
 from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
@@ -206,6 +206,8 @@ def store_bag_as_dataset(
 
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
+
+    raise_if_indices_overlap(partition_on, secondary_indices)
 
     input_to_mps = partial(
         parse_input_to_metapartition, metadata_version=metadata_version

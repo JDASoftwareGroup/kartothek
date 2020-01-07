@@ -20,6 +20,7 @@ from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
     normalize_args,
+    raise_if_indices_overlap,
     sort_values_categorical,
     validate_partition_keys,
 )
@@ -300,6 +301,8 @@ def store_dataframes_as_dataset__iter(
 
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
+
+    raise_if_indices_overlap(partition_on, secondary_indices)
 
     new_partitions = []
     for df in df_generator:
