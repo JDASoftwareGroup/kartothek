@@ -2,6 +2,22 @@
 Changelog
 =========
 
+Next release
+============
+
+Improvements
+^^^^^^^^^^^^
+
+- Dask is now able to calculate better size estimates for the following classes:
+    * :class:`~kartothek.core.dataset.DatasetMetadata`
+    * :class:`~kartothek.core.factory.DatasetFactory`
+    * :class:`~kartothek.io_components.metapartition.MetaPartition`
+    * :class:`~kartothek.core.index.ExplicitSecondaryIndex`
+    * :class:`~kartothek.core.index.PartitionIndex`
+    * :class:`~kartothek.core.partition.Partition`
+    * :class:`~kartothek.core.common_metadata.SchemaWrapper`
+
+
 Version 3.6.2 (2019-12-17)
 ==========================
 
