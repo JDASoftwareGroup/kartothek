@@ -88,6 +88,12 @@ def test_filter_array_like_categoricals(op, expected, cat_type):
         (True, 1.0),
         (True, "True"),
         (True, None),
+        (datetime.datetime(2019, 1, 1), True),
+        ("2019-01-01", datetime.datetime(2019, 1, 1)),
+        # we are allowing object arrays comparison with a boolean value
+        pytest.param("True", True, marks=pytest.mark.xfail(reason="see gh-193")),
+        pytest.param(b"True", True, marks=pytest.mark.xfail(reason="see gh-193")),
+        pytest.param([True], True, marks=pytest.mark.xfail(reason="see gh-193")),
     ],
 )
 @pytest.mark.parametrize("op", ["==", "!=", "<", "<=", ">", ">=", "in"])
