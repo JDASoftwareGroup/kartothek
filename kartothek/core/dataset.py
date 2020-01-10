@@ -311,6 +311,20 @@ class DatasetMetadataBase(CopyMixin):
         for column, value in kwargs.items():
             if column in combined_indices:
                 candidate_set &= set(combined_indices[column].query(value))
+            else:
+                if (
+                    # FIXME: `self.tables[0]`. What if column exists in another table?
+                    not self.table_meta[self.tables[0]]
+                    .internal()
+                    .field_by_name(column)
+                ):
+                    raise ValueError(
+                        f"Column provided (`{column}`) does not appear in dataset"
+                    )
+                # Rather than returning all partitions, we abort the execution at this stage to be safe
+                raise ValueError(
+                    f"Column provided (`{column}`) does not appear in dataset indices"
+                )
 
         return list(candidate_set)
 

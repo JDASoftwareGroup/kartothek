@@ -159,9 +159,8 @@ def test_update_dataset_with_partitions__reducer_delete_only(
     )
     dataset = dataset.load_index("p", store)
 
-    empty_part = []
     dataset_updated = bound_update_dataset(
-        [empty_part],
+        [],
         store=store_factory,
         dataset_uuid="dataset_uuid",
         delete_scope=[{"p": 1}],
@@ -664,3 +663,39 @@ def test_update_first_time_with_secondary_indices(
         dataset_uuid=dataset_uuid,
         secondary_indices=dataset_update_secondary_indices,
     )
+
+
+def test_no_unsafe_delete(store_factory, bound_update_dataset):
+
+    dataset_uuid = "dataset_uuid"
+    df = pd.DataFrame({"x": [0]})
+
+    orig_dm = bound_update_dataset([df], store=store_factory, dataset_uuid=dataset_uuid)
+
+    try:
+        new_dm = bound_update_dataset(
+            [],
+            store=store_factory,
+            dataset_uuid=dataset_uuid,
+            delete_scope=[{"UNKNOWN_COLUMN": 2}],
+        )
+    except Exception:
+        new_dm = DatasetMetadata(dataset_uuid).load_from_store(
+            dataset_uuid, store_factory()
+        )
+
+    assert orig_dm.partitions == new_dm.partitions
+
+    try:
+        new_dm = bound_update_dataset(
+            [],
+            store=store_factory,
+            dataset_uuid=dataset_uuid,
+            delete_scope=[{"x": -1000}],
+        )
+    except Exception:
+        new_dm = DatasetMetadata(dataset_uuid).load_from_store(
+            dataset_uuid, store_factory()
+        )
+
+    assert orig_dm.partitions == new_dm.partitions

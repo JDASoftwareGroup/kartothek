@@ -2,6 +2,7 @@
 
 
 import datetime
+import re
 
 import numpy as np
 import pandas as pd
@@ -15,6 +16,7 @@ from kartothek.core.common_metadata import make_meta, store_schema_metadata
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.core.testing import cm_frozen_time
+from kartothek.io.iter import store_dataframes_as_dataset__iter
 
 # Basic functionality tests.
 #
@@ -411,14 +413,41 @@ def test_query_indices_external(store, metadata_version):
     dmd = dmd.load_all_indices(store)
     assert dmd.query(product_id=2, location_id=2) == ["part_2"]
     assert dmd.query(product_id=100, location_id=3) == ["part_1"]
-    assert dmd.query(product_id=2, location_id=2, something_else="bla") == ["part_2"]
 
-    additional_index = ExplicitSecondaryIndex.from_v2(
-        "another_column", {"1": ["part_2", "part_3"]}
+
+def test_dataset_query_additional_index(store_factory):
+    df = pd.DataFrame({"x": [0]})
+    dataset_uuid = "x"
+
+    dmd = store_dataframes_as_dataset__iter(
+        [df], store=store_factory, dataset_uuid=dataset_uuid
     )
-    assert dmd.query(
-        indices=[additional_index], another_column="1", product_id=2, location_id=2
-    ) == ["part_2"]
+    partition_name = list(dmd.partitions)[0]
+    additional_index = ExplicitSecondaryIndex.from_v2("x", {1: [partition_name]})
+    assert dmd.query(indices=[additional_index], x=1) == [partition_name]
+
+
+def test_dataset_query_failures(store_factory):
+    df = pd.DataFrame({"x": [0]})
+    dataset_uuid = "x"
+
+    dmd = store_dataframes_as_dataset__iter(
+        [df], store=store_factory, dataset_uuid=dataset_uuid
+    )
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape(
+            "Column provided (`something_else`) does not appear in dataset"
+        ),
+    ):
+        dmd.query(something_else="bla")
+
+    with pytest.raises(
+        ValueError,
+        match=re.escape("Column provided (`x`) does not appear in dataset indices"),
+    ):
+        assert dmd.query(x="bla")
 
 
 def test_copy(frozen_time):

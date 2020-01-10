@@ -15,6 +15,7 @@ from kartothek.io.dask._update import _KTK_HASH_BUCKET, _hash_bucket
 from kartothek.io.dask.dataframe import update_dataset_from_ddf
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
 from kartothek.io.testing.update import *  # noqa
+from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
 @pytest.mark.parametrize("col", ["range", "range_duplicated", "random"])
@@ -59,11 +60,15 @@ def _unwrap_partition(part):
 
 
 def _update_dataset(partitions, *args, **kwargs):
-    if any(partitions):
-        table_name = next(iter(dict(partitions[0]["data"]).keys()))
-        delayed_partitions = [
-            dask.delayed(_unwrap_partition)(part) for part in partitions
-        ]
+    if len(partitions):
+        if type(partitions[0]) == pd.DataFrame:
+            table_name = SINGLE_TABLE
+            delayed_partitions = [dask.delayed(part) for part in partitions]
+        else:
+            table_name = next(iter(dict(partitions[0]["data"]).keys()))
+            delayed_partitions = [
+                dask.delayed(_unwrap_partition)(part) for part in partitions
+            ]
         partitions = dd.from_delayed(delayed_partitions)
     else:
         table_name = "core"

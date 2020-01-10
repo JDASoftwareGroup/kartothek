@@ -29,7 +29,7 @@ Improvements
 Bug fixes
 ^^^^^^^^^
 * Fix an issue where :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf` would create a column named "_KTK_HASH_BUCKET" in the dataset
-
+* Fix https://github.com/JDASoftwareGroup/kartothek/issues/198
 
 Version 3.6.1 (2019-12-11)
 ==========================
