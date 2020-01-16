@@ -1,15 +1,15 @@
 .. _getting_started:
 
 ===============
-Getting started
+Getting Started
 ===============
 
 
-``kartothek`` manages datasets that consist of files that contain tables. It does so by offering
+Kartothek manages datasets that consist of files that contain tables. It does so by offering
 a metadata definition to handle these datasets efficiently.
 
-Datasets in ``kartothek`` are made up of one or more ``tables``, each with a unique schema.
-When working with ``kartothek`` tables as a Python user, we will use :class:`~pandas.DataFrame`
+Datasets in Kartothek are made up of one or more ``tables``, each with a unique schema.
+When working with Kartothek tables as a Python user, we will use :class:`~pandas.DataFrame`
 as the user-facing type.
 
 We typically expect that the contents of a dataset are
@@ -67,14 +67,14 @@ what follows is the filepath).
 
 .. admonition:: Storage locations
 
-    `storefact`_ offers support for several stores in ``kartothek``, these can be created using the
+    `storefact`_ offers support for several stores in Kartothek, these can be created using the
     function :func:`storefact.get_store_from_url` with one of the following prefixes:
 
     - ``hfs``: Local filesystem
     - ``hazure``: AzureBlockBlobStorage
     - ``hs3``:  BotoStore (Amazon S3)
 
-For a more technical description of storage specification in kartothek, see
+For a more technical description of storage specification in Kartothek, see
 :ref:`storage_specification`.
 
 
@@ -100,11 +100,11 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
 .. admonition:: Scheduling backends
 
     The import path of this function already gives us a hint about the general
-    structuring of the ``kartothek`` modules. In :mod:`kartothek.io` we have all
+    structuring of the Kartothek modules. In :mod:`kartothek.io` we have all
     the building blocks to build data pipelines that read and write from/to storages.
     The next module level (e.g. ``eager``) describes the scheduling backend.
 
-    The scheduling backends `currently supported` by kartothek are:
+    The scheduling backends `currently supported` by Kartothek are:
 
     - ``eager`` runs all execution immediately and on the local machine.
     - ``iter`` executes operations on the dataset using a generator/iterator interface.
@@ -141,13 +141,13 @@ See :ref:`type_system` for more information.
 To store multiple dataframes into a dataset, it is possible to pass a collection of
 dataframes; the exact format will depend on the I/O backend used.
 
-Additionally, ``kartothek`` supports several data input formats,
+Additionally, Kartothek supports several data input formats,
 it does not need to always be a plain ``pd.DataFrame``.
 See :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
 further details.
 
 If table names are not specified when passing an iterator of dataframes,
-``kartothek`` assumes these dataframes are different chunks of the same table
+Kartothek assumes these dataframes are different chunks of the same table
 and expects their schemas to be identical. A ``ValueError`` will be thrown otherwise.
 For example,
 
@@ -186,7 +186,7 @@ For example,
           :ref:`input_output`.
 
 
-When we do not explicitly define the name of the table and partition, ``kartothek`` uses the
+When we do not explicitly define the name of the table and partition, Kartothek uses the
 default table name ``table`` and generates a UUID for the partition name.
 
 .. admonition:: A more complex example: multiple named tables
@@ -258,12 +258,12 @@ function but returns a collection of ``dask.delayed`` objects.
 .. admonition:: Filtering using predicates
 
     It is possible to filter data during reads using simple predicates by using
-    the ``predicates`` argument. Technically speaking, ``kartothek`` supports predicates
+    the ``predicates`` argument. Technically speaking, Kartothek supports predicates
     in `disjunctive normal form <https://en.wikipedia.org/wiki/Disjunctive_normal_form>`_.
 
-    When this argument is defined, ``kartothek`` uses the Apache Parquet metadata
+    When this argument is defined, Kartothek uses the Apache Parquet metadata
     as well as indices and partition information to speed up queries when possible.
-    How this works is a complex topic, see :ref:`predicate_pushdown`.
+    How this works is a complex topic, see :ref:`/spec/efficient_querying`.
 
     .. ipython:: python
 
@@ -273,7 +273,8 @@ function but returns a collection of ``dask.delayed`` objects.
         )
 
 
-For a deeper dive into ``kartothek`` you can take a look at: :ref:`further_useful_features`.
+For a deeper dive into Kartothek you can take a look at
+:ref:`further_useful_features`. Also look at :ref:`/spec/efficient_querying`.
 
 .. _storefact: https://github.com/blue-yonder/storefact
 .. _dask: https://docs.dask.org/en/latest/

@@ -103,7 +103,7 @@ components that are separated by a single dot each:
    than main metadata files for datasets.
  * The suffix json or msgpack.zstd to describe the file format
    (msgpack.zstd denotes a zstd compressed msgpack file in a
-   kartothek dataset).
+   Kartothek dataset).
 
 Example:
 ::
