@@ -4,7 +4,7 @@ pytz
 toolz
 
 # Test Framework
-hypothesis
+hypothesis<5.2.0 # See gh-205
 pytest>=4.5.0
 pytest-cov
 pytest-flake8
