@@ -234,18 +234,18 @@ def _check_compatible_list(table, obj, argument_name=""):
 
 @default_docs
 def read_table(
-    dataset_uuid=None,
+    dataset_uuid: Optional[str] = None,
     store=None,
-    table=SINGLE_TABLE,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    predicates=None,
-    factory=None,
-):
+    table: Optional[str] = SINGLE_TABLE,
+    columns: Dict[str, List[str]] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicate_pushdown_to_io: bool = True,
+    categoricals: Dict[str, List[str]] = None,
+    label_filter: Callable = None,
+    dates_as_object: bool = False,
+    predicates: Optional[List[List[Tuple[str, str, Any]]]] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> pd.DataFrame:
     """
     A utility function to load a single table with multiple partitions as a single dataframe in one go.
     Mostly useful for smaller tables or datasets where all partitions fit into memory.
