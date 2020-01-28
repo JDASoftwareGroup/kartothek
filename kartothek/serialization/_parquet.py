@@ -68,7 +68,7 @@ def _reset_dictionary_columns(table):
 
 
 class ParquetSerializer(DataFrameSerializer):
-    _PARQUET_VERSION = "2.0"
+    _PARQUET_VERSION = "1.0"
     type_stable = True
 
     def __init__(self, compression="SNAPPY", chunk_size=None):
