@@ -8,7 +8,8 @@ Next release
 Improvements
 ^^^^^^^^^^^^
 
-- Dask is now able to calculate better size estimates for the following classes:
+* Performance improvements for categorical data when using pyarrow>=0.15.0
+* Dask is now able to calculate better size estimates for the following classes:
     * :class:`~kartothek.core.dataset.DatasetMetadata`
     * :class:`~kartothek.core.factory.DatasetFactory`
     * :class:`~kartothek.io_components.metapartition.MetaPartition`
