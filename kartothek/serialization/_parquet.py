@@ -58,6 +58,8 @@ def _reset_dictionary_columns(table):
     1. Categorical columns of null won't cast https://issues.apache.org/jira/browse/ARROW-5085
     2. Massive performance issue due to non-fast path implementation https://issues.apache.org/jira/browse/ARROW-5089
     """
+    if ARROW_LARGER_EQ_0150:
+        return table
     for i in range(table.num_columns):
         col = table[i]
         if pa.types.is_dictionary(col.type):
