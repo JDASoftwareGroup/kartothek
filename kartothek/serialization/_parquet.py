@@ -55,11 +55,12 @@ def _empty_table_from_schema(parquet_file):
 
 def _reset_dictionary_columns(table):
     """
+    Pre arrow 0.15.1 issues:
     1. Categorical columns of null won't cast https://issues.apache.org/jira/browse/ARROW-5085
     2. Massive performance issue due to non-fast path implementation https://issues.apache.org/jira/browse/ARROW-5089
+    Post Arrow 0.16.0 issues
+    https://issues.apache.org/jira/browse/ARROW-7732
     """
-    if ARROW_LARGER_EQ_0150:
-        return table
     for i in range(table.num_columns):
         col = table[i]
         if pa.types.is_dictionary(col.type):
@@ -187,11 +188,8 @@ class ParquetSerializer(DataFrameSerializer):
         else:
             table = pa.Table.from_pandas(df)
         buf = pa.BufferOutputStream()
-        if (
-            self.chunk_size
-            and self.chunk_size < len(table)
-            and not ARROW_LARGER_EQ_0150
-        ):
+        # https://issues.apache.org/jira/browse/ARROW-7732
+        if self.chunk_size and self.chunk_size < len(table):
             table = _reset_dictionary_columns(table)
         pq.write_table(
             table,

@@ -8,7 +8,7 @@ Next release
 Improvements
 ^^^^^^^^^^^^
 
-* Performance improvements for categorical data when using pyarrow>=0.15.0
+* Cast categorical columns to plain data type for all arrow types, see https://issues.apache.org/jira/browse/ARROW-7732
 * Dask is now able to calculate better size estimates for the following classes:
     * :class:`~kartothek.core.dataset.DatasetMetadata`
     * :class:`~kartothek.core.factory.DatasetFactory`

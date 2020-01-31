@@ -431,3 +431,18 @@ def test_predicate_accept_in(store, predicate_value, expected):
         )
         == expected
     )
+
+
+@pytest.xfail(reason="https://issues.apache.org/jira/browse/ARROW-7732")
+def test_predicate_pushdown_categoricals():
+    test_df = pd.DataFrame({"categorical": pd.Categorical(["1", "42"])})
+    table = pa.Table.from_pandas(test_df)
+    pq.write_table(table, "test_parquet", chunk_size=1)
+    test_parquet = pq.ParquetFile("test_parquet")
+    stats = test_parquet.metadata.row_group(0).column(0).statistics
+    assert stats.min == "1"
+    assert stats.max == "1"
+
+    stats = test_parquet.metadata.row_group(1).column(0).statistics
+    assert stats.min == "42"
+    assert stats.max == "42"
