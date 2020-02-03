@@ -10,6 +10,7 @@ python:
 env:
   global:
     - KTK_TESTS=1
+    - KTK_DOCS=0
     # personal github API access token of crepererum (Marco Neumann)
     - GITHUB_CLIENT_ID=32eb43d9e96045689676
     # GITHUB_CLIENT_SECRET=...
@@ -51,7 +52,7 @@ install:
 before_script:
   - conda list
   - travis_retry pre-commit run -a
-  - python setup.py docs
+  - if [[ $KTK_DOCS == true ]]; python setup.py docs ; fi
 
 script:
   - if [[ $KTK_TESTS == true ]]; pytest --cov kartothek --cov-report xml --cov-report html ; fi
@@ -93,6 +94,7 @@ matrix:
       env:
         - CONDA_CREATE_ARGS="pyarrow==0.15.0"
         - KTK_TESTS=0
+        - KTK_DOCS=1
 
 deploy:
   provider: pypi
