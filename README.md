@@ -1,7 +1,7 @@
 kartothek
 =========
 
-[![Build Status](https://travis-ci.org/JDASoftwareGroup/kartothek.svg?branch=master)](https://travis-ci.org/JDASoftwareGroup/kartothek)
+[![Build Status](https://travis-ci.com/JDASoftwareGroup/kartothek.svg?branch=master)](https://travis-ci.com/JDASoftwareGroup/kartothek)
 [![Documentation Status](https://readthedocs.org/projects/kartothek/badge/?version=latest)](https://kartothek.readthedocs.io/en/latest/?badge=latest)
 [![codecov.io](https://codecov.io/github/JDASoftwareGroup/kartothek/coverage.svg?branch=master)](https://codecov.io/github/JDASoftwareGroup/kartothek)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/JDASoftwareGroup/kartothek/blob/master/LICENSE.txt)
