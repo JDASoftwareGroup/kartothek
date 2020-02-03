@@ -143,6 +143,7 @@ that their types are the same is part of schema validation in ``kartothek``.
 For example:
 
 .. ipython:: python
+    :okwarning:
 
     df.dtypes
     different_df = pd.DataFrame(

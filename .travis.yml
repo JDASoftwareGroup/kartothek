@@ -9,6 +9,7 @@ python:
 
 env:
   global:
+    - KTK_TESTS=1
     # personal github API access token of crepererum (Marco Neumann)
     - GITHUB_CLIENT_ID=32eb43d9e96045689676
     # GITHUB_CLIENT_SECRET=...
@@ -53,11 +54,11 @@ before_script:
   - python setup.py docs
 
 script:
-  - pytest --cov kartothek --cov-report xml --cov-report html
+  - if [[ $KTK_TESTS == true ]]; pytest --cov kartothek --cov-report xml --cov-report html ; fi
 
 after_success:
-  - travis_retry conda install codecov
-  - codecov
+  - if [[ $KTK_TESTS == true ]]; travis_retry conda install codecov ; fi
+  - if [[ $KTK_TESTS == true ]]; codecov ; fi
 
 matrix:
   # When marking the build as finished, do not wait for allowed failures to complete
@@ -86,6 +87,12 @@ matrix:
         - travis_retry conda update -q conda
         - conda config --add channels conda-forge
         - conda config --set channel_priority strict
+  include:
+    - name: "Docs"
+      language: sh
+      env:
+        - CONDA_CREATE_ARGS="pyarrow==0.15.0"
+        - KTK_TESTS=0
 
 deploy:
   provider: pypi
