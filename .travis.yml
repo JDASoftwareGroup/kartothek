@@ -9,6 +9,8 @@ python:
 
 env:
   global:
+    - KTK_TESTS=1
+    - KTK_DOCS=0
     # personal github API access token of marco-neumann-jdas
     - GITHUB_CLIENT_ID=7a8e3d7ff74db065db63
     # GITHUB_CLIENT_SECRET=...
@@ -50,14 +52,14 @@ install:
 before_script:
   - conda list
   - travis_retry pre-commit run -a
-  - python setup.py docs
+  - if [[ $KTK_DOCS == true ]]; then python setup.py docs ; fi
 
 script:
-  - pytest --cov kartothek --cov-report xml --cov-report html
+  - if [[ $KTK_TESTS == true ]]; then pytest --cov kartothek --cov-report xml --cov-report html ; fi
 
 after_success:
-  - travis_retry conda install codecov
-  - codecov
+  - if [[ $KTK_TESTS == true ]]; then travis_retry conda install codecov ; fi
+  - if [[ $KTK_TESTS == true ]]; then codecov ; fi
 
 matrix:
   # When marking the build as finished, do not wait for allowed failures to complete
@@ -86,6 +88,13 @@ matrix:
         - travis_retry conda update -q conda
         - conda config --add channels conda-forge
         - conda config --set channel_priority strict
+  include:
+    - name: "Docs"
+      language: sh
+      env:
+        - CONDA_CREATE_ARGS="pyarrow==0.15.0"
+        - KTK_TESTS=0
+        - KTK_DOCS=1
 
 deploy:
   provider: pypi

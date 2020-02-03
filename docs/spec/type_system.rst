@@ -169,13 +169,13 @@ measures the scale in digits (therefore :math:`P \ge S`).
 ...     "reveneu_lyd": [Decimal("0.0000"), Decimal("200.0000")],
 ... })
 >>> schema = pa.Schema.from_pandas(df)
->>> schema.field_by_name("profit_eu").type
+>>> schema.field("profit_eu").type
 Decimal128Type(decimal(5, 2))
->>> schema.field_by_name("reveneu_eu").type
+>>> schema.field("reveneu_eu").type
 Decimal128Type(decimal(6, 2))
->>> schema.field_by_name("profit_lyd").type
+>>> schema.field("profit_lyd").type
 Decimal128Type(decimal(6, 4))
->>> schema.field_by_name("reveneu_lyd").type
+>>> schema.field("reveneu_lyd").type
 Decimal128Type(decimal(7, 4))
 
 As shown, not only the scale changes for various numbers but also the precision is bound to the largest number. While
@@ -379,9 +379,9 @@ do when working with pandas dataframes:
 ...     "no_value": [None, None, None],
 ... })
 >>> schema = pa.Schema.from_pandas(df)
->>> schema.field_by_name("single_value").type
+>>> schema.field("single_value").type
 DataType(string)
->>> schema.field_by_name("no_value").type
+>>> schema.field("no_value").type
 DataType(null)
 
 The reason is that string and also data objects are stored as ``object`` columns in pandas, which can contain arbitrary
@@ -402,7 +402,7 @@ Dictionary encoded data is normally produced by Pandas categoricals:
 ...     "s": pd.Series(["foo", "foo", "bar"]).astype("category"),
 ... })
 >>> schema = pa.Schema.from_pandas(df)
->>> schema.field_by_name("s").type
+>>> schema.field("s").type
 DictionaryType(dictionary<values=string, indices=int8, ordered=0>)
 
 They have the form ``dictionary[T, I, O]`` where ``T`` represents the value type, ``I`` the index type (mostly integers)
