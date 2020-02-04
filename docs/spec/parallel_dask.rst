@@ -58,7 +58,7 @@ writes these partitions into multiple distinct files, one into every folder for
 a specific partition.
 
 If ``shuffle == True``, the data has to be grouped according to the
-``partition_on``, ``bucket_by`` and ``bucket_num`` parameters. Dask handles the
+``partition_on``, ``bucket_by`` and ``num_buckets`` parameters. Dask handles the
 distribution of data. If we're running on a cluster, it sends the data over the
 network between the workers. More information can be found in `Dask's
 documentation <https://docs.dask.org/en/latest/dataframe-groupby.html>`_.
