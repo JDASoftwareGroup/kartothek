@@ -1,15 +1,15 @@
 .. _further_useful_features:
 
 =================================
-Further useful kartothek features
+Further useful Kartothek features
 =================================
 
-This document introduces additional features of ``kartothek`` that allow users to
+This document introduces additional features of Kartothek that allow users to
 partition and index their data during writing, update already written data and
 keep their data stores 'clean' with garbage collection.
 
-The intent of this document is to expose users to some additional features of ``kartothek``
-in a bid to encourage deeper exploration of ``kartothek`` beyond 'getting started' and help
+The intent of this document is to expose users to some additional features of Kartothek
+in a bid to encourage deeper exploration of Kartothek beyond 'getting started' and help
 better enable developers to start thinking about how it can (or cannot) be useful in their
 particular applications.
 
@@ -18,7 +18,7 @@ particular applications.
 Storage specification
 =====================
 
-``kartothek`` can write to any location that
+Kartothek can write to any location that
 fulfills the `simplekv.KeyValueStore interface
 <https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore>`_  as long as they
 support `ExtendedKeyspaceMixin
@@ -30,7 +30,7 @@ For more information, take a look out at the `storefact documentation
 
 The reason ``store_factory`` is defined as a ``partial`` callable with the store
 information as arguments is because, when using distributed computing backends in
-``kartothek``, the connections of the store cannot be safely transferred between
+Kartothek, the connections of the store cannot be safely transferred between
 processes and thus we pass storage information to workers as a factory function.
 
 .. _partitioning_section:
@@ -38,7 +38,7 @@ processes and thus we pass storage information to workers as a factory function.
 Partitioning
 ============
 
-As we have already seen, writing data in ``kartothek`` amounts to writing
+As we have already seen, writing data in Kartothek amounts to writing
 partitions, which in the underlying key-value store translates to writing files
 to the storage layer in a structured manner.
 
@@ -47,7 +47,7 @@ of written data didn't require reading through an entire dataset to be able to
 identify and access the required subset. This is where *explicitly* partitioning by
 table columns helps.
 
-``kartothek`` is designed primarily for storing large datasets consistently. One way
+Kartothek is designed primarily for storing large datasets consistently. One way
 to do this is to structure the data well, this can be done by
 explicitly partitioning the dataset by select columns.
 
@@ -56,7 +56,7 @@ which makes reading as well as mutating (replacing or deleting) subsets of data 
 more efficient as only a select amount of files need to be read.
 
 To see explicit partitioning in action, let's set up some data and a storage location
-first and store the data there with ``kartothek``:
+first and store the data there with Kartothek:
 
 .. ipython:: python
 
@@ -90,7 +90,7 @@ first and store the data there with ``kartothek``:
     df
 
 
-``kartothek`` allows users to explicitly partition their data by the values of table
+Kartothek allows users to explicitly partition their data by the values of table
 columns such that, for a given input partition, all the rows with the same value of the
 column all get written to the same partition. To do this, we use the
 ``partition_on`` keyword argument:
@@ -138,7 +138,7 @@ can be read as just the 2 logical partitions by using the argument
 
 For datasets consisting of multiple tables, explicit partitioning on columns can only be
 performed if the column exists in both tables and is of the same data type: guaranteeing
-that their types are the same is part of schema validation in ``kartothek``.
+that their types are the same is part of schema validation in Kartothek.
 
 For example:
 
@@ -161,7 +161,7 @@ For example:
     sorted(dm.partitions.keys())
 
 
-As noted above, when data is appended to a dataset, ``kartothek`` guarantees it has
+As noted above, when data is appended to a dataset, Kartothek guarantees it has
 the proper schema and partitioning.
 
 The order of columns provided in ``partition_on`` is important, as the partition
@@ -175,13 +175,13 @@ Updating existing data
 ======================
 
 It's possible to update existing data
-by adding new physical partitions to them and deleting or replacing old partitions. ``kartothek``
+by adding new physical partitions to them and deleting or replacing old partitions. Kartothek
 provides update functions that generally have the prefix `update_dataset` in their names.
 For example, :func:`~kartothek.io.eager.update_dataset_from_dataframes` is the update
 function for the ``eager`` backend.
 
 To see updating in action, let's first set up a storage location first and store some data there
-with ``kartothek``. Specifically, we'll reuse the ``df`` dataframe that we'd created earlier:
+with Kartothek. Specifically, we'll reuse the ``df`` dataframe that we'd created earlier:
 
 .. ipython:: python
 
@@ -267,7 +267,7 @@ To illustrate this point better, let's first create a dataset with two tables:
 .. admonition:: Partition identifiers
 
    In the previous example a dictionary was used to pass the desired data to the store function. To label each
-   partition, by default ``kartothek`` uses UUIDs to ensure that each partition is named uniquely. This is
+   partition, by default Kartothek uses UUIDs to ensure that each partition is named uniquely. This is
    necessary so that the update can properly work using `copy-on-write <https://en.wikipedia.org/wiki/Copy-on-write>`_
    principles.
 
@@ -419,17 +419,17 @@ has been completely replaced.
 Garbage collection
 ==================
 
-When ``kartothek`` is executing an operation, it makes sure to not
+When Kartothek is executing an operation, it makes sure to not
 commit changes to the dataset until the operation has been succesfully completed. If a
 write operation does not succeed for any reason, although there may be new files written
 to storage, those files will not be used by the dataset as they will not be referenced in
-the ``kartothek`` metadata. Thus, when the user reads the dataset, no new data will
+the Kartothek metadata. Thus, when the user reads the dataset, no new data will
 appear in the output.
 
-Similarly, when deleting a partition, ``kartothek`` only removes the reference of that file
+Similarly, when deleting a partition, Kartothek only removes the reference of that file
 from the metadata.
 
-These temporary files will remain in storage until a ``kartothek``  garbage collection
+These temporary files will remain in storage until a Kartothek  garbage collection
 function is called on the dataset.
 If a dataset is updated on a regular basis, it may be useful to run garbage collection
 periodically to decrease unnecessary storage use.
@@ -437,7 +437,7 @@ periodically to decrease unnecessary storage use.
 An example of garbage collection is shown below.
 A little above, near the end of the delete section,
 we removed two partitions for the dataset with uuid `another_partitioned_dataset`.
-The removed files remain in storage but are untracked by kartothek.
+The removed files remain in storage but are untracked by Kartothek.
 When garbage collection is called, the files are removed.
 
 .. ipython:: python

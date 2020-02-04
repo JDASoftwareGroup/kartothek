@@ -5,7 +5,7 @@ In- and Output
 ==============
 
 The :mod:`kartothek.io_components` module offers a collection of building
-blocks to assemble data pipelines to read, write or merge kartothek datasets.
+blocks to assemble data pipelines to read, write or merge Kartothek datasets.
 All pipeline blocks ensure compliance with the dataset specification in
 :ref:`dataset_spec`.
 

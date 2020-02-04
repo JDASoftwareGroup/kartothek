@@ -4,15 +4,15 @@
 Table type system
 =================
 
-This document explains the type system of kartothek.
+This document explains the type system of Kartothek.
 
 
 Motivation
 ----------
-To understand why and how the type system was designed, we illustrate the requirements and use cases kartothek should
+To understand why and how the type system was designed, we illustrate the requirements and use cases Kartothek should
 cover:
 
-- **simplicity:** For the average programmer, it should be possible to understand the semantics of kartothek quickly.
+- **simplicity:** For the average programmer, it should be possible to understand the semantics of Kartothek quickly.
 - **optimized data representation:** Data providers (humans and software) should be able to pick a memory representation
   that is sufficient to hold the data in question (e.g. pick an 8-bit unsigned integer if you only have integer up to
   255).
@@ -39,7 +39,7 @@ used when interacting with other languages like `R`_, `Julia`_ and `Java`_.
 
 .. note::
 
-   Most user interaction with kartothek are likely done by using `Pandas`_ DataFrames. Please consolidate the pyarrow
+   Most user interaction with Kartothek are likely done by using `Pandas`_ DataFrames. Please consolidate the pyarrow
    documentation on `Type differences <https://arrow.apache.org/docs/python/pandas.html#type-differences>`_ to see how
    different `Pandas`_ constructs map to `Apache Arrow`_.
 
@@ -187,7 +187,7 @@ We currently do not implement a normalization. This might change in future metad
 .. warning::
 
    Because no normalization is implemented for different decimal precisions, we strongly advice against using them in
-   kartothek.
+   Kartothek.
 
 Date
 ~~~~
@@ -221,7 +221,7 @@ metadata version.
      data and arithmetics. Use "midn" as a time (e.g. ``2019-05-21 00:00:00``) and most features including `Pandas`_
      support work as expected.
    - **extension types:** Using `Extension Types`_ would make it possible to have proper, fast date types in `Pandas`_.
-     Note that this would also require to either convert them back and forth before/after the kartothek interaction or
+     Note that this would also require to either convert them back and forth before/after the Kartothek interaction or
      to teach pyarrow about them.
 
 Time
