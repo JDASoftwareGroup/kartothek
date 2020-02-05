@@ -5,6 +5,7 @@
 # creates releases for different kind of artifacts. So we need to find the correct release and the linked wheel.
 #
 # IMPORTANT: Only use python builtin libs here since no venv is bootstrapped at this point!
+import base64
 import json
 import os
 import re
@@ -24,15 +25,21 @@ ASSET_PATTERN = re.compile(
 
 def main():
     nightly_builds = {}
+    url = "https://api.github.com/repos/{}/releases".format(GITHUB_REPO)
 
     # we need to authenticate this request because the travis IP range might easily hit the rate limits
     client_id = os.environ["GITHUB_CLIENT_ID"]
     client_secret = os.environ["GITHUB_CLIENT_SECRET"]
+    base64string = base64.b64encode(
+        "{}:{}".format(client_id, client_secret).encode("utf8")
+    ).decode("utf8")
+
     request = urllib.request.Request(
-        url="https://api.github.com/repos/{}/releases?client_id={}&client_secret={}".format(
-            GITHUB_REPO, client_id, client_secret
-        ),
-        headers={"Accept": "application/vnd.github.v3+json"},
+        url=url,
+        headers={
+            "Accept": "application/vnd.github.v3+json",
+            "Authorization": "Basic {}".format(base64string),
+        },
     )
 
     with urllib.request.urlopen(request) as url:
