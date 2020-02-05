@@ -889,3 +889,13 @@ def test_store_overwrite_none(store_factory, bound_store_dataframes):
         overwrite=True,
     )
     assert md2.tables == []
+
+
+def test_secondary_index_on_partition_column(store_factory, bound_store_dataframes):
+    df1 = pd.DataFrame({"x": [1], "y": [1]})
+    with pytest.raises(
+        RuntimeError, match="Cannot create secondary index on partition columns: {'x'}"
+    ):
+        bound_store_dataframes(
+            [df1], store=store_factory, partition_on=["x"], secondary_indices=["x"]
+        )

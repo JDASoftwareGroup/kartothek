@@ -31,6 +31,7 @@ from kartothek.io_components.utils import (
     _ensure_compatible_indices,
     normalize_arg,
     normalize_args,
+    raise_if_indices_overlap,
     validate_partition_keys,
 )
 from kartothek.io_components.write import (
@@ -518,6 +519,8 @@ def store_delayed_as_dataset(
 
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
+
+    raise_if_indices_overlap(partition_on, secondary_indices)
 
     input_to_mps = partial(
         parse_input_to_metapartition, metadata_version=metadata_version

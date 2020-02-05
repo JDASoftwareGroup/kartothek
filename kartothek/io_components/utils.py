@@ -367,6 +367,14 @@ def check_single_table_dataset(dataset, expected_table=None):
         )
 
 
+def raise_if_indices_overlap(partition_on, secondary_indices):
+    partition_secondary_overlap = set(partition_on) & set(secondary_indices)
+    if partition_secondary_overlap:
+        raise RuntimeError(
+            f"Cannot create secondary index on partition columns: {partition_secondary_overlap}"
+        )
+
+
 class NoPickleFactory:
     def __init__(self, obj):
         self.obj = obj
