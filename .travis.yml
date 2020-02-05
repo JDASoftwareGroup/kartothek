@@ -21,10 +21,11 @@ env:
     - CONDA_CREATE_ARGS="pyarrow==0.13.0"
     - CONDA_CREATE_ARGS="pyarrow==0.14.1"
     - CONDA_CREATE_ARGS="pyarrow==0.15.0"
+    - CONDA_CREATE_ARGS="pyarrow==0.16.0"
 
 
     # optional builds
-    - CONDA_CREATE_ARGS="pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
+    - CONDA_CREATE_ARGS="pyarrow==0.16.0" NUMFOCUS_NIGHTLY=1
     - ARROW_NIGHTLY=1
 
 before_install:
@@ -66,7 +67,7 @@ matrix:
   fast_finish: true
   allow_failures:
     - env: ARROW_NIGHTLY=1
-    - env: CONDA_CREATE_ARGS="pyarrow==0.15.0" NUMFOCUS_NIGHTLY=1
+    - env: CONDA_CREATE_ARGS="pyarrow==0.16.0" NUMFOCUS_NIGHTLY=1
   include:
     - name: "osx + builtin python3"
       os: osx
@@ -91,7 +92,6 @@ matrix:
         - conda config --set channel_priority strict
     - name: "Docs"
       env:
-        - CONDA_CREATE_ARGS="pyarrow==0.15.0"
         - KTK_TESTS=0
         - KTK_DOCS=1
 
