@@ -263,7 +263,7 @@ function but returns a collection of ``dask.delayed`` objects.
 
     When this argument is defined, Kartothek uses the Apache Parquet metadata
     as well as indices and partition information to speed up queries when possible.
-    How this works is a complex topic, see :ref:`/spec/efficient_querying`.
+    How this works is a complex topic, see :ref:`efficient_querying`.
 
     .. ipython:: python
 
@@ -274,7 +274,7 @@ function but returns a collection of ``dask.delayed`` objects.
 
 
 For a deeper dive into Kartothek you can take a look at
-:ref:`further_useful_features`. Also look at :ref:`/spec/efficient_querying`.
+:ref:`further_useful_features`. Also look at :ref:`efficient_querying`.
 
 .. _storefact: https://github.com/blue-yonder/storefact
 .. _dask: https://docs.dask.org/en/latest/
