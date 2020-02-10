@@ -8,6 +8,7 @@ Next release
 Improvements
 ^^^^^^^^^^^^
 
+* Decrease scheduling overhead for dask based pipelines
 * Performance improvements for categorical data when using pyarrow>=0.15.0
 * Dask is now able to calculate better size estimates for the following classes:
     * :class:`~kartothek.core.dataset.DatasetMetadata`

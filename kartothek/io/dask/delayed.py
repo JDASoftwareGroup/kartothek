@@ -52,8 +52,6 @@ from ._utils import (
 def _delete_all_additional_metadata(dataset_factory):
     delete_indices(dataset_factory=dataset_factory)
     delete_common_metadata(dataset_factory=dataset_factory)
-    # This is just a dummy return to chain
-    return dataset_factory.dataset_uuid
 
 
 def _delete_tl_metadata(dataset_factory, *args):
@@ -85,15 +83,14 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
     delayed_dataset_uuid = delayed(_delete_all_additional_metadata)(
         dataset_factory=dataset_factory
     )
-
     mps = map_delayed(
-        mps,
         MetaPartition.delete_from_store,
+        mps,
         store=store,
-        dataset_uuid=delayed_dataset_uuid,
+        dataset_uuid=dataset_factory.dataset_uuid,
     )
 
-    return delayed(_delete_tl_metadata)(dataset_factory, mps, gc)
+    return delayed(_delete_tl_metadata)(dataset_factory, mps, gc, delayed_dataset_uuid)
 
 
 @default_docs
@@ -127,10 +124,9 @@ def garbage_collect_dataset__delayed(
     nested_files = dispatch_files_to_gc(
         dataset_uuid=None, store_factory=None, chunk_size=chunk_size, factory=ds_factory
     )
-    return [
-        delayed(delete_files)(files, store_factory=ds_factory.store_factory)
-        for files in nested_files
-    ]
+    return list(
+        map_delayed(delete_files, nested_files, store_factory=ds_factory.store_factory)
+    )
 
 
 def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tasks):
@@ -223,15 +219,15 @@ def merge_datasets_as_delayed(
         match_how=match_how,
     )
     mps = map_delayed(
-        mps,
         _load_and_merge_mps,
+        mps,
         store=store,
         label_merger=label_merger,
         metadata_merger=metadata_merger,
         merge_tasks=merge_tasks,
     )
 
-    return mps
+    return list(mps)
 
 
 def _load_and_concat_metapartitions_inner(mps, args, kwargs):
@@ -241,10 +237,9 @@ def _load_and_concat_metapartitions_inner(mps, args, kwargs):
 
 
 def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
-    return [
-        delayed(_load_and_concat_metapartitions_inner)(mps, args, kwargs)
-        for mps in list_of_mps
-    ]
+    return map_delayed(
+        _load_and_concat_metapartitions_inner, list_of_mps, args=args, kwargs=kwargs
+    )
 
 
 @default_docs
@@ -303,8 +298,8 @@ def read_dataset_as_delayed_metapartitions(
         )
     else:
         mps = map_delayed(
-            mps,
             MetaPartition.load_dataframes,
+            mps,
             store=store,
             tables=tables,
             columns=columns,
@@ -326,9 +321,11 @@ def read_dataset_as_delayed_metapartitions(
                 for table, cats in categoricals_from_index.items()
             }
         )
-        mps = map_delayed(mps, MetaPartition.apply, func_dict, type_safe=True)
+        mps = map_delayed(
+            partial(MetaPartition.apply, func=func_dict, type_safe=True), mps
+        )
 
-    return mps
+    return list(mps)
 
 
 @default_docs
@@ -368,7 +365,7 @@ def read_dataset_as_delayed(
         predicates=predicates,
         dispatch_by=dispatch_by,
     )
-    return map_delayed(mps, _get_data)
+    return list(map_delayed(_get_data, mps))
 
 
 @default_docs
@@ -422,7 +419,7 @@ def read_table_as_delayed(
         factory=factory,
         dispatch_by=dispatch_by,
     )
-    return map_delayed(mps, partial(_get_data, table=table))
+    return list(map_delayed(partial(_get_data, table=table), mps))
 
 
 @default_docs
@@ -525,17 +522,17 @@ def store_delayed_as_dataset(
     input_to_mps = partial(
         parse_input_to_metapartition, metadata_version=metadata_version
     )
-    mps = map_delayed(delayed_tasks, input_to_mps)
+    mps = map_delayed(input_to_mps, delayed_tasks)
 
     if partition_on:
-        mps = map_delayed(mps, MetaPartition.partition_on, partition_on=partition_on)
+        mps = map_delayed(MetaPartition.partition_on, mps, partition_on=partition_on)
 
     if secondary_indices:
-        mps = map_delayed(mps, MetaPartition.build_indices, columns=secondary_indices)
+        mps = map_delayed(MetaPartition.build_indices, mps, columns=secondary_indices)
 
     mps = map_delayed(
-        mps,
         MetaPartition.store_dataframes,
+        mps,
         store=store,
         df_serializer=df_serializer,
         dataset_uuid=dataset_uuid,

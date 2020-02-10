@@ -93,22 +93,24 @@ def _update_dask_partitions_one_to_one(
         metadata_version=metadata_version,
         expected_secondary_indices=secondary_indices,
     )
-    mps = map_delayed(delayed_tasks, input_to_mps)
+    mps = map_delayed(input_to_mps, delayed_tasks)
 
     if sort_partitions_by:
         mps = map_delayed(
+            partial(
+                MetaPartition.apply,
+                func=partial(sort_values_categorical, column=sort_partitions_by),
+            ),
             mps,
-            MetaPartition.apply,
-            partial(sort_values_categorical, column=sort_partitions_by),
         )
     if partition_on:
-        mps = map_delayed(mps, MetaPartition.partition_on, partition_on)
+        mps = map_delayed(MetaPartition.partition_on, mps, partition_on=partition_on)
     if secondary_indices:
-        mps = map_delayed(mps, MetaPartition.build_indices, secondary_indices)
+        mps = map_delayed(MetaPartition.build_indices, mps, columns=secondary_indices)
 
     return map_delayed(
-        mps,
         MetaPartition.store_dataframes,
+        mps,
         store=store_factory,
         df_serializer=df_serializer,
         dataset_uuid=dataset_uuid,
