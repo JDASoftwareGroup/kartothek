@@ -88,7 +88,6 @@ matrix:
         - travis_retry conda update -q conda
         - conda config --add channels conda-forge
         - conda config --set channel_priority strict
-  include:
     - name: "Docs"
       language: sh
       env:
