@@ -2,9 +2,15 @@
 
 
 import warnings
+from functools import partial
 
 import pandas as pd
 from dask import delayed
+
+try:
+    from cytoolz import map
+except ImportError:
+    pass
 
 CATEGORICAL_EFFICIENCY_WARN_LIMIT = 100000
 
@@ -70,5 +76,7 @@ def _maybe_get_categoricals_from_index(dataset_metadata_factory, categoricals):
     return categoricals_from_index
 
 
-def map_delayed(mps, func, *args, **kwargs):
-    return [delayed(func)(mp, *args, **kwargs) for mp in mps]
+def map_delayed(func, mps, **kwargs):
+    func = partial(func, **kwargs)
+    delayed_func = delayed(func)
+    return map(delayed_func, mps)
