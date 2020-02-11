@@ -70,7 +70,8 @@ matrix:
   include:
     - name: "osx + builtin python3"
       os: osx
-      language: sh
+      # Note: TRAVIS_PYTHON_VERSION will be unset, will use latest python version available given the constraints
+      language: sh  # This is necessary to support the `before_install` script
       env:
         - CONDA_CREATE_ARGS="pyarrow==0.13.0"
       before_install:
@@ -89,7 +90,6 @@ matrix:
         - conda config --add channels conda-forge
         - conda config --set channel_priority strict
     - name: "Docs"
-      language: sh
       env:
         - CONDA_CREATE_ARGS="pyarrow==0.15.0"
         - KTK_TESTS=0
