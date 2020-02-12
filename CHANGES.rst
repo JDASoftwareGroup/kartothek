@@ -2,12 +2,13 @@
 Changelog
 =========
 
-Next release
-============
+Version 3.7.0 (2020-02-12)
+==========================
 
 Improvements
 ^^^^^^^^^^^^
 
+* Support for pyarrow 0.16.0
 * Decrease scheduling overhead for dask based pipelines
 * Performance improvements for categorical data when using pyarrow>=0.15.0
 * Dask is now able to calculate better size estimates for the following classes:
