@@ -41,7 +41,13 @@ _PARAMETER_MAPPING = {
         not present in the dataset, a ValueError is raised.""",
     "dispatch_by": """
     dispatch_by: list of strings, optional
-        List of index columns to group and partition the dataframe by.""",
+        List of index columns to group and partition the jobs by.
+        There will be one job created for every observed index value combination. This may result in either many very small partitions or in few very large partitions, depending on the index you are using this on.
+
+        .. admonition:: Secondary indices
+
+            This is also useable in combination with secondary indices where the physical file layout may not be aligned with the logically requested layout. For optimal performance it is recommended to use this for columns which can benefit from predicate pushdown since the jobs will fetch their data individually and will *not* shuffle data in memory / over network.
+        """,
     "df_serializer": """
     df_serializer : DataFrameSerializer, optional
         A pandas DataFrame serialiser from `kartothek.serialization`""",

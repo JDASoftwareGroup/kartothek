@@ -75,7 +75,7 @@ def dispatch_metapartitions_from_factory(
 
         # Group the resulting MetaParitions by partition keys or a subset of those keys
         merged_partitions = base_df.groupby(
-            by=list(dispatch_by), sort=False, as_index=False
+            by=list(dispatch_by), sort=True, as_index=False
         )
         for group_name, group in merged_partitions:
             if not isinstance(group_name, tuple):

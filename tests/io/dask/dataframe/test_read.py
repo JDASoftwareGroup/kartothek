@@ -1,9 +1,14 @@
 import pickle
 from functools import partial
 
+import dask
+import dask.dataframe as dd
+import numpy as np
 import pandas as pd
 import pytest
+from dask.dataframe.utils import assert_eq as assert_dask_eq
 from pandas import testing as pdt
+from pandas.testing import assert_frame_equal
 
 from kartothek.io.dask.dataframe import read_dataset_as_ddf
 from kartothek.io.eager import store_dataframes_as_dataset
@@ -104,3 +109,63 @@ def test_read_ddf_from_categorical_partition(store_factory):
     )
     df_actual = ddf.compute(scheduler="sync")
     pdt.assert_frame_equal(df, df_actual)
+
+
+@pytest.mark.parametrize("index_type", ["primary", "secondary"])
+def test_reconstruct_dask_index(store_factory, index_type):
+    dataset_uuid = "dataset_uuid"
+    df1 = pd.DataFrame({"A": [1, 2], "B": ["x", "y"]})
+    df2 = pd.DataFrame({"A": [3, 4], "B": ["x", "y"]})
+    df_chunks = np.array_split(pd.concat([df1, df2]).reset_index(drop=True), 4)
+    df_delayed = [dask.delayed(c) for c in df_chunks]
+    ddf_expected = dd.from_delayed(df_delayed).set_index("A", divisions=[1, 2, 3, 4, 4])
+    ddf_expected_simple = dd.from_pandas(
+        pd.concat([df1, df2]), npartitions=2
+    ).set_index("A")
+    if index_type == "secondary":
+        secondary_indices = "A"
+        partition_on = None
+    else:
+        secondary_indices = None
+        partition_on = "A"
+
+    store_dataframes_as_dataset(
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        dfs=[df1, df2],
+        secondary_indices=secondary_indices,
+        partition_on=partition_on,
+    )
+    ddf = read_dataset_as_ddf(
+        dataset_uuid=dataset_uuid, store=store_factory, table="table", dask_index_on="A"
+    )
+
+    assert ddf_expected.npartitions == 4
+    assert len(ddf_expected.divisions) == 5
+    assert ddf_expected.divisions == (1, 2, 3, 4, 4)
+    assert ddf.index.name == "A"
+
+    assert ddf.npartitions == 4
+    assert len(ddf.divisions) == 5
+    assert ddf.divisions == (1, 2, 3, 4, 4)
+
+    assert_dask_eq(ddf_expected, ddf)
+    assert_dask_eq(ddf_expected_simple, ddf, check_divisions=False)
+
+    assert_frame_equal(ddf_expected.compute(), ddf.compute())
+    assert_frame_equal(ddf_expected_simple.compute(), ddf.compute())
+
+
+def test_reconstruct_dask_index_raise_no_index(store_factory):
+    dataset_uuid = "dataset_uuid"
+    df1 = pd.DataFrame({"A": [1, 2]})
+    store_dataframes_as_dataset(
+        store=store_factory, dataset_uuid=dataset_uuid, dfs=[df1]
+    )
+    with pytest.raises(RuntimeError, match="Requested index: A but"):
+        read_dataset_as_ddf(
+            dataset_uuid=dataset_uuid,
+            store=store_factory,
+            table="table",
+            dask_index_on="A",
+        )

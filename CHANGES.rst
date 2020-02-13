@@ -2,11 +2,19 @@
 Changelog
 =========
 
+Version 3.8.0 (Unreleased)
+==========================
+
+* Add keyword argument `dask_index_on` which reconstructs a dask index from an kartothek index when loading the dataset
+* Add method :func:`~kartothek.core.index.IndexBase.observed_values` which returns an array of all observed values of the index column
+
+
 Version 3.7.1 (2020-02-XX)
 ==========================
 
 * GH227 Fix a Type error when loading categorical data in dask without
   specifying it explicitly
+
 
 Version 3.7.0 (2020-02-12)
 ==========================

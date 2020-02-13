@@ -36,6 +36,7 @@ def read_dataset_as_ddf(
     dates_as_object=False,
     predicates=None,
     factory=None,
+    dask_index_on=None,
 ):
     """
     Retrieve a single table from a dataset as partition-individual :class:`~dask.dataframe.DataFrame` instance.
@@ -46,6 +47,10 @@ def read_dataset_as_ddf(
 
     Parameters
     ----------
+    dask_index_on: str
+        Reconstruct (and set) a dask index on the provided index column.
+
+        For details on performance, see also `dispatch_by`
     """
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
@@ -73,9 +78,18 @@ def read_dataset_as_ddf(
         label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
+        dispatch_by=dask_index_on,
     )
-
-    return dd.from_delayed(delayed_partitions, meta=meta)
+    if dask_index_on:
+        divisions = ds_factory.indices[dask_index_on].observed_values()
+        divisions.sort()
+        divisions = list(divisions)
+        divisions.append(divisions[-1])
+        return dd.from_delayed(
+            delayed_partitions, meta=meta, divisions=divisions
+        ).set_index(dask_index_on, divisions=divisions)
+    else:
+        return dd.from_delayed(delayed_partitions, meta=meta)
 
 
 def _get_dask_meta_for_dataset(
