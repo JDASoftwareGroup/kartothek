@@ -7,7 +7,6 @@ import datetime
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
-import pandas.util.testing as pdtest
 import pyarrow as pa
 import pytest
 
@@ -50,7 +49,7 @@ def test_store_df_to_store(store):
     dataframe_format = default_serializer()
     assert isinstance(dataframe_format, ParquetSerializer)
     key = dataframe_format.store(store, "prefix", df)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
 @pytest.mark.parametrize("serialiser", SERLIALISERS)
@@ -58,7 +57,7 @@ def test_store_table_to_store(serialiser, store):
     df = pd.DataFrame({"a": [1, 2], "b": [3.0, 4.0], "c": ["∆", "€"]})
     table = pa.Table.from_pandas(df)
     key = serialiser.store(store, "prefix", table)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
 @pytest.mark.parametrize("serialiser", SERLIALISERS)
@@ -75,16 +74,16 @@ def test_dataframe_roundtrip(serialiser, store):
         )
         key = serialiser.store(store, "prefix", df)
 
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
     # Test partial restore
-    pdtest.assert_frame_equal(
+    pdt.assert_frame_equal(
         DataFrameSerializer.restore_dataframe(store, key, columns=["a", "c"]),
         df[["a", "c"]],
     )
 
     # Test that all serialisers can ingest predicate_pushdown_to_io
-    pdtest.assert_frame_equal(
+    pdt.assert_frame_equal(
         DataFrameSerializer.restore_dataframe(
             store, key, columns=["a", "c"], predicate_pushdown_to_io=False
         ),
@@ -95,7 +94,7 @@ def test_dataframe_roundtrip(serialiser, store):
     expected = df[["c", "d"]].copy()
     expected["c"] = expected["c"].astype("category")
     # Check that the dtypes match but don't care about the order of the categoricals.
-    pdtest.assert_frame_equal(
+    pdt.assert_frame_equal(
         DataFrameSerializer.restore_dataframe(
             store, key, columns=["c", "d"], categories=["c"]
         ),
@@ -104,7 +103,7 @@ def test_dataframe_roundtrip(serialiser, store):
     )
 
     # Test restore w/ empty col list
-    pdtest.assert_frame_equal(
+    pdt.assert_frame_equal(
         DataFrameSerializer.restore_dataframe(store, key, columns=[]), df[[]]
     )
 
@@ -122,20 +121,20 @@ def test_missing_column(serialiser, store):
 def test_dataframe_roundtrip_empty(serialiser, store):
     df = pd.DataFrame({})
     key = serialiser.store(store, "prefix", df)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
     # Test partial restore
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
 @pytest.mark.parametrize("serialiser", SERLIALISERS)
 def test_dataframe_roundtrip_no_rows(serialiser, store):
     df = pd.DataFrame({"a": [], "b": [], "c": []}).astype(object)
     key = serialiser.store(store, "prefix", df)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
     # Test partial restore
-    pdtest.assert_frame_equal(
+    pdt.assert_frame_equal(
         DataFrameSerializer.restore_dataframe(store, key, columns=["a", "c"]),
         df[["a", "c"]],
     )
@@ -446,7 +445,7 @@ def test_predicate_eval_string_types(serialiser, store, predicate_pushdown_to_io
     df = pd.DataFrame({b"a": [1, 2], "b": [3.0, 4.0]})
     key = serialiser.store(store, "prefix", df)
     df.columns = [ensure_unicode_string_type(col) for col in df.columns]
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
     for col in ["a", b"a", "a"]:
         predicates = [[(col, "==", 1)]]

@@ -7,7 +7,7 @@ from datetime import date, datetime
 
 import numpy as np
 import pandas as pd
-import pandas.util.testing as pdt
+import pandas.testing as pdt
 import pytest
 
 from kartothek.core.common_metadata import make_meta, store_schema_metadata

@@ -4,7 +4,6 @@ from datetime import date, datetime
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
-import pandas.util.testing as pdtest
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
@@ -33,7 +32,7 @@ def test_timestamp_us(store):
     df = pd.DataFrame({"ts": [ts]})
     serialiser = ParquetSerializer()
     key = serialiser.store(store, "prefix", df)
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
 def test_pyarrow_07992(store):
@@ -55,7 +54,7 @@ def test_pyarrow_07992(store):
     buf = pa.BufferOutputStream()
     pq.write_table(table, buf)
     store.put(key, buf.getvalue().to_pybytes())
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
 def test_index_metadata(store):
@@ -73,7 +72,7 @@ def test_index_metadata(store):
     buf = pa.BufferOutputStream()
     pq.write_table(table, buf)
     store.put(key, buf.getvalue().to_pybytes())
-    pdtest.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
+    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
 @pytest.fixture(params=[1, 5, None])
