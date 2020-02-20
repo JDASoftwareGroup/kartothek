@@ -52,6 +52,7 @@ install:
 # If docs break or formatting, linting is off, I'd like to know immediately
 before_script:
   - conda list
+  - conda list --export
   - travis_retry pre-commit run -a
   - if [[ $KTK_DOCS == 1 ]]; then python setup.py docs ; fi
 
