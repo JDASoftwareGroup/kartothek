@@ -2,7 +2,7 @@ from collections import OrderedDict
 from datetime import date
 
 import pandas as pd
-import pandas.util.testing as pdt
+import pandas.testing as pdt
 
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
