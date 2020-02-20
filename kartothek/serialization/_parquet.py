@@ -53,19 +53,33 @@ def _empty_table_from_schema(parquet_file):
     return schema.empty_table()
 
 
-def _reset_dictionary_columns(table):
+def _reset_dictionary_columns(table, exclude=None):
     """
     1. Categorical columns of null won't cast https://issues.apache.org/jira/browse/ARROW-5085
     2. Massive performance issue due to non-fast path implementation https://issues.apache.org/jira/browse/ARROW-5089
+    3. We need to ensure that the dtype is exactly as requested, see GH227
     """
+    if exclude is None:
+        exclude = []
     if ARROW_LARGER_EQ_0150:
-        return table
-    for i in range(table.num_columns):
-        col = table[i]
-        if pa.types.is_dictionary(col.type):
-            new_type = col.data.chunk(0).dictionary.type
-            new_col = col.cast(new_type)
-            table = table.remove_column(i).add_column(i, new_col)
+        schema = table.schema
+        for i in range(len(schema)):
+            field = schema[i]
+            if pa.types.is_dictionary(field.type):
+                new_field = pa.field(
+                    field.name, field.type.value_type, field.nullable, field.metadata
+                )
+                schema = schema.remove(i).insert(i, new_field)
+        table = table.cast(schema)
+    else:
+        for i in range(table.num_columns):
+            col = table[i]
+            if col.name in exclude:
+                continue
+            if pa.types.is_dictionary(col.type):
+                new_type = col.data.chunk(0).dictionary.type
+                new_col = col.cast(new_type)
+                table = table.remove_column(i).add_column(i, new_col)
     return table
 
 
@@ -167,6 +181,7 @@ class ParquetSerializer(DataFrameSerializer):
                     )
                 )
 
+        table = _reset_dictionary_columns(table, exclude=categories)
         df = table.to_pandas(categories=categories, date_as_object=date_as_object)
         df.columns = df.columns.map(ensure_unicode_string_type)
         if predicates:

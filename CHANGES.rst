@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 3.7.1 (2020-02-XX)
+==========================
+
+* GH227 Fix a Type error when loading categorical data in dask without
+  specifying it explicitly
+
 Version 3.7.0 (2020-02-12)
 ==========================
 

@@ -3,8 +3,10 @@ from functools import partial
 
 import pandas as pd
 import pytest
+from pandas import testing as pdt
 
 from kartothek.io.dask.dataframe import read_dataset_as_ddf
+from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io.testing.read import *  # noqa
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
@@ -80,3 +82,25 @@ def test_load_dataframe_categoricals_with_index(dataset_with_index_factory):
         label_filter=None,
         dates_as_object=False,
     )
+
+
+def test_read_ddf_from_categorical_partition(store_factory):
+    df = pd.DataFrame({"x": ["a"]}).astype({"x": "category"})
+    store_dataframes_as_dataset(
+        dfs=[df], dataset_uuid="dataset_uuid", store=store_factory
+    )
+    ddf = read_dataset_as_ddf(
+        dataset_uuid="dataset_uuid", store=store_factory, table="table"
+    )
+    df_expected = pd.DataFrame({"x": ["a"]})
+    df_actual = ddf.compute(scheduler="sync")
+    pdt.assert_frame_equal(df_expected, df_actual)
+
+    ddf = read_dataset_as_ddf(
+        dataset_uuid="dataset_uuid",
+        store=store_factory,
+        categoricals=["x"],
+        table="table",
+    )
+    df_actual = ddf.compute(scheduler="sync")
+    pdt.assert_frame_equal(df, df_actual)
