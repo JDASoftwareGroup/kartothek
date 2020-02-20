@@ -1,13 +1,11 @@
 # Test Code Dependencies
 distributed
 pytz
-toolz
 
 # Test Framework
 hypothesis
 pytest>=4.5.0
 pytest-cov
-pytest-flake8
 pytest-mock
 setuptools_scm
 
