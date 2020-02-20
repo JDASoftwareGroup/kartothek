@@ -430,3 +430,16 @@ def test_predicate_accept_in(store, predicate_value, expected):
         )
         == expected
     )
+
+
+def test_read_categorical(store):
+    df = pd.DataFrame({"col": ["a"]}).astype({"col": "category"})
+
+    serialiser = ParquetSerializer()
+    key = serialiser.store(store, "prefix", df)
+
+    df = serialiser.restore_dataframe(store, key)
+    assert df.dtypes["col"] == "O"
+
+    df = serialiser.restore_dataframe(store, key, categories=["col"])
+    assert df.dtypes["col"] == pd.CategoricalDtype(["a"], ordered=False)
