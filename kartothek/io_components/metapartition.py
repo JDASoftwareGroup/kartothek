@@ -15,6 +15,7 @@ from typing import Any, Dict, Optional, cast
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+
 from kartothek.core import naming
 from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core.common_metadata import (
@@ -32,13 +33,16 @@ from kartothek.core.partition import Partition
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_string_type, verify_metadata_version
 from kartothek.core.uuid import gen_uuid
+from kartothek.io_components.utils import (
+    _ensure_valid_indices,
+    _instantiate_store,
+    combine_metadata,
+)
 from kartothek.serialization import (
     DataFrameSerializer,
     default_serializer,
     filter_df_from_predicates,
 )
-
-from kartothek.io_components.utils import _ensure_valid_indices, _instantiate_store, combine_metadata
 
 LOGGER = logging.getLogger(__name__)
 
@@ -900,12 +904,6 @@ class MetaPartition(Iterable):
             labels = list(new_data.keys())
 
         dfs = [new_data.pop(label) for label in labels]
-        # partition_values = dfs[0][self.partition_keys].drop_duplicates()
-        # # assert len(partition_values) == 1
-        # dfs = [
-        #     df  #.drop(columns=self.partition_keys)
-        #     for df in dfs
-        # ]
 
         LOGGER.debug("Merging internal dataframes of %s", self.label)
 
@@ -919,9 +917,6 @@ class MetaPartition(Iterable):
                 merge_kwargs,
             )
             raise
-
-        # Reassign partition values
-        # df_merged = df_merged.assign(**partition_values.T.to_dict()[0], copy=False)
 
         df_merged = filter_df_from_predicates(df_merged, predicates)
 
