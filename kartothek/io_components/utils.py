@@ -9,7 +9,6 @@ from typing import Callable, Optional
 
 import decorator
 import pandas as pd
-
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.factory import _ensure_factory
 
@@ -79,6 +78,8 @@ def _combine_metadata(dataset_metadata, append_to_list):
     else:
         first = dataset_metadata.pop()
         second = dataset_metadata.pop()
+        if isinstance(first, InvalidObject) or isinstance(second, InvalidObject):
+            return first
         if first == second:
             return first
         # None is harmless and may occur if a key appears in one but not the other dict

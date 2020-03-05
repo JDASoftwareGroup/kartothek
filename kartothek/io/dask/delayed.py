@@ -39,6 +39,7 @@ from kartothek.io_components.write import (
     store_dataset_from_partitions,
 )
 
+from ._generic import check_predicates
 from ._update import _update_dask_partitions_one_to_one
 from ._utils import (
     _cast_categorical_to_index_cat,
@@ -99,16 +100,13 @@ def garbage_collect_dataset__delayed(
 ):
     """
     Remove auxiliary files that are no longer tracked by the dataset.
-
     These files include indices that are no longer referenced by the metadata
     as well as files in the directories of the tables that are no longer
     referenced. The latter is only applied to static datasets.
-
     Parameters
     ----------
     chunk_size: int
         Number of files that should be deleted in a single job.
-
     Returns
     -------
     tasks: list of dask.delayed
@@ -129,55 +127,46 @@ def garbage_collect_dataset__delayed(
     )
 
 
-def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tasks):
-    mp_list = [mp.load_dataframes(store=store) for mp in mp_list]
+def _load_and_merge_mps(
+    mp_list, store, label_merger, metadata_merger, merge_tasks, predicates, columns
+):
+    mp_list = [
+        mp.load_dataframes(store=store, columns=columns[mp.dataset_metadata.uuid])
+        for mp in mp_list
+    ]
     mp = MetaPartition.merge_metapartitions(
         mp_list, label_merger=label_merger, metadata_merger=metadata_merger
     )
     mp = mp.concat_dataframes()
 
     for task in merge_tasks:
-        mp = mp.merge_dataframes(**task)
+        mp = mp.merge_dataframes(**task, predicates=predicates)
 
-    return mp
+    return mp.data["table"]
 
 
 @default_docs
 def merge_datasets_as_delayed(
-    left_dataset_uuid,
-    right_dataset_uuid,
+    dataset_uuids,
     store,
     merge_tasks,
     match_how="exact",
     label_merger=None,
     metadata_merger=None,
+    predicates=None,
+    columns=None,
 ):
     """
     A dask.delayed graph to perform the merge of two full kartothek datasets.
-
     Parameters
     ----------
-    left_dataset_uuid : str
-        UUID for left dataset (order does not matter in all merge schemas)
-    right_dataset_uuid : str
-        UUID for right dataset (order does not matter in all merge schemas)
+    dataset_uuids : List[str]
+        List of UUIDs of datasets (order does not matter in all merge schemas)
     match_how : Union[str, Callable]
         Define the partition label matching scheme.
         Available implementations are:
-
-        * left (right) : The left (right) partitions are considered to be
-                            the base partitions and **all** partitions of the
-                            right (left) dataset are joined to the left
-                            partition. This should only be used if one of the
-                            datasets contain very few partitions.
-        * prefix : The labels of the partitions of the dataset with fewer
-                    partitions are considered to be the prefixes to the
-                    right dataset
         * exact : All partition labels of the left dataset need to have
                     an exact match in the right dataset
-        * callable : A callable with signature func(left, right) which
-                        returns a boolean to determine if the partitions match
-
         If True, an exact match of partition labels between the to-be-merged
         datasets is required in order to merge.
         If False (Default), the partition labels of the dataset with fewer
@@ -186,7 +175,6 @@ def merge_datasets_as_delayed(
         A list of merge tasks. Each item in this list is a dictionary giving
         explicit instructions for a specific merge.
         Each dict should contain key/values:
-
         * `left`: The table for the left dataframe
         * `right`: The table for the right dataframe
         * 'output_label' : The table for the merged dataframe
@@ -195,11 +183,8 @@ def merge_datasets_as_delayed(
                         handle the data preprocessing and merging.
                         Default pandas.merge
         * 'merge_kwargs' : The kwargs to be passed to the `merge_func`
-
         Example:
-
         .. code::
-
             >>> merge_tasks = [
             ...     {
             ...         "left": "left_dict",
@@ -208,15 +193,15 @@ def merge_datasets_as_delayed(
             ...         "output_label": 'merged_core_data'
             ...     },
             ... ]
-
     """
     _check_callable(store)
+    check_predicates(predicates)
 
     mps = align_datasets(
-        left_dataset_uuid=left_dataset_uuid,
-        right_dataset_uuid=right_dataset_uuid,
+        dataset_uuids=dataset_uuids,
         store=store,
         match_how=match_how,
+        predicates=predicates,
     )
     mps = map_delayed(
         _load_and_merge_mps,
@@ -225,6 +210,8 @@ def merge_datasets_as_delayed(
         label_merger=label_merger,
         metadata_merger=metadata_merger,
         merge_tasks=merge_tasks,
+        predicates=predicates,
+        columns=columns,
     )
 
     return list(mps)
@@ -261,14 +248,10 @@ def read_dataset_as_delayed_metapartitions(
     """
     A collection of dask.delayed objects to retrieve a dataset from store where each
     partition is loaded as a :class:`~kartothek.io_components.metapartition.MetaPartition`.
-
     .. seealso:
-
         :func:`~kartothek.io.dask.read_dataset_as_delayed`
-
     Parameters
     ----------
-
     """
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
@@ -346,7 +329,6 @@ def read_dataset_as_delayed(
     """
     A collection of dask.delayed objects to retrieve a dataset from store
     where each partition is loaded as a :class:`~pandas.DataFrame`.
-
     Parameters
     ----------
     """
@@ -386,19 +368,15 @@ def read_table_as_delayed(
     """
     A collection of dask.delayed objects to retrieve a single table from
     a dataset as partition-individual :class:`~pandas.DataFrame` instances.
-
     You can transform the collection of ``dask.delayed`` objects into
     a ``dask.dataframe`` using the following code snippet. As older kartothek
     specifications don't store schema information, this must be provided by
     a separate code path.
-
     .. code ::
-
         >>> import dask.dataframe as dd
         >>> ddf_tasks = read_table_as_delayed(…)
         >>> meta = …
         >>> ddf = dd.from_delayed(ddf_tasks, meta=meta)
-
     Parameters
     ----------
     """
@@ -444,7 +422,6 @@ def update_dataset_from_delayed(
     :class:`~karothek.io.metapartition.MetaPartition`. If you want to use this
     pipeline step for just deleting partitions without adding new ones you
     have to give an empty meta partition as input (``[Metapartition(None)]``).
-
     Parameters
     ----------
     """
@@ -501,11 +478,8 @@ def store_delayed_as_dataset(
     """
     Transform and store a list of dictionaries containing
     dataframes to a kartothek dataset in store.
-
     Parameters
     ----------
-
-
     Returns
     -------
     A dask.delayed dataset object.

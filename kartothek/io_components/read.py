@@ -88,7 +88,7 @@ def dispatch_metapartitions_from_factory(
                 mps.append(
                     MetaPartition.from_partition(
                         partition=dataset_factory.partitions[label],
-                        dataset_metadata=dataset_factory.metadata,
+                        dataset_metadata=dataset_factory.dataset_metadata,
                         indices=indices_to_dispatch,
                         metadata_version=dataset_factory.metadata_version,
                         table_meta=dataset_factory.table_meta,
@@ -103,7 +103,7 @@ def dispatch_metapartitions_from_factory(
 
             yield MetaPartition.from_partition(
                 partition=part,
-                dataset_metadata=dataset_factory.metadata,
+                dataset_metadata=dataset_factory.dataset_metadata,
                 indices=indices_to_dispatch,
                 metadata_version=dataset_factory.metadata_version,
                 table_meta=dataset_factory.table_meta,

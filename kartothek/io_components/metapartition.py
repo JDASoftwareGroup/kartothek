@@ -15,7 +15,6 @@ from typing import Any, Dict, Optional, cast
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-
 from kartothek.core import naming
 from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core.common_metadata import (
@@ -33,16 +32,13 @@ from kartothek.core.partition import Partition
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_string_type, verify_metadata_version
 from kartothek.core.uuid import gen_uuid
-from kartothek.io_components.utils import (
-    _ensure_valid_indices,
-    _instantiate_store,
-    combine_metadata,
-)
 from kartothek.serialization import (
     DataFrameSerializer,
     default_serializer,
     filter_df_from_predicates,
 )
+
+from kartothek.io_components.utils import _ensure_valid_indices, _instantiate_store, combine_metadata
 
 LOGGER = logging.getLogger(__name__)
 
@@ -137,7 +133,7 @@ def _apply_to_list(method):
                         result = result.add_metapartition(mp, schema_validation=False)
         if not isinstance(result, MetaPartition):
             raise ValueError(
-                "Result for method {} is not a `MetaPartition` but".format(
+                "Result for method {} is not a `MetaPartition` but {}".format(
                     method.__name__, type(method_return)
                 )
             )
@@ -701,9 +697,10 @@ class MetaPartition(Iterable):
                 # the conditition.
                 #
                 # We separate these predicates into their index and their Parquet part.
-                split_predicates, has_index_condition = self._split_predicates_in_index_and_content(
-                    predicates
-                )
+                (
+                    split_predicates,
+                    has_index_condition,
+                ) = self._split_predicates_in_index_and_content(predicates)
 
                 filtered_predicates = []
                 if has_index_condition:
@@ -856,7 +853,12 @@ class MetaPartition(Iterable):
 
     @_apply_to_list
     def merge_dataframes(
-        self, left, right, output_label, merge_func=pd.merge, merge_kwargs=None
+        self,
+        output_label,
+        labels=None,
+        merge_func=pd.merge,
+        merge_kwargs=None,
+        predicates=None,
     ):
         """
         Merge internal dataframes.
@@ -873,10 +875,8 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        left : basestring
-            Category of the left dataframe.
-        right : basestring
-            Category of the right dataframe.
+        labels: basestring
+            List of categories of dataframes.
         output_label : basestring
             Category for the newly created dataframe
         merge_func : callable, optional
@@ -896,29 +896,41 @@ class MetaPartition(Iterable):
         if merge_kwargs is None:
             merge_kwargs = {}
 
-        left_df = new_data.pop(left)
-        right_df = new_data.pop(right)
+        if labels is None:
+            labels = list(new_data.keys())
+
+        dfs = [new_data.pop(label) for label in labels]
+        # partition_values = dfs[0][self.partition_keys].drop_duplicates()
+        # # assert len(partition_values) == 1
+        # dfs = [
+        #     df  #.drop(columns=self.partition_keys)
+        #     for df in dfs
+        # ]
 
         LOGGER.debug("Merging internal dataframes of %s", self.label)
 
         try:
-            df_merged = merge_func(left_df, right_df, **merge_kwargs)
+            df_merged = merge_func(dfs, **merge_kwargs)
         except TypeError:
             LOGGER.error(
-                "Tried to merge using %s with\n left:%s\nright:%s\n " "kwargs:%s",
+                "Tried to merge using %s with\n %s\n " "kwargs:%s",
                 merge_func.__name__,
-                left_df.head(),
-                right_df.head(),
+                [df.head() for df in dfs],
                 merge_kwargs,
             )
             raise
+
+        # Reassign partition values
+        # df_merged = df_merged.assign(**partition_values.T.to_dict()[0], copy=False)
+
+        df_merged = filter_df_from_predicates(df_merged, predicates)
 
         new_data[output_label] = df_merged
         new_table_meta = copy(self.table_meta)
         # The tables are no longer part of the MetaPartition, thus also drop
         # their schema.
-        del new_table_meta[left]
-        del new_table_meta[right]
+        for label in labels:
+            del new_table_meta[label]
         new_table_meta[output_label] = make_meta(
             df_merged,
             origin="{}/{}".format(output_label, self.label),
@@ -1474,6 +1486,7 @@ class MetaPartition(Iterable):
             label=new_label,
             data=new_data,
             dataset_metadata=new_ds_meta,
+            partition_keys=metapartitions[0].partition_keys,
             metadata_version=new_metadata_version,
             logical_conjunction=logical_conjunction,
         )
