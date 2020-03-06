@@ -1,9 +1,8 @@
 import logging
 import pathlib
 
+from kartothek.io_components.read import dispatch_metapartitions
 from kartothek.io_components.utils import _instantiate_store
-
-from .read import dispatch_metapartitions
 
 LOGGER = logging.getLogger(__name__)
 

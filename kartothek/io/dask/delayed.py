@@ -38,8 +38,8 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.serialization._generic import check_predicates
 
-from ._generic import check_predicates
 from ._update import _update_dask_partitions_one_to_one
 from ._utils import (
     _cast_categorical_to_index_cat,
@@ -100,13 +100,16 @@ def garbage_collect_dataset__delayed(
 ):
     """
     Remove auxiliary files that are no longer tracked by the dataset.
+
     These files include indices that are no longer referenced by the metadata
     as well as files in the directories of the tables that are no longer
     referenced. The latter is only applied to static datasets.
+
     Parameters
     ----------
     chunk_size: int
         Number of files that should be deleted in a single job.
+
     Returns
     -------
     tasks: list of dask.delayed
@@ -147,26 +150,37 @@ def _load_and_merge_mps(
 
 @default_docs
 def merge_datasets_as_delayed(
-    dataset_uuids,
+    left_dataset_uuid,
+    right_dataset_uuid,
     store,
     merge_tasks,
     match_how="exact",
     label_merger=None,
     metadata_merger=None,
-    predicates=None,
-    columns=None,
 ):
     """
     A dask.delayed graph to perform the merge of two full kartothek datasets.
     Parameters
     ----------
-    dataset_uuids : List[str]
-        List of UUIDs of datasets (order does not matter in all merge schemas)
+    left_dataset_uuid : str
+        UUID for left dataset (order does not matter in all merge schemas)
+    right_dataset_uuid : str
+        UUID for right dataset (order does not matter in all merge schemas)
     match_how : Union[str, Callable]
         Define the partition label matching scheme.
         Available implementations are:
+        * left (right) : The left (right) partitions are considered to be
+                            the base partitions and **all** partitions of the
+                            right (left) dataset are joined to the left
+                            partition. This should only be used if one of the
+                            datasets contain very few partitions.
+        * prefix : The labels of the partitions of the dataset with fewer
+                    partitions are considered to be the prefixes to the
+                    right dataset
         * exact : All partition labels of the left dataset need to have
                     an exact match in the right dataset
+        * callable : A callable with signature func(left, right) which
+                        returns a boolean to determine if the partitions match
         If True, an exact match of partition labels between the to-be-merged
         datasets is required in order to merge.
         If False (Default), the partition labels of the dataset with fewer
@@ -191,6 +205,81 @@ def merge_datasets_as_delayed(
             ...         "right": "right_dict",
             ...         "merge_kwargs": {"kwargs of merge_func": ''},
             ...         "output_label": 'merged_core_data'
+            ...     },
+            ... ]
+    """
+    _check_callable(store)
+
+    dataset_uuids = (
+        [left_dataset_uuid, right_dataset_uuid]
+        if match_how == "right"
+        else [left_dataset_uuid, right_dataset_uuid]
+    )
+    match_how = "first" if match_how in ["left", "right"] else match_how
+
+    return merge_many_datasets_as_delayed(
+        dataset_uuids=dataset_uuids,
+        store=store,
+        merge_tasks=merge_tasks,
+        match_how=match_how,
+        label_merger=label_merger,
+        metadata_merger=metadata_merger,
+    )
+
+
+@default_docs
+def merge_many_datasets_as_delayed(
+    dataset_uuids,
+    store,
+    merge_tasks,
+    match_how="exact",
+    label_merger=None,
+    metadata_merger=None,
+    predicates=None,
+    columns=None,
+):
+    """
+    A dask.delayed graph to perform the merge of two full kartothek datasets.
+    Parameters
+    ----------
+    dataset_uuids : List[str]
+        List of UUIDs of datasets (order does not matter in all merge schemas)
+    match_how : Union[str, Callable]
+        Define the partition label matching scheme.
+        Available implementations are:
+        * first: The first partitions are considered to be
+                    the base partitions and **all** partitions of the
+                    other dataset are joined to the first
+                    partition. This should only be used if one of the
+                    datasets contains very few partitions.
+        * prefix : The labels of the partitions of the dataset with fewest
+                    partitions are considered to be the prefixes to the
+                    other datasets.
+        * exact : All partition labels of the first dataset need to have
+                    an exact match in the other datasets
+        * callable: A callable with signature func(left, right) which
+                    returns a boolean to determine if the partitions match
+        If True, an exact match of partition labels between the to-be-merged
+        datasets is required in order to merge.
+        If False (Default), the partition labels of the dataset with fewer
+        partitions are interpreted as prefixes.
+    merge_tasks : List[Dict]
+        A list of merge tasks. Each item in this list is a dictionary giving
+        explicit instructions for a specific merge.
+        Each dict should contain key/values:
+        * 'output_label' : The table for the merged dataframe
+        * `merge_func`: A callable with signature
+                        `merge_func(df_list, merge_kwargs)` to
+                        handle the data preprocessing and merging.
+                        Default pandas.concat.
+        * 'merge_kwargs' : The kwargs to be passed to the `merge_func`
+        Example:
+        .. code::
+            >>> merge_tasks = [
+            ...     {
+            ...         "output_label": "table",
+                        "merge_func": pd.concat,
+            ...         "merge_kwargs": {"axis": 1, "copy": False},
             ...     },
             ... ]
     """
