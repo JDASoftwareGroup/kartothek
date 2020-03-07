@@ -11,6 +11,7 @@ from kartothek.core import naming
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
+from kartothek.core.urlencode import decode_key
 from kartothek.core.utils import _check_callable
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.delete import (
@@ -133,10 +134,12 @@ def garbage_collect_dataset__delayed(
 def _load_and_merge_mps(
     mp_list, store, label_merger, metadata_merger, merge_tasks, predicates, columns
 ):
-    mp_list = [
-        mp.load_dataframes(store=store, columns=columns[mp.dataset_metadata.uuid])
-        for mp in mp_list
-    ]
+    for i in range(len(mp_list)):
+        mp = mp_list[i]
+        uuid, _, _, _ = decode_key(mp.label)
+        assert uuid in columns.keys()
+        mp = mp.load_dataframes(store=store, columns=columns[uuid])
+        mp_list[i] = mp
     mp = MetaPartition.merge_metapartitions(
         mp_list, label_merger=label_merger, metadata_merger=metadata_merger
     )
@@ -145,7 +148,7 @@ def _load_and_merge_mps(
     for task in merge_tasks:
         mp = mp.merge_dataframes(**task, predicates=predicates)
 
-    return mp.data["table"]
+    return mp  # Why return metapartitions here?
 
 
 @default_docs
@@ -160,6 +163,7 @@ def merge_datasets_as_delayed(
 ):
     """
     A dask.delayed graph to perform the merge of two full kartothek datasets.
+
     Parameters
     ----------
     left_dataset_uuid : str
@@ -169,6 +173,7 @@ def merge_datasets_as_delayed(
     match_how : Union[str, Callable]
         Define the partition label matching scheme.
         Available implementations are:
+
         * left (right) : The left (right) partitions are considered to be
                             the base partitions and **all** partitions of the
                             right (left) dataset are joined to the left
@@ -181,6 +186,7 @@ def merge_datasets_as_delayed(
                     an exact match in the right dataset
         * callable : A callable with signature func(left, right) which
                         returns a boolean to determine if the partitions match
+
         If True, an exact match of partition labels between the to-be-merged
         datasets is required in order to merge.
         If False (Default), the partition labels of the dataset with fewer
@@ -189,6 +195,7 @@ def merge_datasets_as_delayed(
         A list of merge tasks. Each item in this list is a dictionary giving
         explicit instructions for a specific merge.
         Each dict should contain key/values:
+
         * `left`: The table for the left dataframe
         * `right`: The table for the right dataframe
         * 'output_label' : The table for the merged dataframe
@@ -197,8 +204,11 @@ def merge_datasets_as_delayed(
                         handle the data preprocessing and merging.
                         Default pandas.merge
         * 'merge_kwargs' : The kwargs to be passed to the `merge_func`
+
         Example:
+
         .. code::
+
             >>> merge_tasks = [
             ...     {
             ...         "left": "left_dict",
@@ -337,8 +347,11 @@ def read_dataset_as_delayed_metapartitions(
     """
     A collection of dask.delayed objects to retrieve a dataset from store where each
     partition is loaded as a :class:`~kartothek.io_components.metapartition.MetaPartition`.
+
     .. seealso:
+
         :func:`~kartothek.io.dask.read_dataset_as_delayed`
+
     Parameters
     ----------
     """
@@ -461,11 +474,14 @@ def read_table_as_delayed(
     a ``dask.dataframe`` using the following code snippet. As older kartothek
     specifications don't store schema information, this must be provided by
     a separate code path.
+
     .. code ::
+
         >>> import dask.dataframe as dd
         >>> ddf_tasks = read_table_as_delayed(…)
         >>> meta = …
         >>> ddf = dd.from_delayed(ddf_tasks, meta=meta)
+
     Parameters
     ----------
     """
@@ -567,8 +583,11 @@ def store_delayed_as_dataset(
     """
     Transform and store a list of dictionaries containing
     dataframes to a kartothek dataset in store.
+
     Parameters
     ----------
+
+
     Returns
     -------
     A dask.delayed dataset object.
