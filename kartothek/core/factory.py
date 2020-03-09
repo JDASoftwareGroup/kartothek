@@ -31,6 +31,9 @@ def _ensure_factory(
 
 
 class DatasetFactory(DatasetMetadataBase):
+    """
+    Container holding metadata caching storage access.
+    """
 
     _nullable_attributes = ["_cache_metadata", "_cache_store"]
 
