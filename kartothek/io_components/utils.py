@@ -185,7 +185,12 @@ def validate_partition_keys(
     return ds_factory, ds_metadata_version, partition_on
 
 
-_ARGS_TO_TYPE = {"partition_on": list, "delete_scope": list, "secondary_indices": list}
+_ARGS_TO_TYPE = {
+    "partition_on": list,
+    "delete_scope": list,
+    "secondary_indices": list,
+    "dispatch_by": list,
+}
 
 
 def normalize_arg(arg_name, old_value):
@@ -228,6 +233,7 @@ def normalize_args(function, *args, **kwargs):
     def _wrapper(*args, **kwargs):
         for arg_name in _ARGS_TO_TYPE.keys():
             if arg_name in sig.parameters.keys():
+
                 ix = inspect.getfullargspec(function).args.index(arg_name)
                 if arg_name in kwargs:
                     kwargs[arg_name] = normalize_arg(arg_name, kwargs[arg_name])

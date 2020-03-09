@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import dask
 import dask.dataframe as dd
 import numpy as np
@@ -15,6 +12,7 @@ from kartothek.io_components.utils import (
     _ensure_compatible_indices,
     check_single_table_dataset,
     normalize_arg,
+    normalize_args,
     validate_partition_keys,
 )
 
@@ -24,6 +22,7 @@ from .delayed import read_table_as_delayed
 
 
 @default_docs
+@normalize_args
 def read_dataset_as_ddf(
     dataset_uuid=None,
     store=None,
@@ -52,6 +51,10 @@ def read_dataset_as_ddf(
 
         For details on performance, see also `dispatch_by`
     """
+    if dask_index_on is not None and not isinstance(dask_index_on, str):
+        raise TypeError(
+            f"The paramter `dask_index_on` must be a string but got {type(dask_index_on)}"
+        )
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -87,7 +90,7 @@ def read_dataset_as_ddf(
         divisions.append(divisions[-1])
         return dd.from_delayed(
             delayed_partitions, meta=meta, divisions=divisions
-        ).set_index(dask_index_on, divisions=divisions)
+        ).set_index(dask_index_on, divisions=divisions, sorted=True)
     else:
         return dd.from_delayed(delayed_partitions, meta=meta)
 

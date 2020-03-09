@@ -112,22 +112,27 @@ def test_read_ddf_from_categorical_partition(store_factory):
 
 
 @pytest.mark.parametrize("index_type", ["primary", "secondary"])
-def test_reconstruct_dask_index(store_factory, index_type):
+def test_reconstruct_dask_index(store_factory, index_type, monkeypatch):
     dataset_uuid = "dataset_uuid"
-    df1 = pd.DataFrame({"A": [1, 2], "B": ["x", "y"]})
-    df2 = pd.DataFrame({"A": [3, 4], "B": ["x", "y"]})
+    colA = "ColumnA"
+    colB = "ColumnB"
+    df1 = pd.DataFrame({colA: [1, 2], colB: ["x", "y"]})
+    df2 = pd.DataFrame({colA: [3, 4], colB: ["x", "y"]})
     df_chunks = np.array_split(pd.concat([df1, df2]).reset_index(drop=True), 4)
     df_delayed = [dask.delayed(c) for c in df_chunks]
-    ddf_expected = dd.from_delayed(df_delayed).set_index("A", divisions=[1, 2, 3, 4, 4])
+    ddf_expected = dd.from_delayed(df_delayed).set_index(
+        colA, divisions=[1, 2, 3, 4, 4]
+    )
     ddf_expected_simple = dd.from_pandas(
         pd.concat([df1, df2]), npartitions=2
-    ).set_index("A")
+    ).set_index(colA)
+
     if index_type == "secondary":
-        secondary_indices = "A"
+        secondary_indices = colA
         partition_on = None
     else:
         secondary_indices = None
-        partition_on = "A"
+        partition_on = colA
 
     store_dataframes_as_dataset(
         store=store_factory,
@@ -136,14 +141,22 @@ def test_reconstruct_dask_index(store_factory, index_type):
         secondary_indices=secondary_indices,
         partition_on=partition_on,
     )
+
+    # Make sure we're not shuffling anything
+    monkeypatch.delattr(
+        dask.dataframe.shuffle, dask.dataframe.shuffle.set_index.__name__
+    )
     ddf = read_dataset_as_ddf(
-        dataset_uuid=dataset_uuid, store=store_factory, table="table", dask_index_on="A"
+        dataset_uuid=dataset_uuid,
+        store=store_factory,
+        table="table",
+        dask_index_on=colA,
     )
 
     assert ddf_expected.npartitions == 4
     assert len(ddf_expected.divisions) == 5
     assert ddf_expected.divisions == (1, 2, 3, 4, 4)
-    assert ddf.index.name == "A"
+    assert ddf.index.name == colA
 
     assert ddf.npartitions == 4
     assert len(ddf.divisions) == 5
@@ -156,16 +169,49 @@ def test_reconstruct_dask_index(store_factory, index_type):
     assert_frame_equal(ddf_expected_simple.compute(), ddf.compute())
 
 
+def test_reconstruct_dask_index_sorting(store_factory, monkeypatch):
+
+    # Make sure we're not shuffling anything
+    monkeypatch.delattr(
+        dask.dataframe.shuffle, dask.dataframe.shuffle.set_index.__name__
+    )
+    dataset_uuid = "dataset_uuid"
+    colA = "ColumnA"
+    colB = "ColumnB"
+
+    df = pd.DataFrame(
+        {colA: np.random.randint(high=100000, low=-100000, size=(50,)), colB: 0}
+    )
+    store_dataframes_as_dataset(
+        store=store_factory, dataset_uuid=dataset_uuid, dfs=[df], partition_on=colA
+    )
+    ddf = read_dataset_as_ddf(
+        dataset_uuid=dataset_uuid,
+        store=store_factory,
+        table="table",
+        dask_index_on=colA,
+    )
+
+    assert all(
+        ddf.map_partitions(lambda df: df.index.min()).compute().values
+        == ddf.divisions[:-1]
+    )
+
+
 def test_reconstruct_dask_index_raise_no_index(store_factory):
     dataset_uuid = "dataset_uuid"
-    df1 = pd.DataFrame({"A": [1, 2]})
+    colA = "ColumnA"
+    df1 = pd.DataFrame({colA: [1, 2]})
     store_dataframes_as_dataset(
         store=store_factory, dataset_uuid=dataset_uuid, dfs=[df1]
     )
-    with pytest.raises(RuntimeError, match="Requested index: A but"):
+    with pytest.raises(
+        RuntimeError,
+        match=r"Requested index: \['ColumnA'\] but available index columns: \[\]",
+    ):
         read_dataset_as_ddf(
             dataset_uuid=dataset_uuid,
             store=store_factory,
             table="table",
-            dask_index_on="A",
+            dask_index_on=colA,
         )

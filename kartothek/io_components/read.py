@@ -6,10 +6,11 @@ import pandas as pd
 from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.io_components.metapartition import MetaPartition
-from kartothek.io_components.utils import _make_callable
+from kartothek.io_components.utils import _make_callable, normalize_args
 from kartothek.serialization import check_predicates, columns_in_predicates
 
 
+@normalize_args
 def dispatch_metapartitions_from_factory(
     dataset_factory,
     label_filter=None,
