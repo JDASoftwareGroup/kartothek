@@ -70,7 +70,7 @@ def test_store_schema_metadata(store, df_all_types):
     ]
     expected_schema = pa.schema(fields)
 
-    assert actual_schema.remove_metadata() == expected_schema
+    assert actual_schema.remove_metadata().equals(expected_schema, check_metadata=False)
 
 
 def test_schema_roundtrip(df_all_types, store):

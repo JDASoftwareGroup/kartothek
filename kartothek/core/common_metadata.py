@@ -58,7 +58,7 @@ class SchemaWrapper:
     def _schema_compat(self):
         # https://issues.apache.org/jira/browse/ARROW-5104
         schema = self.__schema
-        if self.__schema is not None and self.__schema.metadata is not None:
+        if self.__schema is not None and self.__schema.pandas_metadata is not None:
             pandas_metadata = schema.pandas_metadata
             index_cols = pandas_metadata["index_columns"]
             if len(index_cols) > 1:
@@ -82,7 +82,8 @@ class SchemaWrapper:
                 schema = schema.with_metadata(md)
             else:
                 schema = schema.add_metadata(md)
-            self.__schema = schema
+        # Roundtrip due to https://issues.apache.org/jira/browse/ARROW-8057
+        self.__schema = _bytes2schema(_schema2bytes(schema))
 
     def internal(self):
         return self.__schema
@@ -547,8 +548,10 @@ def _remove_diff_header(diff):
 
 def _diff_schemas(first, second):
     # see https://issues.apache.org/jira/browse/ARROW-4176
-    first_pyarrow_info, _ = str(first).split("metadata\n--------")
-    second_pyarrow_info, _ = str(second).split("metadata\n--------")
+
+    # Pyarrow >0.16.0 do not include the metadata anymore
+    first_pyarrow_info = str(first).split("metadata\n--------")[0]
+    second_pyarrow_info = str(second).split("metadata\n--------")[0]
     pyarrow_diff = _remove_diff_header(
         difflib.unified_diff(
             str(first_pyarrow_info).splitlines(), str(second_pyarrow_info).splitlines()
@@ -718,7 +721,7 @@ def validate_shared_columns(schemas, ignore_pandas=False):
         for col in columns:
             field_idx = schema.get_field_index(col)
             field = schema[field_idx]
-            obj = (field, col)
+            obj = (field.remove_metadata(), col)
             if col in seen:
                 ref = seen[col]
                 if pa.types.is_null(ref[0].type) or pa.types.is_null(field.type):
