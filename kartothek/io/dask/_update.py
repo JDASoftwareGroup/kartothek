@@ -32,8 +32,7 @@ def _hash_bucket(df: pd.DataFrame, subset: List[str], num_buckets: int):
     available_bit_widths = np.array([8, 16, 32, 64])
     mask = available_bit_widths > np.log2(num_buckets)
     bit_width = min(available_bit_widths[mask])
-    df[_KTK_HASH_BUCKET] = buckets.astype(f"uint{bit_width}")
-    return df
+    return df.assign(**{_KTK_HASH_BUCKET: buckets.astype(f"uint{bit_width}")})
 
 
 def _update_dask_partitions_shuffle(

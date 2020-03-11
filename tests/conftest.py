@@ -28,6 +28,8 @@ from kartothek.io_components.metapartition import (
 from kartothek.io_components.write import store_dataset_from_partitions
 from kartothek.serialization import ParquetSerializer
 
+pd.options.mode.chained_assignment = "raise"
+
 
 @pytest.fixture
 def frozen_time():
