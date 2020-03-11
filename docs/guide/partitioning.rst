@@ -191,6 +191,10 @@ Bucketing
 
 If you need more control over the size of files and the distribution within the files you can also ask for explicit bucketing of values.
 
+When bucketing by a value, kartothek guarantees that only one file within
+a given partition needs to be loaded when querying a value, as long as
+you also built a secondary index on that column.
+
 .. ipython:: python
     :okwarning:
 
@@ -208,7 +212,5 @@ If you need more control over the size of files and the distribution within the 
     sorted(dm.partitions.keys())
 
     dm = dm.load_index("B", store_factory())
-    # When bucketing by a value, kartothek guarantees that only one file within
-    # a given partition needs to be loaded when querying a value, as long as
-    # you also built a secondary index on that column
+
     sorted(dm.indices["B"].eval_operator("==", 1))
