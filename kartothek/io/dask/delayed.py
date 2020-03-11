@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
-
 from collections import defaultdict
+from copy import copy
 from functools import partial
 from typing import List
 
@@ -39,6 +39,7 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.serialization import filter_df_from_predicates
 
 from ._update import _update_dask_partitions_one_to_one
 from ._utils import (
@@ -144,7 +145,13 @@ def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tas
 
 
 def _load_and_merge_many_mps(
-    mp_list, store, label_merger, metadata_merger, merge_tasks, is_dispatched: bool
+    mp_list,
+    store,
+    label_merger,
+    metadata_merger,
+    merge_tasks,
+    is_dispatched: bool,
+    predicates=None,
 ):
     if is_dispatched:
         mp_list = [[mp.load_dataframes(store=store) for mp in mps] for mps in mp_list]
@@ -161,6 +168,14 @@ def _load_and_merge_many_mps(
 
     for task in merge_tasks:
         mp = mp.merge_many_dataframes(**task)
+
+    if predicates:
+        new_data = copy(mp.data)
+        new_data = {
+            key: filter_df_from_predicates(df, predicates=predicates)
+            for key, df in new_data.items()
+        }
+        mp = mp.copy(data=new_data)
 
     return mp
 
@@ -262,6 +277,7 @@ def merge_many_datasets_as_delayed(
     dispatch_by=None,
     label_merger=None,
     metadata_merger=None,
+    predicates=None,
 ):
     """
     A dask.delayed graph to perform the merge of two full kartothek datasets.
@@ -319,6 +335,7 @@ def merge_many_datasets_as_delayed(
         store=store,
         match_how=match_how,
         dispatch_by=dispatch_by,
+        predicates=predicates,
     )
     mps = map_delayed(
         _load_and_merge_many_mps,
@@ -328,6 +345,7 @@ def merge_many_datasets_as_delayed(
         metadata_merger=metadata_merger,
         merge_tasks=merge_tasks,
         is_dispatched=dispatch_by is not None,
+        predicates=predicates,
     )
 
     return list(mps)

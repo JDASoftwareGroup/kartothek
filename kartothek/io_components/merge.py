@@ -117,6 +117,7 @@ def align_datasets_many(
     store,
     match_how: str = "exact",
     dispatch_by: Optional[List[str]] = None,
+    predicates=None,
 ):
     """
     Determine dataset partition alignment
@@ -149,7 +150,11 @@ def align_datasets_many(
     mps = [
         # TODO: Add predicates
         # We don't pass dispatch_by here as we will do the dispatching later
-        list(dispatch_metapartitions_from_factory(dataset_factory=dataset_factory))
+        list(
+            dispatch_metapartitions_from_factory(
+                dataset_factory=dataset_factory, predicates=predicates
+            )
+        )
         for dataset_factory in dataset_factories
     ]
 
@@ -185,7 +190,7 @@ def align_datasets_many(
     elif match_how == "dispatch_by":
         index_dfs = []
         for i, factory in enumerate(dataset_factories):
-            df = factory.get_indices_as_dataframe(dispatch_by)
+            df = factory.get_indices_as_dataframe(dispatch_by, predicates=predicates)
             index_dfs.append(
                 df.reset_index().rename(
                     columns={"partition": f"partition_{i}"}, copy=False

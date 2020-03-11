@@ -163,3 +163,61 @@ def test_merge_many_dataset_dispatch_by(
     )
     df_list = dask.compute(df_list)[0]
     df_list = [mp.data for mp in df_list]
+    assert len(df_list) == 2
+
+    pdt.assert_frame_equal(
+        df_list[0]["merged_core_data"],
+        MERGE_EXP_CL1_FIRST,
+        check_like=True,
+        check_dtype=False,
+        check_categorical=False,
+    )
+    pdt.assert_frame_equal(
+        df_list[1]["merged_core_data"],
+        MERGE_EXP_CL4_FIRST,
+        check_like=True,
+        check_dtype=False,
+        check_categorical=False,
+    )
+
+    # predicate on primary index
+    df_list = merge_many_datasets_as_delayed(
+        dataset_uuids=[dataset_partition_keys.uuid, dataset_partition_keys.uuid],
+        store=store_session_factory,
+        merge_tasks=MERGE_TASKS_FIRST,
+        match_how="dispatch_by",
+        dispatch_by=["P"],
+        predicates=[[("P", "==", 1)]],
+    )
+    df_list = dask.compute(df_list)[0]
+    df_list = [mp.data for mp in df_list]
+    assert len(df_list) == 1
+
+    pdt.assert_frame_equal(
+        df_list[0]["merged_core_data"],
+        MERGE_EXP_CL1_FIRST,
+        check_like=True,
+        check_dtype=False,
+        check_categorical=False,
+    )
+
+    # predicate on non-index
+    df_list = merge_many_datasets_as_delayed(
+        dataset_uuids=[dataset_partition_keys.uuid, dataset_partition_keys.uuid],
+        store=store_session_factory,
+        merge_tasks=MERGE_TASKS_FIRST,
+        match_how="dispatch_by",
+        dispatch_by=["P"],
+        predicates=[[("TARGET", "==", 1)]],
+    )
+    df_list = dask.compute(df_list)[0]
+    df_list = [mp.data for mp in df_list]
+    assert len(df_list) == 1
+
+    pdt.assert_frame_equal(
+        df_list[0]["merged_core_data"],
+        MERGE_EXP_CL1_FIRST,
+        check_like=True,
+        check_dtype=False,
+        check_categorical=False,
+    )
