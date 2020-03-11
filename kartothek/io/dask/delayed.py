@@ -3,6 +3,7 @@
 
 from collections import defaultdict
 from functools import partial
+from typing import List
 
 import dask
 from dask import delayed
@@ -19,7 +20,7 @@ from kartothek.io_components.delete import (
     delete_top_level_metadata,
 )
 from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
-from kartothek.io_components.merge import align_datasets
+from kartothek.io_components.merge import align_datasets, align_datasets_many
 from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
     MetaPartition,
@@ -142,6 +143,28 @@ def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tas
     return mp
 
 
+def _load_and_merge_many_mps(
+    mp_list, store, label_merger, metadata_merger, merge_tasks, is_dispatched: bool
+):
+    if is_dispatched:
+        mp_list = [[mp.load_dataframes(store=store) for mp in mps] for mps in mp_list]
+        mp_list = [
+            MetaPartition.merge_metapartitions(mps).concat_dataframes()
+            for mps in mp_list
+        ]
+    else:
+        mp_list = [mp.load_dataframes(store=store) for mp in mp_list]
+
+    mp = MetaPartition.merge_metapartitions(
+        mp_list, label_merger=label_merger, metadata_merger=metadata_merger
+    )
+
+    for task in merge_tasks:
+        mp = mp.merge_many_dataframes(**task)
+
+    return mp
+
+
 @default_docs
 def merge_datasets_as_delayed(
     left_dataset_uuid,
@@ -225,6 +248,86 @@ def merge_datasets_as_delayed(
         label_merger=label_merger,
         metadata_merger=metadata_merger,
         merge_tasks=merge_tasks,
+    )
+
+    return list(mps)
+
+
+@default_docs
+def merge_many_datasets_as_delayed(
+    dataset_uuids: List[str],
+    store,
+    merge_tasks,
+    match_how="exact",
+    dispatch_by=None,
+    label_merger=None,
+    metadata_merger=None,
+):
+    """
+    A dask.delayed graph to perform the merge of two full kartothek datasets.
+
+    Parameters
+    ----------
+    dataset_uuids : List[str]
+    match_how : Union[str, Callable]
+        Define the partition label matching scheme.
+        Available implementations are:
+
+        * first : The partitions of the first dataset are considered to be the base
+                  partitions and **all** partitions of the remaining datasets are
+                  joined to the partitions of the first dataset. This should only be
+                  used if all but the first dataset contain very few partitions.
+        * prefix_first : The labels of the partitions of the first dataset are
+                         considered to be the prefixes to the other datasets.
+        * exact : All partition labels of each dataset need to be an exact match.
+        * callable : A callable with signature func(labels: List[str]) which
+                        returns a boolean to determine if the partitions match.
+
+        If True, an exact match of partition labels between the to-be-merged
+        datasets is required in order to merge.
+        If False (Default), the partition labels of the dataset with fewer
+        partitions are interpreted as prefixes.
+    merge_tasks : List[Dict]
+        A list of merge tasks. Each item in this list is a dictionary giving
+        explicit instructions for a specific merge.
+        Each dict should contain key/values:
+
+        * 'output_label' : The table for the merged dataframe
+        * `merge_func`: A callable with signature
+                        `merge_func(dfs, merge_kwargs)` to
+                        handle the data preprocessing and merging.
+        * 'merge_kwargs' : The kwargs to be passed to the `merge_func`
+
+        Example:
+
+        .. code::
+
+            >>> merge_tasks = [
+            ...     {
+            ...         "tables": ["first_table", "second_table"],
+            ...         "merge_func": func,
+            ...         "merge_kwargs": {"kwargs of merge_func": ''},
+            ...         "output_label": 'merged_core_data'
+            ...     },
+            ... ]
+
+    """
+    _check_callable(store)
+
+    mps = align_datasets_many(
+        dataset_uuids=dataset_uuids,
+        store=store,
+        match_how=match_how,
+        dispatch_by=dispatch_by,
+    )
+    mps = map_delayed(
+        _load_and_merge_many_mps,
+        mps,
+        store=store,
+        label_merger=label_merger,
+        metadata_merger=metadata_merger,
+        merge_tasks=merge_tasks,
+        is_dispatched=dispatch_by is not None,
     )
 
     return list(mps)

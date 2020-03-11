@@ -10,7 +10,7 @@ import warnings
 from collections import Iterable, Iterator, defaultdict, namedtuple
 from copy import copy
 from functools import wraps
-from typing import Any, Dict, Optional, cast
+from typing import Any, Callable, Dict, List, Optional, cast
 
 import numpy as np
 import pandas as pd
@@ -137,7 +137,7 @@ def _apply_to_list(method):
                         result = result.add_metapartition(mp, schema_validation=False)
         if not isinstance(result, MetaPartition):
             raise ValueError(
-                "Result for method {} is not a `MetaPartition` but".format(
+                "Result for method {} is not a `MetaPartition` but {}".format(
                     method.__name__, type(method_return)
                 )
             )
@@ -919,6 +919,74 @@ class MetaPartition(Iterable):
         # their schema.
         del new_table_meta[left]
         del new_table_meta[right]
+        new_table_meta[output_label] = make_meta(
+            df_merged,
+            origin="{}/{}".format(output_label, self.label),
+            partition_keys=self.partition_keys,
+        )
+        return self.copy(files={}, data=new_data, table_meta=new_table_meta)
+
+    @_apply_to_list
+    def merge_many_dataframes(
+        self,
+        tables: List[str],
+        merge_func: Callable,
+        merge_kwargs: Optional[Dict[str, Any]],
+        output_label: str,
+    ):
+        """
+        Merge internal dataframes.
+
+        The referenced dataframes are removed from the internal list and
+        the newly created dataframe is added.
+
+        The merge itself can be completely customized by supplying a
+        callable `merge_func(dfs, **merge_kwargs)` which can
+        handle data pre-processing as well as the merge itself.
+
+        Parameters
+        ----------
+        dfs : List[str]
+            Category of the left dataframe.
+        output_label : str
+            Category for the newly created dataframe
+        merge_func : callable
+            The function to take care of the merge.
+            The function should have the signature
+            :func:`func(dfs, **kwargs)`
+        merge_kwargs : dict
+            Keyword arguments which should be supplied to the merge function
+
+        Returns
+        -------
+        MetaPartition
+
+        """
+        # Shallow copy
+        new_data = copy(self.data)
+        if merge_kwargs is None:
+            merge_kwargs = {}
+
+        dfs = [new_data.pop(table) for table in tables]
+
+        LOGGER.debug("Merging internal dataframes of %s", self.label)
+
+        try:
+            df_merged = merge_func(dfs, **merge_kwargs)
+        except TypeError:
+            LOGGER.error(
+                "Tried to merge using %s with kwargs:%s",
+                merge_func.__name__,
+                merge_kwargs,
+            )
+            raise
+
+        new_data[output_label] = df_merged
+        new_table_meta = copy(self.table_meta)
+        # The tables are no longer part of the MetaPartition, thus also drop
+        # their schema.
+        for table in tables:
+            del new_table_meta[table]
         new_table_meta[output_label] = make_meta(
             df_merged,
             origin="{}/{}".format(output_label, self.label),
