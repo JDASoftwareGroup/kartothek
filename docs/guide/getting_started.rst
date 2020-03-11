@@ -74,9 +74,25 @@ what follows is the filepath).
     - ``hazure``: AzureBlockBlobStorage
     - ``hs3``:  BotoStore (Amazon S3)
 
-For a more technical description of storage specification in Kartothek, see
-:ref:`storage_specification`.
+.. admonition:: Store factories
 
+    The reason ``store_factory`` is defined as a ``partial`` callable with the store
+    information as arguments is because, when using distributed computing backends in
+    Kartothek, the connections of the store cannot be safely transferred between
+    processes and thus we pass storage information to workers as a factory function.
+
+Interface
+---------
+
+Kartothek can write to any location that
+fulfills the `simplekv.KeyValueStore interface
+<https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore>`_  as long as they
+support `ExtendedKeyspaceMixin
+<https://github.com/mbr/simplekv/search?q=%22class+ExtendedKeyspaceMixin%22&unscoped_q=%22class+ExtendedKeyspaceMixin%22>`_
+(this is necessary so that ``/`` can be used in the storage key name).
+
+For more information, take a look out at the `storefact documentation
+<https://storefact.readthedocs.io/en/latest/reference/storefact.html>`_.
 
 
 Writing data to storage

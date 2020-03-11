@@ -28,8 +28,7 @@ these datasets in data pipelines. Kartothek handles I/O, tracks dataset
 partitions and selects subsets of data transparently.
 
 To get started, have a look at our :doc:`guide/getting_started` guide,
-head to the description of the :doc:`spec/index` or read more about the
-:doc:`io/index` module and learn about data pipelines in kartothek.
+head to the description of the :doc:`spec/index` or head straight to the API documentation :doc:`api`.
 
 
 What is a (real) Kartothek?
@@ -39,9 +38,12 @@ A Kartothek (or more modern: Zettelkasten/Katalogkasten) is a tool to organize
 (high-level) information extracted from a source of information.
 
 
+.. toctree::
+   :maxdepth: 1
+   :caption: API
+   :hidden:
 
-Contents
---------
+   API <api>
 
 .. toctree::
    :maxdepth: 2
@@ -49,8 +51,10 @@ Contents
    :hidden:
 
    Getting Started <guide/getting_started>
-   Further useful kartothek features <guide/further_useful_features>
-   In- / Output <io/index>
+   Partitioning <guide/partitioning>
+   Mutating Datasets <guide/mutating_datasets>
+   Dask indexing <guide/dask_indexing>
+   Examples <guide/examples>
 
 .. toctree::
    :maxdepth: 2
@@ -64,28 +68,13 @@ Contents
    Partition Indices <spec/partition_indices>
    Efficient Querying <spec/efficient_querying>
    Parallel Execution with Dask <spec/parallel_dask>
-   Extending kartothek.io <io/extending>
 
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Reference
    :hidden:
-   
+
    Module Reference <_rst/modules>
-
-.. toctree::
-   :maxdepth: 2
-
    Versioning <versioning>
    Changelog <changes>
-
-
-
-
-Indices and tables
-==================
-
-* :ref:`genindex`
-* :ref:`modindex`
-* :ref:`search`

@@ -24,7 +24,7 @@ _logger = logging.getLogger()
 
 class SchemaWrapper:
     """
-    Wrapper object for pyarrow.Schema, since their pickle implementation is broken.
+    Wrapper object for pyarrow.Schema to handle forwards and backwards compatibility.
     """
 
     def __init__(self, schema, origin: Union[str, Set[str]]):

@@ -10,6 +10,7 @@ Improvements
 
 * Add keyword argument `dask_index_on` which reconstructs a dask index from an kartothek index when loading the dataset
 * Add method :func:`~kartothek.core.index.IndexBase.observed_values` which returns an array of all observed values of the index column
+* Updated and improved documentation w.r.t. guides and API documentation
 
 Bug fixes
 ^^^^^^^^^

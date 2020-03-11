@@ -423,6 +423,10 @@ class DatasetMetadataBase(CopyMixin):
 
 
 class DatasetMetadata(DatasetMetadataBase):
+    """
+    Containing holding all metadata of the dataset.
+    """
+
     def __repr__(self):
         return (
             "DatasetMetadata(uuid={uuid}, "
