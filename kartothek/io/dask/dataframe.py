@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import dask
 import dask.dataframe as dd
 import numpy as np
@@ -15,6 +12,7 @@ from kartothek.io_components.utils import (
     _ensure_compatible_indices,
     check_single_table_dataset,
     normalize_arg,
+    normalize_args,
     validate_partition_keys,
 )
 
@@ -24,6 +22,7 @@ from .delayed import read_table_as_delayed
 
 
 @default_docs
+@normalize_args
 def read_dataset_as_ddf(
     dataset_uuid=None,
     store=None,
@@ -36,6 +35,7 @@ def read_dataset_as_ddf(
     dates_as_object=False,
     predicates=None,
     factory=None,
+    dask_index_on=None,
 ):
     """
     Retrieve a single table from a dataset as partition-individual :class:`~dask.dataframe.DataFrame` instance.
@@ -46,7 +46,15 @@ def read_dataset_as_ddf(
 
     Parameters
     ----------
+    dask_index_on: str
+        Reconstruct (and set) a dask index on the provided index column.
+
+        For details on performance, see also `dispatch_by`
     """
+    if dask_index_on is not None and not isinstance(dask_index_on, str):
+        raise TypeError(
+            f"The paramter `dask_index_on` must be a string but got {type(dask_index_on)}"
+        )
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -73,9 +81,18 @@ def read_dataset_as_ddf(
         label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
+        dispatch_by=dask_index_on,
     )
-
-    return dd.from_delayed(delayed_partitions, meta=meta)
+    if dask_index_on:
+        divisions = ds_factory.indices[dask_index_on].observed_values()
+        divisions.sort()
+        divisions = list(divisions)
+        divisions.append(divisions[-1])
+        return dd.from_delayed(
+            delayed_partitions, meta=meta, divisions=divisions
+        ).set_index(dask_index_on, divisions=divisions, sorted=True)
+    else:
+        return dd.from_delayed(delayed_partitions, meta=meta)
 
 
 def _get_dask_meta_for_dataset(

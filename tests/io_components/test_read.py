@@ -1,6 +1,8 @@
+import math
 import types
 from collections import OrderedDict
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -175,3 +177,29 @@ def test_dispatch_metapartitions_dups_with_predicates_dispatch_by(store):
     )
 
     assert wout_preds == w_preds
+
+
+def test_dispatch_metapartitions_sorted_dispatch_by(store):
+    df = pd.DataFrame(
+        {"p": np.random.randint(high=100000, low=-100000, size=(100,)), "x": 0}
+    )
+    # Integers are sorted when using too small values (maybe connected to the
+    # singleton implementation of integers in CPython??)
+    # Verify this is not happening, otherwise we'll get immediately a sorted
+    # index (which is nice in this case but not generally true, of course)
+    arr = set(df["p"].unique())
+    assert list(arr) != sorted(arr)
+
+    dataset = store_dataframes_as_dataset(
+        dfs=[df], dataset_uuid="test", store=store, secondary_indices=["p", "x"]
+    )
+
+    wout_preds = list(dispatch_metapartitions(dataset.uuid, store, dispatch_by="p"))
+    last = -math.inf
+    for mps in wout_preds:
+        for mp in mps:
+            current = mp.logical_conjunction
+            assert len(current) == 1
+            current = current[0][2]
+            assert current > last
+            last = current

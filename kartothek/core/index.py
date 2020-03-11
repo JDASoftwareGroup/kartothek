@@ -132,6 +132,16 @@ class IndexBase(CopyMixin):
             class_=type(self).__name__, attrs=", ".join(repr_str)
         )
 
+    def observed_values(self) -> np.array:
+        """
+        Return an array of all observed values
+        """
+        return np.fromiter(
+            (self.normalize_value(self.dtype, x) for x in self.index_dct.keys()),
+            count=len(self.index_dct),
+            dtype=self.dtype.to_pandas_dtype(),
+        )
+
     @staticmethod
     def normalize_value(dtype: pa.DataType, value: Any) -> Any:
         """

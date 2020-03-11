@@ -1,4 +1,5 @@
 import inspect
+from collections import defaultdict
 
 import pytest
 
@@ -76,13 +77,16 @@ from kartothek.io.iter import (
 def test_docs(function):
     docstrings = function.__doc__
     arguments = inspect.signature(function).parameters
+    valid_docs = defaultdict(set)
+    for arg in arguments:
+        valid = _PARAMETER_MAPPING.get(arg, "Parameters") in docstrings
+        valid_docs[valid].add(arg)
 
-    assert all(
-        [
-            _PARAMETER_MAPPING.get(argument, "Parameters") in docstrings
-            for argument in arguments
-        ]
-    )
+    assert valid_docs[True]
+    if valid_docs[False]:
+        raise AssertionError(
+            f"Wrong or missing docstrings for parameters {valid_docs[False]}.\n\n{docstrings}"
+        )
 
     assert all([argument in docstrings for argument in arguments])
 
