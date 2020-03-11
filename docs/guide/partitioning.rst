@@ -140,7 +140,10 @@ structure would be different if the columns are in a different order.
 Force partitioning by shuffling using Dask
 ------------------------------------------
 
-By default, the partitioning logic is applied per physical input partition when writing. In particular, this means that when calling `partition_on` on a column with total N unique values, this may create up to M x N files, where M is the number of physical input partitions.
+By default, the partitioning logic is applied per physical input partition when
+writing. In particular, this means that when calling `partition_on` on a column
+with total N unique values, this may create up to M x N files, where M is the
+number of physical input partitions.
 
 .. ipython:: python
     :okwarning:
@@ -169,7 +172,9 @@ By default, the partitioning logic is applied per physical input partition when 
 Shuffling
 *********
 
-To circumvent this, we offer a shuffle implementation for dask dataframes.
+To circumvent the heavy file fragmentation, we offer a shuffle implementation
+for dask dataframes which causes the fragmented files for the respective
+partitioning values of A to be fused into a single file.
 
 .. ipython:: python
     :okwarning:
@@ -184,16 +189,40 @@ To circumvent this, we offer a shuffle implementation for dask dataframes.
     ).compute()
     sorted(dm.partitions.keys())
 
-Be aware that this may require a lot of memory to pull of!
+.. warning::
+
+    This may require a lot of memory since we need to shuffle the data. Most of
+    this increased memory usage can be compensated by using dask
+    `spill-to-disk`_. If peak memory usage is an issue and needs to be
+    controlled, it may be helpful to reduce the final file sizes because the
+    serialization part into the Apache Parquet file format usually requires a
+    bit more memory than the shuffling tasks themselves, see also
+    :ref:`bucketing`.
+
+
+.. _bucketing:
 
 Bucketing
 *********
 
 If you need more control over the size of files and the distribution within the files you can also ask for explicit bucketing of values.
 
-When bucketing by a value, kartothek guarantees that only one file within
-a given partition needs to be loaded when querying a value, as long as
-you also built a secondary index on that column.
+.. note::
+
+    There are many reasons for wanting smaller files. One reason could be a
+    reduced peak memory usage during dataset creation, another might be due to
+    memory or performance requirements in later steps. If you intend to optimize
+    your pipelines by reducing file sizes we also recommend to look into
+    predicate pushdown, see also :ref:`efficient_querying` which might offer
+    similar, synergetic effects.
+
+Bucketing uses the values of the requested columns and assigns every unique
+tuple to one of `num_buckets` files. This not only helps to control output file
+sizes but also allows for very efficient querying in combination with seconday
+indices, see also :ref:`efficient_querying`.
+
+In the below example you can see the same data being used as above but this time we will bucket by column `B` which will no longer create a single file per value in `B` but rather `num_buckets` files.
+When investigating the index, we can also see that a query for a given value in B will return exactly one file per partition key.
 
 .. ipython:: python
     :okwarning:
@@ -214,3 +243,6 @@ you also built a secondary index on that column.
     dm = dm.load_index("B", store_factory())
 
     sorted(dm.indices["B"].eval_operator("==", 1))
+
+
+.. _spill-to-disk: https://distributed.dask.org/en/latest/worker.html#memory-management

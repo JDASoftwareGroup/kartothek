@@ -310,7 +310,7 @@ periodically to decrease unnecessary storage use.
 
 An example of garbage collection is shown below.
 A little above, near the end of the delete section,
-we removed two partitions for the dataset with uuid `partitioned_dataset`.
+we removed two partitions for the dataset with uuid `replace_partition`.
 The removed files remain in storage but are untracked by Kartothek.
 When garbage collection is called, the files are removed.
 
