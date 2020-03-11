@@ -1,7 +1,8 @@
 import warnings
-from typing import Iterator, List, Set, Union, cast
+from typing import Callable, Iterator, List, Set, Union, cast
 
 import pandas as pd
+from simplekv import KeyValueStore
 
 from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
@@ -125,7 +126,7 @@ def dispatch_metapartitions(
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     dataset_factory = DatasetFactory(
         dataset_uuid=dataset_uuid,
-        store_factory=_make_callable(store),
+        store_factory=cast(Callable[[], KeyValueStore], _make_callable(store)),
         load_schema=True,
         load_all_indices=False,
         load_dataset_metadata=load_dataset_metadata,

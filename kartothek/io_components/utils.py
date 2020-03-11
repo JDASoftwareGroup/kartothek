@@ -5,7 +5,7 @@ This module is a collection of helper functions
 import collections
 import inspect
 import logging
-from typing import Callable, Optional
+from typing import Any, Callable, Optional, overload
 
 import decorator
 import pandas as pd
@@ -390,6 +390,16 @@ class NoPickleFactory:
 
     def __getstate__(self):
         raise TypeError("Serialization not allowed. Please use a proper store factory.")
+
+
+# Better typing of this is currently not possible: https://github.com/python/typing/issues/614
+# @overload
+# def _make_callable(obj: None) -> None:
+#     ...
+#
+# @overload
+# def _make_callable(obj: Any) -> Callable:
+#     ...
 
 
 def _make_callable(obj) -> Optional[Callable]:
