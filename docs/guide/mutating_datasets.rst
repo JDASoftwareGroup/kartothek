@@ -9,7 +9,7 @@ provides update functions that generally have the prefix `update_dataset` in the
 For example, :func:`~kartothek.io.eager.update_dataset_from_dataframes` is the update
 function for the ``eager`` backend.
 
-To see updating in action, let's first set up a storage location first and store
+To see updating in action, let's first set up a storage location and store
 some data there with Kartothek.
 
 .. ipython:: python
