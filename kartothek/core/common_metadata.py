@@ -249,7 +249,9 @@ def make_meta(obj, origin, partition_keys=None):
     if isinstance(obj, SchemaWrapper):
         return obj
     if isinstance(obj, pa.Schema):
-        return SchemaWrapper(obj, origin)
+        return normalize_column_order(
+            SchemaWrapper(obj, origin), partition_keys=partition_keys
+        )
 
     if not isinstance(obj, pd.DataFrame):
         raise ValueError("Input must be a pyarrow schema, or a pandas dataframe")

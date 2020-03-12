@@ -17,6 +17,10 @@ Bug fixes
 * GH227 Fix a Type error when loading categorical data in dask without
   specifying it explicitly
 * No longer trigger the SettingWithCopyWarning when using bucketing
+* GH228 Fix an issue where empty header creation from a pyarrow schema would not
+  normalize the schema which causes schema violations during update.
+* Fix an issue where :func:`~kartothek.io.eager.create_empty_dataset_header`
+  would not accept a store factory.
 
 
 Version 3.7.0 (2020-02-12)
