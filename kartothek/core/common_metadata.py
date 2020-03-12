@@ -58,7 +58,7 @@ class SchemaWrapper:
     def _schema_compat(self):
         # https://issues.apache.org/jira/browse/ARROW-5104
         schema = self.__schema
-        if self.__schema is not None and self.__schema.metadata is not None:
+        if self.__schema is not None and self.__schema.pandas_metadata is not None:
             pandas_metadata = schema.pandas_metadata
             index_cols = pandas_metadata["index_columns"]
             if len(index_cols) > 1:
@@ -547,8 +547,10 @@ def _remove_diff_header(diff):
 
 def _diff_schemas(first, second):
     # see https://issues.apache.org/jira/browse/ARROW-4176
-    first_pyarrow_info, _ = str(first).split("metadata\n--------")
-    second_pyarrow_info, _ = str(second).split("metadata\n--------")
+
+    # Pyarrow >0.16.0 do not include the metadata anymore
+    first_pyarrow_info = str(first).split("metadata\n--------")[0]
+    second_pyarrow_info = str(second).split("metadata\n--------")[0]
     pyarrow_diff = _remove_diff_header(
         difflib.unified_diff(
             str(first_pyarrow_info).splitlines(), str(second_pyarrow_info).splitlines()
