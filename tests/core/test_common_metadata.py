@@ -12,6 +12,7 @@ import pyarrow.parquet as pq
 import pytest
 import simplejson
 from dask.dataframe.utils import make_meta as dask_make_meta
+from packaging.version import parse as parse_version
 
 from kartothek.core.common_metadata import (
     SchemaWrapper,
@@ -25,6 +26,13 @@ from kartothek.core.common_metadata import (
     validate_shared_columns,
 )
 from kartothek.serialization import ParquetSerializer
+
+try:
+    arrow_version = parse_version(pa.__version__)
+    ARROW_DEV = arrow_version.is_devrelease
+    del arrow_version
+except Exception:
+    ARROW_DEV = True
 
 
 def test_store_schema_metadata(store, df_all_types):
@@ -418,6 +426,7 @@ def test_empty_dataframe_from_schema_columns(df_all_types):
     pdt.assert_frame_equal(actual_df, expected_df)
 
 
+@pytest.mark.xfail(ARROW_DEV, reason="Format not stbale")
 def test_diff_schemas(df_all_types):
     # Prepare a schema with one missing, one additional and one changed column
     df2 = df_all_types.drop(columns=df_all_types.columns[0])
