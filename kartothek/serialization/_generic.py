@@ -12,7 +12,7 @@ Available constants
 **LiteralValue** - A type indicating the value of a predicate literal
 """
 
-from typing import Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
@@ -163,7 +163,7 @@ def filter_df(df, filter_query=None):
     return df
 
 
-def check_predicates(predicates):
+def check_predicates(predicates: PredicatesType) -> None:
     """
     Check if predicates are well-formed.
     """

@@ -1,5 +1,5 @@
 import warnings
-from typing import Callable, Iterator, List, Set, Union, cast
+from typing import Any, Callable, Iterator, List, Optional, Set, Union, cast, overload
 
 import pandas as pd
 from simplekv import KeyValueStore
@@ -8,22 +8,46 @@ from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.utils import _make_callable, normalize_args
-from kartothek.serialization import check_predicates, columns_in_predicates
+from kartothek.serialization import (
+    PredicatesType,
+    check_predicates,
+    columns_in_predicates,
+)
+
+
+@overload
+def dispatch_metapartitions_from_factory(
+    dataset_factory: DatasetFactory,
+    label_filter: Optional[Callable] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicates: PredicatesType = None,
+    store: Optional[Callable[[], KeyValueStore]] = None,
+    dispatch_by: None = None,
+) -> Iterator[MetaPartition]:
+    ...
+
+
+@overload
+def dispatch_metapartitions_from_factory(
+    dataset_factory: DatasetFactory,
+    label_filter: Optional[Callable],
+    concat_partitions_on_primary_index: bool,
+    predicates: PredicatesType,
+    store: Optional[Callable[[], KeyValueStore]],
+    dispatch_by: List[str],
+) -> Iterator[List[MetaPartition]]:
+    ...
 
 
 @normalize_args
 def dispatch_metapartitions_from_factory(
-    dataset_factory,
-    label_filter=None,
-    concat_partitions_on_primary_index=False,
-    predicates=None,
-    store=None,
-    dispatch_by=None,
+    dataset_factory: DatasetFactory,
+    label_filter: Optional[Callable] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicates: PredicatesType = None,
+    store: Optional[Callable[[], KeyValueStore]] = None,
+    dispatch_by: Optional[List[str]] = None,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
-    if not callable(dataset_factory) and not isinstance(
-        dataset_factory, DatasetFactory
-    ):
-        raise TypeError("Need to supply a dataset factory!")
 
     if dispatch_by and concat_partitions_on_primary_index:
         raise ValueError(
@@ -114,15 +138,15 @@ def dispatch_metapartitions_from_factory(
 
 
 def dispatch_metapartitions(
-    dataset_uuid,
-    store,
-    load_dataset_metadata=True,
-    keep_indices=True,
-    keep_table_meta=True,
-    label_filter=None,
-    concat_partitions_on_primary_index=False,
-    predicates=None,
-    dispatch_by=None,
+    dataset_uuid: str,
+    store: Union[KeyValueStore, Callable[[], KeyValueStore]],
+    load_dataset_metadata: bool = True,
+    keep_indices: bool = True,
+    keep_table_meta: bool = True,
+    label_filter: Optional[Callable] = None,
+    concat_partitions_on_primary_index: bool = False,
+    predicates: PredicatesType = None,
+    dispatch_by: Optional[List[str]] = None,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     dataset_factory = DatasetFactory(
         dataset_uuid=dataset_uuid,
@@ -134,6 +158,7 @@ def dispatch_metapartitions(
 
     return dispatch_metapartitions_from_factory(
         dataset_factory=dataset_factory,
+        store=None,
         label_filter=label_filter,
         predicates=predicates,
         dispatch_by=dispatch_by,
