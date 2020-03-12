@@ -12,7 +12,7 @@ Available constants
 **LiteralValue** - A type indicating the value of a predicate literal
 """
 
-from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Dict, List, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd

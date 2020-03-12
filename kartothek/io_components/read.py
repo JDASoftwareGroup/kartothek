@@ -1,5 +1,5 @@
 import warnings
-from typing import Any, Callable, Iterator, List, Optional, Set, Union, cast, overload
+from typing import Callable, Iterator, List, Optional, Set, Union, cast, overload
 
 import pandas as pd
 from simplekv import KeyValueStore
