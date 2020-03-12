@@ -1,19 +1,22 @@
 # -*- coding: utf-8 -*-
 
 import copy
-from typing import Optional
+from typing import TYPE_CHECKING, Callable, Optional, TypeVar, cast
 
 from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
 from kartothek.core.utils import _check_callable
 
+if TYPE_CHECKING:
+    from simplekv import KeyValueStore
+
 
 def _ensure_factory(
     dataset_uuid: Optional[str],
-    store,
-    factory,
+    store: Optional[Callable[[], "KeyValueStore"]],
+    factory: Optional["DatasetFactory"],
     load_dataset_metadata: bool,
     load_schema: bool = True,
-):
+) -> "DatasetFactory":
     if store is None and dataset_uuid is None and factory is not None:
         return factory
     elif store is not None and dataset_uuid is not None and factory is None:
@@ -30,6 +33,9 @@ def _ensure_factory(
         )
 
 
+T = TypeVar("T", bound="DatasetFactory")
+
+
 class DatasetFactory(DatasetMetadataBase):
     """
     Container holding metadata caching storage access.
@@ -39,12 +45,12 @@ class DatasetFactory(DatasetMetadataBase):
 
     def __init__(
         self,
-        dataset_uuid,
-        store_factory,
-        load_schema=True,
-        load_all_indices=False,
-        load_dataset_metadata=True,
-    ):
+        dataset_uuid: str,
+        store_factory: Callable[[], "KeyValueStore"],
+        load_schema: bool = True,
+        load_all_indices: bool = False,
+        load_dataset_metadata: bool = True,
+    ) -> None:
         """
         A dataset factory object which can be used to cache dataset load operations. This class should be the primary user entry point when
         reading datasets.
@@ -77,7 +83,7 @@ class DatasetFactory(DatasetMetadataBase):
         load_dataset_metadata: bool
             Keep the user metadata in memory
         """
-        self._cache_metadata = None
+        self._cache_metadata: Optional[DatasetMetadata] = None
         self._cache_store = None
 
         _check_callable(store_factory)
@@ -95,12 +101,12 @@ class DatasetFactory(DatasetMetadataBase):
         )
 
     @property
-    def store(self):
+    def store(self) -> "KeyValueStore":
         if self._cache_store is None:
             self._cache_store = self.store_factory()
         return self._cache_store
 
-    def _instantiate_metadata_cache(self):
+    def _instantiate_metadata_cache(self: T) -> T:
         if self._cache_metadata is None:
             if self._ds_callable:
                 # backwards compat
@@ -118,11 +124,12 @@ class DatasetFactory(DatasetMetadataBase):
         return self
 
     @property
-    def dataset_metadata(self):
+    def dataset_metadata(self) -> DatasetMetadata:
         self._instantiate_metadata_cache()
-        return self._cache_metadata
+        # The above line ensures non-None
+        return cast(DatasetMetadata, self._cache_metadata)
 
-    def invalidate(self):
+    def invalidate(self) -> None:
         self.is_loaded = False
         self._cache_metadata = None
         self._cache_store = None
@@ -148,7 +155,7 @@ class DatasetFactory(DatasetMetadataBase):
             load_all_indices=state["load_all_indices_flag"],
         )
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo) -> "DatasetFactory":
         new_obj = DatasetFactory(
             dataset_uuid=self.dataset_uuid,
             store_factory=self.store_factory,
@@ -159,16 +166,20 @@ class DatasetFactory(DatasetMetadataBase):
             new_obj._cache_metadata = copy.deepcopy(self._cache_metadata)
         return new_obj
 
-    def load_index(self, column, store=None):
+    def load_index(self: T, column, store=None) -> T:
         self._cache_metadata = self.dataset_metadata.load_index(column, self.store)
         return self
 
-    def load_all_indices(self, load_partition_indices=True, store=None):
+    def load_all_indices(
+        self: T,
+        store: Optional["KeyValueStore"] = None,
+        load_partition_indices: bool = True,
+    ) -> T:
         self._cache_metadata = self.dataset_metadata.load_all_indices(
             self.store, load_partition_indices=load_partition_indices
         )
         return self
 
-    def load_partition_indices(self):
+    def load_partition_indices(self: T) -> T:
         self._cache_metadata = self.dataset_metadata.load_partition_indices()
         return self

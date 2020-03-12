@@ -2,7 +2,7 @@ import copy
 import logging
 import re
 from collections import OrderedDict, defaultdict
-from typing import Any, Dict, List, Optional, Set, Tuple, Union
+from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
 import pandas as pd
 import pyarrow as pa
@@ -45,6 +45,9 @@ def to_ordinary_dict(dct: Dict) -> Dict:
         else:
             new_dct[key] = value
     return new_dct
+
+
+T = TypeVar("T", bound="DatasetMetadataBase")
 
 
 class DatasetMetadataBase(CopyMixin):
@@ -213,7 +216,7 @@ class DatasetMetadataBase(CopyMixin):
     def to_msgpack(self) -> bytes:
         return msgpack.packb(self.to_dict())
 
-    def load_index(self, column: str, store: KeyValueStore) -> "DatasetMetadataBase":
+    def load_index(self: T, column: str, store: KeyValueStore) -> T:
         """
         Load an index into memory.
 
@@ -252,8 +255,8 @@ class DatasetMetadataBase(CopyMixin):
         return self.copy(indices=indices)
 
     def load_all_indices(
-        self, store: KeyValueStore, load_partition_indices: bool = True
-    ) -> "DatasetMetadataBase":
+        self: T, store: KeyValueStore, load_partition_indices: bool = True
+    ) -> T:
         """
         Load all registered indices into memory.
 
@@ -314,7 +317,7 @@ class DatasetMetadataBase(CopyMixin):
 
         return list(candidate_set)
 
-    def load_partition_indices(self) -> "DatasetMetadataBase":
+    def load_partition_indices(self: T) -> T:
         """
         Load all filename encoded indices into RAM. File encoded indices can be extracted from datasets with partitions
         stored in a format like

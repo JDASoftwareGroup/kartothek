@@ -392,6 +392,16 @@ class NoPickleFactory:
         raise TypeError("Serialization not allowed. Please use a proper store factory.")
 
 
+# Better typing of this is currently not possible: https://github.com/python/typing/issues/614
+# @overload
+# def _make_callable(obj: None) -> None:
+#     ...
+#
+# @overload
+# def _make_callable(obj: Any) -> Callable:
+#     ...
+
+
 def _make_callable(obj) -> Optional[Callable]:
     """
     Converting a plain store to a simple callable is perfectly fine for
