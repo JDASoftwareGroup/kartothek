@@ -1,6 +1,6 @@
 import logging
 from functools import partial, reduce
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Callable, Dict, List, Optional, cast
 
 import pandas as pd
 
@@ -9,6 +9,10 @@ from kartothek.core.factory import DatasetFactory
 from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.utils import _instantiate_store, _make_callable
+
+if TYPE_CHECKING:
+    from simplekv import KeyValueStore
+
 
 LOGGER = logging.getLogger(__name__)
 
@@ -138,7 +142,7 @@ def align_datasets_many(
     dataset_factories = [
         DatasetFactory(
             dataset_uuid=dataset_uuid,
-            store_factory=_make_callable(store),
+            store_factory=cast(Callable[[], "KeyValueStore"], _make_callable(store)),
             load_schema=True,
             load_all_indices=False,
             load_dataset_metadata=True,

@@ -39,30 +39,6 @@ def dispatch_metapartitions_from_factory(
     ...
 
 
-@overload
-def dispatch_metapartitions_from_factory(
-    dataset_factory: Union[DatasetFactory, Callable],
-    label_filter: Optional[Callable] = None,
-    concat_partitions_on_primary_index: bool = False,
-    predicates: Optional[Any] = None,
-    store: Optional[Callable] = None,
-    dispatch_by: None = None,
-) -> Iterator[MetaPartition]:
-    ...
-
-
-@overload
-def dispatch_metapartitions_from_factory(
-    dataset_factory: Union[DatasetFactory, Callable],
-    label_filter: Optional[Callable],
-    concat_partitions_on_primary_index,
-    predicates: Optional[Any],
-    store: Optional[Callable],
-    dispatch_by: List[str],
-) -> Iterator[List[MetaPartition]]:
-    ...
-
-
 @normalize_args
 def dispatch_metapartitions_from_factory(
     dataset_factory: DatasetFactory,
