@@ -536,6 +536,7 @@ def create_empty_dataset_header(
     Parameters
     ----------
     """
+    store = _make_callable(store)()
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
 

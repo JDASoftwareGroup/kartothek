@@ -518,3 +518,24 @@ def test_validate_schema_non_overlapping_nulls(df_all_types_schema):
         # The reference schema should be the original schema
         # with the columns reconstructed
         assert df_all_types_schema == reference_schema
+
+
+def test_make_meta_column_normalization_pyarrow_schema():
+    # GH228
+    df = pd.DataFrame(
+        [{"part": 1, "id": 1, "col1": "abc"}, {"part": 2, "id": 2, "col1": np.nan}],
+        # Kartothek normalizes field order s.t. partition keys are first and the
+        # rest is alphabetically. This is reverse.
+        columns=["col1", "id", "part"],
+    )
+    schema = make_meta(
+        pa.Schema.from_pandas(df), origin="gh228", partition_keys=["part"]
+    )
+    fields = [
+        pa.field("part", pa.int64()),
+        pa.field("col1", pa.string()),
+        pa.field("id", pa.int64()),
+    ]
+    expected_schema = pa.schema(fields)
+
+    assert schema.internal().equals(expected_schema, check_metadata=False)
