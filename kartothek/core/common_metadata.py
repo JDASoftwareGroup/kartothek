@@ -82,8 +82,7 @@ class SchemaWrapper:
                 schema = schema.with_metadata(md)
             else:
                 schema = schema.add_metadata(md)
-        # Roundtrip due to https://issues.apache.org/jira/browse/ARROW-8057
-        self.__schema = _bytes2schema(_schema2bytes(schema))
+            self.__schema = schema
 
     def internal(self):
         return self.__schema
@@ -721,7 +720,7 @@ def validate_shared_columns(schemas, ignore_pandas=False):
         for col in columns:
             field_idx = schema.get_field_index(col)
             field = schema[field_idx]
-            obj = (field.remove_metadata(), col)
+            obj = (field, col)
             if col in seen:
                 ref = seen[col]
                 if pa.types.is_null(ref[0].type) or pa.types.is_null(field.type):
