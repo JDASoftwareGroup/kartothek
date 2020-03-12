@@ -155,7 +155,7 @@ class DatasetFactory(DatasetMetadataBase):
             load_all_indices=state["load_all_indices_flag"],
         )
 
-    def __deepcopy__(self, memo) -> DatasetFactory:
+    def __deepcopy__(self, memo) -> "DatasetFactory":
         new_obj = DatasetFactory(
             dataset_uuid=self.dataset_uuid,
             store_factory=self.store_factory,
