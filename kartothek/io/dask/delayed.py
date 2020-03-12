@@ -3,7 +3,7 @@
 from collections import defaultdict
 from copy import copy
 from functools import partial
-from typing import List
+from typing import Dict, List, Optional
 
 import dask
 from dask import delayed
@@ -152,15 +152,30 @@ def _load_and_merge_many_mps(
     merge_tasks,
     is_dispatched: bool,
     predicates=None,
+    columns: Optional[List[Dict[str, List[str]]]] = None,
 ):
     if is_dispatched:
-        mp_list = [[mp.load_dataframes(store=store) for mp in mps] for mps in mp_list]
+        if columns:
+            mp_list = [
+                [mp.load_dataframes(store=store, columns=cols) for mp in mps]
+                for mps, cols in zip(mp_list, columns)
+            ]
+        else:
+            mp_list = [
+                [mp.load_dataframes(store=store) for mp in mps] for mps in mp_list
+            ]
         mp_list = [
             MetaPartition.merge_metapartitions(mps).concat_dataframes()
             for mps in mp_list
         ]
     else:
-        mp_list = [mp.load_dataframes(store=store) for mp in mp_list]
+        if columns:
+            mp_list = [
+                mp.load_dataframes(store=store, columns=cols)
+                for mp, cols in zip(mp_list, columns)
+            ]
+        else:
+            mp_list = [mp.load_dataframes(store=store) for mp in mp_list]
 
     mp = MetaPartition.merge_metapartitions(
         mp_list, label_merger=label_merger, metadata_merger=metadata_merger
@@ -278,6 +293,7 @@ def merge_many_datasets_as_delayed(
     label_merger=None,
     metadata_merger=None,
     predicates=None,
+    columns: Optional[List[Dict[str, List[str]]]] = None,
 ):
     """
     A dask.delayed graph to perform the merge of two full kartothek datasets.
@@ -346,6 +362,7 @@ def merge_many_datasets_as_delayed(
         merge_tasks=merge_tasks,
         is_dispatched=dispatch_by is not None,
         predicates=predicates,
+        columns=columns,
     )
 
     return list(mps)
