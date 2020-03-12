@@ -163,7 +163,7 @@ def filter_df(df, filter_query=None):
     return df
 
 
-def check_predicates(predicates):
+def check_predicates(predicates: PredicatesType) -> None:
     """
     Check if predicates are well-formed.
     """
