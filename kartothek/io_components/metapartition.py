@@ -763,7 +763,8 @@ class MetaPartition(Iterable):
                         )
                     )
 
-                df = df.loc[:, table_columns]
+                if list(df.columns) != table_columns:
+                    df = df.loc[:, table_columns]
             new_data[table] = df
         return self.copy(data=new_data)
 
