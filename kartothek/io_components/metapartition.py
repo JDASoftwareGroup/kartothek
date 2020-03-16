@@ -852,7 +852,11 @@ class MetaPartition(Iterable):
         if cleaned_original_columns != original_columns:
             # indexer call is slow, so only do that if really necessary
             df = df.loc[:, cleaned_original_columns]
-        return pd.concat(index_cols + [df], axis=1, sort=False, join="inner")
+
+        if len(index_cols) > 0:
+            df = pd.concat(index_cols + [df], axis=1, sort=False, join="inner")
+
+        return df
 
     @_apply_to_list
     def merge_dataframes(
