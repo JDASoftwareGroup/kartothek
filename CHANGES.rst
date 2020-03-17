@@ -10,6 +10,10 @@ Improvements
 
 * Only fix column odering when restoring ``DataFrame`` if the ordering is incorrect.
 
+Bug fixes
+^^^^^^^^^
+* GH248 Fix an issue causing a ValueError to be raised when using `dask_index_on` on non-integer columns
+
 Version 3.8.0 (2020-03-12)
 ==========================
 

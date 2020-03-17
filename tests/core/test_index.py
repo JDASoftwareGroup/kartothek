@@ -14,6 +14,7 @@ import pytz
 from hypothesis import assume, given
 from pandas.testing import assert_series_equal
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core.index import ExplicitSecondaryIndex, IndexBase, merge_indices
 from kartothek.core.testing import get_numpy_array_strategy
 
@@ -470,6 +471,50 @@ def test_index_raises_null_dtype():
             index_storage_key="dataset_uuid/some_index.parquet",
         )
     assert str(exc.value) == "Indices w/ null/NA type are not supported"
+
+
+@pytest.mark.parametrize(
+    "dtype,value",
+    [
+        (pa.bool_(), True),
+        (pa.int64(), 1),
+        (pa.float64(), 1.1),
+        (pa.binary(), b"x"),
+        (pa.string(), "x"),
+        (pa.timestamp("ns"), pd.Timestamp("2018-01-01").to_datetime64()),
+        (pa.date32(), datetime.date(2018, 1, 1)),
+        pytest.param(
+            pa.timestamp("ns", tz=pytz.timezone("Europe/Berlin")),
+            pd.Timestamp("2018-01-01", tzinfo=pytz.timezone("Europe/Berlin")),
+            marks=pytest.mark.xfail(
+                not ARROW_LARGER_EQ_0150,
+                reason="Timezone reoundtrips not supported in older versions",
+            ),
+        ),
+    ],
+)
+def test_observed_values_plain(dtype, value):
+    ind = ExplicitSecondaryIndex(
+        column="col", dtype=dtype, index_dct={value: ["part_label"]}
+    )
+    observed = ind.observed_values()
+    assert len(observed) == 1
+    assert list(observed) == [value]
+
+
+@pytest.mark.parametrize("date_as_object", [None, True, False])
+def test_observed_values_date_as_object(date_as_object):
+    value = datetime.date(2020, 1, 1)
+    ind = ExplicitSecondaryIndex(
+        column="col", dtype=pa.date32(), index_dct={value: ["part_label"]}
+    )
+    observed = ind.observed_values(date_as_object=date_as_object)
+    if date_as_object:
+        expected = value
+    else:
+        expected = pd.Timestamp(value).to_datetime64()
+    assert len(observed) == 1
+    assert observed[0] == expected
 
 
 @pytest.mark.parametrize(
