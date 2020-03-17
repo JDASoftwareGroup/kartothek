@@ -136,6 +136,7 @@ structure would be different if the columns are in a different order.
 .. note:: Every partition must have data for every table. An empty dataframe in this
           context is also considered as data.
 
+.. _partitioning_dask:
 
 Force partitioning by shuffling using Dask
 ------------------------------------------
@@ -168,6 +169,8 @@ number of physical input partitions.
         ddf, dataset_uuid="no_shuffle", store=store_factory, partition_on="A", table="table"
     ).compute()
     sorted(dm.partitions.keys())
+
+.. _shuffling:
 
 Shuffling
 *********
