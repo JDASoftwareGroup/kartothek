@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 3.8.1 (2020-03-XX)
+==========================
+
+Improvements
+^^^^^^^^^^^^
+
+* Only fix column odering when restoring ``DataFrame`` if the ordering is incorrect.
+
 Version 3.8.0 (2020-03-12)
 ==========================
 
