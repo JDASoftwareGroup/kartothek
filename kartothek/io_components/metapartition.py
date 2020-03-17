@@ -840,7 +840,8 @@ class MetaPartition(Iterable):
                     ind_col = ind_col.dt.date
             index_cols.append(ind_col)
 
-        df = df.reset_index(drop=True)
+        # One of the few places `inplace=True` makes a signifcant difference
+        df.reset_index(drop=True, inplace=True)
 
         index_names = [col.name for col in index_cols]
         # The index might already be part of the dataframe which is recovered from the parquet file.
