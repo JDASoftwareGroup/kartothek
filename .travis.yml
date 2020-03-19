@@ -11,10 +11,6 @@ env:
   global:
     - KTK_TESTS=1
     - KTK_DOCS=0
-    # personal github API access token of marco-neumann-jdas
-    - GITHUB_CLIENT_ID=7a8e3d7ff74db065db63
-    # GITHUB_CLIENT_SECRET=...
-    - secure: "f26AebbVyF7+Ctr61ebKYgtAAXLRv4uaXOXMqJ3Xps5dehFGJk+ZXyI77RdNM2N7PzmJP1Muh1NzlxoFBc4nwQiKuOx3zRE4ynCLgdxLpPOWeLsDfhcOW991n6U58C/4QsrDN1GFBV6B0MhoIk2a5k8Gp7IDPuYnGhIOevi9VkqHIyfFOIS8sFfeJPNqsKzBiI+cO+505mp+jL5YMPQKi7I6uMNtb5oFy/yrAfCJDK0+H6WqJEXqxTJm7KmvKgiUxj47vfTIE2zRDxF5rUrc0hETxwt7rVWsPWAHLnw6EGVhcHpp64dql3kORSdC6WbU7+Gjhq+d6xbrf35rLJtr6Zpzz8P74JG6Ll29CXRdcSebyrn24zxeCjVu8wxsd8lQ/ViYexTxOUaJBt2+VoOvSCfstzvVqer3TWdi9080MwxdZgrhPtn/5SbePa2aE/hU5OcI1CdvyB/7+ye6cKXunuZJZBZPamtP7JVY9CCekpD4lXRHYWeJbT7pplShqXwMFy+uxEFqROluMfbrBqMpXMcku40LxpLh07rupNZBYi4LsdlVz5cQAdnqs1HpVrDtNF2zoxIsJInkTESvADi4IsJq3USoQcwiscvC8Q5sNU3SfqR5hl0XiSktlLS1OPCu75Ko44RY73uIBPiz9DL9DdNRt1Sg2XbYX7dmMGxdQpE="
 
   matrix:
     # required builds
