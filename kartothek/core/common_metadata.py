@@ -380,7 +380,17 @@ def store_schema_metadata(schema, dataset_uuid, store, table):
 
 def _schema2bytes(schema):
     buf = pa.BufferOutputStream()
-    pq.write_metadata(schema, buf, version="2.0", coerce_timestamps="us")
+    # [#259] setting all timestamp fields to us-granularity (parquet default) instead of relying on pq.write_metadata coerce_timestamps="us"  
+    fields = []
+    for idx in range(len(schema)):
+        f = schema[idx]
+        if type(f.type) == type(pa.timestamp("us")):
+            f = pa.field(f.name, pa.timestamp("ns", tz=f.type.tz))
+
+        fields.append(f)
+
+    schema = pa.schema(fields, schema.metadata)
+    pq.write_metadata(schema, buf, version="2.0")
     return buf.getvalue().to_pybytes()
 
 
@@ -393,8 +403,8 @@ def _bytes2schema(data):
 
         # schema data recovered from parquet always contains timestamp data in us-granularity, but pandas will use
         # ns-granularity, so we re-align the two different worlds here
-        if f.type == pa.timestamp("us"):
-            f = pa.field(f.name, pa.timestamp("ns"))
+        if type(f.type) == type(pa.timestamp("us")):
+            f = pa.field(f.name, pa.timestamp("ns", tz=f.type.tz))
 
         fields.append(f)
     return pa.schema(fields, schema.metadata)
