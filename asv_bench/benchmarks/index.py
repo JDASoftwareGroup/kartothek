@@ -80,6 +80,9 @@ class Index(IndexBase):
     ):
         self.ktk_index.as_flat_series(partitions_as_index=True)
 
+    def time_observed_values(self, number_values, number_partitions, arrow_type):
+        self.ktk_index.observed_values()
+
 
 class SerializeIndex(IndexBase):
     timeout = 180
