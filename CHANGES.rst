@@ -12,6 +12,7 @@ Improvements
 
 Bug fixes
 ^^^^^^^^^
+* GH248 Fix an issue causing a ValueError to be raised when using `dask_index_on` on non-integer columns
 * GH255 Fix an issue causing the python interpreter to shut down when reading an
   empty file (see also https://issues.apache.org/jira/browse/ARROW-8142)
 

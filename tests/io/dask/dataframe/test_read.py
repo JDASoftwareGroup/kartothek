@@ -10,6 +10,7 @@ from dask.dataframe.utils import assert_eq as assert_dask_eq
 from pandas import testing as pdt
 from pandas.testing import assert_frame_equal
 
+from kartothek.core.testing import get_dataframe_not_nested
 from kartothek.io.dask.dataframe import read_dataset_as_ddf
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io.testing.read import *  # noqa
@@ -167,6 +168,34 @@ def test_reconstruct_dask_index(store_factory, index_type, monkeypatch):
 
     assert_frame_equal(ddf_expected.compute(), ddf.compute())
     assert_frame_equal(ddf_expected_simple.compute(), ddf.compute())
+
+
+@pytest.fixture()
+def setup_reconstruct_dask_index_types(store_factory, df_not_nested):
+    indices = list(df_not_nested.columns)
+    indices.remove("null")
+    return store_dataframes_as_dataset(
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        dfs=[df_not_nested],
+        secondary_indices=indices,
+    )
+
+
+@pytest.mark.parametrize("col", get_dataframe_not_nested().columns)
+def test_reconstruct_dask_index_types(
+    store_factory, setup_reconstruct_dask_index_types, col
+):
+    if col == "null":
+        pytest.xfail(reason="Cannot index null column")
+    ddf = read_dataset_as_ddf(
+        dataset_uuid=setup_reconstruct_dask_index_types.uuid,
+        store=store_factory,
+        table="table",
+        dask_index_on=col,
+    )
+    assert ddf.known_divisions
+    assert ddf.index.name == col
 
 
 def test_reconstruct_dask_index_sorting(store_factory, monkeypatch):
