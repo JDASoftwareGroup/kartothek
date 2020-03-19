@@ -61,16 +61,32 @@ def _reset_dictionary_columns(table, exclude=None):
     """
     if exclude is None:
         exclude = []
+
     if ARROW_LARGER_EQ_0150:
-        schema = table.schema
-        for i in range(len(schema)):
-            field = schema[i]
-            if pa.types.is_dictionary(field.type):
-                new_field = pa.field(
-                    field.name, field.type.value_type, field.nullable, field.metadata
-                )
-                schema = schema.remove(i).insert(i, new_field)
-        table = table.cast(schema)
+        # https://issues.apache.org/jira/browse/ARROW-8142
+        if len(table) == 0:
+            df = table.to_pandas(date_as_object=True)
+            new_types = {
+                col: df[col].cat.categories.dtype
+                for col in df.select_dtypes("category")
+            }
+            if new_types:
+                df = df.astype(new_types)
+                table = pa.Table.from_pandas(df)
+        else:
+            schema = table.schema
+            for i in range(len(schema)):
+                field = schema[i]
+                if pa.types.is_dictionary(field.type):
+                    new_field = pa.field(
+                        field.name,
+                        field.type.value_type,
+                        field.nullable,
+                        field.metadata,
+                    )
+                    schema = schema.remove(i).insert(i, new_field)
+
+            table = table.cast(schema)
     else:
         for i in range(table.num_columns):
             col = table[i]

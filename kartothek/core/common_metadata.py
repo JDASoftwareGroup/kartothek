@@ -557,9 +557,8 @@ def _remove_diff_header(diff):
 def _diff_schemas(first, second):
     # see https://issues.apache.org/jira/browse/ARROW-4176
 
-    # Pyarrow >0.16.0 do not include the metadata anymore
-    first_pyarrow_info = str(first).split("metadata\n--------")[0]
-    second_pyarrow_info = str(second).split("metadata\n--------")[0]
+    first_pyarrow_info = str(first.remove_metadata())
+    second_pyarrow_info = str(second.remove_metadata())
     pyarrow_diff = _remove_diff_header(
         difflib.unified_diff(
             str(first_pyarrow_info).splitlines(), str(second_pyarrow_info).splitlines()

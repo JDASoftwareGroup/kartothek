@@ -170,13 +170,30 @@ def update_dataset_from_ddf(
 
     .. note:: This can only be used for datasets with a single table!
 
+    See also, :ref:`partitioning_dask`.
+
     Parameters
     ----------
     ddf: Union[dask.dataframe.DataFrame, None]
         The dask.Dataframe to be used to calculate the new partitions from. If this parameter is `None`, the update pipeline
         will only delete partitions without creating new ones.
     shuffle: bool
-        If True and partition_on is requested, shuffle the data to reduce number of output partitions
+        If `True` and `partition_on` is requested, shuffle the data to reduce number of output partitions.
+
+        See also, :ref:`shuffling`.
+
+        .. warning::
+
+            Dask uses a heuristic to determine how data is shuffled and there are two options, `partd` for local disk shuffling and `tasks` for distributed shuffling using a task graph. If there is no :class:`distributed.Client` in the context and the option is not set explicitly, dask will choose `partd` which may cause data loss when the graph is executed on a distributed cluster.
+
+            Therefore, we recommend to specify the dask shuffle method explicitly, e.g. by using a context manager.
+
+            .. code::
+
+                with dask.config(shuffle='tasks'):
+                    graph = update_dataset_from_ddf(...)
+                graph.compute()
+
     repartition_ratio: Optional[Union[int, float]]
         If provided, repartition the dataframe before calculation starts to ``ceil(ddf.npartitions / repartition_ratio)``
     num_buckets: int

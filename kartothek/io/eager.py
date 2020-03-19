@@ -315,7 +315,7 @@ def read_table(
     df = pd.concat(dfs, ignore_index=True, sort=False)
 
     # ensure column order
-    if len(empty_df.columns) > 0:
+    if len(empty_df.columns) > 0 and list(empty_df.columns) != list(df.columns):
         df = df.reindex(empty_df.columns, copy=False, axis=1)
 
     return df

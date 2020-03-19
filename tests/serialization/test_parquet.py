@@ -443,3 +443,17 @@ def test_read_categorical(store):
 
     df = serialiser.restore_dataframe(store, key, categories=["col"])
     assert df.dtypes["col"] == pd.CategoricalDtype(["a"], ordered=False)
+
+
+def test_read_categorical_empty(store):
+
+    df = pd.DataFrame({"col": ["a"]}).astype({"col": "category"}).iloc[:0]
+    serialiser = ParquetSerializer()
+    key = serialiser.store(store, "prefix", df)
+
+    df = serialiser.restore_dataframe(store, key)
+    assert df.dtypes["col"] == "O"
+
+    df = serialiser.restore_dataframe(store, key, categories=["col"])
+
+    assert df.dtypes["col"] == pd.CategoricalDtype([], ordered=False)
