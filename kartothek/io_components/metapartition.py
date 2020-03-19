@@ -763,7 +763,8 @@ class MetaPartition(Iterable):
                         )
                     )
 
-                df = df.loc[:, table_columns]
+                if list(df.columns) != table_columns:
+                    df = df.loc[:, table_columns]
             new_data[table] = df
         return self.copy(data=new_data)
 
@@ -839,7 +840,8 @@ class MetaPartition(Iterable):
                     ind_col = ind_col.dt.date
             index_cols.append(ind_col)
 
-        df = df.reset_index(drop=True)
+        # One of the few places `inplace=True` makes a signifcant difference
+        df.reset_index(drop=True, inplace=True)
 
         index_names = [col.name for col in index_cols]
         # The index might already be part of the dataframe which is recovered from the parquet file.
@@ -852,7 +854,11 @@ class MetaPartition(Iterable):
         if cleaned_original_columns != original_columns:
             # indexer call is slow, so only do that if really necessary
             df = df.loc[:, cleaned_original_columns]
-        return pd.concat(index_cols + [df], axis=1, sort=False, join="inner")
+
+        if len(index_cols) > 0:
+            df = pd.concat(index_cols + [df], axis=1, sort=False, join="inner")
+
+        return df
 
     @_apply_to_list
     def merge_dataframes(
