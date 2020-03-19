@@ -2,6 +2,20 @@
 Changelog
 =========
 
+Version 3.8.1 (2020-03-XX)
+==========================
+
+Improvements
+^^^^^^^^^^^^
+
+* Only fix column odering when restoring ``DataFrame`` if the ordering is incorrect.
+
+Bug fixes
+^^^^^^^^^
+* GH255 Fix an issue causing the python interpreter to shut down when reading an
+  empty file (see also https://issues.apache.org/jira/browse/ARROW-8142)
+* GH259 Fix an issue where Timestamp with timezone produce Schema violation
+
 Version 3.8.0 (2020-03-12)
 ==========================
 
