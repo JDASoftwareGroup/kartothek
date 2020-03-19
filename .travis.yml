@@ -46,7 +46,17 @@ before_install:
 install:
   - travis_retry conda create -n test-env --file=conda-requirements.txt --file=conda-test-requirements.txt python=$TRAVIS_PYTHON_VERSION $CONDA_CREATE_ARGS
   - conda activate test-env
-  - travis_retry ci/nightlies_install.sh
+  - >
+    if [[ "${ARROW_NIGHTLY-0}" == 1 ]]; then
+        travis_retry conda install -c ursa-labs/label/nightly pyarrow
+    fi
+  - >
+    if [[ "${NUMFOCUS_NIGHTLY-0}" == 1 ]]; then
+        # NumFOCUS nightly wheels, contains numpy and pandas
+        PRE_WHEELS="https://7933911d6844c6c53a7d-47bd50c35cd79bd838daf386af554a83.ssl.cf2.rackcdn.com"
+        travis_retry pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS pandas numpy
+    fi
+
   - travis_retry python setup.py install
 
 # If docs break or formatting, linting is off, I'd like to know immediately
