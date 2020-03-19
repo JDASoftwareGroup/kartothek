@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 3.8.3 (2020-XX-XX)
+==========================
+
+Bug fixes
+^^^^^^^^^
+* GH259 Fix an issue where Timestamp with timezone produce Schema violation
+
+
 Version 3.8.2 (2020-04-09)
 ==========================
 

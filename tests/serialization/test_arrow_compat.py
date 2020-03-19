@@ -3,6 +3,7 @@
 
 import os
 import uuid
+from distutils.version import LooseVersion
 
 import pandas.testing as pdt
 import pytest
@@ -52,5 +53,8 @@ def test_arrow_compat(arrow_version, reference_store, mocker):
 
     if arrow_version in ("0.14.1", "0.15.0", "0.16.0") and not ARROW_LARGER_EQ_0141:
         orig = orig.astype({"null": float})
+
+    if LooseVersion(arrow_version) < "0.13.0":
+        orig = orig.drop(columns=["datetime64_tz", "datetime64_utc"])
 
     pdt.assert_frame_equal(orig, restored)
