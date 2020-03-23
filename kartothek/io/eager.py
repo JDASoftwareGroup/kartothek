@@ -49,6 +49,8 @@ from kartothek.io_components.write import raise_if_dataset_exists
 @default_docs
 def delete_dataset(dataset_uuid=None, store=None, factory=None):
     """
+    Delete the entire dataset from the store.
+
     Parameters
     ----------
     """
