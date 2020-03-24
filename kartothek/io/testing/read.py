@@ -32,11 +32,13 @@ The following fixtures should be present (see tests.read.conftest)
 
 
 import datetime
+from distutils.version import LooseVersion
 from functools import wraps
 from itertools import permutations
 
 import pandas as pd
 import pandas.testing as pdt
+import pyarrow as pa
 import pytest
 
 from kartothek.core.uuid import gen_uuid
@@ -726,3 +728,35 @@ def test_binary_column_metadata(store_factory, bound_load_dataframes):
 
     # Assert column names are of type `str`, instead of `bytes` objects
     assert set(df.columns.map(type)) == {str}
+
+
+@pytest.mark.xfail(
+    LooseVersion(pa.__version__) < "0.16.1.dev308",
+    reason="pa.Schema.from_pandas cannot deal with ExtensionDtype",
+)
+def test_extensiondtype_rountrip(store_factory, bound_load_dataframes):
+    table_name = SINGLE_TABLE
+    df = {
+        "label": "part1",
+        "data": [
+            (table_name, pd.DataFrame({"str": pd.Series(["a", "b"], dtype="string")}))
+        ],
+    }
+
+    store_dataframes_as_dataset(
+        dfs=[df], store=store_factory, dataset_uuid="dataset_uuid"
+    )
+
+    result = bound_load_dataframes(
+        dataset_uuid="dataset_uuid", store=store_factory, tables=table_name
+    )
+
+    probe = result[0]
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data[table_name] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[table_name] for mp in result]
+    else:
+        result_dfs = result
+    result_df = pd.concat(result_dfs).reset_index(drop=True)
+    pdt.assert_frame_equal(df["data"][0][1], result_df)
