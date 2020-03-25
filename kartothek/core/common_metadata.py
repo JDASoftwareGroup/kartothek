@@ -256,7 +256,7 @@ def make_meta(obj, origin, partition_keys=None):
     if not isinstance(obj, pd.DataFrame):
         raise ValueError("Input must be a pyarrow schema, or a pandas dataframe")
 
-    schema = pa.Schema.from_pandas(obj)
+    schema = pa.Table.from_pandas(obj.head(100)).schema
     pandas_metadata = schema.pandas_metadata
 
     # normalize types
