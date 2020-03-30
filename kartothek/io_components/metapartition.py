@@ -756,7 +756,7 @@ class MetaPartition(Iterable):
                     )
 
                 if list(df.columns) != table_columns:
-                    df = df.loc[:, table_columns]
+                    df = df.reindex(columns=table_columns, copy=False)
             new_data[table] = df
         return self.copy(data=new_data)
 
@@ -801,7 +801,7 @@ class MetaPartition(Iterable):
         ]
         if cleaned_original_columns != original_columns:
             # indexer call is slow, so only do that if really necessary
-            df = df.loc[:, cleaned_original_columns]
+            df = df.reindex(columns=cleaned_original_columns, copy=False)
 
         for pos, (primary_key, value) in enumerate(key_indices):
             # If there are predicates, don't reconstruct the index if it wasn't requested

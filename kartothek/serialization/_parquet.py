@@ -207,7 +207,7 @@ class ParquetSerializer(DataFrameSerializer):
         else:
             df = filter_df(df, filter_query)
         if columns is not None:
-            return df.loc[:, columns]
+            return df.reindex(columns=columns, copy=False)
         else:
             return df
 
