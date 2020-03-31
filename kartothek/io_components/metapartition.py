@@ -681,11 +681,7 @@ class MetaPartition(Iterable):
 
             # In case the columns only refer to the partition indices, we need to load at least a single column to
             # determine the length of the required dataframe.
-            if table_columns is None or (
-                table_columns is not None
-                and self.partition_keys
-                and set(table_columns) == set(self.partition_keys)
-            ):
+            if table_columns is None:
                 table_columns_to_io = None
             else:
                 table_columns_to_io = table_columns
@@ -716,11 +712,7 @@ class MetaPartition(Iterable):
                     ]
 
             # Remove partition_keys from table_columns_to_io
-            if (
-                self.partition_keys
-                and table_columns_to_io
-                and len(set(self.partition_keys) & set(table_columns_to_io)) > 0
-            ):
+            if self.partition_keys and table_columns_to_io is not None:
                 keys_to_remove = set(self.partition_keys) & set(table_columns_to_io)
                 # This is done to not change the ordering of the list
                 table_columns_to_io = [
