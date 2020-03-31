@@ -44,7 +44,7 @@ install:
   - conda activate test-env
   - >
     if [[ "${ARROW_NIGHTLY-0}" == 1 ]]; then
-        travis_retry conda install -c ursa-labs/label/nightly pyarrow
+        travis_retry conda install -c arrow-nightlies arrow-cpp pyarrow
     fi
   - >
     if [[ "${NUMFOCUS_NIGHTLY-0}" == 1 ]]; then
