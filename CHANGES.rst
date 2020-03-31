@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Unreleased
+==========
+
+Improvements
+^^^^^^^^^^^^
+
+* Read performance improved for, especially for partitioned datasets and queries with empty payload columns.
+
+
 Version 3.8.1 (2020-03-20)
 ==========================
 
