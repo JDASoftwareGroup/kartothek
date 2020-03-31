@@ -59,6 +59,7 @@ def _unwrap_partition(part):
 
 
 def _update_dataset(partitions, *args, **kwargs):
+    # TODO: fix the parsing below to adapt for all supported formats (see: parse_input_to_metapartition)
     if any(partitions):
         table_name = next(iter(dict(partitions[0]["data"]).keys()))
         delayed_partitions = [

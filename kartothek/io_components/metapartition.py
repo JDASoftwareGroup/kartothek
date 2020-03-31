@@ -697,9 +697,10 @@ class MetaPartition(Iterable):
                 # the conditition.
                 #
                 # We separate these predicates into their index and their Parquet part.
-                split_predicates, has_index_condition = self._split_predicates_in_index_and_content(
-                    predicates
-                )
+                (
+                    split_predicates,
+                    has_index_condition,
+                ) = self._split_predicates_in_index_and_content(predicates)
 
                 filtered_predicates = []
                 if has_index_condition:
@@ -1348,6 +1349,14 @@ class MetaPartition(Iterable):
         ]
         dct = dict()
         empty_tables = []
+
+        performing_safety_check = False
+        if self.data:  # Safety check: did dataframe size change?
+            performing_safety_check = True
+            safety_check_original_dataframe_sizes = {
+                table_name: len(df) for table_name, df in self.data.items()
+            }
+
         for table, df in self.data.items():
             # Implementation from pyarrow
             # See https://github.com/apache/arrow/blob/b33dfd9c6bd800308bb1619b237dbf24dea159be/python/pyarrow/parquet.py#L1030  # noqa: E501
@@ -1391,6 +1400,23 @@ class MetaPartition(Iterable):
             for empty_table, df in empty_tables:
                 if empty_table not in table_dct:
                     table_dct[empty_table] = df.drop(labels=partition_on, axis=1)
+
+        if performing_safety_check:
+            for table_name in self.data:
+                new_size = sum(
+                    [
+                        len(table_dict[table_name])
+                        for partition_key, table_dict in dct.items()
+                        if table_name in table_dict
+                    ]
+                )
+                if safety_check_original_dataframe_sizes[table_name] != new_size:
+                    raise ValueError(
+                        f"Original dataframe size ({safety_check_original_dataframe_sizes[table_name]} rows) does not "
+                        f"match new dataframe size ({new_size} rows). "
+                        f"Hint: you may see this if you are trying to use `partition_on` on a column with null values."
+                    )
+
         return dct
 
     @staticmethod

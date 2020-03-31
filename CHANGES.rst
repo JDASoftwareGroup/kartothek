@@ -10,6 +10,10 @@ Improvements
 
 * Read performance improved for, especially for partitioned datasets and queries with empty payload columns.
 
+Bug fixes
+^^^^^^^^^
+* GH262: Raise an exception when trying to partition on a column with null values to prevent silent data loss
+
 
 Version 3.8.1 (2020-03-20)
 ==========================
