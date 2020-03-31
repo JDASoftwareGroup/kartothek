@@ -681,11 +681,7 @@ class MetaPartition(Iterable):
 
             # In case the columns only refer to the partition indices, we need to load at least a single column to
             # determine the length of the required dataframe.
-            if table_columns is None or (
-                table_columns is not None
-                and self.partition_keys
-                and set(table_columns) == set(self.partition_keys)
-            ):
+            if table_columns is None:
                 table_columns_to_io = None
             else:
                 table_columns_to_io = table_columns
@@ -716,11 +712,7 @@ class MetaPartition(Iterable):
                     ]
 
             # Remove partition_keys from table_columns_to_io
-            if (
-                self.partition_keys
-                and table_columns_to_io
-                and len(set(self.partition_keys) & set(table_columns_to_io)) > 0
-            ):
+            if self.partition_keys and table_columns_to_io is not None:
                 keys_to_remove = set(self.partition_keys) & set(table_columns_to_io)
                 # This is done to not change the ordering of the list
                 table_columns_to_io = [
@@ -764,7 +756,7 @@ class MetaPartition(Iterable):
                     )
 
                 if list(df.columns) != table_columns:
-                    df = df.loc[:, table_columns]
+                    df = df.reindex(columns=table_columns, copy=False)
             new_data[table] = df
         return self.copy(data=new_data)
 
@@ -792,13 +784,26 @@ class MetaPartition(Iterable):
         if len(key_indices) == 0:
             return df
 
-        index_cols = []
         original_columns = list(df.columns)
-        pd_index = pd.RangeIndex(stop=len(df))
         zeros = np.zeros(len(df), dtype=int)
         schema = self.table_meta[table]
 
-        for primary_key, value in key_indices:
+        # One of the few places `inplace=True` makes a signifcant difference
+        df.reset_index(drop=True, inplace=True)
+
+        index_names = [primary_key for primary_key, _ in key_indices]
+        # The index might already be part of the dataframe which is recovered from the parquet file.
+        # In this case, still use the reconstructed index col to have consistent index columns behavior.
+        # In this case the column in part of `original_columns` and must be removed to avoid duplication
+        # in the column axis
+        cleaned_original_columns = [
+            orig for orig in original_columns if orig not in index_names
+        ]
+        if cleaned_original_columns != original_columns:
+            # indexer call is slow, so only do that if really necessary
+            df = df.reindex(columns=cleaned_original_columns, copy=False)
+
+        for pos, (primary_key, value) in enumerate(key_indices):
             # If there are predicates, don't reconstruct the index if it wasn't requested
             if columns is not None and primary_key not in columns:
                 continue
@@ -830,33 +835,11 @@ class MetaPartition(Iterable):
                     cats = pd.Series(value).dt.date
                 else:
                     cats = [value]
-                cat = pd.Categorical.from_codes(zeros, categories=cats)
-                ind_col = pd.Series(cat, index=pd_index, name=primary_key)
+                value = pd.Categorical.from_codes(zeros, categories=cats)
             else:
-                ind_col = pd.Series(
-                    value, index=pd_index, dtype=dtype, name=primary_key
-                )
                 if convert_to_date:
-                    ind_col = ind_col.dt.date
-            index_cols.append(ind_col)
-
-        # One of the few places `inplace=True` makes a signifcant difference
-        df.reset_index(drop=True, inplace=True)
-
-        index_names = [col.name for col in index_cols]
-        # The index might already be part of the dataframe which is recovered from the parquet file.
-        # In this case, still use the reconstructed index col to have consistent index columns behavior.
-        # In this case the column in part of `original_columns` and must be removed to avoid duplication
-        # in the column axis
-        cleaned_original_columns = [
-            orig for orig in original_columns if orig not in index_names
-        ]
-        if cleaned_original_columns != original_columns:
-            # indexer call is slow, so only do that if really necessary
-            df = df.loc[:, cleaned_original_columns]
-
-        if len(index_cols) > 0:
-            df = pd.concat(index_cols + [df], axis=1, sort=False, join="inner")
+                    value = pd.Timestamp(value).to_pydatetime().date()
+            df.insert(pos, primary_key, value)
 
         return df
 
