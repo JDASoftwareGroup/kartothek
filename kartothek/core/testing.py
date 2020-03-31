@@ -5,11 +5,13 @@ import contextlib
 import datetime
 from datetime import date
 from unittest import mock
+from warnings import catch_warnings, simplefilter
 
 import hypothesis.extra.numpy as hyp_np
 import hypothesis.strategies as hyp_st
 import numpy as np
 import pandas as pd
+from hypothesis.errors import NonInteractiveExampleWarning
 
 from kartothek.core.uuid import gen_uuid_object
 
@@ -102,7 +104,9 @@ def get_numpy_array_strategy(
     # the text example generation has quite some overhead when called the first time.
     # we don't want this in our test sample generation since the HealthCheck of hypothesis
     # might be triggered.
-    hyp_st.text().example()
+    with catch_warnings():
+        simplefilter("ignore", NonInteractiveExampleWarning)
+        hyp_st.text().example()
 
     dtype_strategy = get_scalar_dtype_strategy(exclude_dtypes)
     array_strategy = hyp_np.arrays(dtype=dtype_strategy, shape=shape, unique=unique)
