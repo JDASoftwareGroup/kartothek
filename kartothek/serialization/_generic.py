@@ -378,7 +378,7 @@ def _ensure_type_stability(
         error messages.
     """
 
-    value_dtype = pd.Series(value).dtype
+    value_dtype = pd.Series(value if is_list_like(value) else [value]).dtype
     array_like, array_value_type = _handle_categorical_data(array_like, require_ordered)
     array_like, array_value_type = _handle_null_arrays(array_like, value_dtype)
 
