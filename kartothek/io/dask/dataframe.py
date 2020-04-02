@@ -190,7 +190,7 @@ def update_dataset_from_ddf(
 
             .. code::
 
-                with dask.config(shuffle='tasks'):
+                with dask.config.set(shuffle='tasks'):
                     graph = update_dataset_from_ddf(...)
                 graph.compute()
 
