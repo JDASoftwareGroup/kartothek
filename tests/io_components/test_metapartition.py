@@ -1454,7 +1454,9 @@ def test_concat_metapartition_different_partitioning(df_all_types):
 
 
 # We can't partition on null columns (gh-262)
-@pytest.mark.parametrize("col", set(get_dataframe_not_nested().columns) - {"null"})
+@pytest.mark.parametrize(
+    "col", sorted(set(get_dataframe_not_nested().columns) - {"null"})
+)
 def test_partition_on_scalar_intermediate(df_not_nested, col):
     """
     Test against a bug where grouping leaves a scalar value
