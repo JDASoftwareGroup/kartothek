@@ -697,9 +697,10 @@ class MetaPartition(Iterable):
                 # the conditition.
                 #
                 # We separate these predicates into their index and their Parquet part.
-                split_predicates, has_index_condition = self._split_predicates_in_index_and_content(
-                    predicates
-                )
+                (
+                    split_predicates,
+                    has_index_condition,
+                ) = self._split_predicates_in_index_and_content(predicates)
 
                 filtered_predicates = []
                 if has_index_condition:
@@ -1348,7 +1349,13 @@ class MetaPartition(Iterable):
         ]
         dct = dict()
         empty_tables = []
+
         for table, df in self.data.items():
+            # Check that data sizes do not change. This might happen if the
+            # groupby below drops data, e.g. nulls
+            size_after = 0
+            size_before = len(df)
+
             # Implementation from pyarrow
             # See https://github.com/apache/arrow/blob/b33dfd9c6bd800308bb1619b237dbf24dea159be/python/pyarrow/parquet.py#L1030  # noqa: E501
 
@@ -1386,11 +1393,20 @@ class MetaPartition(Iterable):
                 if new_label not in dct:
                     dct[new_label] = {}
                 dct[new_label][table] = group
+                size_after += len(group)
+
+            if size_before != size_after:
+                raise ValueError(
+                    f"Original dataframe size ({size_before} rows) does not "
+                    f"match new dataframe size ({size_after} rows) for table {table}. "
+                    f"Hint: you may see this if you are trying to use `partition_on` on a column with null values."
+                )
 
         for label, table_dct in dct.items():
             for empty_table, df in empty_tables:
                 if empty_table not in table_dct:
                     table_dct[empty_table] = df.drop(labels=partition_on, axis=1)
+
         return dct
 
     @staticmethod

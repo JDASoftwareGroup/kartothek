@@ -664,3 +664,24 @@ def test_update_first_time_with_secondary_indices(
         dataset_uuid=dataset_uuid,
         secondary_indices=dataset_update_secondary_indices,
     )
+
+
+def test_partition_on_null(store_factory, bound_update_dataset):  # gh-262
+    keys = ["a", "b", "c", np.nan]
+    values = range(len(keys))
+    d = dict(zip(keys, values))
+    df = (
+        pd.DataFrame.from_dict(d, orient="index")
+        .reset_index()
+        .rename(columns={"index": "part", 0: "value"})
+    )
+
+    with pytest.raises(
+        ValueError, match=r"Original dataframe size .* on a column with null values."
+    ):
+        bound_update_dataset(
+            [{"data": {"table": df}}],
+            store=store_factory,
+            dataset_uuid="a_unique_dataset_identifier",
+            partition_on=["part"],
+        )

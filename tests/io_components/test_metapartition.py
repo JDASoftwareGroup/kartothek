@@ -13,6 +13,7 @@ import pytest
 from kartothek.core.common_metadata import make_meta, store_schema_metadata
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
+from kartothek.core.testing import get_dataframe_not_nested
 from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
     MetaPartition,
@@ -1452,7 +1453,11 @@ def test_concat_metapartition_different_partitioning(df_all_types):
         MetaPartition.concat_metapartitions([mp1, mp2])
 
 
-def test_partition_on_scalar_intermediate(df_not_nested):
+# We can't partition on null columns (gh-262)
+@pytest.mark.parametrize(
+    "col", sorted(set(get_dataframe_not_nested().columns) - {"null"})
+)
+def test_partition_on_scalar_intermediate(df_not_nested, col):
     """
     Test against a bug where grouping leaves a scalar value
     """
@@ -1460,9 +1465,8 @@ def test_partition_on_scalar_intermediate(df_not_nested):
     mp = MetaPartition(
         label="somelabel", data={"table": df_not_nested}, metadata_version=4
     )
-    for col in df_not_nested:
-        new_mp = mp.partition_on(col)
-        assert len(new_mp) == 1
+    new_mp = mp.partition_on(col)
+    assert len(new_mp) == 1
 
 
 def test_partition_on_with_primary_index_invalid(df_not_nested):
