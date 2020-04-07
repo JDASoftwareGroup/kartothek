@@ -45,8 +45,11 @@ def test_store_schema_metadata(store, df_all_types):
 
     key = "some_uuid/some_table/_common_metadata"
     assert key in store.keys()
-    pq_file = pq.ParquetFile(store.open(key))
-    actual_schema = pq_file.schema.to_arrow_schema()
+    # pq_file = pq.ParquetFile(store.open(key))
+    # actual_schema = pq_file.schema.to_arrow_schema()
+    actual_schema = read_schema_metadata(
+        dataset_uuid="some_uuid", store=store, table="some_table"
+    )
     fields = [
         pa.field("array_float32", pa.list_(pa.float64())),
         pa.field("array_float64", pa.list_(pa.float64())),
@@ -63,6 +66,8 @@ def test_store_schema_metadata(store, df_all_types):
         pa.field("byte", pa.binary()),
         pa.field("date", pa.date32()),
         pa.field("datetime64", pa.timestamp("us")),
+        pa.field("datetime64_tz", pa.timestamp("us", tz="US/Eastern")),
+        pa.field("datetime64_utc", pa.timestamp("us", tz="UTC")),
         pa.field("float32", pa.float64()),
         pa.field("float64", pa.float64()),
         pa.field("int16", pa.int64()),
@@ -96,7 +101,7 @@ def test_pickle(df_all_types):
     obj1 = make_meta(df_all_types, origin="df_all_types")
     s = pickle.dumps(obj1)
     obj2 = pickle.loads(s)
-    assert obj1 == obj2
+    assert SchemaWrapper(obj1, "obj1") == SchemaWrapper(obj2, "obj2")
 
 
 def test_wrapper(df_all_types):
@@ -445,9 +450,9 @@ def test_diff_schemas(df_all_types):
  array_float64: list<item: double>
    child 0, item: double
  array_int16: list<item: int64>
-@@ -26,10 +24,11 @@
+@@ -28,10 +26,11 @@
 
- datetime64: timestamp[ns]
+ datetime64_utc: timestamp[us, tz=UTC]
  float32: double
  float64: double
 -int16: int64
@@ -477,7 +482,7 @@ def test_diff_schemas(df_all_types):
                'metadata': None,
                'name': 'array_float64',
                'numpy_type': 'object',
-@@ -91,8 +86,8 @@
+@@ -101,8 +96,8 @@
 
               {'field_name': 'int16',
                'metadata': None,
@@ -489,7 +494,7 @@ def test_diff_schemas(df_all_types):
               {'field_name': 'int32',
                'metadata': None,
                'name': 'int32',
-@@ -108,6 +103,11 @@
+@@ -118,6 +113,11 @@
 
                'name': 'int8',
                'numpy_type': 'int64',
