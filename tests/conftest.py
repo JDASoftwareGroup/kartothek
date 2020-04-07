@@ -31,6 +31,9 @@ from kartothek.serialization import ParquetSerializer
 pd.options.mode.chained_assignment = "raise"
 
 
+pytest.register_assert_rewrite("kartothek.io.testing")
+
+
 @pytest.fixture
 def frozen_time():
     """
