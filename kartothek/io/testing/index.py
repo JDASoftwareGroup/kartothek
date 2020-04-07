@@ -158,3 +158,35 @@ def test_indices_uints(store_factory, metadata_version, bound_build_dataset_indi
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
     assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+
+
+def test_empty_partitions(store_factory, metadata_version, bound_build_dataset_indices):
+    dataset_uuid = "dataset_uuid"
+
+    partitions = [
+        {
+            "label": "cluster_1",
+            "data": [("core", pd.DataFrame({"p": pd.Series([], dtype=np.int8)}))],
+        },
+        {
+            "label": "cluster_2",
+            "data": [("core", pd.DataFrame({"p": pd.Series([1], dtype=np.int8)}))],
+        },
+    ]
+    expected = {1: ["cluster_2"]}
+
+    dataset = store_dataframes_as_dataset(
+        dfs=partitions,
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        metadata_version=metadata_version,
+    )
+    dataset = dataset.load_all_indices(store=store_factory)
+    assert not dataset.indices
+
+    # Create indices
+    bound_build_dataset_indices(store_factory, dataset_uuid, columns=["p"])
+
+    # Assert indices are properly created
+    dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
+    assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
