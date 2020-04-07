@@ -1236,7 +1236,7 @@ class MetaPartition(Iterable):
             new_index = ExplicitSecondaryIndex(
                 column=col, index_dct={value: [self.label] for value in possible_values}
             )
-            if col in self.indices:
+            if (col in self.indices) and self.indices[col].loaded:
                 new_indices[col] = self.indices[col].update(new_index)
             else:
                 new_indices[col] = new_index

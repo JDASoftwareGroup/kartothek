@@ -134,6 +134,7 @@ def test_indices_uints(store_factory, metadata_version, bound_build_dataset_indi
             "data": [("core", pd.DataFrame({"p": pd.Series([p3], dtype=np.uint64)}))],
         },
     ]
+    expected = {p1: ["cluster_1"], p2: ["cluster_2"], p3: ["cluster_3"]}
 
     dataset = store_dataframes_as_dataset(
         dfs=partitions,
@@ -149,5 +150,11 @@ def test_indices_uints(store_factory, metadata_version, bound_build_dataset_indi
 
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
-    expected = {p1: ["cluster_1"], p2: ["cluster_2"], p3: ["cluster_3"]}
+    assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+
+    # Re-create indices
+    bound_build_dataset_indices(store_factory, dataset_uuid, columns=["p"])
+
+    # Assert indices are properly created
+    dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
     assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)

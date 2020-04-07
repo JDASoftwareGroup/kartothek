@@ -14,6 +14,8 @@ Bug fixes
 ^^^^^^^^^
 * GH262: Raise an exception when trying to partition on a column with null values to prevent silent data loss
 * Fix multiple index creation issues (cutting data, crashing) for ``uint`` data
+* Fix index update issues for some types resulting in ``TypeError: Trying to update an index with different types...``
+  messages.
 
 
 Version 3.8.1 (2020-03-20)
