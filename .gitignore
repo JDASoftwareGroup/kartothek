@@ -18,6 +18,7 @@ __pycache__/
 coverage.xml
 htmlcov/
 docs/_build
+pip-wheel-metadata/
 
 # dask.distributed tests
 dask-worker-space/
