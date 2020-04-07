@@ -418,15 +418,7 @@ def _schema2bytes(schema):
 def _bytes2schema(data):
     reader = pa.BufferReader(data)
     schema = pq.read_schema(reader)
-    # fields = []
-    # for f in schema:
-    #     # schema data recovered from parquet always contains timestamp data in us-granularity, but pandas will use
-    #     # ns-granularity, so we re-align the two different worlds here
-    #     if pa.types.is_timestamp(f.type):
-    #         f = pa.field(f.name, pa.timestamp("us", tz=f.type.tz))
-
-    #     fields.append(f)
-    return schema  # pa.schema(fields, schema.metadata)
+    return schema
 
 
 def _pandas_in_schemas(schemas):
