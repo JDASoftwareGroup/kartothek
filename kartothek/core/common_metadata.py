@@ -90,12 +90,11 @@ class SchemaWrapper:
                         else:
                             ## using pandas meta to pass timezone
                             # pandas_field = [field for field in pandas_metadata['columns'] if field['name']==f.name]
-                            pandas_field = list(
-                                filter(
-                                    lambda x: x["name"] == f.name,
-                                    pandas_metadata["columns"],
-                                )
-                            )
+                            pandas_field = [
+                                col
+                                for col in pandas_metadata["columns"]
+                                if col["name"] == f.name
+                            ]
                             if (
                                 len(pandas_field) == 1
                                 and len(pandas_field) == 1
