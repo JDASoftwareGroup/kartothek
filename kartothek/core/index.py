@@ -846,21 +846,46 @@ def _parquet_bytes_to_dict(column: str, index_buffer: bytes):
 
 
 def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataType):
-    keys = index_dct.keys()
-    if (dtype is None) and (len(keys) > 0):
-        probe = next(iter(keys))
+    keys_it = index_dct.keys()
+
+    # find possible type probe
+    if len(keys_it) > 0:
+        probe = next(iter(keys_it))
+        has_probe = True
+    else:
+        probe = None
+        has_probe = False
+
+    # type inference
+    if (dtype is None) and has_probe:
         if isinstance(probe, np.datetime64):
             dtype = pa.timestamp(
                 "ns"
             )  # workaround pyarrow type inference bug (ARROW-2554)
         elif isinstance(probe, pd.Timestamp):
-            keys = [d.to_datetime64() for d in keys]
             dtype = pa.timestamp(
                 "ns"
             )  # workaround pyarrow type inference bug (ARROW-2554)
-        elif isinstance(probe, np.bool_):
-            keys = [bool(d) for d in keys]
+        elif isinstance(probe, (np.bool_, bool)):
+            dtype = pa.bool_()
 
+    # fix pyarrow input
+    if dtype is None:
+        keys = np.asarray(list(keys_it))
+    else:
+        if pa.types.is_unsigned_integer(dtype):
+            # numpy might create object ndarrays here, which pyarrow might (for some reason) convert fo floats
+            keys = list(keys_it)
+        elif (
+            dtype == pa.timestamp("ns")
+            and has_probe
+            and isinstance(probe, pd.Timestamp)
+        ):
+            keys = np.asarray([d.to_datetime64() for d in keys_it])
+        else:
+            keys = np.asarray(list(keys_it))
+
+    # TODO: Remove work-around
     # This is because of ARROW-1646:
     #   [Python] pyarrow.array cannot handle NumPy scalar types
     # Additional note: pyarrow.array is supposed to infer type automatically.
@@ -870,7 +895,6 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
         # the np.array dtype will be double which arrow cannot convert to the target type, so use an empty list instead
         labeled_array = pa.array([], type=dtype)
     else:
-        keys = np.array(list(keys))
         labeled_array = pa.array(keys, type=dtype)
 
     partition_array = pa.array(list(index_dct.values()))
