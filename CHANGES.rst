@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 3.8.1 (2020-03-20)
+Version 3.8.1 (2020-03-XX)
 ==========================
 
 Improvements
