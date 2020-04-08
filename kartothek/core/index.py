@@ -885,6 +885,7 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
         else:
             keys = np.asarray(list(keys_it))
 
+    # TODO: Remove work-around
     # This is because of ARROW-1646:
     #   [Python] pyarrow.array cannot handle NumPy scalar types
     # Additional note: pyarrow.array is supposed to infer type automatically.
