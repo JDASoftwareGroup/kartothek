@@ -199,11 +199,7 @@ def test_update_dataset_with_partitions__reducer_partitions(
     assert set(store_factory().keys()) == set()
 
     df1 = pd.DataFrame(
-        {
-            "P": [1, 2, 3, 1, 2, 3],
-            "L": [1, 1, 1, 1, 1, 1],
-            "TARGET": pd.np.arange(10, 16),
-        }
+        {"P": [1, 2, 3, 1, 2, 3], "L": [1, 1, 1, 1, 1, 1], "TARGET": np.arange(10, 16)}
     )
     df2 = df1.copy(deep=True)
     df2.L = 2
@@ -482,7 +478,7 @@ def test_sort_partitions_by(
         {
             "P": [1, 2, 3, 1, 2, 3],
             "L": [1, 1, 1, 1, 1, 1],
-            "TARGET": list(reversed(pd.np.arange(10, 16))),
+            "TARGET": list(reversed(np.arange(10, 16))),
         }
     )
 
