@@ -1235,11 +1235,18 @@ class MetaPartition(Iterable):
 
             # There is at least one table with this column (see check above), so we can get the dtype from there. Also,
             # shared dtypes are ensured to be compatible.
-            dtype = list(
-                meta.field(col).type
-                for meta in self.table_meta.values()
-                if col in meta.names
-            )[0]
+            if ARROW_LARGER_EQ_0150:
+                dtype = list(
+                    meta.field(col).type
+                    for meta in self.table_meta.values()
+                    if col in meta.names
+                )[0]
+            else:
+                dtype = list(
+                    meta.field_by_name(col).type
+                    for meta in self.table_meta.values()
+                    if col in meta.names
+                )[0]
 
             new_index = ExplicitSecondaryIndex(
                 column=col,
