@@ -34,10 +34,8 @@ class SchemaWrapper:
             origin = copy(origin)
         if not all(isinstance(s, str) for s in origin):
             raise TypeError("Schema origin elements must be strings.")
-        # print('init')
         self.__schema = schema
         self.__origin = origin
-        # print('compat')
         self._schema_compat()
 
     def with_origin(self, origin: Union[str, Set[str]]) -> "SchemaWrapper":
