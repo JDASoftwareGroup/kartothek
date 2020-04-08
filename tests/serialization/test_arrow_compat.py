@@ -45,7 +45,7 @@ def test_arrow_compat(arrow_version, reference_store, mocker):
         bytes=b"\x82\xd6\xc1\x06Z\x08\x11\xe9\x85eJ\x00\x07\xf8\n\x10"
     )
 
-    orig = get_dataframe_alltypes()
+    orig = get_dataframe_alltypes().drop(columns=["datetime64_tz", "datetime64_utc"])
     restored = ParquetSerializer().restore_dataframe(
         store=reference_store, key=arrow_version + ".parquet", date_as_object=True
     )

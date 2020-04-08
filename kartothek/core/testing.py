@@ -62,6 +62,12 @@ def get_dataframe_not_nested():
             "float64": pd.Series([1.0], dtype=np.float64),
             "date": pd.Series([date(2018, 1, 1)], dtype=object),
             "datetime64": pd.Series(["2018-01-01"], dtype="datetime64[ns]"),
+            "datetime64_tz": pd.Series(
+                pd.date_range("2012-1-1 1:30", periods=1, freq="min", tz="US/Eastern")
+            ),
+            "datetime64_utc": pd.Series(
+                pd.date_range("2012-1-1 1:30", periods=1, freq="min", tz="UTC")
+            ),
             "unicode": pd.Series(["Ö"], dtype=np.unicode),
             "null": pd.Series([None], dtype=object),
             # Adding a byte type with value as byte sequence which can not be encoded as UTF8

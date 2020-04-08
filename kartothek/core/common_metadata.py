@@ -34,9 +34,10 @@ class SchemaWrapper:
             origin = copy(origin)
         if not all(isinstance(s, str) for s in origin):
             raise TypeError("Schema origin elements must be strings.")
-
+        # print('init')
         self.__schema = schema
         self.__origin = origin
+        # print('compat')
         self._schema_compat()
 
     def with_origin(self, origin: Union[str, Set[str]]) -> "SchemaWrapper":
@@ -78,6 +79,35 @@ class SchemaWrapper:
 
             schema = schema.remove_metadata()
             md = {b"pandas": _dict_to_binary(pandas_metadata)}
+            # https://github.com/JDASoftwareGroup/kartothek/issues/259
+
+            if schema is not None:
+                fields = []
+                for f in schema:
+                    if pa.types.is_timestamp(f.type):
+                        if ARROW_LARGER_EQ_0150:
+                            f = pa.field(f.name, pa.timestamp("us", tz=f.type.tz))
+                        else:
+                            ## using pandas meta to pass timezone
+                            # pandas_field = [field for field in pandas_metadata['columns'] if field['name']==f.name]
+                            pandas_field = [
+                                col
+                                for col in pandas_metadata["columns"]
+                                if col["name"] == f.name
+                            ]
+                            if (
+                                len(pandas_field) == 1
+                                and len(pandas_field) == 1
+                                and pandas_field[0].get("metadata")
+                            ):
+                                tz = pandas_field[0].get("metadata", {}).get("timezone")
+                                f = pa.field(f.name, pa.timestamp("us", tz=tz))
+                            else:
+                                f = pa.field(f.name, pa.timestamp("us"))
+                    fields.append(f)
+
+            schema = pa.schema(fields)
+
             if ARROW_LARGER_EQ_0150:
                 schema = schema.with_metadata(md)
             else:
@@ -380,24 +410,14 @@ def store_schema_metadata(schema, dataset_uuid, store, table):
 
 def _schema2bytes(schema):
     buf = pa.BufferOutputStream()
-    pq.write_metadata(schema, buf, version="2.0", coerce_timestamps="us")
+    pq.write_metadata(schema, buf, version="2.0")
     return buf.getvalue().to_pybytes()
 
 
 def _bytes2schema(data):
     reader = pa.BufferReader(data)
     schema = pq.read_schema(reader)
-    fields = []
-    for idx in range(len(schema)):
-        f = schema[idx]
-
-        # schema data recovered from parquet always contains timestamp data in us-granularity, but pandas will use
-        # ns-granularity, so we re-align the two different worlds here
-        if f.type == pa.timestamp("us"):
-            f = pa.field(f.name, pa.timestamp("ns"))
-
-        fields.append(f)
-    return pa.schema(fields, schema.metadata)
+    return schema
 
 
 def _pandas_in_schemas(schemas):
