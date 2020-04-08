@@ -45,8 +45,7 @@ def test_store_schema_metadata(store, df_all_types):
 
     key = "some_uuid/some_table/_common_metadata"
     assert key in store.keys()
-    # pq_file = pq.ParquetFile(store.open(key))
-    # actual_schema = pq_file.schema.to_arrow_schema()
+    
     actual_schema = read_schema_metadata(
         dataset_uuid="some_uuid", store=store, table="some_table"
     )
