@@ -34,10 +34,8 @@ def test_arrow_compat(arrow_version, reference_store, mocker):
     Test if reading/writing across the supported arrow versions is actually
     compatible
 
-    Generate new reference files with::
-
-        import pyarrow as pa
-        ParquetSerializer().store(reference_store, pa.__version__, orig)
+    Generate new reference files by going to the `reference-data/arrow-compat` directory and
+    executing `generate_reference.py` or `batch_generate_reference.sh`.
     """
 
     uuid_hook = mocker.patch("kartothek.core.uuid._uuid_hook_object")
