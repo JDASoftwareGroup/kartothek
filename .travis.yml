@@ -44,7 +44,10 @@ install:
   - conda activate test-env
   - >
     if [[ "${ARROW_NIGHTLY-0}" == 1 ]]; then
-        travis_retry conda install -c ursa-labs/label/nightly pyarrow
+        # Install both arrow-cpp and pyarrow to make sure that we have the
+        # latest nightly of both packages. It is sadly not guaranteed that the
+        # nightlies and the latest release would otherwise work together.
+        travis_retry conda install -c arrow-nightlies arrow-cpp pyarrow
     fi
   - >
     if [[ "${NUMFOCUS_NIGHTLY-0}" == 1 ]]; then
