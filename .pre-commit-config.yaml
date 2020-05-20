@@ -15,8 +15,8 @@ repos:
         args:
           - --target-version=py36
 
-  - repo: git://github.com/pre-commit/pre-commit-hooks
-    rev: v2.2.1
+  - repo: https://gitlab.com/pycqa/flake8
+    rev: 3.7.9
     hooks:
     -   id: flake8
 
