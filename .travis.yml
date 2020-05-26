@@ -28,7 +28,7 @@ before_install:
   - travis_retry wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
   - >
     RETRIES=0;
-    until (timeout 30 bash miniconda.sh -b -p $HOME/miniconda) || [[ $RETRIES -eq 4 ]]; do
+    until (timeout --signal=KILL 180 bash miniconda.sh -b -p $HOME/miniconda) || [[ $RETRIES -eq 4 ]]; do
         rm -rf $HOME/miniconda;
         echo "Try number: " $(( RETRIES++ ))
     done
@@ -90,7 +90,7 @@ matrix:
         - travis_retry wget https://repo.anaconda.com/miniconda/Miniconda3-latest-MacOSX-x86_64.sh -O miniconda.sh
         - >
           RETRIES=0;
-          until (gtimeout 30 bash miniconda.sh -b -p $HOME/miniconda) || [[ $RETRIES -eq 4 ]]; do
+          until (gtimeout --signal=KILL 180 bash miniconda.sh -b -p $HOME/miniconda) || [[ $RETRIES -eq 4 ]]; do
               rm -rf $HOME/miniconda;
               echo "Try number: " $(( RETRIES++ ))
           done
