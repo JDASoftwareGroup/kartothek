@@ -58,7 +58,7 @@ def read_dataset_as_ddf(
             f"The paramter `dask_index_on` must be a string but got {type(dask_index_on)}"
         )
 
-    if dask_index_on is not None and dispatch_by is not None:
+    if dask_index_on is not None and dispatch_by is not None and len(dispatch_by) > 0:
         raise ValueError(
             "`read_dataset_as_ddf` got parameters `dask_index_on` and `dispatch_by`. "
             "Note that `dispatch_by` can only be used if `dask_index_on` is None."
