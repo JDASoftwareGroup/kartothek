@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
-
-
+import logging
 from functools import partial
 from typing import List
 
@@ -15,7 +13,11 @@ from kartothek.io_components.utils import sort_values_categorical
 
 from ._utils import map_delayed
 
+_logger = logging.getLogger()
+
 _KTK_HASH_BUCKET = "__KTK_HASH_BUCKET"
+
+_PAYLOAD_COL = "__ktk_shuffle_payload"
 
 
 def _hash_bucket(df: pd.DataFrame, subset: List[str], num_buckets: int):
@@ -35,6 +37,40 @@ def _hash_bucket(df: pd.DataFrame, subset: List[str], num_buckets: int):
     return df.assign(**{_KTK_HASH_BUCKET: buckets.astype(f"uint{bit_width}")})
 
 
+def _pack_payload(partition: pd.DataFrame, group_key: List[str]) -> pd.DataFrame:
+    # TODO: benchmark how good plain parquet would do
+    try:
+        # Technically distributed is an optional dependency
+        from distributed.protocol import serialize_bytes
+    except ImportError:
+        _logger.warning(
+            "Shuffle payload columns cannot be compressed since distributed is not installed."
+        )
+        return partition
+
+    # This is not _optimal_ since dask internally will perform another groupby in shuffle-group
+    # Once / if this is merged upstream, we can get rid of this
+    res = partition.groupby(group_key, sort=False, observed=True).apply(serialize_bytes)
+    res.name = _PAYLOAD_COL
+    return res.reset_index()
+
+
+def _unpack_payload(partition: pd.DataFrame) -> pd.DataFrame:
+    try:
+        # Technically distributed is an optional dependency
+        from distributed.protocol import deserialize_bytes
+    except ImportError:
+        _logger.warning(
+            "Shuffle payload columns cannot be compressed since distributed is not installed."
+        )
+        return partition
+
+    return pd.concat(
+        partition[_PAYLOAD_COL].map(lambda part: deserialize_bytes(part)).values,
+        copy=False,
+    )
+
+
 def _update_dask_partitions_shuffle(
     ddf,
     table,
@@ -51,14 +87,16 @@ def _update_dask_partitions_shuffle(
     if ddf.npartitions == 0:
         return ddf
 
+    group_cols = partition_on[:]
     if num_buckets is not None:
         meta = ddf._meta
         meta[_KTK_HASH_BUCKET] = np.uint64(0)
         ddf = ddf.map_partitions(_hash_bucket, bucket_by, num_buckets, meta=meta)
-        group_cols = [partition_on[0], _KTK_HASH_BUCKET]
-    else:
-        group_cols = [partition_on[0]]
+        group_cols.append(_KTK_HASH_BUCKET)
 
+    packed_meta = ddf._meta[group_cols]
+    packed_meta[_PAYLOAD_COL] = b""
+    ddf = ddf.map_partitions(_pack_payload, group_key=group_cols, meta=packed_meta)
     ddf = ddf.groupby(by=group_cols)
     ddf = ddf.apply(
         partial(
@@ -127,6 +165,7 @@ def _store_partition(
     df_serializer,
     metadata_version,
 ):
+    df = _unpack_payload(df)
     if _KTK_HASH_BUCKET in df:
         df = df.drop(_KTK_HASH_BUCKET, axis=1)
     store = store_factory()
