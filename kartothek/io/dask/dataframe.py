@@ -6,7 +6,7 @@ from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
-from kartothek.io_components.metapartition import parse_input_to_metapartition
+from kartothek.io_components.metapartition import parse_input_to_metapartition, SINGLE_TABLE
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
@@ -26,7 +26,7 @@ from .delayed import read_table_as_delayed
 def read_dataset_as_ddf(
     dataset_uuid=None,
     store=None,
-    table=None,
+    table=SINGLE_TABLE,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -123,7 +123,7 @@ def update_dataset_from_ddf(
     ddf,
     store=None,
     dataset_uuid=None,
-    table=None,
+    table=SINGLE_TABLE,
     secondary_indices=None,
     shuffle=False,
     repartition_ratio=None,
