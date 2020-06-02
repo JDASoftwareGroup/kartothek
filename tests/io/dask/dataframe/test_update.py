@@ -14,8 +14,8 @@ from kartothek.core.factory import DatasetFactory
 from kartothek.io.dask._update import (
     _KTK_HASH_BUCKET,
     _hash_bucket,
-    _pack_payload,
-    _unpack_payload,
+    pack_payload_pandas,
+    unpack_payload_pandas,
 )
 from kartothek.io.dask.dataframe import update_dataset_from_ddf
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
@@ -112,6 +112,7 @@ def test_update_shuffle_buckets(
       most ``num_buckets`` per primary partition value.
     * If we demand a column to be sorted it is per partition monotonic
     """
+
     primaries = np.arange(unique_primaries)
     secondary = np.arange(unique_secondaries)
     num_rows = 100
@@ -292,16 +293,33 @@ def test_pack_payload(df_all_types):
     df = pd.concat([df_all_types] * 10, ignore_index=True)
     size_before = df.memory_usage(deep=True).sum()
 
-    packed_df = _pack_payload(df, group_key=list(df.columns[-2:]))
+    packed_df = pack_payload_pandas(df, group_key=list(df.columns[-2:]))
 
     size_after = packed_df.memory_usage(deep=True).sum()
 
     assert size_after < size_before
 
 
+def test_pack_payload_empty(df_all_types):
+    # For a single row dataframe the packing actually has a few more bytes
+    df_empty = df_all_types.iloc[:0]
+
+    group_key = [df_all_types.columns[-1]]
+    pdt.assert_frame_equal(
+        df_empty,
+        unpack_payload_pandas(
+            pack_payload_pandas(df_empty, group_key=group_key), unpack_meta=df_empty
+        ),
+    )
+
+
 @pytest.mark.parametrize("num_group_cols", [1, 4])
 def test_pack_payload_roundtrip(df_all_types, num_group_cols):
     group_key = list(df_all_types.columns[-num_group_cols:])
     pdt.assert_frame_equal(
-        df_all_types, _unpack_payload(_pack_payload(df_all_types, group_key=group_key))
+        df_all_types,
+        unpack_payload_pandas(
+            pack_payload_pandas(df_all_types, group_key=group_key),
+            unpack_meta=df_all_types,
+        ),
     )
