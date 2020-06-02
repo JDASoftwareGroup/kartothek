@@ -16,7 +16,7 @@ from kartothek.io_components.utils import (
     validate_partition_keys,
 )
 
-from ._update import _update_dask_partitions_one_to_one, _update_dask_partitions_shuffle
+from ._update import update_dask_partitions_one_to_one, update_dask_partitions_shuffle
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
 
@@ -258,7 +258,7 @@ def update_dataset_from_ddf(
         secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
 
         if shuffle and partition_on:
-            mps = _update_dask_partitions_shuffle(
+            mps = update_dask_partitions_shuffle(
                 ddf=ddf,
                 table=table,
                 secondary_indices=secondary_indices,
@@ -274,7 +274,7 @@ def update_dataset_from_ddf(
         else:
             delayed_tasks = ddf.to_delayed()
             delayed_tasks = [{"data": {table: task}} for task in delayed_tasks]
-            mps = _update_dask_partitions_one_to_one(
+            mps = update_dask_partitions_one_to_one(
                 delayed_tasks=delayed_tasks,
                 secondary_indices=secondary_indices,
                 metadata_version=metadata_version,

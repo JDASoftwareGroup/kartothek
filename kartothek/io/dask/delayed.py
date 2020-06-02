@@ -39,7 +39,7 @@ from kartothek.io_components.write import (
     store_dataset_from_partitions,
 )
 
-from ._update import _update_dask_partitions_one_to_one
+from ._update import update_dask_partitions_one_to_one
 from ._utils import (
     _cast_categorical_to_index_cat,
     _get_data,
@@ -461,7 +461,7 @@ def update_dataset_from_delayed(
     )
 
     secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
-    mps = _update_dask_partitions_one_to_one(
+    mps = update_dask_partitions_one_to_one(
         delayed_tasks=delayed_tasks,
         secondary_indices=secondary_indices,
         metadata_version=metadata_version,
