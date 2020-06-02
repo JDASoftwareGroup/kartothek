@@ -180,7 +180,7 @@ def update_dask_partitions_shuffle(
     store_factory: StoreFactoryType,
     df_serializer: DataFrameSerializer,
     dataset_uuid: str,
-    num_buckets: Optional[int],
+    num_buckets: int,
     sort_partitions_by: Optional[str],
     bucket_by: List[str],
 ) -> da.Array:
@@ -236,11 +236,14 @@ def update_dask_partitions_shuffle(
         return ddf
 
     group_cols = partition_on.copy()
-    if num_buckets is not None:
-        meta = ddf._meta
-        meta[_KTK_HASH_BUCKET] = np.uint64(0)
-        ddf = ddf.map_partitions(_hash_bucket, bucket_by, num_buckets, meta=meta)
-        group_cols.append(_KTK_HASH_BUCKET)
+
+    if num_buckets is None:
+        raise ValueError("``num_buckets`` must not be None when shuffling data.")
+
+    meta = ddf._meta
+    meta[_KTK_HASH_BUCKET] = np.uint64(0)
+    ddf = ddf.map_partitions(_hash_bucket, bucket_by, num_buckets, meta=meta)
+    group_cols.append(_KTK_HASH_BUCKET)
 
     packed_meta = ddf._meta[group_cols]
     packed_meta[_PAYLOAD_COL] = b""
