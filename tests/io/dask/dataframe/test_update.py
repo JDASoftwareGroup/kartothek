@@ -86,6 +86,53 @@ def _return_none():
     return None
 
 
+@pytest.mark.parametrize("bucket_by", [None, "range"])
+def test_update_shuffle_no_partition_on(store_factory, bucket_by):
+    df = pd.DataFrame(
+        {
+            "range": np.arange(10),
+            "range_duplicated": np.repeat(np.arange(2), 5),
+            "random": np.random.randint(0, 100, 10),
+        }
+    )
+    ddf = dd.from_pandas(df, npartitions=10)
+
+    with pytest.raises(
+        ValueError, match="``num_buckets`` must not be None when shuffling data."
+    ):
+        update_dataset_from_ddf(
+            ddf,
+            store_factory,
+            dataset_uuid="output_dataset_uuid",
+            table="table",
+            shuffle=True,
+            num_buckets=None,
+            bucket_by=bucket_by,
+        ).compute()
+
+    res_default = update_dataset_from_ddf(
+        ddf,
+        store_factory,
+        dataset_uuid="output_dataset_uuid_default",
+        table="table",
+        shuffle=True,
+        bucket_by=bucket_by,
+    ).compute()
+    assert len(res_default.partitions) == 1
+
+    res = update_dataset_from_ddf(
+        ddf,
+        store_factory,
+        dataset_uuid="output_dataset_uuid",
+        table="table",
+        shuffle=True,
+        num_buckets=2,
+        bucket_by=bucket_by,
+    ).compute()
+
+    assert len(res.partitions) == 2
+
+
 @pytest.mark.parametrize("unique_primaries", [1, 4])
 @pytest.mark.parametrize("unique_secondaries", [1, 3])
 @pytest.mark.parametrize("num_buckets", [1, 5])

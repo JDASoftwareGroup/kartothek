@@ -6,7 +6,10 @@ from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
-from kartothek.io_components.metapartition import parse_input_to_metapartition, SINGLE_TABLE
+from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
+    parse_input_to_metapartition,
+)
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
@@ -245,10 +248,6 @@ def update_dataset_from_ddf(
         ds_factory=factory,
     )
 
-    if shuffle and not partition_on:
-        raise ValueError(
-            "If ``shuffle`` is requested, at least one ``partition_on`` column needs to be provided."
-        )
     if ds_factory is not None:
         check_single_table_dataset(ds_factory, table)
 
@@ -266,7 +265,7 @@ def update_dataset_from_ddf(
     else:
         secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
 
-        if shuffle and partition_on:
+        if shuffle:
             mps = update_dask_partitions_shuffle(
                 ddf=ddf,
                 table=table,
