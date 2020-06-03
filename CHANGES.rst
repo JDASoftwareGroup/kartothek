@@ -2,12 +2,23 @@
 Changelog
 =========
 
-Version 3.9.0 (UNRELEASED)
+Version 3.9.0 (2020-06-03)
 ==========================
 
-* Significant performance improvements for shuffle operations in :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf`
+Improvements
+^^^^^^^^^^^^
+* Arrow 0.17.X support
+* Significant performance improvements for shuffle operations in
+  :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf`
+  for large dask.DataFrames with many payload columns by using in-memory
+  compression during the shuffle operation.
 * Allow calling :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf`
-  without `partition_on` when `shuffle=True`
+  without `partition_on` when `shuffle=True`.
+* :func:`~kartothek.io.dask.dataframe.read_dataset_as_ddf` supports kwarg ``dispatch_by``
+  to control the internal partitioning structure when creating a dataframe.
+* :func:`~kartothek.io.dask.dataframe.read_dataset_as_ddf` and :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf`
+  now allow the keyword ``table`` to be optional, using the default SINGLE_TABLE identifier.
+  (recommended since the multi table dataset support is in sunset).
 
 
 Version 3.8.2 (2020-04-09)
