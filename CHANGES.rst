@@ -6,6 +6,9 @@ Version 3.9.0 (UNRELEASED)
 ==========================
 
 * Significant performance improvements for shuffle operations in :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf`
+* Allow calling :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf`
+  without `partition_on` when `shuffle=True`
+
 
 Version 3.8.2 (2020-04-09)
 ==========================
