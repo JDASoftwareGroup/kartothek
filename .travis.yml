@@ -18,10 +18,11 @@ env:
     - CONDA_CREATE_ARGS="pyarrow==0.14.1"
     - CONDA_CREATE_ARGS="pyarrow==0.15.0"
     - CONDA_CREATE_ARGS="pyarrow==0.16.0"
+    - CONDA_CREATE_ARGS="pyarrow==0.17.1"
 
 
     # optional builds
-    - CONDA_CREATE_ARGS="pyarrow==0.16.0" NUMFOCUS_NIGHTLY=1
+    - CONDA_CREATE_ARGS="pyarrow==0.17.1" NUMFOCUS_NIGHTLY=1
     - ARROW_NIGHTLY=1
 
 before_install:
