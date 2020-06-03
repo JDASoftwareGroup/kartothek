@@ -6,7 +6,10 @@ from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
-from kartothek.io_components.metapartition import parse_input_to_metapartition, SINGLE_TABLE
+from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
+    parse_input_to_metapartition,
+)
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
