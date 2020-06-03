@@ -36,6 +36,7 @@ def read_dataset_as_ddf(
     predicates=None,
     factory=None,
     dask_index_on=None,
+    dispatch_by=None,
 ):
     """
     Retrieve a single table from a dataset as partition-individual :class:`~dask.dataframe.DataFrame` instance.
@@ -47,7 +48,8 @@ def read_dataset_as_ddf(
     Parameters
     ----------
     dask_index_on: str
-        Reconstruct (and set) a dask index on the provided index column.
+        Reconstruct (and set) a dask index on the provided index column. Cannot be used
+        in conjunction with `dispatch_by`.
 
         For details on performance, see also `dispatch_by`
     """
@@ -55,6 +57,13 @@ def read_dataset_as_ddf(
         raise TypeError(
             f"The paramter `dask_index_on` must be a string but got {type(dask_index_on)}"
         )
+
+    if dask_index_on is not None and dispatch_by is not None and len(dispatch_by) > 0:
+        raise ValueError(
+            "`read_dataset_as_ddf` got parameters `dask_index_on` and `dispatch_by`. "
+            "Note that `dispatch_by` can only be used if `dask_index_on` is None."
+        )
+
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -81,7 +90,7 @@ def read_dataset_as_ddf(
         label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
-        dispatch_by=dask_index_on,
+        dispatch_by=dask_index_on if dask_index_on else dispatch_by,
     )
     if dask_index_on:
         divisions = ds_factory.indices[dask_index_on].observed_values()
