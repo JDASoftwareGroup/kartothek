@@ -760,3 +760,39 @@ def test_extensiondtype_rountrip(store_factory, bound_load_dataframes):
         result_dfs = result
     result_df = pd.concat(result_dfs).reset_index(drop=True)
     pdt.assert_frame_equal(df["data"][0][1], result_df)
+
+
+def test_gh_294(store_factory, bound_load_dataframes, output_type):
+    """
+    Ensure that we can read dataframe with predicates without issue even when partition-level parsing
+    of predicates returns an empty list.
+    """
+    dataset_uuid = "dataset_uuid"
+    df = {SINGLE_TABLE: pd.DataFrame({"A": range(10), "B": ["A", "B"] * 5, "C": True})}
+    store_dataframes_as_dataset(
+        dfs=[df],
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        partition_on=["A", "B"],
+    )
+
+    expected_df = pd.DataFrame({"A": range(1, 10, 2), "B": ["B"] * 5, "C": True})
+    result = bound_load_dataframes(
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        tables=SINGLE_TABLE,
+        predicates=[[("A", "==", 30)], [("B", "==", "B")]],
+    )
+
+    probe = result[0]
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data[SINGLE_TABLE] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[SINGLE_TABLE] for mp in result]
+    else:
+        result_dfs = result
+    result_df = pd.concat(result_dfs).reset_index(drop=True)
+
+    # We only set the test as xfail here to ensure that the code above has actually ran without errors
+    pytest.xfail("Results returned are incorrect because of gh-295.")
+    pdt.assert_frame_equal(expected_df, result_df)
