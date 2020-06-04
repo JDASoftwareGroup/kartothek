@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 3.9.1 (2020-xx-xx)
+==========================
+
+Bug fixes
+^^^^^^^^^
+* Fix empty predicates error in predicate pushdown as a result of partition-level filtering
+
+
 Version 3.9.0 (2020-06-03)
 ==========================
 

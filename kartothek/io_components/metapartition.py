@@ -606,7 +606,7 @@ class MetaPartition(Iterable):
                     # A condititon applies to the whole DataFrame, so we need to
                     # load all data.
                     return None
-        return filtered_predicates
+        return filtered_predicates if filtered_predicates else None
 
     @default_docs
     @_apply_to_list
