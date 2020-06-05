@@ -155,7 +155,7 @@ def unpack_payload_pandas(
     return pd.concat(mapped.values, copy=False, ignore_index=True)
 
 
-def unpack_payload(df: dd.DataFrame, meta: pd.DataFrame) -> dd.DataFrame:
+def unpack_payload(df: dd.DataFrame, unpack_meta: pd.DataFrame) -> dd.DataFrame:
     """Revert payload packing of ``pack_payload`` and restores full dataframe."""
 
     if (
@@ -168,7 +168,7 @@ def unpack_payload(df: dd.DataFrame, meta: pd.DataFrame) -> dd.DataFrame:
     ):
         return df
 
-    return df.map_partitions(unpack_payload_pandas, meta=meta)
+    return df.map_partitions(unpack_payload_pandas, unpack_meta=unpack_meta, meta=unpack_meta)
 
 
 def update_dask_partitions_shuffle(
