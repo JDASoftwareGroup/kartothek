@@ -26,6 +26,16 @@ env:
     - CONDA_CREATE_ARGS="pyarrow==0.17.1" NUMFOCUS_NIGHTLY=1
     - ARROW_NIGHTLY=1
 
+jobs:
+  exclude:
+    # No pyarrow Python 3.8 builds for these versions available
+    - python: 3.8
+      env: CONDA_CREATE_ARGS="pyarrow==0.13.0"
+    - python: 3.8
+      env: CONDA_CREATE_ARGS="pyarrow==0.14.1"
+    - python: 3.8
+      env: CONDA_CREATE_ARGS="pyarrow==0.15.0"
+
 before_install:
   - travis_retry wget https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh -O miniconda.sh
   - >
