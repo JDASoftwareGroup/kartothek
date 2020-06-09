@@ -53,7 +53,7 @@ install:
   - >
     if [[ "${NUMFOCUS_NIGHTLY-0}" == 1 ]]; then
         # NumFOCUS nightly wheels, contains numpy and pandas
-        PRE_WHEELS="https://anaconda.org/scipy-wheels-nightly"
+        PRE_WHEELS="https://pypi.anaconda.org/scipy-wheels-nightly/simple"
         travis_retry pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS pandas numpy
     fi
 
