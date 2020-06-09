@@ -137,7 +137,7 @@ def _apply_to_list(method):
                         result = result.add_metapartition(mp, schema_validation=False)
         if not isinstance(result, MetaPartition):
             raise ValueError(
-                "Result for method {} is not a `MetaPartition` but".format(
+                "Result for method {} is not a `MetaPartition` but {}".format(
                     method.__name__, type(method_return)
                 )
             )

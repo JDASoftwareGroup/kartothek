@@ -16,8 +16,8 @@ from kartothek.io.dask._update import (
     _hash_bucket,
     pack_payload,
     pack_payload_pandas,
-    unpack_payload_pandas,
     unpack_payload,
+    unpack_payload_pandas,
 )
 from kartothek.io.dask.dataframe import update_dataset_from_ddf
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
@@ -339,7 +339,9 @@ def test_update_dataset_from_ddf_empty(store_factory, shuffle):
 
 def test_pack_payload(df_all_types):
     # For a single row dataframe the packing actually has a few more bytes
-    df = dd.from_pandas(pd.concat([df_all_types] * 10, ignore_index=True), npartitions=3)
+    df = dd.from_pandas(
+        pd.concat([df_all_types] * 10, ignore_index=True), npartitions=3
+    )
     size_before = df.memory_usage(deep=True).sum()
 
     packed_df = pack_payload(df, group_key=list(df.columns[-2:]))

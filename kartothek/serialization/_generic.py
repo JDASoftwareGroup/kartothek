@@ -209,19 +209,10 @@ def filter_predicates_by_column(
     .. ipython:: python
 
         from kartothek.serialization import filter_predicates_by_column
-        predicates = [
-            [
-                ("A", "==", 1),
-                ("B", "<", 5)
-            ],
-            [
-                ("C", "==", 4)
-            ]
-        ]
 
-        filter_predicates_by_column(
-            predicates, ["A"]
-        )
+        predicates = [[("A", "==", 1), ("B", "<", 5)], [("C", "==", 4)]]
+
+        filter_predicates_by_column(predicates, ["A"])
 
     Parameters
     ----------
