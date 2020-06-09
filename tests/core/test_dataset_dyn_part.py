@@ -354,14 +354,14 @@ def test_dask_partitions(metadata_version):
 
     locations = ["L-{}".format(i) for i in range(2)]
     df = pd.DataFrame()
-    for l in locations:
+    for location in locations:
         core = pd.DataFrame(
             data={
                 "date": np.array(
                     ["2017-11-23", "2017-11-23", "2017-11-24", "2017-11-24"]
                 ),
                 "product": np.array(["P-0", "P-1", "P-0", "P-1"]),
-                "location": l,
+                "location": location,
                 "value": np.array(random.sample(range(1, 100), 4)),
             }
         )
@@ -404,7 +404,7 @@ def test_overlap_keyspace(store, metadata_version):
     table = "core"
 
     for dataset_uuid in (dataset_uuid1, dataset_uuid2):
-        partition0 = "location=L-0".format(dataset_uuid)
+        partition0 = "location=L-0"
         partition0_key = "{}/{}/{}/data.parquet".format(dataset_uuid, table, partition0)
         metadata = {
             "dataset_metadata_version": metadata_version,
@@ -425,7 +425,7 @@ def test_overlap_keyspace(store, metadata_version):
         )
 
     for dataset_uuid in (dataset_uuid1, dataset_uuid2):
-        partition0_label = "location=L-0/data".format(dataset_uuid)
+        partition0_label = "location=L-0/data"
         partition0_key = "{}/{}/{}.parquet".format(
             dataset_uuid, table, partition0_label
         )

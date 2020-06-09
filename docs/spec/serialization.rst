@@ -19,7 +19,7 @@ e.g. :class:`~kartothek.serialization.ParquetSerializer`.
 
     serialiser = ParquetSerializer()
     df = ...
-    serialiser.store(store, 'storage_key', df)
+    serialiser.store(store, "storage_key", df)
 
 
 Deserialisation

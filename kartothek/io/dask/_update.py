@@ -168,7 +168,9 @@ def unpack_payload(df: dd.DataFrame, unpack_meta: pd.DataFrame) -> dd.DataFrame:
     ):
         return df
 
-    return df.map_partitions(unpack_payload_pandas, unpack_meta=unpack_meta, meta=unpack_meta)
+    return df.map_partitions(
+        unpack_payload_pandas, unpack_meta=unpack_meta, meta=unpack_meta
+    )
 
 
 def update_dask_partitions_shuffle(

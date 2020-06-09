@@ -300,8 +300,8 @@ def _normalize_predicates(parquet_file, predicates, for_pushdown):
 
             if op == "in":
                 values = [
-                    _normalize_value(l, pa_type, column_name=column_name)
-                    for l in literal[2]
+                    _normalize_value(lit, pa_type, column_name=column_name)
+                    for lit in literal[2]
                 ]
                 if for_pushdown and values:
                     normalized_value = [

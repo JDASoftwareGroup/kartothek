@@ -733,7 +733,7 @@ _MULTI_COLUMN_INDEX_DCT_TYPE = Dict[str, IndexBase]
 
 
 def merge_indices(
-    list_of_indices: List[_MULTI_COLUMN_INDEX_DCT_TYPE]
+    list_of_indices: List[_MULTI_COLUMN_INDEX_DCT_TYPE],
 ) -> _MULTI_COLUMN_INDEX_DCT_TYPE:
     """
     Merge a list of index dictionaries

@@ -268,9 +268,12 @@ def make_meta(obj, origin, partition_keys=None):
         field_name = cmd["field_name"]
         field_idx = schema.get_field_index(field_name)
         field = schema[field_idx]
-        fields[field_name], cmd["pandas_type"], cmd["numpy_type"], cmd[
-            "metadata"
-        ] = normalize_type(
+        (
+            fields[field_name],
+            cmd["pandas_type"],
+            cmd["numpy_type"],
+            cmd["metadata"],
+        ) = normalize_type(
             field.type, cmd["pandas_type"], cmd["numpy_type"], cmd["metadata"]
         )
     metadata = schema.metadata
