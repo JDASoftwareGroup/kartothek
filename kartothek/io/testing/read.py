@@ -762,7 +762,9 @@ def test_extensiondtype_rountrip(store_factory, bound_load_dataframes):
     pdt.assert_frame_equal(df["data"][0][1], result_df)
 
 
-def test_gh_294(store_factory, bound_load_dataframes, output_type):
+def test_predicate_parsing_OR_query(
+    store_factory, bound_load_dataframes, output_type
+):  # gh-294
     """
     Ensure that we can read dataframe with predicates without issue even when partition-level parsing
     of predicates returns an empty list.
@@ -793,6 +795,7 @@ def test_gh_294(store_factory, bound_load_dataframes, output_type):
         result_dfs = result
     result_df = pd.concat(result_dfs).reset_index(drop=True)
 
+    # TODO: remove this when gh-295 is fixed
     # We only set the test as xfail here to ensure that the code above has actually ran without errors
     pytest.xfail("Results returned are incorrect because of gh-295.")
     pdt.assert_frame_equal(expected_df, result_df)
