@@ -24,6 +24,7 @@ def setup_package():
             "Programming Language :: Python :: 3",
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
+            "Programming Language :: Python :: 3.8",
         ],
         use_scm_version=True,
         long_description=open("README.md", "r").read(),
