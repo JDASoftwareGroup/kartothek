@@ -662,7 +662,14 @@ def test_update_first_time_with_secondary_indices(
     )
 
 
-def test_partition_on_null(store_factory, bound_update_dataset):  # gh-262
+@pytest.fixture
+def expected_error():
+    return ValueError
+
+
+def test_partition_on_null(
+    store_factory, bound_update_dataset, expected_error
+):  # gh-262
     keys = ["a", "b", "c", np.nan]
     values = range(len(keys))
     d = dict(zip(keys, values))
@@ -673,7 +680,8 @@ def test_partition_on_null(store_factory, bound_update_dataset):  # gh-262
     )
 
     with pytest.raises(
-        ValueError, match=r"Original dataframe size .* on a column with null values."
+        expected_error,
+        match=r"Original dataframe size .* on a column with null values.",
     ):
         bound_update_dataset(
             [{"data": {"table": df}}],
