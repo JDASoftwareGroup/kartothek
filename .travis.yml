@@ -1,3 +1,4 @@
+os: linux
 language: python
 
 # needed for python>=3.7
@@ -6,13 +7,14 @@ dist: xenial
 python:
   - 3.6
   - 3.7
+  - 3.8
 
 env:
   global:
     - KTK_TESTS=1
     - KTK_DOCS=0
 
-  matrix:
+  jobs:
     # required builds
     - CONDA_CREATE_ARGS="pyarrow==0.13.0"
     - CONDA_CREATE_ARGS="pyarrow==0.14.1"
@@ -73,17 +75,25 @@ after_success:
   - if [[ $KTK_TESTS == 1 ]]; then travis_retry conda install codecov ; fi
   - if [[ $KTK_TESTS == 1 ]]; then codecov ; fi
 
-matrix:
+jobs:
   # When marking the build as finished, do not wait for allowed failures to complete
   fast_finish: true
   allow_failures:
     - env: ARROW_NIGHTLY=1
     - env: CONDA_CREATE_ARGS="pyarrow==0.16.0" NUMFOCUS_NIGHTLY=1
+  exclude:
+    # No pyarrow Python 3.8 builds for these versions available
+    - python: 3.8
+      env: CONDA_CREATE_ARGS="pyarrow==0.13.0"
+    - python: 3.8
+      env: CONDA_CREATE_ARGS="pyarrow==0.14.1"
+    - python: 3.8
+      env: CONDA_CREATE_ARGS="pyarrow==0.15.0"
   include:
     - name: "osx + builtin python3"
       os: osx
       # Note: TRAVIS_PYTHON_VERSION will be unset, will use latest python version available given the constraints
-      language: sh  # This is necessary to support the `before_install` script
+      language: shell  # This is necessary to support the `before_install` script
       env:
         - CONDA_CREATE_ARGS="pyarrow==0.13.0"
       before_install:
