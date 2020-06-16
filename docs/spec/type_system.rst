@@ -198,7 +198,7 @@ There are two date types with slightly different semantics:
 - ``date32``: 32bit unsigned integer counter for days since `UNIX epoch`_
 - ``date64``: 64bit unsigned integer counter for milliseconds since `UNIX epoch`_
 
-In theory, we could fit all ``data32`` values into ``date64``:
+In theory, we could fit all ``date32`` values into ``date64``:
 
 >>> import math
 >>> n_years_date32 = math.floor(2**32 / 366)
