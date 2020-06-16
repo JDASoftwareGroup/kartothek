@@ -673,7 +673,7 @@ def test_partition_on_null(store_factory, bound_update_dataset):  # gh-262
     )
 
     with pytest.raises(
-        ValueError, match=r"Original dataframe size .* on a column with null values."
+        Exception, match=r"Original dataframe size .* on a column with null values.",
     ):
         bound_update_dataset(
             [{"data": {"table": df}}],
