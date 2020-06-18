@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 3.9.1 (2020-06-XX)
+==========================
+
+Bug fixes
+^^^^^^^^^
+
+* Ensure that the empty (sentinel) DataFrame used in :func:`~kartothek.io.eager.read_table`
+  also has the correct behaviour when using the ``categoricals`` argument.
+
 Version 3.9.0 (2020-06-03)
 ==========================
 
