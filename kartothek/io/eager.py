@@ -310,6 +310,8 @@ def read_table(
         schema=ds_factory.table_meta[table],
         columns=columns[table] if columns is not None else None,
     )
+    if categoricals:
+        empty_df = empty_df.astype({col: "category" for col in categoricals[table]})
     dfs = [partition_data[table] for partition_data in partitions] + [empty_df]
     # require meta 4 otherwise, can't construct types/columns
     if categoricals:
