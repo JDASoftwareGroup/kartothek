@@ -23,6 +23,7 @@ def dispatch_metapartitions_from_factory(
     predicates: PredicatesType = None,
     store: Optional[Callable[[], KeyValueStore]] = None,
     dispatch_by: None = None,
+    dispatch_metadata: bool = False,
 ) -> Iterator[MetaPartition]:
     ...
 
@@ -35,6 +36,7 @@ def dispatch_metapartitions_from_factory(
     predicates: PredicatesType,
     store: Optional[Callable[[], KeyValueStore]],
     dispatch_by: List[str],
+    dispatch_metadata: bool,
 ) -> Iterator[List[MetaPartition]]:
     ...
 
@@ -47,7 +49,17 @@ def dispatch_metapartitions_from_factory(
     predicates: PredicatesType = None,
     store: Optional[Callable[[], KeyValueStore]] = None,
     dispatch_by: Optional[List[str]] = None,
+    dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
+
+    if dispatch_metadata:
+
+        warnings.warn(
+            "The dispatch of metadata and index information as part of the MetaPartition instance is deprecated. "
+            "The future behaviour will be that this metadata is not dispatched. To set the future behaviour, "
+            "specifiy ``dispatch_metadata=False``",
+            DeprecationWarning,
+        )
 
     if dispatch_by and concat_partitions_on_primary_index:
         raise ValueError(
@@ -114,8 +126,10 @@ def dispatch_metapartitions_from_factory(
                 mps.append(
                     MetaPartition.from_partition(
                         partition=dataset_factory.partitions[label],
-                        dataset_metadata=dataset_factory.metadata,
-                        indices=indices_to_dispatch,
+                        dataset_metadata=dataset_factory.metadata
+                        if dispatch_metadata
+                        else None,
+                        indices=indices_to_dispatch if dispatch_metadata else None,
                         metadata_version=dataset_factory.metadata_version,
                         table_meta=dataset_factory.table_meta,
                         partition_keys=dataset_factory.partition_keys,
@@ -129,8 +143,10 @@ def dispatch_metapartitions_from_factory(
 
             yield MetaPartition.from_partition(
                 partition=part,
-                dataset_metadata=dataset_factory.metadata,
-                indices=indices_to_dispatch,
+                dataset_metadata=dataset_factory.metadata
+                if dispatch_metadata
+                else None,
+                indices=indices_to_dispatch if dispatch_metadata else None,
                 metadata_version=dataset_factory.metadata_version,
                 table_meta=dataset_factory.table_meta,
                 partition_keys=dataset_factory.partition_keys,
@@ -147,6 +163,7 @@ def dispatch_metapartitions(
     concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
     dispatch_by: Optional[List[str]] = None,
+    dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     dataset_factory = DatasetFactory(
         dataset_uuid=dataset_uuid,
@@ -163,4 +180,5 @@ def dispatch_metapartitions(
         predicates=predicates,
         dispatch_by=dispatch_by,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
+        dispatch_metadata=dispatch_metadata,
     )

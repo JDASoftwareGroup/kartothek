@@ -537,18 +537,6 @@ def test_read_dataset_as_dataframes(
     )
 
 
-def test_load_dataset_metadata(
-    dataset, store_session_factory, bound_load_metapartitions
-):
-    result = bound_load_metapartitions(
-        dataset_uuid=dataset.uuid,
-        store=store_session_factory,
-        load_dataset_metadata=True,
-    )
-    for mp in result:
-        assert set(mp.dataset_metadata.keys()) == {"creation_time", "dataset"}
-
-
 def test_read_dataset_as_dataframes_columns_projection(
     store_factory, bound_load_dataframes, metadata_version
 ):

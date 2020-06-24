@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This is a helper module to simplify code documentation
 """
@@ -175,6 +174,12 @@ _PARAMETER_MAPPING = {
     "load_dataset_metadata": """
     load_dataset_metadata: bool
         Optional argument on whether to load the metadata or not""",
+    "dispatch_metadata": """
+    dispatch_metadata:
+        If True, attach dataset user metadata and dataset index information to
+        the MetaPartition instances generated.
+        Note: This feature is deprecated and this feature toggle is only
+        introduced to allow for easier transition.""",
 }
 
 

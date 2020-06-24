@@ -2,14 +2,30 @@
 Changelog
 =========
 
-Version 3.9.1 (2020-06-XX)
-==========================
+Version 3.10.0 (2020-06-XX)
+===========================
+
+Improvements
+^^^^^^^^^^^^
+* Dispatch performance improved for large datasets including metadata
+* Introduction of ``dispatch_metadata`` kwarg to metapartitions read pipelines
+  to allow for transition for future breaking release.
+
 
 Bug fixes
 ^^^^^^^^^
 
 * Ensure that the empty (sentinel) DataFrame used in :func:`~kartothek.io.eager.read_table`
   also has the correct behaviour when using the ``categoricals`` argument.
+
+
+Breaking changes in ``io_components.read``
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+* The ``dispatch_metapartitions`` and ``dispatch_metapartitions_from_factory``
+  will no longer attach index and metadata information to the created MP
+  instances, unless explicitly requested.
+
 
 Version 3.9.0 (2020-06-03)
 ==========================
