@@ -539,6 +539,13 @@ class MetaPartition(Iterable):
             "logical_conjunction": self.logical_conjunction,
         }
 
+    # TODO: serialization? example follows
+    # def __getstate__(self):
+    #     return self.metapartitions
+    #
+    # def __setstate__(self, state):
+    #     return MetaPartition(MetaPartition.from_dict(mp_dict) for mp_dict in state)
+
     @_apply_to_list
     def remove_dataframes(self):
         """

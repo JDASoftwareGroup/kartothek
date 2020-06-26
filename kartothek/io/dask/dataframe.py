@@ -149,6 +149,7 @@ def update_dataset_from_ddf(
     partition_on=None,
     factory=None,
     bucket_by=None,
+    metadata_resilience=True,
 ):
     """
     Update a dataset from a dask.dataframe.
@@ -265,6 +266,20 @@ def update_dataset_from_ddf(
     else:
         secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
 
+        if metadata_resilience:
+            # TODO: Given fusing, we'd expect the queue.put calls to be fused with the store_dataframe calls,
+            # then could apply this at then end to `mps`, w/o needing to edit the specific update-* functions themselves
+            from distributed import Queue
+            from uuid import uuid4
+            from functools import partial
+
+            # This factory implementation is required because of https://github.com/dask/distributed/issues/3900
+            metadata_storage_factory = partial(
+                Queue, f"ktk_metadata_queue_{uuid4().hex}"
+            )
+        else:
+            metadata_storage_factory = None
+
         if shuffle:
             mps = update_dask_partitions_shuffle(
                 ddf=ddf,
@@ -291,6 +306,7 @@ def update_dataset_from_ddf(
                 df_serializer=df_serializer,
                 dataset_uuid=dataset_uuid,
                 sort_partitions_by=sort_partitions_by,
+                metadata_storage_factory=metadata_storage_factory,
             )
     return dask.delayed(update_dataset_from_partitions)(
         mps,
@@ -300,4 +316,5 @@ def update_dataset_from_ddf(
         delete_scope=delete_scope,
         metadata=metadata,
         metadata_merger=metadata_merger,
+        metadata_storage_factory=metadata_storage_factory,
     )
