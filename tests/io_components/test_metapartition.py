@@ -1645,3 +1645,27 @@ def test_parse_input_schema_formats():
     for obj in formats_obj:
         mp = parse_input_to_metapartition(obj=obj, metadata_version=4)
         assert mp.data == {"table1": df}
+
+
+def test_get_parquet_metadata(store):
+    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
+    mp = MetaPartition(label="test_label", data={"core": df},)
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    assert pq_metadata["number_rows"] == 10
+
+
+def test_get_parquet_metadata_empty_df(store):
+    df = pd.DataFrame()
+    mp = MetaPartition(label="test_label", data={"core": df},)
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    assert pq_metadata["number_rows"] == 0
+
+
+def test_get_parquet_metadata_empty_metapartition(store):
+    # TODO not sure if this makes sense
+    mp = MetaPartition(label="test_label")
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    assert pq_metadata["number_rows"] is None

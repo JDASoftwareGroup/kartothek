@@ -1549,6 +1549,26 @@ class MetaPartition(Iterable):
             store.delete(file_key)
         return self.copy(files={}, data={}, metadata={})
 
+    def get_parquet_metadata(self, store, table_name):
+        """
+        Retrieve the parquet metadata, especially relevant for dataset statistics.
+
+        # TODO docstrings
+        """
+        if not isinstance(table_name, str):
+            raise TypeError("Expecting a string for parameter `table_name`.")
+
+        if self.files:
+            fd = store.open(self.files[table_name])
+            pq_metadata = pa.parquet.ParquetFile(fd).metadata
+            # TODO include more stats
+            stats = {"number_rows": pq_metadata.num_rows}
+        else:
+            # TODO reword
+            LOGGER.warning("No files in MetaPartition, can't collect any stats")
+            stats = {"number_rows": None}
+        return stats
+
 
 def _unique_label(label_list):
     label = os.path.commonprefix(label_list)
