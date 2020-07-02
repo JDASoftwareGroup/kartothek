@@ -20,11 +20,9 @@ def test_dispatch_metapartitions(dataset, store_session):
     assert len(partitions) == 2
     mp = partitions["cluster_1"]
     assert isinstance(mp, MetaPartition)
-    assert dict(mp.dataset_metadata) == dict(dataset.metadata)
 
     mp = partitions["cluster_2"]
     assert isinstance(mp, MetaPartition)
-    assert dict(mp.dataset_metadata) == dict(dataset.metadata)
 
     assert set(mp.table_meta.keys()) == {SINGLE_TABLE, "helper"}
 
@@ -43,7 +41,6 @@ def test_dispatch_metapartitions_label_filter(dataset, store_session):
     assert len(partitions) == 1
     mp = partitions["cluster_1"]
     assert isinstance(mp, MetaPartition)
-    assert dict(mp.dataset_metadata) == dict(dataset.metadata)
 
 
 def test_dispatch_metapartitions_without_dataset_metadata(dataset, store_session):

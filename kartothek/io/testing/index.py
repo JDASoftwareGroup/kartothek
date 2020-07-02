@@ -6,10 +6,7 @@ from toolz.dicttoolz import valmap
 
 from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
-from kartothek.io.eager import (
-    read_dataset_as_metapartitions,
-    store_dataframes_as_dataset,
-)
+from kartothek.io.eager import store_dataframes_as_dataset
 
 
 def assert_index_dct_equal(dict1, dict2):
@@ -100,10 +97,6 @@ def test_add_column_to_existing_index(
     bound_build_dataset_indices(store_factory, dataset_uuid, columns=["x"])
 
     # Assert indices are properly created
-    mps = read_dataset_as_metapartitions(store=store_factory, dataset_uuid=dataset_uuid)
-    for column_name in ["p", "x"]:
-        assert all([mp.indices[column_name] for mp in mps])
-
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
     assert dataset_factory.indices.keys() == {"p", "x"}
 

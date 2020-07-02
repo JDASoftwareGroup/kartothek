@@ -45,6 +45,7 @@ def read_dataset_as_metapartitions__iterator(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    dispatch_metadata=True,
 ):
     """
 
@@ -73,6 +74,7 @@ def read_dataset_as_metapartitions__iterator(
         label_filter=label_filter,
         predicates=predicates,
         dispatch_by=dispatch_by,
+        dispatch_metadata=dispatch_metadata,
     )
 
     for mp in mps:
@@ -171,6 +173,7 @@ def read_dataset_as_dataframes__iterator(
         predicates=predicates,
         factory=factory,
         dispatch_by=dispatch_by,
+        dispatch_metadata=False,
     )
     for mp in mp_iter:
         yield mp.data

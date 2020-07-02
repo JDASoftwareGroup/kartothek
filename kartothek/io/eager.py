@@ -142,6 +142,7 @@ def read_dataset_as_dataframes(
         predicates=predicates,
         factory=ds_factory,
         dispatch_by=dispatch_by,
+        dispatch_metadata=False,
     )
     return [mp.data for mp in mps]
 
@@ -161,6 +162,7 @@ def read_dataset_as_metapartitions(
     predicates=None,
     factory=None,
     dispatch_by=None,
+    dispatch_metadata=True,
 ):
     """
     Read a dataset as a list of :class:`kartothek.io_components.metapartition.MetaPartition`.
@@ -209,6 +211,7 @@ def read_dataset_as_metapartitions(
         predicates=predicates,
         factory=ds_factory,
         dispatch_by=dispatch_by,
+        dispatch_metadata=dispatch_metadata,
     )
     return list(ds_iter)
 
