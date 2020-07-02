@@ -1561,13 +1561,18 @@ class MetaPartition(Iterable):
         if self.files:
             fd = store.open(self.files[table_name])
             pq_metadata = pa.parquet.ParquetFile(fd).metadata
-            # TODO include more stats
-            stats = {"number_rows": pq_metadata.num_rows}
+            stats = {
+                "number_rows": pq_metadata.num_rows,
+                "number_row_groups": pq_metadata.num_row_groups,
+                "serialized_size": pq_metadata.serialized_size,
+            }
+            for rg_nb in range(stats["number_row_groups"]):
+                stats[f"row_group_{rg_nb}_byte_size"] = pq_metadata.row_group(rg_nb).total_byte_size
+            return stats
         else:
-            # TODO reword
-            LOGGER.warning("No files in MetaPartition, can't collect any stats")
-            stats = {"number_rows": None}
-        return stats
+            LOGGER.info("No files in MetaPartition, no metadata to track.")
+            return dict() # TODO really?
+
 
 
 def _unique_label(label_list):

@@ -1653,6 +1653,7 @@ def test_get_parquet_metadata(store):
     meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
     pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
     assert pq_metadata["number_rows"] == 10
+    assert pq_metadata["number_row_groups"] == 1
 
 
 def test_get_parquet_metadata_empty_df(store):
@@ -1661,6 +1662,7 @@ def test_get_parquet_metadata_empty_df(store):
     meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
     pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
     assert pq_metadata["number_rows"] == 0
+    assert pq_metadata["number_row_groups"] == 1
 
 
 def test_get_parquet_metadata_empty_metapartition(store):
@@ -1668,4 +1670,7 @@ def test_get_parquet_metadata_empty_metapartition(store):
     mp = MetaPartition(label="test_label")
     meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
     pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
-    assert pq_metadata["number_rows"] is None
+
+
+# TODO test for row group size > 1
+# TODO add test for one empty metapartition

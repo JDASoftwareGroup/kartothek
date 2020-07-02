@@ -26,6 +26,8 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.io_components.read import dispatch_metapartitions
+from toolz.itertoolz import random_sample
 
 
 def _store_dataset_from_partitions_flat(mpss, *args, **kwargs):
@@ -288,3 +290,25 @@ def build_dataset_indices__bag(
             update_indices_from_partitions, dataset_metadata_factory=ds_factory
         )
     )
+
+
+def collect_dataset_statistics(store, dataset_uuid, table_name, predicates=None, sample_size=0.3):
+    """
+    WIP: Retrieve some statistics, maybe even plot them, generate a report...?
+    """
+    # TODO not sure if this is the right place for this function
+
+    mp_iterator = dispatch_metapartitions(dataset_uuid=dataset_uuid, store=store, predicates=predicates)
+    bag = db.from_sequence(random_sample(sample_size, mp_iterator))
+
+    def _get_parquet_stats(mp, store=store, table_name=table_name):
+        """
+        WIP: Retrieve plain parquet metadata, derive some interesting numbers from them
+        """
+        # TODO include more calculations here?
+        pq_metadata = mp.get_parquet_metadata(store=store, table_name=table_name)
+        pq_metadata["rows_per_row_group"] = pq_metadata.["num_rows"] / pq_metadata["num_row_groups"]
+        return pq_metadata
+
+    df_stats = bag.map(_get_parquet_stats, store=store, table_name=table_name).to_dataframe().compute()
+    return df_stats
