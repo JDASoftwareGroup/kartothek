@@ -1567,12 +1567,13 @@ class MetaPartition(Iterable):
                 "serialized_size": pq_metadata.serialized_size,
             }
             for rg_nb in range(stats["number_row_groups"]):
-                stats[f"row_group_{rg_nb}_byte_size"] = pq_metadata.row_group(rg_nb).total_byte_size
+                stats[f"row_group_{rg_nb}_byte_size"] = pq_metadata.row_group(
+                    rg_nb
+                ).total_byte_size
             return stats
         else:
             LOGGER.info("No files in MetaPartition, no metadata to track.")
-            return dict() # TODO really?
-
+            return dict()  # TODO really?
 
 
 def _unique_label(label_list):
