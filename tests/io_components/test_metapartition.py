@@ -1651,26 +1651,52 @@ def test_get_parquet_metadata(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
     mp = MetaPartition(label="test_label", data={"core": df},)
     meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
-    pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
-    assert pq_metadata["number_rows"] == 10
-    assert pq_metadata["number_row_groups"] == 1
+
+    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual.drop(labels="serialized_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_byte_size", axis=1, inplace=True)
+
+    expected = pd.DataFrame({
+        "partition_label": ["test_label"],
+        "row_group_id": 0,
+        "number_rows": 10,
+        "number_row_groups": 1,
+    })
+    pd.testing.assert_frame_equal(actual, expected)
 
 
 def test_get_parquet_metadata_empty_df(store):
     df = pd.DataFrame()
     mp = MetaPartition(label="test_label", data={"core": df},)
     meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
-    pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
-    assert pq_metadata["number_rows"] == 0
-    assert pq_metadata["number_row_groups"] == 1
+
+    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual.drop(columns=["serialized_size", "row_group_byte_size"], axis=1, inplace=True)
+
+    expected = pd.DataFrame({
+        "partition_label": ["test_label"],
+        "row_group_id": 0,
+        "number_rows": 0,
+        "number_row_groups": 1,
+    })
+
+    pd.testing.assert_frame_equal(actual, expected)
 
 
-def test_get_parquet_metadata_empty_metapartition(store):
-    # TODO not sure if this makes sense
-    mp = MetaPartition(label="test_label")
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
-    pq_metadata = meta_partition.get_parquet_metadata(store=store, table_name="core")
+def test_get_parquet_metadata_row_group_size(store):
+    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
+    mp = MetaPartition(label="test_label", data={"core": df},)
+    ps = ParquetSerializer(chunk_size=5)
 
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid", df_serializer=ps)
+    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual.drop(columns=["serialized_size", "row_group_byte_size"], axis=1, inplace=True)
 
-# TODO test for row group size > 1
-# TODO add test for one empty metapartition
+    expected = pd.DataFrame({
+        "partition_label": ["test_label", "test_label"],
+        "row_group_id": [0, 1],
+        "number_rows": [10, 10],
+        "number_row_groups": [2, 2],
+    })
+    pd.testing.assert_frame_equal(actual, expected)
+

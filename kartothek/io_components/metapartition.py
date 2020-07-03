@@ -1551,9 +1551,20 @@ class MetaPartition(Iterable):
 
     def get_parquet_metadata(self, store, table_name):
         """
-        Retrieve the parquet metadata, especially relevant for dataset statistics.
+        Retrieve the parquet metadata for the MetaPartition.
+        Especially relevant for calculating dataset statistics.
 
-        # TODO docstrings
+        Parameters
+        ----------
+        store
+          A factory function providing a KeyValueStore
+        table_name
+          Name of the kartothek table for which the statistics should be retrieved
+
+        Returns
+        -------
+        pd.DataFrame
+          A DataFrame with relevant parquet metadata
         """
         if not isinstance(table_name, str):
             raise TypeError("Expecting a string for parameter `table_name`.")
@@ -1561,19 +1572,26 @@ class MetaPartition(Iterable):
         if self.files:
             fd = store.open(self.files[table_name])
             pq_metadata = pa.parquet.ParquetFile(fd).metadata
-            stats = {
+            data = {
+                "partition_label": self.label,
                 "number_rows": pq_metadata.num_rows,
                 "number_row_groups": pq_metadata.num_row_groups,
                 "serialized_size": pq_metadata.serialized_size,
             }
-            for rg_nb in range(stats["number_row_groups"]):
-                stats[f"row_group_{rg_nb}_byte_size"] = pq_metadata.row_group(
-                    rg_nb
-                ).total_byte_size
-            return stats
+            data["row_group_id"] = range(data["number_row_groups"])
+            data["row_group_byte_size"] = [
+                pq_metadata.row_group(rg_id).total_byte_size for rg_id in data["row_group_id"]
+            ]
+
+            return pd.DataFrame(
+                data=data,
+                columns=[
+                    "partition_label", "row_group_id", "row_group_byte_size", "number_rows", "number_row_groups", "serialized_size"
+                ]
+            )
+
         else:
-            LOGGER.info("No files in MetaPartition, no metadata to track.")
-            return dict()  # TODO really?
+            raise RuntimeError("This should not happen: MetaPartition with no data associated.")
 
 
 def _unique_label(label_list):
