@@ -1569,6 +1569,9 @@ class MetaPartition(Iterable):
         if not isinstance(table_name, str):
             raise TypeError("Expecting a string for parameter `table_name`.")
 
+        if callable(store):
+            store = store()
+
         if self.files:
             fd = store.open(self.files[table_name])
             pq_metadata = pa.parquet.ParquetFile(fd).metadata
@@ -1580,18 +1583,26 @@ class MetaPartition(Iterable):
             }
             data["row_group_id"] = range(data["number_row_groups"])
             data["row_group_byte_size"] = [
-                pq_metadata.row_group(rg_id).total_byte_size for rg_id in data["row_group_id"]
+                pq_metadata.row_group(rg_id).total_byte_size
+                for rg_id in data["row_group_id"]
             ]
 
             return pd.DataFrame(
                 data=data,
                 columns=[
-                    "partition_label", "row_group_id", "row_group_byte_size", "number_rows", "number_row_groups", "serialized_size"
-                ]
+                    "partition_label",
+                    "row_group_id",
+                    "row_group_byte_size",
+                    "number_rows",
+                    "number_row_groups",
+                    "serialized_size",
+                ],
             )
 
         else:
-            raise RuntimeError("This should not happen: MetaPartition with no data associated.")
+            raise RuntimeError(
+                "This should not happen: MetaPartition with no data associated."
+            )
 
 
 def _unique_label(label_list):
