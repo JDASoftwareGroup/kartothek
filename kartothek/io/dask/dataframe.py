@@ -1,6 +1,7 @@
 import dask
 import dask.dataframe as dd
 import numpy as np
+from toolz.itertoolz import random_sample
 
 from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
@@ -10,6 +11,7 @@ from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
     parse_input_to_metapartition,
 )
+from kartothek.io_components.read import dispatch_metapartitions
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
@@ -301,3 +303,47 @@ def update_dataset_from_ddf(
         metadata=metadata,
         metadata_merger=metadata_merger,
     )
+
+
+def collect_dataset_statistics(
+    store, dataset_uuid, table_name, predicates=None, frac=0.3
+):
+    """
+    Retrieve some statistics, maybe even plot them, generate a report...?
+
+    Parameters
+    ----------
+    store
+      A factory function providing a KeyValueStore
+    dataset_uuid
+      The dataset's unique identifier
+    table_name
+      Name of the kartothek table for which to retrieve the statistics
+    predicates
+      Kartothek predicates to apply filters on the data for which to gather statistics
+    frac
+      Fraction of the data to use for gathering statistics. `frac == 1` will use the whole dataset.
+
+    Returns
+    -------
+    A dask.dataframe containing information about dataset statistics.
+
+    """
+
+    def _get_parquet_stats(mp, store=store, table_name=table_name):
+        """
+        WIP: Retrieve plain parquet metadata, derive some interesting numbers from them
+        """
+        # TODO include more calculations here?
+        pq_metadata = mp.get_parquet_metadata(store=store, table_name=table_name)
+        return pq_metadata
+
+    mp_iterator = dispatch_metapartitions(
+        dataset_uuid=dataset_uuid, store=store, predicates=predicates
+    )
+    dfs = [dask.delayed(_get_parquet_stats)(mp) for mp in mp_iterator]
+    df = dd.from_delayed(dfs)
+    df = df.compute()
+    df.reset_index(inplace=True, drop=True)
+
+    return df
