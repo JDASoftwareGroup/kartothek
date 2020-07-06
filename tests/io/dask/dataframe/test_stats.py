@@ -18,8 +18,9 @@ def test_collect_dataset_statistics(store_session_factory, dataset):
         data={
             "partition_label": ["cluster_1", "cluster_2"],
             "row_group_id": [0, 0],
-            "number_rows": [1, 1],
+            "number_rows_total": [1, 1],
             "number_row_groups": [1, 1],
+            "number_rows_per_row_group": [1, 1],
         }
     )
     pd.testing.assert_frame_equal(actual, expected)
@@ -41,8 +42,9 @@ def test_collect_dataset_statistics_predicates(store_session_factory, dataset):
         data={
             "partition_label": ["cluster_1"],
             "row_group_id": [0],
-            "number_rows": [1],
+            "number_rows_total": [1],
             "number_row_groups": [1],
+            "number_rows_per_row_group": [1],
         }
     )
     # TODO this fails, might be an issue with the predicate passing to the metapartitions in `dispatch_metapartitions`?

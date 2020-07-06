@@ -1660,8 +1660,9 @@ def test_get_parquet_metadata(store):
         {
             "partition_label": ["test_label"],
             "row_group_id": 0,
-            "number_rows": 10,
+            "number_rows_total": 10,
             "number_row_groups": 1,
+            "number_rows_per_row_group": 10,
         }
     )
     pd.testing.assert_frame_equal(actual, expected)
@@ -1681,8 +1682,9 @@ def test_get_parquet_metadata_empty_df(store):
         {
             "partition_label": ["test_label"],
             "row_group_id": 0,
-            "number_rows": 0,
+            "number_rows_total": 0,
             "number_row_groups": 1,
+            "number_rows_per_row_group": 0,
         }
     )
 
@@ -1706,8 +1708,9 @@ def test_get_parquet_metadata_row_group_size(store):
         {
             "partition_label": ["test_label", "test_label"],
             "row_group_id": [0, 1],
-            "number_rows": [10, 10],
+            "number_rows_total": [10, 10],
             "number_row_groups": [2, 2],
+            "number_rows_per_row_group": [5, 5],
         }
     )
     pd.testing.assert_frame_equal(actual, expected)

@@ -1577,25 +1577,26 @@ class MetaPartition(Iterable):
             pq_metadata = pa.parquet.ParquetFile(fd).metadata
             data = {
                 "partition_label": self.label,
-                "number_rows": pq_metadata.num_rows,
+                "number_rows_total": pq_metadata.num_rows,
                 "number_row_groups": pq_metadata.num_row_groups,
                 "serialized_size": pq_metadata.serialized_size,
             }
             data["row_group_id"] = range(data["number_row_groups"])
-            data["row_group_byte_size"] = [
-                pq_metadata.row_group(rg_id).total_byte_size
-                for rg_id in data["row_group_id"]
-            ]
 
+            data["row_group_byte_size"], data["number_rows_per_row_group"] = zip(*[
+                (pq_metadata.row_group(rg_id).total_byte_size, pq_metadata.row_group(rg_id).num_rows)
+                for rg_id in data["row_group_id"]
+            ])
             return pd.DataFrame(
                 data=data,
                 columns=[
                     "partition_label",
                     "row_group_id",
                     "row_group_byte_size",
-                    "number_rows",
+                    "number_rows_total",
                     "number_row_groups",
                     "serialized_size",
+                    "number_rows_per_row_group",
                 ],
             )
 
