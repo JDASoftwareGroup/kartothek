@@ -1583,10 +1583,15 @@ class MetaPartition(Iterable):
             }
             data["row_group_id"] = range(data["number_row_groups"])
 
-            data["row_group_byte_size"], data["number_rows_per_row_group"] = zip(*[
-                (pq_metadata.row_group(rg_id).total_byte_size, pq_metadata.row_group(rg_id).num_rows)
-                for rg_id in data["row_group_id"]
-            ])
+            data["row_group_byte_size"], data["number_rows_per_row_group"] = zip(
+                *[
+                    (
+                        pq_metadata.row_group(rg_id).total_byte_size,
+                        pq_metadata.row_group(rg_id).num_rows,
+                    )
+                    for rg_id in data["row_group_id"]
+                ]
+            )
             return pd.DataFrame(
                 data=data,
                 columns=[

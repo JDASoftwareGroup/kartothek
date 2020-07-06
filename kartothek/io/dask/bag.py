@@ -3,7 +3,6 @@ from collections import defaultdict
 from functools import partial
 
 import dask.bag as db
-from toolz.itertoolz import random_sample
 
 from kartothek.core import naming
 from kartothek.core.docs import default_docs
@@ -21,10 +20,7 @@ from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,
 )
-from kartothek.io_components.read import (
-    dispatch_metapartitions,
-    dispatch_metapartitions_from_factory,
-)
+from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.utils import normalize_args, raise_if_indices_overlap
 from kartothek.io_components.write import (
     raise_if_dataset_exists,

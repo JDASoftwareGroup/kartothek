@@ -9,9 +9,10 @@ from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
+    MetaPartition,
     parse_input_to_metapartition,
 )
-from kartothek.io_components.read import dispatch_metapartitions
+from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
@@ -306,7 +307,7 @@ def update_dataset_from_ddf(
 
 
 def collect_dataset_statistics(
-    store, dataset_uuid, table_name, predicates=None, frac=0.3
+    store, dataset_uuid, table_name, predicates=None, frac=0.3, factory=None,
 ):
     """
     Retrieve some statistics, maybe even plot them, generate a report...?
@@ -321,29 +322,48 @@ def collect_dataset_statistics(
       Name of the kartothek table for which to retrieve the statistics
     predicates
       Kartothek predicates to apply filters on the data for which to gather statistics
+
+      .. warning::
+          Filtering will only be applied for predicates on indices.
+          The evaluation of the predicates therefore will therefore only return an approximate result.
+
     frac
       Fraction of the data to use for gathering statistics. `frac == 1` will use the whole dataset.
+    factory
+       A DatasetFactory holding the store and UUID to the source dataset.
 
     Returns
     -------
     A dask.dataframe containing information about dataset statistics.
 
+    Raises
+    ------
+    ValueError
+      If no metadata could be retrieved, raise an error.
+
     """
-
-    def _get_parquet_stats(mp, store=store, table_name=table_name):
-        """
-        WIP: Retrieve plain parquet metadata, derive some interesting numbers from them
-        """
-        # TODO include more calculations here?
-        pq_metadata = mp.get_parquet_metadata(store=store, table_name=table_name)
-        return pq_metadata
-
-    mp_iterator = dispatch_metapartitions(
-        dataset_uuid=dataset_uuid, store=store, predicates=predicates
+    dataset_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
     )
-    dfs = [dask.delayed(_get_parquet_stats)(mp) for mp in mp_iterator]
+    mp_iterator = random_sample(
+        frac,
+        dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates),
+    )
+    dfs = [
+        dask.delayed(MetaPartition.get_parquet_metadata)(
+            mp, store=dataset_factory.store_factory, table_name=table_name
+        )
+        for mp in mp_iterator
+    ]
+    if not dfs:
+        raise ValueError(
+            f"Could not retrieve metadata for dataset {dataset_uuid}. Perhaps the value {frac} for the parameter `frac` is too small?"
+        )
+
     df = dd.from_delayed(dfs)
     df = df.compute()
     df.reset_index(inplace=True, drop=True)
-
     return df
