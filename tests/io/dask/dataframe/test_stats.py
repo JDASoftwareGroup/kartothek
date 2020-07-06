@@ -147,7 +147,7 @@ def test_collect_dataset_statistics_frac_smoke(store_session_factory, dataset):
 
 def test_collect_dataset_statistics_frac_too_small(store_session_factory, dataset):
     with pytest.raises(ValueError):
-        df_stats = collect_dataset_statistics(
+        collect_dataset_statistics(
             store=store_session_factory,
             dataset_uuid="dataset_uuid",
             table_name="table",
