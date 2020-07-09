@@ -5,6 +5,7 @@
 .hypothesis/
 .pytest_cache/
 .mypy_cache/
+.idea/
 
 flake8_report.txt
 junit.xml
@@ -23,3 +24,8 @@ pip-wheel-metadata/
 # dask.distributed tests
 dask-worker-space/
 _test_worker-*
+
+#local
+build/
+dist/
+venv/
