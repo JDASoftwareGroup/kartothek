@@ -275,7 +275,7 @@ def test_collect_dataset_metadata_table_without_partition(store_factory):
     )
 
     df_stats = collect_dataset_metadata(
-        store_factory=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
+        store=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
     )
     actual = df_stats.drop(
         columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
@@ -289,6 +289,8 @@ def test_collect_dataset_metadata_table_without_partition(store_factory):
         }
     )
     pd.testing.assert_frame_equal(actual, expected)
+    assert len(df_stats) == 1
+    assert df_stats.iloc[0]["partition_label"].startswith("A=1/")
 
 
 def test_collect_dataset_metadata_invalid_frac(store_session_factory, dataset):
