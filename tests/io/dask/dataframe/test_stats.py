@@ -252,6 +252,19 @@ def test_collect_dataset_metadata_delete_dataset(store_factory):
     pd.testing.assert_frame_equal(expected, df_stats)
 
 
+def test_collect_dataset_metadata_fraction_precision(store_factory):
+    df = pd.DataFrame(data={"A": range(100), "B": range(100)})
+
+    store_dataframes_as_dataset(
+        store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"],
+    )  # Creates 100 partitions
+
+    df_stats = collect_dataset_metadata(
+        store_factory=store_factory, dataset_uuid="dataset_uuid", frac=0.2
+    )
+    assert len(df_stats) == 20
+
+
 def test_collect_dataset_metadata_table_without_partition(store_factory):
     """
     df2 doesn't have files for all partition (specifically `A==2`).

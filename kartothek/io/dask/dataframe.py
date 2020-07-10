@@ -313,7 +313,12 @@ def update_dataset_from_ddf(
 
 
 def collect_dataset_metadata(
-    store_factory, dataset_uuid, table_name, predicates=None, frac=1.0, factory=None,
+    store_factory,
+    dataset_uuid,
+    table_name=SINGLE_TABLE,
+    predicates=None,
+    frac=1.0,
+    factory=None,
 ):
     """
     Collect parquet metadata of the dataset. The `frac` parameter can be used to select a subset of the data.
