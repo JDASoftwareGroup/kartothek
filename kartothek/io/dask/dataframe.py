@@ -313,7 +313,7 @@ def update_dataset_from_ddf(
 
 
 def collect_dataset_metadata(
-    store_factory,
+    store,
     dataset_uuid,
     table_name=SINGLE_TABLE,
     predicates=None,
@@ -332,7 +332,7 @@ def collect_dataset_metadata(
 
     Parameters
     ----------
-    store_factory
+    store
       A factory function providing a KeyValueStore
     dataset_uuid
       The dataset's unique identifier
@@ -374,7 +374,7 @@ def collect_dataset_metadata(
         )
     dataset_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
-        store=store_factory,
+        store=store,
         factory=factory,
         load_dataset_metadata=False,
     )

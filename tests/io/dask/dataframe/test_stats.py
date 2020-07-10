@@ -34,7 +34,7 @@ METADATA_DTYPES = (
 
 def test_collect_dataset_metadata(store_session_factory, dataset):
     df_stats = collect_dataset_metadata(
-        store_factory=store_session_factory,
+        store=store_session_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=None,
@@ -58,7 +58,7 @@ def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
     predicates = [[("P", "==", 1)]]
 
     df_stats = collect_dataset_metadata(
-        store_factory=store_session_factory,
+        store=store_session_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=predicates,
@@ -89,7 +89,7 @@ def test_collect_dataset_metadata_predicates_on_index(store_factory):
     predicates = [[("L", "==", "b")]]
 
     df_stats = collect_dataset_metadata(
-        store_factory=store_factory,
+        store=store_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=predicates,
@@ -127,7 +127,7 @@ def test_collect_dataset_metadata_predicates_row_group_size(store_factory):
     predicates = [[("L", "==", "a")]]
 
     df_stats = collect_dataset_metadata(
-        store_factory=store_factory,
+        store=store_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         predicates=predicates,
@@ -153,7 +153,7 @@ def test_collect_dataset_metadata_predicates_row_group_size(store_factory):
 
 def test_collect_dataset_metadata_frac_smoke(store_session_factory, dataset):
     df_stats = collect_dataset_metadata(
-        store_factory=store_session_factory,
+        store=store_session_factory,
         dataset_uuid="dataset_uuid",
         table_name="table",
         frac=0.8,
@@ -178,7 +178,7 @@ def test_collect_dataset_metadata_empty_dataset_mp(store_factory):
     )
 
     df_stats = collect_dataset_metadata(
-        store_factory=store_factory, dataset_uuid="dataset_uuid", table_name="table"
+        store=store_factory, dataset_uuid="dataset_uuid", table_name="table"
     )
     expected = pd.DataFrame(columns=METADATA_COLUMNS)
     expected = expected.astype(dict(zip(METADATA_COLUMNS, METADATA_DTYPES)))
@@ -194,9 +194,7 @@ def test_collect_dataset_metadata_empty_dataset(store_factory):
         UserWarning, match="^Can't retrieve metadata for empty dataset.*"
     ):
         df_stats = collect_dataset_metadata(
-            store_factory=store_factory,
-            dataset_uuid="dataset_uuid",
-            table_name="table",
+            store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
         )
     expected = pd.DataFrame(columns=METADATA_COLUMNS)
     expected = expected.astype(dict(zip(METADATA_COLUMNS, METADATA_DTYPES)))
@@ -210,7 +208,7 @@ def test_collect_dataset_metadata_concat(store_factory):
         store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"]
     )
     df_stats1 = collect_dataset_metadata(
-        store_factory=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
     )
 
     # Remove all partitions of the dataset
@@ -222,9 +220,7 @@ def test_collect_dataset_metadata_concat(store_factory):
         UserWarning, match="^Can't retrieve metadata for empty dataset.*"
     ):
         df_stats2 = collect_dataset_metadata(
-            store_factory=store_factory,
-            dataset_uuid="dataset_uuid",
-            table_name="table",
+            store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
         )
     pd.concat([df_stats1, df_stats2])
 
@@ -243,9 +239,7 @@ def test_collect_dataset_metadata_delete_dataset(store_factory):
         UserWarning, match="^Can't retrieve metadata for empty dataset.*"
     ):
         df_stats = collect_dataset_metadata(
-            store_factory=store_factory,
-            dataset_uuid="dataset_uuid",
-            table_name="table",
+            store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
         )
     expected = pd.DataFrame(columns=METADATA_COLUMNS)
     expected = expected.astype(dict(zip(METADATA_COLUMNS, METADATA_DTYPES)))
@@ -260,7 +254,7 @@ def test_collect_dataset_metadata_fraction_precision(store_factory):
     )  # Creates 100 partitions
 
     df_stats = collect_dataset_metadata(
-        store_factory=store_factory, dataset_uuid="dataset_uuid", frac=0.2
+        store=store_factory, dataset_uuid="dataset_uuid", frac=0.2
     )
     assert len(df_stats) == 20
 
@@ -300,7 +294,7 @@ def test_collect_dataset_metadata_table_without_partition(store_factory):
 def test_collect_dataset_metadata_invalid_frac(store_session_factory, dataset):
     with pytest.raises(ValueError, match="Invalid value for parameter `frac`"):
         collect_dataset_metadata(
-            store_factory=store_session_factory,
+            store=store_session_factory,
             dataset_uuid="dataset_uuid",
             table_name="table",
             frac=1.1,
@@ -308,7 +302,7 @@ def test_collect_dataset_metadata_invalid_frac(store_session_factory, dataset):
 
     with pytest.raises(ValueError, match="Invalid value for parameter `frac`"):
         collect_dataset_metadata(
-            store_factory=store_session_factory,
+            store=store_session_factory,
             dataset_uuid="dataset_uuid",
             table_name="table",
             frac=0.0,
