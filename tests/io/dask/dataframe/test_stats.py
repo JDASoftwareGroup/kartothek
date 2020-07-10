@@ -254,7 +254,7 @@ def test_collect_dataset_metadata_delete_dataset(store_factory):
 
 def test_collect_dataset_metadata_table_without_partition(store_factory):
     """
-    df2 doesn't have files for all partition (specificaly `A==2`).
+    df2 doesn't have files for all partition (specifically `A==2`).
     Make sure that we still collect the right metadata
     """
     df1 = pd.DataFrame(data={"A": [1, 1, 2, 2], "b": [1, 1, 2, 2]})
@@ -267,10 +267,21 @@ def test_collect_dataset_metadata_table_without_partition(store_factory):
         partition_on=["A"],
     )
 
-    # df_stats = collect_dataset_metadata(
-    #     store_factory=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
-    # )
-    # TODO assertions
+    df_stats = collect_dataset_metadata(
+        store_factory=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
+    )
+    actual = df_stats.drop(
+        columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
+    )
+    expected = pd.DataFrame(
+        data={
+            "row_group_id": [0],
+            "number_rows_total": [2],
+            "number_row_groups": [1],
+            "number_rows_per_row_group": [2],
+        }
+    )
+    pd.testing.assert_frame_equal(actual, expected)
 
 
 def test_collect_dataset_metadata_invalid_frac(store_session_factory, dataset):
