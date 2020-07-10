@@ -1,6 +1,5 @@
 import logging
 import random
-import warnings
 
 import dask
 import dask.dataframe as dd
@@ -12,6 +11,7 @@ from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.io_components.metapartition import (
+    _METADATA_SCHEMA,
     SINGLE_TABLE,
     MetaPartition,
     parse_input_to_metapartition,
@@ -352,7 +352,7 @@ def collect_dataset_metadata(
 
     Returns
     -------
-    A pandas.DataFrame containing the following information about dataset statistics:
+    A delayed pandas.DataFrame containing the following information about dataset statistics:
        * `partition_label`: File name of the parquet file, unique to each physical partition.
        * `row_group_id`: Index of the row groups within one parquet file.
        * `row_group_byte_size`: Byte size of the data within one row group.
@@ -395,15 +395,9 @@ def collect_dataset_metadata(
                 for mp in mps
             ]
         )
-        df = df.compute()
-        df.sort_values(
-            by=["partition_label", "row_group_id"], ignore_index=True, inplace=True
-        )
     else:
-        warnings.warn(
-            f"Can't retrieve metadata for empty dataset with uuid `{dataset_uuid}`"
-        )
-        df = pd.DataFrame(columns=MetaPartition._METADATA_COLUMNS)
-        df = df.astype(MetaPartition._METADATA_SCHEMA._asdict())
+        df = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
+        df = df.astype(_METADATA_SCHEMA)
+        df = dask.delayed(df)
 
     return df

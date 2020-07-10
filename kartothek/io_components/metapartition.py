@@ -51,6 +51,16 @@ SINGLE_TABLE = "table"
 _Literal = namedtuple("_Literal", ["column", "op", "value"])
 _SplitPredicate = namedtuple("_SplitPredicate", ["key_part", "content_part"])
 
+_METADATA_SCHEMA = {
+    "partition_label": np.dtype("O"),
+    "row_group_id": np.dtype(int),
+    "row_group_byte_size": np.dtype(int),
+    "number_rows_total": np.dtype(int),
+    "number_row_groups": np.dtype(int),
+    "serialized_size": np.dtype(int),
+    "number_rows_per_row_group": np.dtype(int),
+}
+
 
 def _predicates_to_named(predicates):
     if predicates is None:
@@ -182,29 +192,6 @@ class MetaPartition(Iterable):
     Wrapper for kartothek partition which includes additional information
     about the parent dataset
     """
-
-    _METADATA_COLUMNS = (
-        "partition_label",
-        "row_group_id",
-        "row_group_byte_size",
-        "number_rows_total",
-        "number_row_groups",
-        "serialized_size",
-        "number_rows_per_row_group",
-    )
-
-    _METADATA_DTYPES = (
-        np.dtype("O"),
-        np.dtype(int),
-        np.dtype(int),
-        np.dtype(int),
-        np.dtype(int),
-        np.dtype(int),
-        np.dtype(int),
-    )
-
-    MetadataSchema = namedtuple("MetadataSchema", _METADATA_COLUMNS)  # type: ignore
-    _METADATA_SCHEMA = MetadataSchema(**dict(zip(_METADATA_COLUMNS, _METADATA_DTYPES)))  # type: ignore
 
     def __init__(
         self,
@@ -1595,6 +1582,7 @@ class MetaPartition(Iterable):
         if callable(store):
             store = store()
 
+        data = {}
         if table_name in self.files:
             with store.open(self.files[table_name]) as fd:
                 pq_metadata = pa.parquet.ParquetFile(fd).metadata
@@ -1606,22 +1594,18 @@ class MetaPartition(Iterable):
             }
             data["row_group_id"] = range(data["number_row_groups"])
 
-            data["row_group_byte_size"], data["number_rows_per_row_group"] = zip(
-                *[
-                    (
-                        pq_metadata.row_group(rg_id).total_byte_size,
-                        pq_metadata.row_group(rg_id).num_rows,
-                    )
-                    for rg_id in data["row_group_id"]
-                ]
-            )
-            df = pd.DataFrame(data=data, columns=self._METADATA_COLUMNS,)
-            df.astype(MetaPartition._METADATA_SCHEMA._asdict())
+            data["row_group_byte_size"] = []
+            data["number_rows_per_row_group"] = []
+            for rg_id in data["row_group_id"]:
+                data["row_group_byte_size"].append(
+                    pq_metadata.row_group(rg_id).num_rows,
+                )
+                data["number_rows_per_row_group"].append(
+                    pq_metadata.row_group(rg_id).num_rows,
+                )
 
-        else:
-            df = pd.DataFrame(columns=self._METADATA_COLUMNS)
-            df = df.astype(MetaPartition._METADATA_SCHEMA._asdict())
-
+        df = pd.DataFrame(data=data, columns=_METADATA_SCHEMA.keys())
+        df = df.astype(_METADATA_SCHEMA)
         return df
 
 

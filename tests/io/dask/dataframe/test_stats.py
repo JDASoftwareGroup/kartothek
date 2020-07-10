@@ -1,4 +1,3 @@
-import numpy as np
 import pandas as pd
 import pytest
 
@@ -7,29 +6,9 @@ from kartothek.io.eager import (
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
 )
-from kartothek.io_components.metapartition import MetaPartition
+from kartothek.io_components.metapartition import _METADATA_SCHEMA, MetaPartition
 from kartothek.io_components.write import store_dataset_from_partitions
 from kartothek.serialization import ParquetSerializer
-
-METADATA_COLUMNS = (
-    "partition_label",
-    "row_group_id",
-    "row_group_byte_size",
-    "number_rows_total",
-    "number_row_groups",
-    "serialized_size",
-    "number_rows_per_row_group",
-)
-
-METADATA_DTYPES = (
-    np.dtype("O"),
-    np.dtype(int),
-    np.dtype(int),
-    np.dtype(int),
-    np.dtype(int),
-    np.dtype(int),
-    np.dtype(int),
-)
 
 
 def test_collect_dataset_metadata(store_session_factory, dataset):
@@ -39,8 +18,10 @@ def test_collect_dataset_metadata(store_session_factory, dataset):
         table_name="table",
         predicates=None,
         frac=1,
-    )
+    ).compute()
+
     actual = df_stats.drop(columns=["row_group_byte_size", "serialized_size"], axis=1)
+    actual.sort_values(by=["partition_label", "row_group_id"], inplace=True)
 
     expected = pd.DataFrame(
         data={
@@ -49,7 +30,8 @@ def test_collect_dataset_metadata(store_session_factory, dataset):
             "number_rows_total": [1, 1],
             "number_row_groups": [1, 1],
             "number_rows_per_row_group": [1, 1],
-        }
+        },
+        index=[0, 0],
     )
     pd.testing.assert_frame_equal(actual, expected)
 
@@ -63,8 +45,10 @@ def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
         table_name="table",
         predicates=predicates,
         frac=1,
-    )
+    ).compute()
+
     actual = df_stats.drop(columns=["row_group_byte_size", "serialized_size"], axis=1)
+    actual.sort_values(by=["partition_label", "row_group_id"], inplace=True)
 
     # Predicates are only evaluated on index level and have therefore no effect on this dataset
     expected = pd.DataFrame(
@@ -74,7 +58,8 @@ def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
             "number_rows_total": [1, 1],
             "number_row_groups": [1, 1],
             "number_rows_per_row_group": [1, 1],
-        }
+        },
+        index=[0, 0],
     )
     pd.testing.assert_frame_equal(actual, expected)
 
@@ -94,8 +79,11 @@ def test_collect_dataset_metadata_predicates_on_index(store_factory):
         table_name="table",
         predicates=predicates,
         frac=1,
-    )
+    ).compute()
+
     assert "L=b" in df_stats["partition_label"].values[0]
+
+    df_stats.sort_values(by=["partition_label", "row_group_id"], inplace=True)
     actual = df_stats.drop(
         columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
     )
@@ -106,7 +94,8 @@ def test_collect_dataset_metadata_predicates_on_index(store_factory):
             "number_rows_total": [5],
             "number_row_groups": [1],
             "number_rows_per_row_group": [5],
-        }
+        },
+        index=[0],
     )
     pd.testing.assert_frame_equal(actual, expected)
 
@@ -132,9 +121,11 @@ def test_collect_dataset_metadata_predicates_row_group_size(store_factory):
         table_name="table",
         predicates=predicates,
         frac=1,
-    )
+    ).compute()
+
     for part_label in df_stats["partition_label"]:
         assert "L=a" in part_label
+    df_stats.sort_values(by=["partition_label", "row_group_id"], inplace=True)
 
     actual = df_stats.drop(
         columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
@@ -146,7 +137,8 @@ def test_collect_dataset_metadata_predicates_row_group_size(store_factory):
             "number_rows_total": [5, 5, 5],
             "number_row_groups": [3, 3, 3],
             "number_rows_per_row_group": [2, 2, 1],
-        }
+        },
+        index=[0, 1, 2],
     )
     pd.testing.assert_frame_equal(actual, expected)
 
@@ -157,7 +149,7 @@ def test_collect_dataset_metadata_frac_smoke(store_session_factory, dataset):
         dataset_uuid="dataset_uuid",
         table_name="table",
         frac=0.8,
-    )
+    ).compute()
     columns = {
         "partition_label",
         "row_group_id",
@@ -179,9 +171,10 @@ def test_collect_dataset_metadata_empty_dataset_mp(store_factory):
 
     df_stats = collect_dataset_metadata(
         store=store_factory, dataset_uuid="dataset_uuid", table_name="table"
-    )
-    expected = pd.DataFrame(columns=METADATA_COLUMNS)
-    expected = expected.astype(dict(zip(METADATA_COLUMNS, METADATA_DTYPES)))
+    ).compute()
+
+    expected = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
+    expected = expected.astype(_METADATA_SCHEMA)
     pd.testing.assert_frame_equal(expected, df_stats, check_index_type=False)
 
 
@@ -190,14 +183,11 @@ def test_collect_dataset_metadata_empty_dataset(store_factory):
     store_dataframes_as_dataset(
         store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"]
     )
-    with pytest.warns(
-        UserWarning, match="^Can't retrieve metadata for empty dataset.*"
-    ):
-        df_stats = collect_dataset_metadata(
-            store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
-        )
-    expected = pd.DataFrame(columns=METADATA_COLUMNS)
-    expected = expected.astype(dict(zip(METADATA_COLUMNS, METADATA_DTYPES)))
+    df_stats = collect_dataset_metadata(
+        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+    ).compute()
+    expected = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
+    expected = expected.astype(_METADATA_SCHEMA)
     pd.testing.assert_frame_equal(expected, df_stats)
 
 
@@ -209,19 +199,16 @@ def test_collect_dataset_metadata_concat(store_factory):
     )
     df_stats1 = collect_dataset_metadata(
         store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
-    )
+    ).compute()
 
     # Remove all partitions of the dataset
     update_dataset_from_dataframes(
         [], store=store_factory, dataset_uuid="dataset_uuid", delete_scope=[{"A": 1}]
     )
 
-    with pytest.warns(
-        UserWarning, match="^Can't retrieve metadata for empty dataset.*"
-    ):
-        df_stats2 = collect_dataset_metadata(
-            store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
-        )
+    df_stats2 = collect_dataset_metadata(
+        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+    ).compute()
     pd.concat([df_stats1, df_stats2])
 
 
@@ -235,14 +222,11 @@ def test_collect_dataset_metadata_delete_dataset(store_factory):
         [], store=store_factory, dataset_uuid="dataset_uuid", delete_scope=[{"A": 1}]
     )
 
-    with pytest.warns(
-        UserWarning, match="^Can't retrieve metadata for empty dataset.*"
-    ):
-        df_stats = collect_dataset_metadata(
-            store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
-        )
-    expected = pd.DataFrame(columns=METADATA_COLUMNS)
-    expected = expected.astype(dict(zip(METADATA_COLUMNS, METADATA_DTYPES)))
+    df_stats = collect_dataset_metadata(
+        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+    ).compute()
+    expected = pd.DataFrame(columns=_METADATA_SCHEMA)
+    expected = expected.astype(_METADATA_SCHEMA)
     pd.testing.assert_frame_equal(expected, df_stats)
 
 
@@ -255,7 +239,7 @@ def test_collect_dataset_metadata_fraction_precision(store_factory):
 
     df_stats = collect_dataset_metadata(
         store=store_factory, dataset_uuid="dataset_uuid", frac=0.2
-    )
+    ).compute()
     assert len(df_stats) == 20
 
 
@@ -271,7 +255,7 @@ def test_collect_dataset_metadata_at_least_one_partition(store_factory):
 
     df_stats = collect_dataset_metadata(
         store=store_factory, dataset_uuid="dataset_uuid", frac=0.005
-    )
+    ).compute()
     assert len(df_stats) == 1
 
 
@@ -292,7 +276,7 @@ def test_collect_dataset_metadata_table_without_partition(store_factory):
 
     df_stats = collect_dataset_metadata(
         store=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
-    )
+    ).compute()
     actual = df_stats.drop(
         columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
     )
