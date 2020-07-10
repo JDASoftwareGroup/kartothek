@@ -1716,7 +1716,7 @@ def test_get_parquet_metadata_row_group_size(store):
     pd.testing.assert_frame_equal(actual, expected)
 
 
-def test_table_name_not_str(store):
+def test_get_parquet_metadata_table_name_not_str(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
     mp = MetaPartition(label="test_label", data={"core": df, "another_table": df},)
     meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)

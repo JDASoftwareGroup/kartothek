@@ -183,6 +183,29 @@ class MetaPartition(Iterable):
     about the parent dataset
     """
 
+    _METADATA_COLUMNS = (
+        "partition_label",
+        "row_group_id",
+        "row_group_byte_size",
+        "number_rows_total",
+        "number_row_groups",
+        "serialized_size",
+        "number_rows_per_row_group",
+    )
+
+    _METADATA_DTYPES = (
+        np.dtype("O"),
+        np.dtype(int),
+        np.dtype(int),
+        np.dtype(int),
+        np.dtype(int),
+        np.dtype(int),
+        np.dtype(int),
+    )
+
+    MetadataSchema = namedtuple("MetadataSchema", _METADATA_COLUMNS)  # type: ignore
+    _METADATA_SCHEMA = MetadataSchema(**dict(zip(_METADATA_COLUMNS, _METADATA_DTYPES)))  # type: ignore
+
     def __init__(
         self,
         label,
@@ -1572,9 +1595,9 @@ class MetaPartition(Iterable):
         if callable(store):
             store = store()
 
-        if self.files:
-            fd = store.open(self.files[table_name])
-            pq_metadata = pa.parquet.ParquetFile(fd).metadata
+        if table_name in self.files:
+            with store.open(self.files[table_name]) as fd:
+                pq_metadata = pa.parquet.ParquetFile(fd).metadata
             data = {
                 "partition_label": self.label,
                 "number_rows_total": pq_metadata.num_rows,
@@ -1592,23 +1615,14 @@ class MetaPartition(Iterable):
                     for rg_id in data["row_group_id"]
                 ]
             )
-            return pd.DataFrame(
-                data=data,
-                columns=[
-                    "partition_label",
-                    "row_group_id",
-                    "row_group_byte_size",
-                    "number_rows_total",
-                    "number_row_groups",
-                    "serialized_size",
-                    "number_rows_per_row_group",
-                ],
-            )
+            df = pd.DataFrame(data=data, columns=self._METADATA_COLUMNS,)
+            df.astype(MetaPartition._METADATA_SCHEMA._asdict())
 
         else:
-            raise RuntimeError(
-                "This should not happen: MetaPartition with no data associated."
-            )
+            df = pd.DataFrame(columns=self._METADATA_COLUMNS)
+            df = df.astype(MetaPartition._METADATA_SCHEMA._asdict())
+
+        return df
 
 
 def _unique_label(label_list):
