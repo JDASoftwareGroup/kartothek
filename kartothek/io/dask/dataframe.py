@@ -1,4 +1,3 @@
-import logging
 import random
 
 import dask
@@ -29,8 +28,6 @@ from kartothek.io_components.utils import (
 from ._update import update_dask_partitions_one_to_one, update_dask_partitions_shuffle
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
-
-_logger = logging.getLogger()
 
 
 @default_docs
