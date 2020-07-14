@@ -1,13 +1,15 @@
 import random
+from typing import Callable, Optional
 
 import dask
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
+from simplekv import KeyValueStore
 
 from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.io_components.metapartition import (
     _METADATA_SCHEMA,
@@ -24,6 +26,7 @@ from kartothek.io_components.utils import (
     normalize_args,
     validate_partition_keys,
 )
+from kartothek.serialization import PredicatesType
 
 from ._update import update_dask_partitions_one_to_one, update_dask_partitions_shuffle
 from ._utils import _maybe_get_categoricals_from_index
@@ -310,13 +313,13 @@ def update_dataset_from_ddf(
 
 
 def collect_dataset_metadata(
-    store,
-    dataset_uuid,
-    table_name=SINGLE_TABLE,
-    predicates=None,
-    frac=1.0,
-    factory=None,
-):
+    store: Optional[Callable[[], KeyValueStore]] = None,
+    dataset_uuid: Optional[str] = None,
+    table_name: str = SINGLE_TABLE,
+    predicates: Optional[PredicatesType] = None,
+    frac: float = 1.0,
+    factory: Optional[DatasetFactory] = None,
+) -> dd.DataFrame:
     """
     Collect parquet metadata of the dataset. The `frac` parameter can be used to select a subset of the data.
 

@@ -7,14 +7,15 @@ import logging
 import os
 import time
 import warnings
-from collections import Iterable, Iterator, defaultdict, namedtuple
+from collections import Iterable, defaultdict, namedtuple
 from copy import copy
 from functools import wraps
-from typing import Any, Dict, Optional, cast
+from typing import Any, Callable, Dict, Iterator, Optional, cast
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+from simplekv import KeyValueStore
 
 from kartothek.core import naming
 from kartothek.core._compat import ARROW_LARGER_EQ_0150
@@ -1559,7 +1560,9 @@ class MetaPartition(Iterable):
             store.delete(file_key)
         return self.copy(files={}, data={}, metadata={})
 
-    def get_parquet_metadata(self, store, table_name):
+    def get_parquet_metadata(
+        self, store: Callable[[], KeyValueStore], table_name: str
+    ) -> pd.DataFrame:
         """
         Retrieve the parquet metadata for the MetaPartition.
         Especially relevant for calculating dataset statistics.
@@ -1584,7 +1587,7 @@ class MetaPartition(Iterable):
 
         data = {}
         if table_name in self.files:
-            with store.open(self.files[table_name]) as fd:
+            with store.open(self.files[table_name]) as fd:  # type: ignore
                 pq_metadata = pa.parquet.ParquetFile(fd).metadata
             data = {
                 "partition_label": self.label,
