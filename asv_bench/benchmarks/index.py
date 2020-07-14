@@ -66,6 +66,12 @@ class Index(IndexBase):
     )
     param_names = ["number_values", "number_partitions", "dtype"]
 
+    def time_remove_partitions_inplace(
+        self, number_values, number_partitions, arrow_type
+    ):
+        partitions_to_remove = self.partition_values[len(self.partition_values) // 2 :]
+        self.ktk_index.remove_partitions(partitions_to_remove, inplace=True)
+
     def time_load_index(self, number_values, number_partitions, arrow_type):
         self.ktk_index_not_loaded.load(self.store)
 
