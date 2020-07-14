@@ -55,7 +55,8 @@ _SplitPredicate = namedtuple("_SplitPredicate", ["key_part", "content_part"])
 _METADATA_SCHEMA = {
     "partition_label": np.dtype("O"),
     "row_group_id": np.dtype(int),
-    "row_group_byte_size": np.dtype(int),
+    "row_group_compressed_size": np.dtype(int),
+    "row_group_uncompressed_size": np.dtype(int),
     "number_rows_total": np.dtype(int),
     "number_row_groups": np.dtype(int),
     "serialized_size": np.dtype(int),
@@ -1589,23 +1590,50 @@ class MetaPartition(Iterable):
         if table_name in self.files:
             with store.open(self.files[table_name]) as fd:  # type: ignore
                 pq_metadata = pa.parquet.ParquetFile(fd).metadata
-            data = {
-                "partition_label": self.label,
-                "number_rows_total": pq_metadata.num_rows,
-                "number_row_groups": pq_metadata.num_row_groups,
-                "serialized_size": pq_metadata.serialized_size,
-            }
-            data["row_group_id"] = range(data["number_row_groups"])
+            try:
+                metadata_dict = pq_metadata.to_dict()
+            except AttributeError:  # No data in file
+                metadata_dict = None
+                data = {
+                    "partition_label": self.label,
+                    "serialized_size": pq_metadata.serialized_size,
+                    "number_rows_total": pq_metadata.num_rows,
+                    "number_row_groups": pq_metadata.num_row_groups,
+                    "row_group_id": [0],
+                    "number_rows_per_row_group": [0],
+                    "row_group_compressed_size": [0],
+                    "row_group_uncompressed_size": [0],
+                }
 
-            data["row_group_byte_size"] = []
-            data["number_rows_per_row_group"] = []
-            for rg_id in data["row_group_id"]:
-                data["row_group_byte_size"].append(
-                    pq_metadata.row_group(rg_id).num_rows,
-                )
-                data["number_rows_per_row_group"].append(
-                    pq_metadata.row_group(rg_id).num_rows,
-                )
+            if metadata_dict:
+                # Note: could just parse this entire dict into a pandas dataframe, w/o the below processing
+                data = {
+                    "partition_label": self.label,
+                    "serialized_size": metadata_dict["serialized_size"],
+                    "number_rows_total": metadata_dict["num_rows"],
+                    "number_row_groups": metadata_dict["num_row_groups"],
+                    "row_group_id": [],
+                    "number_rows_per_row_group": [],
+                    "row_group_compressed_size": [],
+                    "row_group_uncompressed_size": [],
+                }
+
+                for row_group_id, row_group_metadata in enumerate(
+                    metadata_dict["row_groups"]
+                ):
+                    data["row_group_id"].append(row_group_id)
+                    data["number_rows_per_row_group"].append(
+                        row_group_metadata["num_rows"]
+                    )
+                    data["row_group_compressed_size"].append(
+                        row_group_metadata["total_byte_size"]
+                    )
+                    data["row_group_uncompressed_size"].append(
+                        sum(
+                            col["total_uncompressed_size"]
+                            for col in row_group_metadata["columns"]
+                        )
+                    )
 
         df = pd.DataFrame(data=data, columns=_METADATA_SCHEMA.keys())
         df = df.astype(_METADATA_SCHEMA)

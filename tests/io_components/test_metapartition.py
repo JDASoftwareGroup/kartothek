@@ -1654,7 +1654,8 @@ def test_get_parquet_metadata(store):
 
     actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
     actual.drop(labels="serialized_size", axis=1, inplace=True)
-    actual.drop(labels="row_group_byte_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_compressed_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_uncompressed_size", axis=1, inplace=True)
 
     expected = pd.DataFrame(
         {
@@ -1675,7 +1676,13 @@ def test_get_parquet_metadata_empty_df(store):
 
     actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
     actual.drop(
-        columns=["serialized_size", "row_group_byte_size"], axis=1, inplace=True
+        columns=[
+            "serialized_size",
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+        ],
+        axis=1,
+        inplace=True,
     )
 
     expected = pd.DataFrame(
@@ -1701,7 +1708,13 @@ def test_get_parquet_metadata_row_group_size(store):
     )
     actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
     actual.drop(
-        columns=["serialized_size", "row_group_byte_size"], axis=1, inplace=True
+        columns=[
+            "serialized_size",
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+        ],
+        axis=1,
+        inplace=True,
     )
 
     expected = pd.DataFrame(

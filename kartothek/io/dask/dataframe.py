@@ -355,7 +355,8 @@ def collect_dataset_metadata(
     A dask.DataFrame containing the following information about dataset statistics:
        * `partition_label`: File name of the parquet file, unique to each physical partition.
        * `row_group_id`: Index of the row groups within one parquet file.
-       * `row_group_byte_size`: Byte size of the data within one row group.
+       * `row_group_compressed_size`: Byte size of the data within one row group.
+       * `row_group_uncompressed_size`: Byte size (uncompressed) of the data within one row group.
        * `number_rows_total`: Total number of rows in one parquet file.
        * `number_row_groups`: Number of row groups in one parquet file.
        * `serialized_size`: Serialized size of the parquet file.

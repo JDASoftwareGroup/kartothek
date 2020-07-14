@@ -20,7 +20,14 @@ def test_collect_dataset_metadata(store_session_factory, dataset):
         frac=1,
     ).compute()
 
-    actual = df_stats.drop(columns=["row_group_byte_size", "serialized_size"], axis=1)
+    actual = df_stats.drop(
+        columns=[
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+            "serialized_size",
+        ],
+        axis=1,
+    )
     actual.sort_values(by=["partition_label", "row_group_id"], inplace=True)
 
     expected = pd.DataFrame(
@@ -47,7 +54,14 @@ def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
         frac=1,
     ).compute()
 
-    actual = df_stats.drop(columns=["row_group_byte_size", "serialized_size"], axis=1)
+    actual = df_stats.drop(
+        columns=[
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+            "serialized_size",
+        ],
+        axis=1,
+    )
     actual.sort_values(by=["partition_label", "row_group_id"], inplace=True)
 
     # Predicates are only evaluated on index level and have therefore no effect on this dataset
@@ -85,7 +99,13 @@ def test_collect_dataset_metadata_predicates_on_index(store_factory):
 
     df_stats.sort_values(by=["partition_label", "row_group_id"], inplace=True)
     actual = df_stats.drop(
-        columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
+        columns=[
+            "partition_label",
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+            "serialized_size",
+        ],
+        axis=1,
     )
 
     expected = pd.DataFrame(
@@ -128,7 +148,13 @@ def test_collect_dataset_metadata_predicates_row_group_size(store_factory):
     df_stats.sort_values(by=["partition_label", "row_group_id"], inplace=True)
 
     actual = df_stats.drop(
-        columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
+        columns=[
+            "partition_label",
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+            "serialized_size",
+        ],
+        axis=1,
     )
 
     expected = pd.DataFrame(
@@ -153,7 +179,8 @@ def test_collect_dataset_metadata_frac_smoke(store_session_factory, dataset):
     columns = {
         "partition_label",
         "row_group_id",
-        "row_group_byte_size",
+        "row_group_compressed_size",
+        "row_group_uncompressed_size",
         "number_rows_total",
         "number_row_groups",
         "serialized_size",
@@ -278,7 +305,13 @@ def test_collect_dataset_metadata_table_without_partition(store_factory):
         store=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
     ).compute()
     actual = df_stats.drop(
-        columns=["partition_label", "row_group_byte_size", "serialized_size"], axis=1
+        columns=[
+            "partition_label",
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+            "serialized_size",
+        ],
+        axis=1,
     )
     expected = pd.DataFrame(
         data={
