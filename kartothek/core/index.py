@@ -343,18 +343,17 @@ class IndexBase(CopyMixin):
         inplace: bool, (default: False)
             If `True` the operation is performed inplace and will return the same object
         """
-        partitions_to_delete = list_of_partitions
-        if not partitions_to_delete:
+        if not list_of_partitions:
             return self
+        partitions_to_delete = set(list_of_partitions)
         if inplace:
-            values_to_remove = []
+            values_to_remove = set()
             for val, partition_list in self.index_dct.items():
-                for partition_label in partitions_to_delete:
-                    if partition_label in partition_list:
-                        partition_list.remove(partition_label)
-                    if len(partition_list) == 0:
-                        values_to_remove.append(val)
-                        break
+                new_partition_set = set(partition_list) - partitions_to_delete
+                if new_partition_set:
+                    self.index_dct[val][:] = new_partition_set
+                else:
+                    values_to_remove.add(val)
             for val in values_to_remove:
                 del self.index_dct[val]
             # Call the constructor again to reinit the creation timestamp
@@ -364,9 +363,9 @@ class IndexBase(CopyMixin):
         else:
             new_index_dict = {}
             for val, partition_list in self.index_dct.items():
-                new_list = set(partition_list) - set(partitions_to_delete)
-                if len(new_list) > 0:
-                    new_index_dict[val] = list(new_list)
+                new_partition_set = set(partition_list) - partitions_to_delete
+                if new_partition_set:
+                    new_index_dict[val] = list(new_partition_set)
             return self.copy(
                 column=self.column, index_dct=new_index_dict, dtype=self.dtype
             )
