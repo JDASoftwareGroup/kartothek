@@ -10,6 +10,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0141
 from kartothek.core.common_metadata import make_meta, store_schema_metadata
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
@@ -1647,6 +1648,7 @@ def test_parse_input_schema_formats():
         assert mp.data == {"table1": df}
 
 
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
 def test_get_parquet_metadata(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
     mp = MetaPartition(label="test_label", data={"core": df},)
@@ -1669,6 +1671,7 @@ def test_get_parquet_metadata(store):
     pd.testing.assert_frame_equal(actual, expected)
 
 
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
 def test_get_parquet_metadata_empty_df(store):
     df = pd.DataFrame()
     mp = MetaPartition(label="test_label", data={"core": df},)
@@ -1698,6 +1701,7 @@ def test_get_parquet_metadata_empty_df(store):
     pd.testing.assert_frame_equal(actual, expected)
 
 
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
 def test_get_parquet_metadata_row_group_size(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
     mp = MetaPartition(label="test_label", data={"core": df},)
@@ -1729,6 +1733,7 @@ def test_get_parquet_metadata_row_group_size(store):
     pd.testing.assert_frame_equal(actual, expected)
 
 
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
 def test_get_parquet_metadata_table_name_not_str(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
     mp = MetaPartition(label="test_label", data={"core": df, "another_table": df},)
