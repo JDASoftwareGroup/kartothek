@@ -349,7 +349,7 @@ def collect_dataset_metadata(
 
     Returns
     -------
-    A delayed pandas.DataFrame containing the following information about dataset statistics:
+    A dask.DataFrame containing the following information about dataset statistics:
        * `partition_label`: File name of the parquet file, unique to each physical partition.
        * `row_group_id`: Index of the row groups within one parquet file.
        * `row_group_byte_size`: Byte size of the data within one row group.
@@ -384,7 +384,7 @@ def collect_dataset_metadata(
         # ensure that even with sampling at least one metapartition is returned
         cutoff_index = max(1, int(len(mps) * frac))
         mps = mps[:cutoff_index]
-        df = dd.from_delayed(
+        ddf = dd.from_delayed(
             [
                 dask.delayed(MetaPartition.get_parquet_metadata)(
                     mp, store=dataset_factory.store_factory, table_name=table_name,
@@ -395,6 +395,6 @@ def collect_dataset_metadata(
     else:
         df = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
         df = df.astype(_METADATA_SCHEMA)
-        df = dask.delayed(df)
+        ddf = dd.from_pandas(df, npartitions=1)
 
-    return df
+    return ddf
