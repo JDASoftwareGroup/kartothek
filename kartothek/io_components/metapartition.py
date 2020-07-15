@@ -7,14 +7,15 @@ import logging
 import os
 import time
 import warnings
-from collections import Iterable, Iterator, defaultdict, namedtuple
+from collections import Iterable, defaultdict, namedtuple
 from copy import copy
 from functools import wraps
-from typing import Any, Dict, Optional, cast
+from typing import Any, Callable, Dict, Iterator, Optional, cast
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
+from simplekv import KeyValueStore
 
 from kartothek.core import naming
 from kartothek.core._compat import ARROW_LARGER_EQ_0150
@@ -50,6 +51,17 @@ SINGLE_TABLE = "table"
 
 _Literal = namedtuple("_Literal", ["column", "op", "value"])
 _SplitPredicate = namedtuple("_SplitPredicate", ["key_part", "content_part"])
+
+_METADATA_SCHEMA = {
+    "partition_label": np.dtype("O"),
+    "row_group_id": np.dtype(int),
+    "row_group_compressed_size": np.dtype(int),
+    "row_group_uncompressed_size": np.dtype(int),
+    "number_rows_total": np.dtype(int),
+    "number_row_groups": np.dtype(int),
+    "serialized_size": np.dtype(int),
+    "number_rows_per_row_group": np.dtype(int),
+}
 
 
 def _predicates_to_named(predicates):
@@ -1548,6 +1560,84 @@ class MetaPartition(Iterable):
         for file_key in self.files.values():
             store.delete(file_key)
         return self.copy(files={}, data={}, metadata={})
+
+    def get_parquet_metadata(
+        self, store: Callable[[], KeyValueStore], table_name: str
+    ) -> pd.DataFrame:
+        """
+        Retrieve the parquet metadata for the MetaPartition.
+        Especially relevant for calculating dataset statistics.
+
+        Parameters
+        ----------
+        store
+          A factory function providing a KeyValueStore
+        table_name
+          Name of the kartothek table for which the statistics should be retrieved
+
+        Returns
+        -------
+        pd.DataFrame
+          A DataFrame with relevant parquet metadata
+        """
+        if not isinstance(table_name, str):
+            raise TypeError("Expecting a string for parameter `table_name`.")
+
+        if callable(store):
+            store = store()
+
+        data = {}
+        if table_name in self.files:
+            with store.open(self.files[table_name]) as fd:  # type: ignore
+                pq_metadata = pa.parquet.ParquetFile(fd).metadata
+            try:
+                metadata_dict = pq_metadata.to_dict()
+            except AttributeError:  # No data in file
+                metadata_dict = None
+                data = {
+                    "partition_label": self.label,
+                    "serialized_size": pq_metadata.serialized_size,
+                    "number_rows_total": pq_metadata.num_rows,
+                    "number_row_groups": pq_metadata.num_row_groups,
+                    "row_group_id": [0],
+                    "number_rows_per_row_group": [0],
+                    "row_group_compressed_size": [0],
+                    "row_group_uncompressed_size": [0],
+                }
+
+            if metadata_dict:
+                # Note: could just parse this entire dict into a pandas dataframe, w/o the below processing
+                data = {
+                    "partition_label": self.label,
+                    "serialized_size": metadata_dict["serialized_size"],
+                    "number_rows_total": metadata_dict["num_rows"],
+                    "number_row_groups": metadata_dict["num_row_groups"],
+                    "row_group_id": [],
+                    "number_rows_per_row_group": [],
+                    "row_group_compressed_size": [],
+                    "row_group_uncompressed_size": [],
+                }
+
+                for row_group_id, row_group_metadata in enumerate(
+                    metadata_dict["row_groups"]
+                ):
+                    data["row_group_id"].append(row_group_id)
+                    data["number_rows_per_row_group"].append(
+                        row_group_metadata["num_rows"]
+                    )
+                    data["row_group_compressed_size"].append(
+                        row_group_metadata["total_byte_size"]
+                    )
+                    data["row_group_uncompressed_size"].append(
+                        sum(
+                            col["total_uncompressed_size"]
+                            for col in row_group_metadata["columns"]
+                        )
+                    )
+
+        df = pd.DataFrame(data=data, columns=_METADATA_SCHEMA.keys())
+        df = df.astype(_METADATA_SCHEMA)
+        return df
 
 
 def _unique_label(label_list):

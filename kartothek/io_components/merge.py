@@ -21,6 +21,7 @@ def align_datasets(left_dataset_uuid, right_dataset_uuid, store, match_how="exac
     Yields
     ------
     list
+
     """
     store = _instantiate_store(store)
     left_dataset = DatasetMetadata.load_from_store(uuid=left_dataset_uuid, store=store)

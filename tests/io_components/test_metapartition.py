@@ -10,6 +10,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pytest
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0141
 from kartothek.core.common_metadata import make_meta, store_schema_metadata
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
@@ -1645,3 +1646,100 @@ def test_parse_input_schema_formats():
     for obj in formats_obj:
         mp = parse_input_to_metapartition(obj=obj, metadata_version=4)
         assert mp.data == {"table1": df}
+
+
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
+def test_get_parquet_metadata(store):
+    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
+    mp = MetaPartition(label="test_label", data={"core": df},)
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+
+    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual.drop(labels="serialized_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_compressed_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_uncompressed_size", axis=1, inplace=True)
+
+    expected = pd.DataFrame(
+        {
+            "partition_label": ["test_label"],
+            "row_group_id": 0,
+            "number_rows_total": 10,
+            "number_row_groups": 1,
+            "number_rows_per_row_group": 10,
+        }
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
+def test_get_parquet_metadata_empty_df(store):
+    df = pd.DataFrame()
+    mp = MetaPartition(label="test_label", data={"core": df},)
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+
+    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual.drop(
+        columns=[
+            "serialized_size",
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+        ],
+        axis=1,
+        inplace=True,
+    )
+
+    expected = pd.DataFrame(
+        {
+            "partition_label": ["test_label"],
+            "row_group_id": 0,
+            "number_rows_total": 0,
+            "number_row_groups": 1,
+            "number_rows_per_row_group": 0,
+        }
+    )
+
+    pd.testing.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
+def test_get_parquet_metadata_row_group_size(store):
+    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
+    mp = MetaPartition(label="test_label", data={"core": df},)
+    ps = ParquetSerializer(chunk_size=5)
+
+    meta_partition = mp.store_dataframes(
+        store=store, dataset_uuid="dataset_uuid", df_serializer=ps
+    )
+    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual.drop(
+        columns=[
+            "serialized_size",
+            "row_group_compressed_size",
+            "row_group_uncompressed_size",
+        ],
+        axis=1,
+        inplace=True,
+    )
+
+    expected = pd.DataFrame(
+        {
+            "partition_label": ["test_label", "test_label"],
+            "row_group_id": [0, 1],
+            "number_rows_total": [10, 10],
+            "number_row_groups": [2, 2],
+            "number_rows_per_row_group": [5, 5],
+        }
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+
+
+@pytest.mark.skipif(not ARROW_LARGER_EQ_0141, reason="requires arrow >= 0.14.1")
+def test_get_parquet_metadata_table_name_not_str(store):
+    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
+    mp = MetaPartition(label="test_label", data={"core": df, "another_table": df},)
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+
+    with pytest.raises(TypeError):
+        meta_partition.get_parquet_metadata(
+            store=store, table_name=["core", "another_table"]
+        )

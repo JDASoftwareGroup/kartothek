@@ -12,6 +12,11 @@ Improvements
   to allow for transition for future breaking release.
 
 
+New functionality
+^^^^^^^^^^^^^^^^^
+
+* Add :meth:`~kartothek.io_components.metapartition.MetaPartition.get_parquet_metadata` and :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata`, enabling users to collect information about the Parquet metadata of a dataset
+
 Bug fixes
 ^^^^^^^^^
 

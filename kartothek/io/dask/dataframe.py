@@ -1,15 +1,24 @@
+import random
+from typing import Callable, Optional
+
 import dask
 import dask.dataframe as dd
 import numpy as np
+import pandas as pd
+from simplekv import KeyValueStore
 
+from kartothek.core._compat import ARROW_LARGER_EQ_0141
 from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.io_components.metapartition import (
+    _METADATA_SCHEMA,
     SINGLE_TABLE,
+    MetaPartition,
     parse_input_to_metapartition,
 )
+from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
@@ -18,6 +27,7 @@ from kartothek.io_components.utils import (
     normalize_args,
     validate_partition_keys,
 )
+from kartothek.serialization import PredicatesType
 
 from ._update import update_dask_partitions_one_to_one, update_dask_partitions_shuffle
 from ._utils import _maybe_get_categoricals_from_index
@@ -301,3 +311,97 @@ def update_dataset_from_ddf(
         metadata=metadata,
         metadata_merger=metadata_merger,
     )
+
+
+def collect_dataset_metadata(
+    store: Optional[Callable[[], KeyValueStore]] = None,
+    dataset_uuid: Optional[str] = None,
+    table_name: str = SINGLE_TABLE,
+    predicates: Optional[PredicatesType] = None,
+    frac: float = 1.0,
+    factory: Optional[DatasetFactory] = None,
+) -> dd.DataFrame:
+    """
+    Collect parquet metadata of the dataset. The `frac` parameter can be used to select a subset of the data.
+
+    .. warning::
+      If the size of the partitions is not evenly distributed, e.g. some partitions might be larger than others,
+      the metadata returned is not a good approximation for the whole dataset metadata.
+    .. warning::
+      Using the `frac` parameter is not encouraged for a small number of total partitions.
+
+
+    Parameters
+    ----------
+    store
+      A factory function providing a KeyValueStore
+    dataset_uuid
+      The dataset's unique identifier
+    table_name
+      Name of the kartothek table for which to retrieve the statistics
+    predicates
+      Kartothek predicates to apply filters on the data for which to gather statistics
+
+      .. warning::
+          Filtering will only be applied for predicates on indices.
+          The evaluation of the predicates therefore will therefore only return an approximate result.
+
+    frac
+      Fraction of the total number of partitions to use for gathering statistics. `frac == 1.0` will use all partitions.
+    factory
+       A DatasetFactory holding the store and UUID to the source dataset.
+
+    Returns
+    -------
+    A dask.DataFrame containing the following information about dataset statistics:
+       * `partition_label`: File name of the parquet file, unique to each physical partition.
+       * `row_group_id`: Index of the row groups within one parquet file.
+       * `row_group_compressed_size`: Byte size of the data within one row group.
+       * `row_group_uncompressed_size`: Byte size (uncompressed) of the data within one row group.
+       * `number_rows_total`: Total number of rows in one parquet file.
+       * `number_row_groups`: Number of row groups in one parquet file.
+       * `serialized_size`: Serialized size of the parquet file.
+       * `number_rows_per_row_group`: Number of rows per row group.
+
+    Raises
+    ------
+    ValueError
+      If no metadata could be retrieved, raise an error.
+
+    """
+    if not ARROW_LARGER_EQ_0141:
+        raise RuntimeError("This function requires `pyarrow>=0.14.1`.")
+    if not 0.0 < frac <= 1.0:
+        raise ValueError(
+            f"Invalid value for parameter `frac`: {frac}."
+            "Please make sure to provide a value larger than 0.0 and smaller than or equal to 1.0 ."
+        )
+    dataset_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
+    )
+
+    mps = list(
+        dispatch_metapartitions_from_factory(dataset_factory, predicates=predicates)
+    )
+    if mps:
+        random.shuffle(mps)
+        # ensure that even with sampling at least one metapartition is returned
+        cutoff_index = max(1, int(len(mps) * frac))
+        mps = mps[:cutoff_index]
+        ddf = dd.from_delayed(
+            [
+                dask.delayed(MetaPartition.get_parquet_metadata)(
+                    mp, store=dataset_factory.store_factory, table_name=table_name,
+                )
+                for mp in mps
+            ]
+        )
+    else:
+        df = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
+        df = df.astype(_METADATA_SCHEMA)
+        ddf = dd.from_pandas(df, npartitions=1)
+
+    return ddf
