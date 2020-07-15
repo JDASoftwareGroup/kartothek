@@ -5,6 +5,11 @@ Changelog
 Version 3.9.1 (2020-06-XX)
 ==========================
 
+New functionality
+^^^^^^^^^^^^^^^^^
+
+* Add :meth:`~kartothek.io_components.metapartition.MetaPartition.get_parquet_metadata` and :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata`, enabling users to collect information about the Parquet metadata of a dataset
+
 Bug fixes
 ^^^^^^^^^
 
