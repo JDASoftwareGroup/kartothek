@@ -2,6 +2,21 @@
 Changelog
 =========
 
+
+Version 3.11.0 (2020-07-15)
+===========================
+
+New functionality
+^^^^^^^^^^^^^^^^^
+
+* Add :meth:`~kartothek.io_components.metapartition.MetaPartition.get_parquet_metadata` and :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata`, enabling users to collect information about the Parquet metadata of a dataset (#306)
+
+Bug fixes
+^^^^^^^^^
+
+* Performance of dataset update with ``delete_scope`` significantly improved for datasets with many partitions (#308)
+
+
 Version 3.10.0 (2020-07-02)
 ===========================
 
@@ -10,12 +25,6 @@ Improvements
 * Dispatch performance improved for large datasets including metadata
 * Introduction of ``dispatch_metadata`` kwarg to metapartitions read pipelines
   to allow for transition for future breaking release.
-
-
-New functionality
-^^^^^^^^^^^^^^^^^
-
-* Add :meth:`~kartothek.io_components.metapartition.MetaPartition.get_parquet_metadata` and :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata`, enabling users to collect information about the Parquet metadata of a dataset
 
 Bug fixes
 ^^^^^^^^^
