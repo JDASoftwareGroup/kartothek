@@ -1,0 +1,156 @@
+name: CI
+
+
+on:
+  pull_request:
+  push:
+    branches:
+      - '*'
+    tags:
+      - v*
+  schedule:
+    # daily (`@daily` not supported, see
+    # https://docs.github.com/en/actions/reference/events-that-trigger-workflows#scheduled-events )
+    #
+    # Runs on default/base branch (see
+    # https://docs.github.com/en/actions/reference/workflow-syntax-for-github-actions#onschedule )
+    - cron: '0 0 * * *'
+
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        numfocus_nightly: [false]
+        os: ["ubuntu-latest"]
+        pyarrow: ["0.13.0", "0.14.1", "0.15.0", "0.16.0", "0.17.1", "nightly"]
+        python: ["3.6", "3.7", "3.8"]
+        include:
+          - numfocus_nightly: true
+            os: "ubuntu-latest"
+            pyarrow: "0.17.1"
+            python: "3.8"
+          - numfocus_nightly: false
+            os: "macos-latest"
+            pyarrow: "0.17.1"
+            python: "3.8"
+        exclude:
+          # No pyarrow Python 3.8 builds for these versions available
+          - numfocus_nightly: false
+            os: "ubuntu-latest"
+            pyarrow: "0.13.0"
+            python: "3.8"
+          - numfocus_nightly: false
+            os: "ubuntu-latest"
+            pyarrow: "0.14.1"
+            python: "3.8"
+          - numfocus_nightly: false
+            os: "ubuntu-latest"
+            pyarrow: "0.15.0"
+            python: "3.8"
+
+    runs-on: ${{ matrix.os }}
+
+    defaults:
+      run:
+        # see https://github.com/goanpeca/setup-miniconda/#important
+        shell: bash -l {0}
+
+    env:
+      IS_MASTER_BUILD: ${{ !matrix.numfocus_nightly && matrix.os == 'ubuntu-latest' && matrix.pyarrow == '0.17.1' && matrix.python == '3.8' }}
+
+    steps:
+      # CI setup
+      - name: Is Master Build?
+        run: echo $IS_MASTER_BUILD
+      - name: Checkout
+        uses: actions/checkout@v2
+      - name: Conda Bootstrap
+        uses: goanpeca/setup-miniconda@v1
+        with:
+          auto-update-conda: true
+          channel-priority: strict
+          channels: conda-forge
+          python-version: ${{ matrix.python }}
+      - name: Conda Config
+        run: |
+          conda config --set always_yes yes
+          conda config --set changeps1 no
+          conda config --set pip_interop_enabled True
+
+      # Installation into the `test` environment
+      - name: Conda Install Pyarrow (non-nightly)
+        run: conda install pyarrow==${{ matrix.pyarrow }}
+        if: matrix.pyarrow != 'nightly'
+      - name: Conda Install Pyarrow (nightly)
+        # Install both arrow-cpp and pyarrow to make sure that we have the
+        # latest nightly of both packages. It is sadly not guaranteed that the
+        # nightlies and the latest release would otherwise work together.
+        run: conda install -c arrow-nightlies arrow-cpp pyarrow
+        if: matrix.pyarrow == 'nightly'
+      - name: Conda Install conda-requirements.txt + conda-test-requirements.txt
+        # run this AFTER pyarrow, since this is less restrictive (so conda doesn't spend too much time downgrading)
+        run: conda install --file=conda-requirements.txt --file=conda-test-requirements.txt
+      - name: Pip Instal NumFOCUS nightly
+        # NumFOCUS nightly wheels, contains numpy and pandas
+        run: env PRE_WHEELS="https://pypi.anaconda.org/scipy-wheels-nightly/simple" pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS pandas numpy
+        if: matrix.numfocus_nightly
+      - name: Pip Install kartothek
+        run: pip install --no-deps -e .
+      - name: Conda Export
+        run: conda list --export
+
+      # Linters
+      - name: Flake8
+        run: flake8
+      - name: Mypy
+        run: mypy .
+      - name: Black
+        run: black --check .
+      - name: blacken-docs
+        run: blacken-docs
+      - name: Isort
+        run: isort --recursive --check-only
+
+      # Tests
+      - name: Pytest
+        run: pytest --cov kartothek --cov-report xml
+      - name: ASV
+        run: |
+          asv --config ./asv_bench/asv.conf.json machine --machine github --os unknown --arch unknown --cpu unknown --ram unknown
+          asv --config ./asv_bench/asv.conf.json run --show-stderr --environment existing --quick
+        if: env.IS_MASTER_BUILD == 'true'
+      - name: Sphinx
+        run: |
+          python setup.py build_sphinx
+          touch ./docs/_build/html/.nojekyll
+        if: env.IS_MASTER_BUILD == 'true'
+
+      # Builds
+      - name: Build Wheel
+        run: python setup.py sdist bdist_wheel
+
+      # Artifacts
+      - name: Preserve Dist
+        uses: actions/upload-artifact@v1
+        with:
+          name: dist
+          path: dist
+      - name: Preserve Docs
+        uses: actions/upload-artifact@v1
+        with:
+          name: docs
+          path: docs/_build/html
+        if: env.IS_MASTER_BUILD == 'true'
+      - name: Codecov
+        uses: codecov/codecov-action@v1
+        with:
+          # NOTE: `token` is not required, because the kartothek repo is public
+          file: ./coverage.xml
+          name: pytest-numfocus_nightly_${{ matrix.numfocus_nightly }}-os_${{ matrix.os }}-pyarrow_${{ matrix.pyarrow }}-python_${{ matrix.python }}
+      - name: Publish to PyPI
+        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && env.IS_MASTER_BUILD == 'true'
+        uses: pypa/gh-action-pypi-publish@master
+        with:
+          user: __token__
+          password: ${{ secrets.PYPI_PASSWORD }}
