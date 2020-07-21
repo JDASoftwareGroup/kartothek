@@ -137,13 +137,15 @@ def mock_default_metadata_version(mocker, backend_identifier):
             # passed through this mock function
             raise AssertionError("Traversed through mock. Original error: {}".format(e))
 
-    mocker.patch(
-        "kartothek.io.{backend_identifier}.parse_input_to_metapartition".format(
-            backend_identifier=backend_identifier
-        ),
-        patched__parse_input_to_metapartition,
-    )
-
+    try:
+        mocker.patch(
+            "kartothek.io.{backend_identifier}.parse_input_to_metapartition".format(
+                backend_identifier=backend_identifier
+            ),
+            patched__parse_input_to_metapartition,
+        )
+    except AttributeError:  # function not imported for this backend
+        pass
     return mock_metadata_version
 
 

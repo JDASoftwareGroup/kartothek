@@ -10,9 +10,11 @@ from dask import delayed
 from kartothek.core import naming
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
-from kartothek.core.naming import DEFAULT_METADATA_VERSION
+from kartothek.core.naming import (
+    DEFAULT_METADATA_STORAGE_FORMAT,
+    DEFAULT_METADATA_VERSION,
+)
 from kartothek.core.utils import _check_callable
-from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.delete import (
     delete_common_metadata,
     delete_indices,
@@ -20,24 +22,16 @@ from kartothek.io_components.delete import (
 )
 from kartothek.io_components.gc import delete_files, dispatch_files_to_gc
 from kartothek.io_components.merge import align_datasets
-from kartothek.io_components.metapartition import (
-    SINGLE_TABLE,
-    MetaPartition,
-    parse_input_to_metapartition,
-)
+from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
     normalize_arg,
     normalize_args,
-    raise_if_indices_overlap,
     validate_partition_keys,
 )
-from kartothek.io_components.write import (
-    raise_if_dataset_exists,
-    store_dataset_from_partitions,
-)
+from kartothek.io_components.write import check_dataset_creation_constraints
 
 from ._update import update_dask_partitions_one_to_one
 from ._utils import (
@@ -439,6 +433,7 @@ def update_dataset_from_delayed(
     sort_partitions_by=None,
     secondary_indices=None,
     factory=None,
+    metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
 ):
     """
     A dask.delayed graph to add and store a list of dictionaries containing
@@ -483,6 +478,7 @@ def update_dataset_from_delayed(
         delete_scope=delete_scope,
         metadata=metadata,
         metadata_merger=metadata_merger,
+        metadata_storage_format=metadata_storage_format,
     )
 
 
@@ -500,6 +496,7 @@ def store_delayed_as_dataset(
     partition_on=None,
     metadata_storage_format=naming.DEFAULT_METADATA_STORAGE_FORMAT,
     secondary_indices=None,
+    factory=None,
 ):
     """
     Transform and store a list of dictionaries containing
@@ -514,38 +511,29 @@ def store_delayed_as_dataset(
     A dask.delayed dataset object.
     """
     _check_callable(store)
-    if dataset_uuid is None:
-        dataset_uuid = gen_uuid()
-
-    if not overwrite:
-        raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
-
-    raise_if_indices_overlap(partition_on, secondary_indices)
-
-    input_to_mps = partial(
-        parse_input_to_metapartition, metadata_version=metadata_version
-    )
-    mps = map_delayed(input_to_mps, delayed_tasks)
-
-    if partition_on:
-        mps = map_delayed(MetaPartition.partition_on, mps, partition_on=partition_on)
-
-    if secondary_indices:
-        mps = map_delayed(MetaPartition.build_indices, mps, columns=secondary_indices)
-
-    mps = map_delayed(
-        MetaPartition.store_dataframes,
-        mps,
+    factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
         store=store,
+        factory=factory,
+        gen_uuid_if_none=True,
+        load_dataset_metadata=False,
+    )
+    check_dataset_creation_constraints(
+        factory=factory,
+        partition_on=partition_on,
+        secondary_indices=secondary_indices,
+        overwrite=overwrite,
+    )
+
+    return update_dataset_from_delayed(
+        delayed_tasks=delayed_tasks,
+        store=factory.store_factory,
+        dataset_uuid=factory.dataset_uuid,
+        metadata=metadata,
+        partition_on=partition_on,
         df_serializer=df_serializer,
-        dataset_uuid=dataset_uuid,
-    )
-
-    return delayed(store_dataset_from_partitions)(
-        mps,
-        dataset_uuid=dataset_uuid,
-        store=store,
-        dataset_metadata=metadata,
-        metadata_merger=metadata_merger,
         metadata_storage_format=metadata_storage_format,
+        default_metadata_version=metadata_version,
+        secondary_indices=secondary_indices,
+        metadata_merger=metadata_merger,
     )
