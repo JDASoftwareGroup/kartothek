@@ -12,6 +12,7 @@ from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
+from kartothek.io.dask.compression import pack_payload, unpack_payload_pandas
 from kartothek.io_components.metapartition import (
     _METADATA_SCHEMA,
     SINGLE_TABLE,
@@ -394,7 +395,7 @@ def collect_dataset_metadata(
         ddf = dd.from_delayed(
             [
                 dask.delayed(MetaPartition.get_parquet_metadata)(
-                    mp, store=dataset_factory.store_factory, table_name=table_name,
+                    mp, store=dataset_factory.store_factory, table_name=table_name
                 )
                 for mp in mps
             ]
@@ -405,3 +406,76 @@ def collect_dataset_metadata(
         ddf = dd.from_pandas(df, npartitions=1)
 
     return ddf
+
+
+def _unpack_hash(df, unpack_meta, subset):
+    df = unpack_payload_pandas(df, unpack_meta)
+    if subset:
+        df = df[subset]
+    return _hash_partition(df)
+
+
+def _hash_partition(part):
+    return pd.util.hash_pandas_object(part, index=False).sum()
+
+
+@default_docs
+def hash_dataset(
+    store: Optional[Callable[[], KeyValueStore]] = None,
+    dataset_uuid: Optional[str] = None,
+    subset=None,
+    group_key=None,
+    table: str = SINGLE_TABLE,
+    predicates: Optional[PredicatesType] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> dd.Series:
+    """
+    Calculate a partition wise, or group wise, hash of the dataset.
+
+    .. note::
+
+        We do not guarantee the hash values to remain constant accross versions.
+
+
+    Example output::
+
+        Assuming a dataset with two unique values in column `P` this gives
+
+        >>> hash_dataset(factory=dataset_with_index_factory,group_key=["P"]).compute()
+        ... P
+        ... 1    11462879952839863487
+        ... 2    12568779102514529673
+        ... dtype: uint64
+
+    Parameters
+    ----------
+    subset:
+        If provided, only take these columns into account when hashing the dataset
+    group_key:
+        If provided, calculate hash per group instead of per partition
+    """
+    dataset_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
+    )
+    columns = subset
+    if subset and group_key:
+        columns = sorted(set(subset) | set(group_key))
+    ddf = read_dataset_as_ddf(
+        table=table,
+        predicates=predicates,
+        factory=dataset_factory,
+        columns=columns,
+        dates_as_object=True,
+    )
+    if not group_key:
+        return ddf.map_partitions(_hash_partition, meta="uint64").astype("uint64")
+    else:
+        ddf2 = pack_payload(ddf, group_key=group_key)
+        return (
+            ddf2.groupby(group_key)
+            .apply(_unpack_hash, unpack_meta=ddf._meta, subset=subset, meta="uint64")
+            .astype("uint64")
+        )
