@@ -14,6 +14,15 @@ from kartothek.io.testing.read import *  # noqa
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
+@pytest.fixture(
+    params=["dataframe", "metapartition", "table"],
+    ids=["dataframe", "metapartition", "table"],
+)
+def output_type(request):
+    # TODO: get rid of this parametrization and split properly into two functions
+    return request.param
+
+
 def _read_table(*args, **kwargs):
     if "tables" in kwargs:
         kwargs.pop("tables")

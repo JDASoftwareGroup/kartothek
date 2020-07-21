@@ -1,11 +1,4 @@
-import pytest
-
 from .utils import create_dataset
-
-
-@pytest.fixture()
-def bound_delete_dataset():
-    raise NotImplementedError("Must be implemented by backend")
 
 
 def test_delete_dataset(store_factory, metadata_version, bound_delete_dataset):

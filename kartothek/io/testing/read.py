@@ -33,7 +33,6 @@ The following fixtures should be present (see tests.read.conftest)
 
 import datetime
 from distutils.version import LooseVersion
-from functools import wraps
 from itertools import permutations
 
 import pandas as pd
@@ -45,15 +44,6 @@ from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
-
-
-@pytest.fixture(
-    params=["dataframe", "metapartition", "table"],
-    ids=["dataframe", "metapartition", "table"],
-)
-def output_type(request):
-    # TODO: get rid of this parametrization and split properly into two functions
-    return request.param
 
 
 @pytest.fixture(params=[True, False], ids=["use_categoricals", "no_categoricals"])
@@ -87,21 +77,6 @@ def custom_read_parameters():
 @pytest.fixture(params=[True, False], ids=["use_factory", "no_factory"])
 def use_dataset_factory(request, dates_as_object):
     return request.param
-
-
-@pytest.fixture()
-def bound_load_metapartitions():
-    raise pytest.skip("Needs to implemented by submodule")
-
-
-@pytest.fixture()
-def bound_load_dataframes(bound_load_metapartitions):
-    @wraps(bound_load_metapartitions)
-    def _inner(*args, **kwargs):
-        mps = bound_load_metapartitions(*args, **kwargs)
-        return [mp.data for mp in mps]
-
-    return _inner
 
 
 def _strip_unused_categoricals(df):
