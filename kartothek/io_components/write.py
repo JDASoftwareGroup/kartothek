@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
+import warnings
 from collections import defaultdict
 
 from kartothek.core import naming
@@ -10,9 +11,14 @@ from kartothek.core.common_metadata import (
     validate_compatible,
     validate_shared_columns,
 )
-from kartothek.core.dataset import DatasetMetadataBuilder
+from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBuilder
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.core.partition import Partition
+from kartothek.io_components.delete import (
+    delete_common_metadata,
+    delete_indices,
+    delete_top_level_metadata,
+)
 from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
     MetaPartition,
@@ -22,6 +28,7 @@ from kartothek.io_components.utils import (
     _instantiate_store,
     combine_metadata,
     extract_duplicates,
+    raise_if_indices_overlap,
 )
 
 SINGLE_CATEGORY = SINGLE_TABLE
@@ -246,3 +253,28 @@ def raise_if_dataset_exists(dataset_uuid, store):
                 )
     except KeyError:
         pass
+
+
+def check_dataset_creation_constraints(
+    factory, partition_on, secondary_indices, overwrite=False
+):
+    """Check if all required constraints for creating a dataset are met."""
+
+    if overwrite is not False:
+        warnings.warn(
+            "The keyword `overwrite` be removed in the next major release ",  # FIXME: keep or not?
+            DeprecationWarning,
+            stacklevel=2,
+        )
+        if DatasetMetadata.exists(
+            uuid=factory.dataset_uuid, store=factory.store_factory()
+        ):
+            # delete common metadata after partitions
+            delete_common_metadata(dataset_factory=factory)
+            delete_indices(dataset_factory=factory)
+            # Delete the top level metadata file
+            delete_top_level_metadata(dataset_factory=factory)
+    raise_if_dataset_exists(
+        dataset_uuid=factory.dataset_uuid, store=factory.store_factory()
+    )
+    raise_if_indices_overlap(partition_on, secondary_indices)

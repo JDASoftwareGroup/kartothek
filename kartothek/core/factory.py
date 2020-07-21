@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Callable, Optional, TypeVar, cast
 
 from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
 from kartothek.core.utils import _check_callable
+from kartothek.core.uuid import gen_uuid
 
 if TYPE_CHECKING:
     from simplekv import KeyValueStore
@@ -16,10 +17,17 @@ def _ensure_factory(
     factory: Optional["DatasetFactory"],
     load_dataset_metadata: bool,
     load_schema: bool = True,
+    gen_uuid_if_none: bool = False,
 ) -> "DatasetFactory":
+
     if store is None and dataset_uuid is None and factory is not None:
         return factory
-    elif store is not None and dataset_uuid is not None and factory is None:
+    elif store is not None and factory is None:
+        if dataset_uuid is None:
+            if gen_uuid_if_none:
+                dataset_uuid = gen_uuid()
+            else:
+                raise ValueError("Missing `dataset_uuid`.")
         return DatasetFactory(
             dataset_uuid=dataset_uuid,
             store_factory=store,

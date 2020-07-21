@@ -10,7 +10,6 @@ from kartothek.core.naming import (
     DEFAULT_METADATA_STORAGE_FORMAT,
     DEFAULT_METADATA_VERSION,
 )
-from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.metapartition import (
     MetaPartition,
     parse_input_to_metapartition,
@@ -19,15 +18,12 @@ from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
+    _make_callable,
     normalize_args,
-    raise_if_indices_overlap,
     sort_values_categorical,
     validate_partition_keys,
 )
-from kartothek.io_components.write import (
-    raise_if_dataset_exists,
-    store_dataset_from_partitions,
-)
+from kartothek.io_components.write import check_dataset_creation_constraints
 
 
 @default_docs
@@ -196,6 +192,7 @@ def update_dataset_from_dataframes__iter(
     sort_partitions_by=None,
     secondary_indices=None,
     factory=None,
+    metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
 ):
     """
     Update a kartothek dataset in store iteratively, using a generator of dataframes.
@@ -267,6 +264,7 @@ def update_dataset_from_dataframes__iter(
         delete_scope=delete_scope,
         metadata=metadata,
         metadata_merger=metadata_merger,
+        metadata_storage_format=metadata_storage_format,
     )
 
 
@@ -283,6 +281,7 @@ def store_dataframes_as_dataset__iter(
     metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
     metadata_version=DEFAULT_METADATA_VERSION,
     secondary_indices=None,
+    factory=None,
 ):
     """
     Store `pd.DataFrame` s iteratively as a partitioned dataset with multiple tables (files).
@@ -299,37 +298,30 @@ def store_dataframes_as_dataset__iter(
 
     """
 
-    if dataset_uuid is None:
-        dataset_uuid = gen_uuid()
-
-    if not overwrite:
-        raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
-
-    raise_if_indices_overlap(partition_on, secondary_indices)
-
-    new_partitions = []
-    for df in df_generator:
-        mp = parse_input_to_metapartition(df, metadata_version=metadata_version)
-
-        if partition_on:
-            mp = mp.partition_on(partition_on)
-
-        if secondary_indices:
-            mp = mp.build_indices(secondary_indices)
-
-        # Store dataframe, thereby clearing up the dataframe from the `mp` metapartition
-        mp = mp.store_dataframes(
-            store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
-        )
-
-        # Add `kartothek.io_components.metapartition.MetaPartition` object to list to track partitions
-        new_partitions.append(mp)
-
-    # Store metadata and return `kartothek.DatasetMetadata` object
-    return store_dataset_from_partitions(
-        partition_list=new_partitions,
+    store = _make_callable(store)
+    factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
-        dataset_metadata=metadata,
+        factory=factory,
+        gen_uuid_if_none=True,
+        load_dataset_metadata=False,
+    )
+
+    check_dataset_creation_constraints(
+        factory=factory,
+        partition_on=partition_on,
+        secondary_indices=secondary_indices,
+        overwrite=overwrite,
+    )
+
+    return update_dataset_from_dataframes__iter(
+        df_generator=df_generator,
+        store=factory.store_factory,
+        dataset_uuid=factory.dataset_uuid,
+        metadata=metadata,
+        partition_on=partition_on,
+        df_serializer=df_serializer,
         metadata_storage_format=metadata_storage_format,
+        default_metadata_version=metadata_version,
+        secondary_indices=secondary_indices,
     )

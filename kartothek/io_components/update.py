@@ -7,6 +7,7 @@ update of the content of existing partitions.
 
 
 from kartothek.core.index import PartitionIndex
+from kartothek.core.naming import DEFAULT_METADATA_STORAGE_FORMAT
 from kartothek.io_components.utils import _instantiate_store
 from kartothek.io_components.write import store_dataset_from_partitions
 
@@ -28,6 +29,7 @@ def update_dataset_from_partitions(
     delete_scope,
     metadata,
     metadata_merger,
+    metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
 ):
     store = _instantiate_store(store_factory)
 
@@ -52,6 +54,7 @@ def update_dataset_from_partitions(
         metadata_merger=metadata_merger,
         update_dataset=ds_factory,
         remove_partitions=remove_partitions,
+        metadata_storage_format=metadata_storage_format,
     )
 
     return new_dataset
