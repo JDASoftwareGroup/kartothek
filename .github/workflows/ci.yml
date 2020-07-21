@@ -49,6 +49,8 @@ jobs:
             pyarrow: "0.15.0"
             python: "3.8"
 
+    continue-on-error: ${{ matrix.numfocus_nightly || matrix.pyarrow == 'nightly' }}
+
     runs-on: ${{ matrix.os }}
 
     defaults:
