@@ -25,6 +25,7 @@ We commit to full semantic versioning for the subpackages
 
 * :mod:`kartothek.serialization`
 * :mod:`kartothek.io`
+* :mod:`kartothek.api`
 
 which we consider as our stable public API and should be the primary entrypoint
 for user interactions.
@@ -33,11 +34,12 @@ The subpackages
 
 * :mod:`kartothek.core`
 * :mod:`kartothek.io_components`
+* :mod:`kartothek.utils`
 
 should be used primarily by extension developers and not the ordinary end user.
 We allow ourselves therefore a bit more freedom and permit breaking interface
-changes in every *minor* version. For changes in :mod:`~kartothek.core` and
-:mod:`~kartothek.io_components` with expected impact on end users we will decide
+changes in every *minor* version. For changes in :mod:`~kartothek.core`, :mod:`kartothek.utils`
+and :mod:`~kartothek.io_components` with expected impact on end users we will decide
 on an individual case basis if an increase of major version is justified to
 signal the user potential breakage.
 Under any circumstances, breaking interface changes will be documented to the

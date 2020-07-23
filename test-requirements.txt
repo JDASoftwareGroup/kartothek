@@ -1,6 +1,8 @@
 # Test Code Dependencies
 distributed
 pytz
+cloudpickle
+freezegun
 
 # Test Framework
 hypothesis
@@ -15,6 +17,7 @@ asv
 # Documentation
 sphinx
 sphinx_rtd_theme
+sphinx-click
 IPython
 
 # Formatting / Checking

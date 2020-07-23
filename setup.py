@@ -30,6 +30,7 @@ def setup_package():
         long_description=open("README.md", "r").read(),
         long_description_content_type="text/markdown",
         python_requires=">=3.6",
+        entry_points={"console_scripts": ["kartothek_cube=kartothek.cli:main"]},
     )
 
 

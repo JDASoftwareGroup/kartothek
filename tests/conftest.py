@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 # pylint: disable=C0103, C0111, W0621
 
-
 import datetime
+import os
+import sys
 from collections import OrderedDict
 from functools import partial
 
 import pandas as pd
 import pytest
+import storefact
 
 from kartothek.core.common_metadata import make_meta
 from kartothek.core.factory import DatasetFactory
@@ -98,6 +100,98 @@ def store(store_factory):
 @pytest.fixture
 def store2(store_factory2):
     return store_factory2()
+
+
+class NoPickle:
+    def __getstate__(self):
+        raise RuntimeError("do NOT pickle this object!")
+
+
+def mark_nopickle(obj):
+    setattr(obj, "_nopickle", NoPickle())
+
+
+def _check_and_delete(key, store, delete_orig):
+    if key not in store.keys():
+        raise KeyError(key)
+    return delete_orig(key)
+
+
+def _refuse_write(*args, **kwargs):
+    raise RuntimeError("Write operation on read-only store.")
+
+
+def _get_store(path):
+    url = "hfs://{}".format(path)
+    store = storefact.get_store_from_url(url)
+    store.delete = partial(_check_and_delete, store=store, delete_orig=store.delete)
+    mark_nopickle(store)
+    return store
+
+
+def _make_readonly(store):
+    if callable(store):
+        store = store()
+
+    store.delete = _refuse_write
+    store.put = _refuse_write
+
+    return store
+
+
+@pytest.fixture(scope="function")
+def function_store(tmpdir):
+    return partial(_get_store, tmpdir.join("function_store").strpath)
+
+
+@pytest.fixture(scope="function")
+def function_store_ro(function_store):
+    return partial(_make_readonly, function_store)
+
+
+@pytest.fixture(scope="function", params=["ro", "rw"])
+def function_store_rwro(request, function_store, function_store_ro):
+    if request.param == "ro":
+        return function_store_ro
+    else:
+        return function_store
+
+
+@pytest.fixture(scope="function")
+def function_store2(tmpdir):
+    return partial(_get_store, tmpdir.join("function_store2").strpath)
+
+
+@pytest.fixture
+def azure_store_cfg_factory(caplog):
+    def _f(suffix):
+        account_name = "qe72nmjyy6mbi"
+        env_name = "AZURE_BLOB_KEY_{}".format(account_name.upper())
+        account_key = os.environ.get(env_name)
+        if not account_key:
+            pytest.skip("{} not provided".format(env_name))
+
+        container = "tests-{component}-{py_major}-{py_minor}-{suffix}".format(
+            component="kartothek",
+            py_major=sys.version_info.major,
+            py_minor=sys.version_info.minor,
+            suffix=suffix,
+        )
+
+        return {
+            "type": "hazure",
+            "create_if_missing": True,
+            "account_name": account_name,
+            "account_key": account_key,
+            "container": container,
+        }
+
+    return _f
+
+
+@pytest.fixture(scope="module")
+def module_store(tmpdir_factory):
+    return partial(_get_store, tmpdir_factory.mktemp("module_store").realpath())
 
 
 @pytest.fixture
