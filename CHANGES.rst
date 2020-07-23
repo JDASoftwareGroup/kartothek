@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 3.XX.0 (2020-XX-XX)
+Version 3.12.0 (2020-07-23)
 ===========================
 
 New functionality
