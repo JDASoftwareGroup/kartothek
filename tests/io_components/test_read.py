@@ -200,3 +200,82 @@ def test_dispatch_metapartitions_sorted_dispatch_by(store):
             current = current[0][2]
             assert current > last
             last = current
+
+
+def test_dispatch_metapartitions_complex_or_predicates(store_factory):
+    dataset_uuid = "test"
+    df = pd.DataFrame({"A": range(10), "B": ["A", "B"] * 5, "C": range(-10, 0)})
+
+    store_dataframes_as_dataset(
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        dfs=[df],
+        partition_on=["A", "B"],
+    )
+    predicates = [[("A", "<", 3)], [("B", "==", "B")]]
+    mps = [
+        mp.load_dataframes(store_factory)
+        for mp in dispatch_metapartitions(
+            dataset_uuid, store_factory, predicates=predicates
+        )
+    ]
+    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = actual.sort_values(by="A", ignore_index=True)
+    expected = pd.DataFrame(
+        data={
+            "A": [0, 1, 2, 3, 5, 7, 9],
+            "B": ["A", "B", "A", "B", "B", "B", "B"],
+            "C": [-10, -9, -8, -7, -5, -3, -1],
+        }
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+
+    predicates = [[("A", "<", 3)], [("B", "==", "notthere")]]
+    mps = [
+        mp.load_dataframes(store_factory)
+        for mp in dispatch_metapartitions(
+            dataset_uuid, store_factory, predicates=predicates
+        )
+    ]
+    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = actual.sort_values(by="A", ignore_index=True)
+    expected = pd.DataFrame(
+        data={"A": [0, 1, 2], "B": ["A", "B", "A"], "C": [-10, -9, -8]}
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+
+    predicates = [[("A", "<", 3), ("B", "==", "A")], [("B", "==", "B"), ("A", ">", 2)]]
+    mps = [
+        mp.load_dataframes(store_factory)
+        for mp in dispatch_metapartitions(
+            dataset_uuid, store_factory, predicates=predicates
+        )
+    ]
+    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = actual.sort_values(by="A", ignore_index=True)
+    expected = pd.DataFrame(
+        data={
+            "A": [0, 2, 3, 5, 7, 9],
+            "B": ["A", "A", "B", "B", "B", "B"],
+            "C": [-10, -8, -7, -5, -3, -1],
+        }
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+
+    predicates = [[("A", "<", 3)], [("B", "==", "B"), ("A", ">", 2)]]
+    mps = [
+        mp.load_dataframes(store_factory)
+        for mp in dispatch_metapartitions(
+            dataset_uuid, store_factory, predicates=predicates
+        )
+    ]
+    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = actual.sort_values(by="A", ignore_index=True)
+    expected = pd.DataFrame(
+        data={
+            "A": [0, 1, 2, 3, 5, 7, 9],
+            "B": ["A", "B", "A", "B", "B", "B", "B"],
+            "C": [-10, -9, -8, -7, -5, -3, -1],
+        }
+    )
+    pd.testing.assert_frame_equal(actual, expected)

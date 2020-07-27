@@ -361,7 +361,7 @@ class DatasetMetadataBase(CopyMixin):
         predicates: PredicatesType = None,
     ):
         """
-        Converts the dataset indices to a pandas dataframe.
+        Converts the dataset indices to a pandas dataframe and filter relevant indices by `predicates`.
 
         For a dataset with indices on columns `column_a` and `column_b` and three partitions,
         the dataset output may look like
@@ -381,22 +381,76 @@ class DatasetMetadataBase(CopyMixin):
         elif columns == []:
             return pd.DataFrame(index=self.partitions)
 
-        dfs = []
         columns_to_scan = columns[:]
         if predicates:
             predicate_columns = columns_in_predicates(predicates)
-            # Don't use set logic to preserve order
-            for col in predicate_columns:
-                if col not in columns_to_scan and col in self.indices:
-                    columns_to_scan.append(col)
+            columns_to_scan = sorted(
+                (predicate_columns & self.indices.keys()) | set(columns)
+            )
 
-        for col in columns_to_scan:
-            if col not in self.indices:
-                if col in self.partition_keys:
-                    raise RuntimeError(
-                        "Partition indices not loaded. Please call `DatasetMetadata.load_partition_keys` first."
-                    )
-                raise ValueError("Index `{}` unknown.")
+            dfs = (
+                self._evaluate_conjunction(
+                    columns=columns_to_scan,
+                    predicates=[conjunction],
+                    date_as_object=date_as_object,
+                )
+                for conjunction in predicates
+            )
+
+            df = pd.concat(dfs)
+            index_name = df.index.name
+            df = (
+                df.loc[:, columns].reset_index().drop_duplicates().set_index(index_name)
+            )
+        else:
+            df = self._evaluate_conjunction(
+                columns=columns_to_scan, predicates=None, date_as_object=date_as_object,
+            )
+        return df
+
+    def _evaluate_conjunction(self, columns, predicates, date_as_object):
+        """
+        Evaluate all predicates related to `columns` to "AND".
+
+        Parameters
+        ----------
+        columns:
+            A list of all columns, including query and index columns.
+        predicates: list of list of tuple[str, str, Any]
+            Optional list of predicates, like [[('x', '>', 0), ...], that are used
+            to filter the resulting DataFrame, possibly using predicate pushdown,
+            if supported by the file format.
+            This parameter is not compatible with filter_query.
+
+            Predicates are expressed in disjunctive normal form (DNF). This means
+            that the innermost tuple describes a single column predicate. These
+            inner predicates are all combined with a conjunction (AND) into a
+            larger predicate. The most outer list then combines all predicates
+            with a disjunction (OR). By this, we should be able to express all
+            kinds of predicates that are possible using boolean logic.
+
+            Available operators are: `==`, `!=`, `<=`, `>=`, `<`, `>` and `in`.
+        dates_as_object: bool
+            Load pyarrow.date{32,64} columns as ``object`` columns in Pandas
+            instead of using ``np.datetime64`` to preserve their type. While
+            this improves type-safety, this comes at a performance cost.
+
+        Returns
+        -------
+        df_result:
+            A DataFrame containing all indices for which `predicates` holds true.
+        """
+        non_index_columns = set(columns) - self.indices.keys()
+        if non_index_columns:
+            if non_index_columns & set(self.partition_keys):
+                raise RuntimeError(
+                    "Partition indices not loaded. Please call `DatasetMetadata.load_partition_indices` first."
+                )
+            raise ValueError(
+                "Unknown index columns: {}".format(", ".join(sorted(non_index_columns)))
+            )
+        dfs = []
+        for col in columns:
             df = pd.DataFrame(
                 self.indices[col].as_flat_series(
                     partitions_as_index=True,
@@ -405,24 +459,16 @@ class DatasetMetadataBase(CopyMixin):
                 )
             )
             dfs.append(df)
-
-        # start joining with the small ones
-        sorted_dfs = sorted(dfs, key=lambda df: len(df))
-        result = sorted_dfs.pop(0)
-        for df in sorted_dfs:
-            result = result.merge(df, left_index=True, right_index=True, copy=False)
-
-        if predicates:
-            index_name = result.index.name
-            result = (
-                result.loc[:, columns]
-                .reset_index()
-                .drop_duplicates()
-                .set_index(index_name)
+        # dfs contains one df per index column. Each df stores indices filtered by `predicates` for each column.
+        # Performing an inner join on these dfs yields the resulting "AND" evaluation for all of these predicates.
+        # We start joining with the smallest dataframe, therefore the sorting.
+        dfs_sorted = sorted(dfs, key=len)
+        df_result = dfs_sorted.pop(0)
+        for df in dfs_sorted:
+            df_result = df_result.merge(
+                df, left_index=True, right_index=True, copy=False
             )
-            return result
-        else:
-            return result
+        return df_result
 
 
 class DatasetMetadata(DatasetMetadataBase):

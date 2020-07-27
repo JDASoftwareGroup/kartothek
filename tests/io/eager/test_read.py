@@ -9,6 +9,7 @@ from kartothek.io.eager import (
     read_dataset_as_dataframes,
     read_dataset_as_metapartitions,
     read_table,
+    store_dataframes_as_dataset,
 )
 from kartothek.io.testing.read import *  # noqa
 from kartothek.io_components.metapartition import SINGLE_TABLE
@@ -158,7 +159,6 @@ def test_read_table_simple_list_for_cols_cats(dataset, store_session):
 
 
 def test_write_and_read_default_table_name(store_session):
-    from kartothek.io.eager import store_dataframes_as_dataset
 
     df_write = pd.DataFrame({"P": [3.14, 2.71]})
     store_dataframes_as_dataset(store_session, "test_default_table_name", [df_write])
@@ -168,3 +168,39 @@ def test_write_and_read_default_table_name(store_session):
         "test_default_table_name", store_session
     )
     pd.testing.assert_frame_equal(df_write, df_read_as_dfs[0]["table"])
+
+
+@pytest.mark.parametrize("partition_on", [None, ["A", "B"]])
+def test_read_or_predicates(store_factory, partition_on):
+    # https://github.com/JDASoftwareGroup/kartothek/issues/295
+    dataset_uuid = "test"
+    df = pd.DataFrame({"A": range(10), "B": ["A", "B"] * 5, "C": range(-10, 0)})
+
+    store_dataframes_as_dataset(
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        dfs=[df],
+        partition_on=partition_on,
+    )
+
+    df1 = read_table(
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        predicates=[[("A", "<", 3)], [("A", ">", 5)], [("B", "==", "non-existent")]],
+    )
+
+    df2 = read_table(
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        predicates=[[("A", "<", 3)], [("A", ">", 5)]],
+    )
+    expected = pd.DataFrame(
+        data={
+            "A": [0, 1, 2, 6, 7, 8, 9],
+            "B": ["A", "B", "A", "A", "B", "A", "B"],
+            "C": [-10, -9, -8, -4, -3, -2, -1],
+        },
+    )
+
+    pd.testing.assert_frame_equal(df1, df2)
+    pd.testing.assert_frame_equal(expected, df2)
