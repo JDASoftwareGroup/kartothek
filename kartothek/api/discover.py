@@ -8,6 +8,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_DIMENSION_COLUMNS,
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_TIMESTAMP_COLUMN,
     KTK_CUBE_UUID_SEPERATOR,
 )
 from kartothek.core.cube.cube import Cube
@@ -117,8 +118,7 @@ def discover_datasets_unchecked(uuid_prefix, store, filter_ktk_cube_dataset_ids=
         }
 
     result = {}
-    # sorted iteration for determistic error messages in case
-    # DatasetMetadata.load_from_store fails
+    # sorted iteration for determistic error messages in case DatasetMetadata.load_from_store fails
     for name in sorted(names):
         try:
             result[name[len(prefix) :]] = DatasetMetadata.load_from_store(
@@ -228,7 +228,7 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
         )
 
     # datasets written with new kartothek versions (after merge of PR#7747)
-    # always set KTK_CUBE_METADATA_PARTITION_COLUMNS in the metadata.
+    # always set KTK_CUBE_METADATA_PARTITION_COLUMNS and KTK_CUBE_METADATA_TIMESTAMP_COLUMN in the metadata.
     # Older versions of ktk_cube do not write these; instead, these columns are inferred from
     # the actual partitioning: partition_columns are all but the last partition key
     #
@@ -240,6 +240,7 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     # TODO: once all cubes are re-created and don't use timestamp column anymore, remove the timestamp column handling
     #       entirely
     partition_columns = seed_ds.metadata.get(KTK_CUBE_METADATA_PARTITION_COLUMNS)
+    timestamp_column = seed_ds.metadata.get(KTK_CUBE_METADATA_TIMESTAMP_COLUMN)
 
     if partition_columns is None:
         # infer the partition columns and timestamp column from the actual partitioning:
@@ -258,11 +259,18 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
                 ).format(seed_dataset=seed_dataset, partition_key=partition_keys[0])
             )
         partition_columns = partition_keys[:-1]
+        timestamp_column = partition_keys[-1]
 
     index_columns = set()
     for ds in datasets.values():
         index_columns |= set(ds.indices.keys()) - (
-            set(dimension_columns) | set(partition_columns)
+            set(dimension_columns) | set(partition_columns) | {timestamp_column}
+        )
+
+    # we only support the default timestamp column in the compat code
+    if (timestamp_column is not None) and (timestamp_column != "KTK_CUBE_TS"):
+        raise NotImplementedError(
+            f"Can only read old cubes if the timestamp column is 'KTK_CUBE_TS', but '{timestamp_column}' was detected."
         )
 
     cube = Cube(

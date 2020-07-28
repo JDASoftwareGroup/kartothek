@@ -925,7 +925,7 @@ class TestDiscoverCube:
 
     def test_without_partition_timestamp_metadata(self, cube, function_store):
         # test discovery of a cube without metadata keys
-        # KTK_CUBE_METADATA_PARTITION_COLUMNS still works
+        # KTK_CUBE_METADATA_TIMESTAMP_COLUMN and KTK_CUBE_METADATA_PARTITION_COLUMNS still works
         store_data(
             cube=cube,
             function_store=function_store,
@@ -1113,6 +1113,23 @@ class TestDiscoverCube:
             str(exc.value)
             == 'Seed dataset ("myseed") has only a single partition key (KTK_CUBE_TS) but should have at least 2.'
         )
+
+    def test_raises_timestamp_col_is_not_ktk_cube_ts(self, cube, function_store):
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame(
+                {"x": [0], "y": [0], "p": [0], "q": [0], "ts": [pd.Timestamp("2000")]}
+            ),
+            partition_on=["p", "q", "ts"],
+            name=cube.seed_dataset,
+            new_ktk_cube_metadata=False,
+        )
+        with pytest.raises(
+            NotImplementedError,
+            match="Can only read old cubes if the timestamp column is 'KTK_CUBE_TS', but 'ts' was detected.",
+        ):
+            discover_cube(cube.uuid_prefix, function_store)
 
     def test_raises_partition_keys_impossible(self, cube, function_store):
         store_data(
