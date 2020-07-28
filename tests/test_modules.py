@@ -1,7 +1,10 @@
 import importlib
 import pkgutil
+
 import pytest
+
 import kartothek
+
 
 @pytest.mark.skip("skip this test case until ktk implements __all__")
 def test_all(module):
@@ -25,6 +28,7 @@ def test_all(module):
     assert (
         tuple(sorted(module.__all__)) == module.__all__
     ), "module list in __all__ should be sorted"
+
 
 @pytest.mark.skip("skip this test case until ktk implements __all__")
 def pytest_generate_tests(metafunc):
