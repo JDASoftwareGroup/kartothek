@@ -15,6 +15,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
     KTK_CUBE_METADATA_STORAGE_FORMAT,
+    KTK_CUBE_METADATA_TIMESTAMP_COLUMN,
     KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.cube.cube import Cube
@@ -935,11 +936,11 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KTK_CUBE_TS": [pd.Timestamp("2000")],
+                    "KLEE_TS": [pd.Timestamp("2000")],
                     "i1": [0],
                 }
             ),
-            partition_on=["p", "q", "KTK_CUBE_TS"],
+            partition_on=["p", "q", "KLEE_TS"],
             name=cube.seed_dataset,
             new_ktk_cube_metadata=False,
         )
@@ -1100,10 +1101,10 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KTK_CUBE_TS": [pd.Timestamp("2000")],
+                    "KLEE_TS": [pd.Timestamp("2000")],
                 }
             ),
-            partition_on=["KTK_CUBE_TS"],
+            partition_on=["KLEE_TS"],
             name=cube.seed_dataset,
             new_ktk_cube_metadata=False,
         )
@@ -1111,8 +1112,64 @@ class TestDiscoverCube:
             discover_cube(cube.uuid_prefix, function_store)
         assert (
             str(exc.value)
-            == 'Seed dataset ("myseed") has only a single partition key (KTK_CUBE_TS) but should have at least 2.'
+            == 'Seed dataset ("myseed") has only a single partition key (KLEE_TS) but should have at least 2.'
         )
+
+    def test_timestamp_col_compat(self, cube, function_store):
+        """
+        Tests that cubes are still readable after timestamp removal.
+        """
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame(
+                {
+                    "x": [0],
+                    "y": [0],
+                    "p": [0],
+                    "q": [0],
+                    "KLEE_TS": [pd.Timestamp("2000")],
+                    "i1": [0],
+                    "a": [0],
+                }
+            ),
+            partition_on=["p", "q", "KLEE_TS"],
+            name=cube.seed_dataset,
+            metadata={
+                KTK_CUBE_METADATA_DIMENSION_COLUMNS: cube.dimension_columns,
+                KTK_CUBE_METADATA_KEY_IS_SEED: True,
+                KTK_CUBE_METADATA_PARTITION_COLUMNS: cube.partition_columns,
+                KTK_CUBE_METADATA_TIMESTAMP_COLUMN: "KLEE_TS",
+            },
+        )
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame(
+                {
+                    "x": [0],
+                    "y": [0],
+                    "p": [0],
+                    "q": [0],
+                    "KLEE_TS": [pd.Timestamp("2000")],
+                    "b": [0],
+                }
+            ),
+            partition_on=["p", "q", "KLEE_TS"],
+            name="enrich",
+            metadata={
+                KTK_CUBE_METADATA_DIMENSION_COLUMNS: cube.dimension_columns,
+                KTK_CUBE_METADATA_KEY_IS_SEED: False,
+                KTK_CUBE_METADATA_PARTITION_COLUMNS: cube.partition_columns,
+                KTK_CUBE_METADATA_TIMESTAMP_COLUMN: "KLEE_TS",
+            },
+        )
+
+        cube_discoverd, datasets_discovered = discover_cube(
+            cube.uuid_prefix, function_store
+        )
+        assert cube == cube_discoverd
+        assert set(datasets_discovered.keys()) == {cube.seed_dataset, "enrich"}
 
     def test_raises_timestamp_col_is_not_ktk_cube_ts(self, cube, function_store):
         store_data(
@@ -1127,7 +1184,7 @@ class TestDiscoverCube:
         )
         with pytest.raises(
             NotImplementedError,
-            match="Can only read old cubes if the timestamp column is 'KTK_CUBE_TS', but 'ts' was detected.",
+            match="Can only read old cubes if the timestamp column is 'KLEE_TS', but 'ts' was detected.",
         ):
             discover_cube(cube.uuid_prefix, function_store)
 

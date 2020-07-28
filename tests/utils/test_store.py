@@ -160,7 +160,7 @@ class TestCopy:
 
     def test_weird2(self, store, store2):
         # regression found during early customer tests
-        k = "cube_main++completeness/table/PARTITION_DATE=2018-06-29%2000%3A00%3A00/PARTITION_ID=366/KTK_CUBE_TS=2019-02-27%2012%3A59%3A37.904401/9be13a70302441b2aee5bed2af781be7.parquet"
+        k = "cube_main++completeness/table/PARTITION_DATE=2018-06-29%2000%3A00%3A00/PARTITION_ID=366/KLEE_TS=2019-02-27%2012%3A59%3A37.904401/9be13a70302441b2aee5bed2af781be7.parquet"
         store.put(k, b"foo")
 
         copy_keys({k}, store, store2)

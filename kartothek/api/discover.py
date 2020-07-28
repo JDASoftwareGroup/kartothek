@@ -268,9 +268,9 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
         )
 
     # we only support the default timestamp column in the compat code
-    if (timestamp_column is not None) and (timestamp_column != "KTK_CUBE_TS"):
+    if (timestamp_column is not None) and (timestamp_column != "KLEE_TS"):
         raise NotImplementedError(
-            f"Can only read old cubes if the timestamp column is 'KTK_CUBE_TS', but '{timestamp_column}' was detected."
+            f"Can only read old cubes if the timestamp column is 'KLEE_TS', but '{timestamp_column}' was detected."
         )
 
     cube = Cube(
