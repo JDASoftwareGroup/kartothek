@@ -15,7 +15,6 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
     KTK_CUBE_METADATA_STORAGE_FORMAT,
-    KTK_CUBE_METADATA_TIMESTAMP_COLUMN,
     KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.cube.cube import Cube
@@ -926,7 +925,7 @@ class TestDiscoverCube:
 
     def test_without_partition_timestamp_metadata(self, cube, function_store):
         # test discovery of a cube without metadata keys
-        # KTK_CUBE_METADATA_TIMESTAMP_COLUMN and KTK_CUBE_METADATA_PARTITION_COLUMNS still works
+        # "KLEE_TS" and KTK_CUBE_METADATA_PARTITION_COLUMNS still works
         store_data(
             cube=cube,
             function_store=function_store,
@@ -1119,6 +1118,12 @@ class TestDiscoverCube:
         """
         Tests that cubes are still readable after timestamp removal.
         """
+        metadata_dimension_columns_old = "klee_dimension_columns"
+        metadata_is_seed_old = "klee_is_seed"
+        metadata_partition_columns_old = "klee_partition_columns"
+        metadata_timestamp_column_old = "klee_timestamp_column"
+        timestamp_column_old = "KLEE_TS"
+
         store_data(
             cube=cube,
             function_store=function_store,
@@ -1128,18 +1133,18 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KLEE_TS": [pd.Timestamp("2000")],
+                    timestamp_column_old: [pd.Timestamp("2000")],
                     "i1": [0],
                     "a": [0],
                 }
             ),
-            partition_on=["p", "q", "KLEE_TS"],
+            partition_on=["p", "q", timestamp_column_old],
             name=cube.seed_dataset,
             metadata={
-                KTK_CUBE_METADATA_DIMENSION_COLUMNS: cube.dimension_columns,
-                KTK_CUBE_METADATA_KEY_IS_SEED: True,
-                KTK_CUBE_METADATA_PARTITION_COLUMNS: cube.partition_columns,
-                KTK_CUBE_METADATA_TIMESTAMP_COLUMN: "KLEE_TS",
+                metadata_dimension_columns_old: cube.dimension_columns,
+                metadata_is_seed_old: True,
+                metadata_partition_columns_old: cube.partition_columns,
+                metadata_timestamp_column_old: timestamp_column_old,
             },
         )
         store_data(
@@ -1151,17 +1156,17 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KLEE_TS": [pd.Timestamp("2000")],
+                    timestamp_column_old: [pd.Timestamp("2000")],
                     "b": [0],
                 }
             ),
-            partition_on=["p", "q", "KLEE_TS"],
+            partition_on=["p", "q", timestamp_column_old],
             name="enrich",
             metadata={
-                KTK_CUBE_METADATA_DIMENSION_COLUMNS: cube.dimension_columns,
-                KTK_CUBE_METADATA_KEY_IS_SEED: False,
-                KTK_CUBE_METADATA_PARTITION_COLUMNS: cube.partition_columns,
-                KTK_CUBE_METADATA_TIMESTAMP_COLUMN: "KLEE_TS",
+                metadata_dimension_columns_old: cube.dimension_columns,
+                metadata_is_seed_old: False,
+                metadata_partition_columns_old: cube.partition_columns,
+                metadata_timestamp_column_old: timestamp_column_old,
             },
         )
 

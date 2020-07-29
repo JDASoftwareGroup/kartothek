@@ -8,7 +8,6 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_DIMENSION_COLUMNS,
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
-    KTK_CUBE_METADATA_TIMESTAMP_COLUMN,
     KTK_CUBE_UUID_SEPERATOR,
 )
 from kartothek.core.cube.cube import Cube
@@ -201,7 +200,9 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     seed_candidates = {
         ktk_cube_dataset_id
         for ktk_cube_dataset_id, ds in datasets.items()
-        if ds.metadata.get(KTK_CUBE_METADATA_KEY_IS_SEED, False)
+        if ds.metadata.get(
+            KTK_CUBE_METADATA_KEY_IS_SEED, ds.metadata.get("klee_is_seed", False)
+        )
     }
     if len(seed_candidates) == 0:
         raise ValueError(
@@ -219,7 +220,10 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     seed_dataset = list(seed_candidates)[0]
 
     seed_ds = datasets[seed_dataset]
-    dimension_columns = seed_ds.metadata.get(KTK_CUBE_METADATA_DIMENSION_COLUMNS)
+    dimension_columns = seed_ds.metadata.get(
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+        seed_ds.metadata.get("klee_dimension_columns"),
+    )
     if dimension_columns is None:
         raise ValueError(
             'Could not recover dimension columns from seed dataset ("{seed_dataset}") of cube "{uuid_prefix}".'.format(
@@ -228,7 +232,7 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
         )
 
     # datasets written with new kartothek versions (after merge of PR#7747)
-    # always set KTK_CUBE_METADATA_PARTITION_COLUMNS and KTK_CUBE_METADATA_TIMESTAMP_COLUMN in the metadata.
+    # always set KTK_CUBE_METADATA_PARTITION_COLUMNS and "klee_timestamp_column" in the metadata.
     # Older versions of ktk_cube do not write these; instead, these columns are inferred from
     # the actual partitioning: partition_columns are all but the last partition key
     #
@@ -239,8 +243,11 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     #
     # TODO: once all cubes are re-created and don't use timestamp column anymore, remove the timestamp column handling
     #       entirely
-    partition_columns = seed_ds.metadata.get(KTK_CUBE_METADATA_PARTITION_COLUMNS)
-    timestamp_column = seed_ds.metadata.get(KTK_CUBE_METADATA_TIMESTAMP_COLUMN)
+    partition_columns = seed_ds.metadata.get(
+        KTK_CUBE_METADATA_PARTITION_COLUMNS,
+        seed_ds.metadata.get("klee_partition_columns"),
+    )
+    timestamp_column = seed_ds.metadata.get("klee_timestamp_column")
 
     if partition_columns is None:
         # infer the partition columns and timestamp column from the actual partitioning:
