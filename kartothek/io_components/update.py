@@ -28,7 +28,22 @@ def update_dataset_from_partitions(
     delete_scope,
     metadata,
     metadata_merger,
+    metadata_storage_factory=None,
 ):
+    if metadata_storage_factory:  # Get the values for `partition_list` from "storage"
+        # We must compute the tasks that put the metapartition in the metadata_storage,
+        # so that they are not discarded by dask (even though we ignore the result from those tasks as they are None)
+        import dask
+
+        dask.compute(partition_list)
+        from kartothek.io_components.metapartition import MetaPartition
+
+        metadata_store = metadata_storage_factory()
+        partition_list = [  # batch=True : Get all elements in the queue at once
+            MetaPartition.from_dict(mp_dict)
+            for mp_dict in metadata_store.get(batch=True)
+        ]
+
     store = _instantiate_store(store_factory)
 
     if ds_factory:

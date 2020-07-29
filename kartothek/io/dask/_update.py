@@ -280,6 +280,7 @@ def update_dask_partitions_one_to_one(
     df_serializer: DataFrameSerializer,
     dataset_uuid: str,
     sort_partitions_by: Optional[str],
+    metadata_storage_factory=None,
 ) -> List[Delayed]:
     """
     Perform an ordinary, partition wise update where the usual partition
@@ -307,13 +308,32 @@ def update_dask_partitions_one_to_one(
     if secondary_indices:
         mps = map_delayed(MetaPartition.build_indices, mps, columns=secondary_indices)
 
-    return map_delayed(
+    mps = map_delayed(
         MetaPartition.store_dataframes,
         mps,
         store=store_factory,
         df_serializer=df_serializer,
         dataset_uuid=dataset_uuid,
     )
+
+    if metadata_storage_factory:
+
+        def send_mp_to_queue(mp, metadata_storage_factory):
+            # We can't msgpack serialize Metapartition by itself, so we serialize each mp dict
+            # We need to instantiate a worker client to be able to push to a queue
+            from distributed import get_client
+
+            c = get_client()  # noqa
+            metadata_store = metadata_storage_factory()
+            for _mp in mp.metapartitions:
+                metadata_store.put(_mp)
+
+        tasks = map_delayed(
+            send_mp_to_queue, mps, metadata_storage_factory=metadata_storage_factory
+        )
+        return tasks  # We need to pass this so it gets executed
+    else:
+        return mps
 
 
 def _store_partition(
