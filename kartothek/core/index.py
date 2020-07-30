@@ -451,13 +451,34 @@ class IndexBase(CopyMixin):
         Parameters
         ----------
         compact:
-            If True, the index will be unique and the Series.values will be a list of partitions/values
+            If True, ensures that the index will be unique. If there a multiple partition values per index, there values
+            will be compacted into a list (see Examples section).
         partitions_as_index:
-            If True, the relation between index values and partitions will be reverted for the output
+            If True, the relation between index values and partitions will be reverted for the output dataframe:
+            partition values will be used as index and the indices will be mapped to the partitions.
         predicates:
             A list of predicates. If a literal within the provided predicates
             references a column which is not part of this index, this literal is
             interpreted as True.
+
+        Examples:
+
+        .. code::
+        >>> index1 = ExplicitSecondaryIndex(
+        ...     column="col", index_dct={1: ["part_1", "part_2"]}, dtype=pa.int64()
+        ... )
+        >>> index1
+            col
+            1    part_1
+            1    part_2
+        >>> index1.as_flat_series(compact=True)
+            col
+            1    [part_1, part_2]
+        >>> index1.as_flat_series(partitions_as_index=True)
+            partition
+            part_1    1
+            part_2    1
+
         """
         check_predicates(predicates)
         table = _index_dct_to_table(
