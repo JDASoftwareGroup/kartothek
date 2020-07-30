@@ -42,12 +42,12 @@ Partitions: 2
 Metadata:
   {
     "creation_time": "2019-02-28T13:01:17",
-    "klee_dimension_columns": [
+    "ktk_cube_dimension_columns": [
       "x",
       "y"
     ],
-    "klee_is_seed": false,
-    "klee_partition_columns": [
+    "ktk_cube_is_seed": false,
+    "ktk_cube_partition_columns": [
       "p",
       "q"
     ]
@@ -67,12 +67,12 @@ Partitions: 2
 Metadata:
   {
     "creation_time": "2018-01-31T14:03:22",
-    "klee_dimension_columns": [
+    "ktk_cube_dimension_columns": [
       "x",
       "y"
     ],
-    "klee_is_seed": true,
-    "klee_partition_columns": [
+    "ktk_cube_is_seed": true,
+    "ktk_cube_partition_columns": [
       "p",
       "q"
     ]
