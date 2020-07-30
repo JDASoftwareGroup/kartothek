@@ -2,6 +2,13 @@
 Changelog
 =========
 
+Version 3.14.0 (2020-07-32)
+===========================
+
+Improvements
+^^^^^^^^^^^^
+
+* Expand ``pyarrow`` version pin to include 1.x
 
 Version 3.13.0 (2020-07-30)
 ===========================
