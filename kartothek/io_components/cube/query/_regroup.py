@@ -204,8 +204,7 @@ def _create_aligned_partition_df(
 
     # Stage 2: Alignment
     #
-    # Partition DataFrames are aligned based on Cube.partition_columns and
-    # their category.
+    # Partition DataFrames are aligned based on Cube.partition_columns and their category.
     assert df_seed is not None
     df_aligned = df_seed
     for df_join in dfs_restrict:

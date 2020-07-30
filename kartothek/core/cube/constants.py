@@ -1,5 +1,5 @@
 """
-Common constants for klee.
+Common constants for Kartothek.
 """
 from kartothek.serialization import ParquetSerializer
 
@@ -29,7 +29,7 @@ KTK_CUBE_DF_SERIALIZER = ParquetSerializer(compression="ZSTD")
 #: Storage format for kartothek metadata that is be used by default.
 KTK_CUBE_METADATA_STORAGE_FORMAT = "json"
 
-#: Kartothek metadata version that klee is based on.
+#: Kartothek metadata version that ktk_cube is based on.
 KTK_CUBE_METADATA_VERSION = 4
 
 #: Metadata key that is used to mark seed datasets

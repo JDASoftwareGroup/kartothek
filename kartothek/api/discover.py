@@ -117,8 +117,7 @@ def discover_datasets_unchecked(uuid_prefix, store, filter_ktk_cube_dataset_ids=
         }
 
     result = {}
-    # sorted iteration for determistic error messages in case
-    # DatasetMetadata.load_from_store fails
+    # sorted iteration for determistic error messages in case DatasetMetadata.load_from_store fails
     for name in sorted(names):
         try:
             result[name[len(prefix) :]] = DatasetMetadata.load_from_store(
@@ -201,7 +200,9 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     seed_candidates = {
         ktk_cube_dataset_id
         for ktk_cube_dataset_id, ds in datasets.items()
-        if ds.metadata.get(KTK_CUBE_METADATA_KEY_IS_SEED, False)
+        if ds.metadata.get(
+            KTK_CUBE_METADATA_KEY_IS_SEED, ds.metadata.get("klee_is_seed", False)
+        )
     }
     if len(seed_candidates) == 0:
         raise ValueError(
@@ -219,7 +220,10 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     seed_dataset = list(seed_candidates)[0]
 
     seed_ds = datasets[seed_dataset]
-    dimension_columns = seed_ds.metadata.get(KTK_CUBE_METADATA_DIMENSION_COLUMNS)
+    dimension_columns = seed_ds.metadata.get(
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS,
+        seed_ds.metadata.get("klee_dimension_columns"),
+    )
     if dimension_columns is None:
         raise ValueError(
             'Could not recover dimension columns from seed dataset ("{seed_dataset}") of cube "{uuid_prefix}".'.format(
@@ -228,7 +232,7 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
         )
 
     # datasets written with new kartothek versions (after merge of PR#7747)
-    # always set KTK_CUBE_METADATA_PARTITION_COLUMNS in the metadata.
+    # always set KTK_CUBE_METADATA_PARTITION_COLUMNS and "klee_timestamp_column" in the metadata.
     # Older versions of ktk_cube do not write these; instead, these columns are inferred from
     # the actual partitioning: partition_columns are all but the last partition key
     #
@@ -239,7 +243,11 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
     #
     # TODO: once all cubes are re-created and don't use timestamp column anymore, remove the timestamp column handling
     #       entirely
-    partition_columns = seed_ds.metadata.get(KTK_CUBE_METADATA_PARTITION_COLUMNS)
+    partition_columns = seed_ds.metadata.get(
+        KTK_CUBE_METADATA_PARTITION_COLUMNS,
+        seed_ds.metadata.get("klee_partition_columns"),
+    )
+    timestamp_column = seed_ds.metadata.get("klee_timestamp_column")
 
     if partition_columns is None:
         # infer the partition columns and timestamp column from the actual partitioning:
@@ -258,11 +266,18 @@ def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
                 ).format(seed_dataset=seed_dataset, partition_key=partition_keys[0])
             )
         partition_columns = partition_keys[:-1]
+        timestamp_column = partition_keys[-1]
 
     index_columns = set()
     for ds in datasets.values():
         index_columns |= set(ds.indices.keys()) - (
-            set(dimension_columns) | set(partition_columns)
+            set(dimension_columns) | set(partition_columns) | {timestamp_column}
+        )
+
+    # we only support the default timestamp column in the compat code
+    if (timestamp_column is not None) and (timestamp_column != "KLEE_TS"):
+        raise NotImplementedError(
+            f"Can only read old cubes if the timestamp column is 'KLEE_TS', but '{timestamp_column}' was detected."
         )
 
     cube = Cube(

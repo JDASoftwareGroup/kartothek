@@ -127,8 +127,7 @@ def _test_condition_types(conditions, datasets):
 
                 if pa.types.is_null(pa_type):
                     # ignore all-NULL columns
-                    # TODO: the query planner / regrouper could use that to emit 0
-                    # partitions
+                    # TODO: the query planner / regrouper could use that to emit 0 partitions
                     continue
 
                 for v in val:

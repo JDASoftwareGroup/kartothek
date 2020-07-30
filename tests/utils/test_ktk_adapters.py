@@ -38,7 +38,7 @@ def ds(function_store, cube_has_ts_col):
     dfs = [pd.DataFrame({"x": x, "p": [0, 1], "i": 0, "_foo": 0}) for x in [0, 1]]
     if cube_has_ts_col:
         for df in dfs:
-            df["KTK_CUBE_TS"] = pd.Timestamp("2019-01-01")
+            df["KLEE_TS"] = pd.Timestamp("2019-01-01")
 
     mps = [
         MetaPartition(
@@ -46,7 +46,7 @@ def ds(function_store, cube_has_ts_col):
             data={SINGLE_TABLE: df},
             metadata_version=KTK_CUBE_METADATA_VERSION,
         )
-        .partition_on(["p"] + (["KTK_CUBE_TS"] if cube_has_ts_col else []))
+        .partition_on(["p"] + (["KLEE_TS"] if cube_has_ts_col else []))
         .build_indices(["i"])
         for i, df in enumerate(dfs)
     ]
@@ -55,7 +55,7 @@ def ds(function_store, cube_has_ts_col):
         bag=db.from_sequence(mps, partition_size=1),
         store=function_store,
         dataset_uuid="uuid",
-        partition_on=(["p"] + (["KTK_CUBE_TS"] if cube_has_ts_col else [])),
+        partition_on=(["p"] + (["KLEE_TS"] if cube_has_ts_col else [])),
         metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
         metadata_version=KTK_CUBE_METADATA_VERSION,
         df_serializer=KTK_CUBE_DF_SERIALIZER,
@@ -151,10 +151,10 @@ def test_get_partition_dataframe(ds, cube, different_partioning, cube_has_ts_col
         data={
             "p": [0, 0, 1, 1],
             "partition": [
-                "p=0/KTK_CUBE_TS=2019-01-01%2000%3A00%3A00/mp0",
-                "p=0/KTK_CUBE_TS=2019-01-01%2000%3A00%3A00/mp1",
-                "p=1/KTK_CUBE_TS=2019-01-01%2000%3A00%3A00/mp0",
-                "p=1/KTK_CUBE_TS=2019-01-01%2000%3A00%3A00/mp1",
+                "p=0/KLEE_TS=2019-01-01%2000%3A00%3A00/mp0",
+                "p=0/KLEE_TS=2019-01-01%2000%3A00%3A00/mp1",
+                "p=1/KLEE_TS=2019-01-01%2000%3A00%3A00/mp0",
+                "p=1/KLEE_TS=2019-01-01%2000%3A00%3A00/mp1",
             ]
             if cube_has_ts_col
             else ["p=0/mp0", "p=0/mp1", "p=1/mp0", "p=1/mp1"],

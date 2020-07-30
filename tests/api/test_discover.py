@@ -925,7 +925,7 @@ class TestDiscoverCube:
 
     def test_without_partition_timestamp_metadata(self, cube, function_store):
         # test discovery of a cube without metadata keys
-        # KTK_CUBE_METADATA_PARTITION_COLUMNS still works
+        # "KLEE_TS" and KTK_CUBE_METADATA_PARTITION_COLUMNS still works
         store_data(
             cube=cube,
             function_store=function_store,
@@ -935,11 +935,11 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KTK_CUBE_TS": [pd.Timestamp("2000")],
+                    "KLEE_TS": [pd.Timestamp("2000")],
                     "i1": [0],
                 }
             ),
-            partition_on=["p", "q", "KTK_CUBE_TS"],
+            partition_on=["p", "q", "KLEE_TS"],
             name=cube.seed_dataset,
             new_ktk_cube_metadata=False,
         )
@@ -1100,10 +1100,10 @@ class TestDiscoverCube:
                     "y": [0],
                     "p": [0],
                     "q": [0],
-                    "KTK_CUBE_TS": [pd.Timestamp("2000")],
+                    "KLEE_TS": [pd.Timestamp("2000")],
                 }
             ),
-            partition_on=["KTK_CUBE_TS"],
+            partition_on=["KLEE_TS"],
             name=cube.seed_dataset,
             new_ktk_cube_metadata=False,
         )
@@ -1111,8 +1111,87 @@ class TestDiscoverCube:
             discover_cube(cube.uuid_prefix, function_store)
         assert (
             str(exc.value)
-            == 'Seed dataset ("myseed") has only a single partition key (KTK_CUBE_TS) but should have at least 2.'
+            == 'Seed dataset ("myseed") has only a single partition key (KLEE_TS) but should have at least 2.'
         )
+
+    def test_timestamp_col_compat(self, cube, function_store):
+        """
+        Tests that cubes are still readable after timestamp removal.
+        """
+        metadata_dimension_columns_old = "klee_dimension_columns"
+        metadata_is_seed_old = "klee_is_seed"
+        metadata_partition_columns_old = "klee_partition_columns"
+        metadata_timestamp_column_old = "klee_timestamp_column"
+        timestamp_column_old = "KLEE_TS"
+
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame(
+                {
+                    "x": [0],
+                    "y": [0],
+                    "p": [0],
+                    "q": [0],
+                    timestamp_column_old: [pd.Timestamp("2000")],
+                    "i1": [0],
+                    "a": [0],
+                }
+            ),
+            partition_on=["p", "q", timestamp_column_old],
+            name=cube.seed_dataset,
+            metadata={
+                metadata_dimension_columns_old: cube.dimension_columns,
+                metadata_is_seed_old: True,
+                metadata_partition_columns_old: cube.partition_columns,
+                metadata_timestamp_column_old: timestamp_column_old,
+            },
+        )
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame(
+                {
+                    "x": [0],
+                    "y": [0],
+                    "p": [0],
+                    "q": [0],
+                    timestamp_column_old: [pd.Timestamp("2000")],
+                    "b": [0],
+                }
+            ),
+            partition_on=["p", "q", timestamp_column_old],
+            name="enrich",
+            metadata={
+                metadata_dimension_columns_old: cube.dimension_columns,
+                metadata_is_seed_old: False,
+                metadata_partition_columns_old: cube.partition_columns,
+                metadata_timestamp_column_old: timestamp_column_old,
+            },
+        )
+
+        cube_discoverd, datasets_discovered = discover_cube(
+            cube.uuid_prefix, function_store
+        )
+        assert cube == cube_discoverd
+        assert set(datasets_discovered.keys()) == {cube.seed_dataset, "enrich"}
+
+    def test_raises_timestamp_col_is_not_ktk_cube_ts(self, cube, function_store):
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame(
+                {"x": [0], "y": [0], "p": [0], "q": [0], "ts": [pd.Timestamp("2000")]}
+            ),
+            partition_on=["p", "q", "ts"],
+            name=cube.seed_dataset,
+            new_ktk_cube_metadata=False,
+        )
+        with pytest.raises(
+            NotImplementedError,
+            match="Can only read old cubes if the timestamp column is 'KLEE_TS', but 'ts' was detected.",
+        ):
+            discover_cube(cube.uuid_prefix, function_store)
 
     def test_raises_partition_keys_impossible(self, cube, function_store):
         store_data(

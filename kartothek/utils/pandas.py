@@ -70,8 +70,7 @@ def concat_dataframes(dfs, default=None):
     else:
         # pd.concat seems to hold the data in memory 3 times (not twice as you might expect it from naive copying the
         # input blocks into the output DF). This is very unfortunate especially for larger queries. This column-based
-        # approach effectively reduces the maximum memory consumption and to our
-        # knowledge is not measuable slower.
+        # approach effectively reduces the maximum memory consumption and to our knowledge is not measuable slower.
         colset = set(dfs[0].columns)
         if not all(colset == set(df.columns) for df in dfs):
             raise ValueError("Not all DataFrames have the same set of columns!")
@@ -286,8 +285,7 @@ def aggregate_to_lists(df, by, data_col):
     if not by:
         return pd.DataFrame({data_col: pd.Series([list(df[data_col].values)])})
 
-    # sort the DataFrame by `by`-values, so that rows of every group-by group
-    # are consecutive
+    # sort the DataFrame by `by`-values, so that rows of every group-by group are consecutive
     df = sort_dataframe(df, by)
 
     # collect the following data for every group:
@@ -312,8 +310,7 @@ def aggregate_to_lists(df, by, data_col):
             result_idx_part.append(idx_part)
         result_labels.append(group_values)
 
-    # create iterator over row-tuples, where every tuple contains values of
-    # all by-columns
+    # create iterator over row-tuples, where every tuple contains values of all by-columns
     iterator_idx = zip(*(df[col].values for col in by))
 
     # iterate over all rows in DataFrame and collect groups

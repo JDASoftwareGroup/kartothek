@@ -1,5 +1,11 @@
+from subprocess import check_call
+
 import pytest
 from dask.callbacks import Callback
+
+
+def test_entry_point(cli):
+    check_call("kartothek_cube")
 
 
 def test_noop(cli):

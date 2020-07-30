@@ -49,8 +49,7 @@ __all__ = ("copy_keys",)
 _logger = logging.getLogger(__name__)
 
 
-# Specialized implementation for azure-storage-blob < 12, using
-# BlockBlobService (`bbs`):
+# Specialized implementation for azure-storage-blob < 12, using BlockBlobService (`bbs`):
 
 
 def _has_azure_bbs(store):
