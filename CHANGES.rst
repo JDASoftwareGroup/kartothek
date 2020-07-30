@@ -2,6 +2,15 @@
 Changelog
 =========
 
+
+Version 3.13.0 (2020-07-30)
+===========================
+
+Improvements
+^^^^^^^^^^^^
+
+* Update timestamp related code into Ktk and support backward compatibility .
+
 Version 3.12.0 (2020-07-23)
 ===========================
 
