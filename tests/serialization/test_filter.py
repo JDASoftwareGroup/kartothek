@@ -209,3 +209,32 @@ def test_filter_df_from_predicates_empty_in(value):
     actual = filter_df_from_predicates(df, predicates)
     expected = df.iloc[[]]
     pdt.assert_frame_equal(actual, expected, check_categorical=False)
+
+
+def test_filter_df_from_predicates_or_predicates():
+    df = pd.DataFrame({"A": range(10), "B": ["A", "B"] * 5, "C": range(-10, 0)})
+
+    predicates = [[("A", "<", 3)], [("A", ">", 5)], [("B", "==", "non-existent")]]
+    actual = filter_df_from_predicates(df, predicates)
+    expected = pd.DataFrame(
+        data={
+            "A": [0, 1, 2, 6, 7, 8, 9],
+            "B": ["A", "B", "A", "A", "B", "A", "B"],
+            "C": [-10, -9, -8, -4, -3, -2, -1],
+        },
+        index=[0, 1, 2, 6, 7, 8, 9],
+    )
+    pdt.assert_frame_equal(actual, expected)
+
+    predicates = [[("A", "<", 3)], [("A", ">", 5)], [("B", "==", "B")]]
+    actual = filter_df_from_predicates(df, predicates)
+    # row for (A == 4) is filtered out
+    expected = pd.DataFrame(
+        data={
+            "A": [0, 1, 2, 3, 5, 6, 7, 8, 9],
+            "B": ["A", "B", "A", "B", "B", "A", "B", "A", "B"],
+            "C": [-10, -9, -8, -7, -5, -4, -3, -2, -1],
+        },
+        index=[0, 1, 2, 3, 5, 6, 7, 8, 9],
+    )
+    pdt.assert_frame_equal(actual, expected)

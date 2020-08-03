@@ -601,6 +601,8 @@ class MetaPartition(Iterable):
         index_df = pd.DataFrame(index_df_dct)
 
         filtered_predicates = []
+        # We assume that indices on the partition level have been filtered out already in `dispatch_metapartitions`.
+        # `filtered_predicates` should only contain predicates that can be evaluated on parquet level
         for conjunction in split_predicates:
             predicates = [conjunction.key_part]
             if (
