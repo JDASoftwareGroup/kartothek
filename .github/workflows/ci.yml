@@ -60,6 +60,7 @@ jobs:
 
     env:
       IS_MASTER_BUILD: ${{ !matrix.numfocus_nightly && matrix.os == 'ubuntu-latest' && matrix.pyarrow == '0.17.1' && matrix.python == '3.8' }}
+      IS_TAG: ${{ github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags')}}
 
     steps:
       # CI setup
@@ -150,9 +151,28 @@ jobs:
           # NOTE: `token` is not required, because the kartothek repo is public
           file: ./coverage.xml
           name: pytest-numfocus_nightly_${{ matrix.numfocus_nightly }}-os_${{ matrix.os }}-pyarrow_${{ matrix.pyarrow }}-python_${{ matrix.python }}
+
+      # Release
       - name: Publish to PyPI
-        if: github.event_name == 'push' && startsWith(github.event.ref, 'refs/tags') && env.IS_MASTER_BUILD == 'true'
+        if: env.IS_MASTER_BUILD == 'true' && env.IS_TAG == 'true'
         uses: pypa/gh-action-pypi-publish@master
         with:
           user: __token__
           password: ${{ secrets.PYPI_PASSWORD }}
+      - name: Create Release Notes
+        if: env.IS_MASTER_BUILD == 'true' && env.IS_TAG == 'true'
+        run: |
+            conda install pandoc
+            awk 'BEGIN{found=0} {if (match($0, "==============")) {if (found == 1) exit; found=1}; if (found == 1) {print last}; last=$0}' CHANGES.rst > release_notes.rst
+            pandoc --from=rst --to=markdown -O release_notes.md release_notes.rst
+      - name: Create GitHub Release
+        if: env.IS_MASTER_BUILD == 'true' && env.IS_TAG == 'true'
+        uses: actions/create-release@v1.1.2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref }}
+          release_name: Kartothek ${{ github.ref }}
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
