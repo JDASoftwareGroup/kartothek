@@ -523,10 +523,14 @@ def test_predicate_pushdown_null_col(
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         predicates=predicates,
     )
+    check_datetimelike_compat = (
+        isinstance(value, pd.Timestamp) and not serialiser.type_stable
+    )
     pdt.assert_frame_equal(
         result.reset_index(drop=True),
         expected.reset_index(drop=True),
         check_dtype=serialiser.type_stable,
+        check_datetimelike_compat=check_datetimelike_compat,
     )
 
 
