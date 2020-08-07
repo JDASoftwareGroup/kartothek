@@ -2,6 +2,15 @@
 Changelog
 =========
 
+Version 3.14.0 (2020-XX-YY)
+===========================
+
+Improvements
+^^^^^^^^^^^^
+
+* Expand ``pandas`` version pin to include 1.1.X
+
+
 Version 3.13.1 (2020-08-04)
 ===========================
 * Fix evaluation of "OR"-connected predicates (#295)
