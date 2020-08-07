@@ -81,7 +81,7 @@ def use_dataset_factory(request, dates_as_object):
 
 def _strip_unused_categoricals(df):
     for col in df.columns:
-        if pd.api.types.is_categorical(df[col]):
+        if pd.api.types.is_categorical_dtype(df[col]):
             df[col] = df[col].cat.remove_unused_categories()
     return df
 
