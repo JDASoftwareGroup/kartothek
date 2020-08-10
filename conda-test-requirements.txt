@@ -15,7 +15,7 @@ setuptools_scm
 asv
 
 # Documentation
-sphinx
+sphinx<3.2.0 #bug with sphinx3.2.0, upstreambugID#8096
 sphinx_rtd_theme
 sphinx-click
 IPython
