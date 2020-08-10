@@ -4,29 +4,37 @@ Methods to check preserved cube for consistency.
 from collections import defaultdict
 from copy import copy
 from functools import reduce
+from typing import Any, Callable, Dict, Iterable, Set, Tuple, Union, cast
 
 from kartothek.core.common_metadata import validate_shared_columns
 from kartothek.core.cube.constants import KTK_CUBE_METADATA_VERSION
-from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
+from kartothek.core.cube.cube import Cube
+from kartothek.core.dataset import DatasetMetadata
+from kartothek.core.index import ExplicitSecondaryIndex, IndexBase, PartitionIndex
 from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.utils.ktk_adapters import get_dataset_columns
 
 __all__ = ("check_datasets", "get_cube_payload", "get_payload_subset")
 
 
-def _check_datasets(datasets, f, expected, what):
+def _check_datasets(
+    datasets: Dict[str, DatasetMetadata],
+    f: Callable[[DatasetMetadata], Any],
+    expected: Any,
+    what: str,
+) -> None:
     """
     Check datasets with given function and raise ``ValueError`` in case of an issue.
 
     Parameters
     ----------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets
         Datasets.
-    f: Callable[[kartothek.core.dataset.DatasetMetadata], Any]
+    f
         Transformer for dataset.
-    expected: Any
+    expected
         Value that is expected to be returned by ``f``.
-    what: str
+    what
         Description of what is currently checked.
 
     Raises
@@ -58,45 +66,48 @@ def _check_datasets(datasets, f, expected, what):
         )
 
 
-def _check_overlap(datasets, cube):
+def _check_overlap(datasets: Dict[str, DatasetMetadata], cube: Cube) -> None:
     """
     Check that datasets have not overlapping payload columns.
 
     Parameters
     ----------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets
         Datasets.
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
 
     Raises
     ------
     ValueError: In case of overlapping payload columns.
     """
-    payload_columns = defaultdict(list)
+    payload_columns_defaultdct = defaultdict(list)
     for ktk_cube_dataset_id, ds in datasets.items():
         for col in get_payload_subset(get_dataset_columns(ds), cube):
-            payload_columns[col].append(ktk_cube_dataset_id)
-    payload_columns = {
+            payload_columns_defaultdct[col].append(ktk_cube_dataset_id)
+
+    payload_columns_dct = {
         col: ktk_cube_dataset_ids
-        for col, ktk_cube_dataset_ids in payload_columns.items()
+        for col, ktk_cube_dataset_ids in payload_columns_defaultdct.items()
         if len(ktk_cube_dataset_ids) > 1
     }
-    if payload_columns:
+    if payload_columns_dct:
         raise ValueError(
             "Found columns present in multiple datasets:{}".format(
                 "\n".join(
                     " - {col}: {ktk_cube_dataset_ids}".format(
                         col=col,
-                        ktk_cube_dataset_ids=", ".join(sorted(payload_columns[col])),
+                        ktk_cube_dataset_ids=", ".join(
+                            sorted(payload_columns_dct[col])
+                        ),
                     )
-                    for col in sorted(payload_columns.keys())
+                    for col in sorted(payload_columns_dct.keys())
                 )
             )
         )
 
 
-def _check_dimension_columns(datasets, cube):
+def _check_dimension_columns(datasets: Dict[str, DatasetMetadata], cube: Cube) -> None:
     """
     Check if required dimension are present in given datasets.
 
@@ -105,9 +116,9 @@ def _check_dimension_columns(datasets, cube):
 
     Parameters
     ----------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets
         Datasets.
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
 
     Raises
@@ -140,7 +151,7 @@ def _check_dimension_columns(datasets, cube):
                 )
 
 
-def _check_partition_columns(datasets, cube):
+def _check_partition_columns(datasets: Dict[str, DatasetMetadata], cube: Cube) -> None:
     """
     Check if required partitions columns are present in given datasets.
 
@@ -149,9 +160,9 @@ def _check_partition_columns(datasets, cube):
 
     Parameters
     ----------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets
         Datasets.
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
 
     Raises
@@ -182,7 +193,7 @@ def _check_partition_columns(datasets, cube):
             )
 
 
-def _check_indices(datasets, cube):
+def _check_indices(datasets: Dict[str, DatasetMetadata], cube: Cube) -> None:
     """
     Check if required indices are present in given datasets.
 
@@ -191,9 +202,9 @@ def _check_indices(datasets, cube):
 
     Parameters
     ----------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets
         Datasets.
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
 
     Raises
@@ -210,16 +221,18 @@ def _check_indices(datasets, cube):
         if ktk_cube_dataset_id == cube.seed_dataset:
             secondary_indices |= set(cube.dimension_columns)
 
-        for types, elements in (
+        for types_untyped, elements in (
             ((PartitionIndex,), primary_indices),
             ((ExplicitSecondaryIndex,), secondary_indices),
             ((ExplicitSecondaryIndex, PartitionIndex), any_indices),
         ):
+            types = cast(Tuple[type, ...], types_untyped)
+
             tname = " or ".join(t.__name__ for t in types)
 
             # it seems that partition indices are not always present (e.g. for empty datasets), so add partition keys to
             # the set
-            indices = copy(ds.indices)
+            indices = cast(Dict[str, Union[IndexBase, str]], copy(ds.indices))
             if PartitionIndex in types:
                 for pk in ds.partition_keys:
                     if pk not in indices:
@@ -247,7 +260,9 @@ def _check_indices(datasets, cube):
                     )
 
 
-def check_datasets(datasets, cube):
+def check_datasets(
+    datasets: Dict[str, DatasetMetadata], cube: Cube
+) -> Dict[str, DatasetMetadata]:
     """
     Apply sanity checks to persisteted Karothek datasets.
 
@@ -268,16 +283,14 @@ def check_datasets(datasets, cube):
 
     Parameters
     ----------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets
         Datasets.
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
-    existing_seed_dataset: Optional[kartothek.core.dataset.DatasetMetadata]
-        Optional existing seed dataset metadata.
 
     Returns
     -------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets: Dict[str, DatasetMetadata]
         Same as input, but w/ partition indices loaded.
 
     Raises
@@ -313,15 +326,15 @@ def check_datasets(datasets, cube):
     return datasets
 
 
-def get_payload_subset(columns, cube):
+def get_payload_subset(columns: Iterable[str], cube: Cube) -> Set[str]:
     """
     Get payload column subset from a given set of columns.
 
     Parameters
     ----------
-    columns: Iteratable[str]
+    columns
         Columns.
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
 
     Returns
@@ -332,15 +345,15 @@ def get_payload_subset(columns, cube):
     return set(columns) - set(cube.dimension_columns) - set(cube.partition_columns)
 
 
-def get_cube_payload(datasets, cube):
+def get_cube_payload(datasets: Dict[str, DatasetMetadata], cube: Cube) -> Set[str]:
     """
     Get payload columns of the whole cube.
 
     Parameters
     ----------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets
         Datasets.
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
 
     Returns
