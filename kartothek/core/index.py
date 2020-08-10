@@ -461,23 +461,27 @@ class IndexBase(CopyMixin):
             references a column which is not part of this index, this literal is
             interpreted as True.
 
-        Examples:
-
-        .. code::
+        Examples
+        --------
+        >>> import pyarrow as pa
+        >>> from kartothek.core.index import ExplicitSecondaryIndex
         >>> index1 = ExplicitSecondaryIndex(
         ...     column="col", index_dct={1: ["part_1", "part_2"]}, dtype=pa.int64()
         ... )
-        >>> index1
-            col
-            1    part_1
-            1    part_2
+        >>> index1.as_flat_series()
+        col
+        1    part_1
+        1    part_2
+        Name: partition, dtype: object
         >>> index1.as_flat_series(compact=True)
-            col
-            1    [part_1, part_2]
+        col
+        1    [part_1, part_2]
+        Name: partition, dtype: object
         >>> index1.as_flat_series(partitions_as_index=True)
-            partition
-            part_1    1
-            part_2    1
+        partition
+        part_1    1
+        part_2    1
+        Name: col, dtype: int64
 
         """
         check_predicates(predicates)
