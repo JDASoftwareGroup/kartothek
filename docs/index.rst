@@ -57,6 +57,18 @@ A Kartothek (or more modern: Zettelkasten/Katalogkasten) is a tool to organize
    Examples <guide/examples>
 
 .. toctree::
+   :maxdepth: 1
+   :caption: Cube Functionality
+   :hidden:
+
+   Getting Started <guide/cube/getting_started>
+   Examples <guide/cube/examples>
+   Query System <guide/cube/query_system>
+   Command Line Interface Features <guide/cube/command_line_features>
+   Cube Design Features <guide/cube/cube_design_features>
+
+
+.. toctree::
    :maxdepth: 2
    :caption: Background
    :hidden:
