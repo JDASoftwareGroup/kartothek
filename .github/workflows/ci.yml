@@ -135,12 +135,12 @@ jobs:
 
       # Artifacts
       - name: Preserve Dist
-        uses: actions/upload-artifact@v2.1.2
+        uses: actions/upload-artifact@v2.1.3
         with:
           name: dist
           path: dist
       - name: Preserve Docs
-        uses: actions/upload-artifact@v2.1.2
+        uses: actions/upload-artifact@v2.1.3
         with:
           name: docs
           path: docs/_build/html
