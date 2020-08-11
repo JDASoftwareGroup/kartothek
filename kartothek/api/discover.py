@@ -2,6 +2,9 @@
 Tooling to quickly discover datasets in a given blob store.
 """
 import logging
+from typing import Callable, Dict, Iterable, Optional, Set, Tuple, Union
+
+from simplekv import KeyValueStore
 
 from kartothek.api.consistency import check_datasets
 from kartothek.core.cube.constants import (
@@ -30,20 +33,22 @@ __all__ = (
 _logger = logging.getLogger(__name__)
 
 
-def _discover_dataset_meta_files(prefix, store):
+def _discover_dataset_meta_files(
+    prefix: str, store: Union[Callable[[], KeyValueStore], KeyValueStore]
+) -> Set[str]:
     """
     Get meta file names for all datasets.
 
     Parameters
     ----------
-    prefix: str
+    prefix
         the prefix.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store
         KV store.
 
     Returns
     -------
-    Set[str]
+    names: Set[str]
         The meta file names
     """
     if callable(store):
@@ -58,21 +63,23 @@ def _discover_dataset_meta_files(prefix, store):
     return names
 
 
-def discover_ktk_cube_dataset_ids(uuid_prefix, store):
+def discover_ktk_cube_dataset_ids(
+    uuid_prefix: str, store: Union[Callable[[], KeyValueStore], KeyValueStore]
+) -> Set[str]:
     """
     Get ktk_cube dataset ids for all datasets.
 
     Parameters
     ----------
-    uuid_prefix: str
+    uuid_prefix
         Dataset UUID prefix.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store
         KV store.
 
     Returns
     -------
-    Set[str]
-        the ktk_cube dataset ids
+    names: Set[str]
+        The ktk_cube dataset ids
 
     """
     prefix = uuid_prefix + KTK_CUBE_UUID_SEPERATOR
@@ -80,7 +87,11 @@ def discover_ktk_cube_dataset_ids(uuid_prefix, store):
     return set([name[len(prefix) :] for name in names])
 
 
-def discover_datasets_unchecked(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
+def discover_datasets_unchecked(
+    uuid_prefix: str,
+    store: Union[Callable[[], KeyValueStore], KeyValueStore],
+    filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
+) -> Dict[str, DatasetMetadata]:
     """
     Get all known datasets that may belong to a give cube w/o applying any checks.
 
@@ -90,16 +101,16 @@ def discover_datasets_unchecked(uuid_prefix, store, filter_ktk_cube_dataset_ids=
 
     Parameters
     ----------
-    uuid_prefix: str
+    uuid_prefix
         Dataset UUID prefix.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store
         KV store.
-    filter_ktk_cube_dataset_ids: Union[None, str, Iterable[str]]
+    filter_ktk_cube_dataset_ids
         Optional selection of datasets to include.
 
     Returns
     -------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets: Dict[str, DatasetMetadata]
         All discovered datasets. Empty Dict if no dataset is found
     """
     if callable(store):
@@ -131,22 +142,26 @@ def discover_datasets_unchecked(uuid_prefix, store, filter_ktk_cube_dataset_ids=
     return result
 
 
-def discover_datasets(cube, store, filter_ktk_cube_dataset_ids=None):
+def discover_datasets(
+    cube: Cube,
+    store: Union[Callable[[], KeyValueStore], KeyValueStore],
+    filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
+) -> Dict[str, DatasetMetadata]:
     """
     Get all known datasets that belong to a give cube.
 
     Parameters
     ----------
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube specification.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store
         KV store.
-    filter_ktk_cube_dataset_ids: Union[None, str, Iterable[str]]
+    filter_ktk_cube_dataset_ids
         Optional selection of datasets to include.
 
     Returns
     -------
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets: Dict[str, DatasetMetadata]
         All discovered datasets.
 
     Raises
@@ -161,6 +176,10 @@ def discover_datasets(cube, store, filter_ktk_cube_dataset_ids=None):
         cube.uuid_prefix, store, filter_ktk_cube_dataset_ids
     )
     if filter_ktk_cube_dataset_ids is not None:
+        if isinstance(filter_ktk_cube_dataset_ids, str):
+            filter_ktk_cube_dataset_ids = {filter_ktk_cube_dataset_ids}
+        else:
+            filter_ktk_cube_dataset_ids = set(filter_ktk_cube_dataset_ids)
         missing = filter_ktk_cube_dataset_ids - set(result.keys())
         if missing:
             raise ValueError(
@@ -173,24 +192,28 @@ def discover_datasets(cube, store, filter_ktk_cube_dataset_ids=None):
     return result
 
 
-def discover_cube(uuid_prefix, store, filter_ktk_cube_dataset_ids=None):
+def discover_cube(
+    uuid_prefix: str,
+    store: Union[Callable[[], KeyValueStore]],
+    filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
+) -> Tuple[Cube, Dict[str, DatasetMetadata]]:
     """
     Recover cube information from store.
 
     Parameters
     ----------
-    uuid_prefix: str
+    uuid_prefix
         Dataset UUID prefix.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store
         KV store.
-    filter_ktk_cube_dataset_ids: Union[None, str, Iterable[str]]
+    filter_ktk_cube_dataset_ids
         Optional selection of datasets to include.
 
     Returns
     -------
     cube: Cube
         Cube specification.
-    datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
+    datasets: Dict[str, DatasetMetadata]
         All discovered datasets.
     """
     datasets = discover_datasets_unchecked(
