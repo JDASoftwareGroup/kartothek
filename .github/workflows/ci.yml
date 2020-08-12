@@ -166,7 +166,7 @@ jobs:
             pandoc --from=rst --to=markdown -O release_notes.md release_notes.rst
       - name: Create GitHub Release
         if: env.IS_MASTER_BUILD == 'true' && env.IS_TAG == 'true'
-        uses: actions/create-release@v1.1.2
+        uses: actions/create-release@v1.1.3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
