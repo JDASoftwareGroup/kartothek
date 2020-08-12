@@ -13,7 +13,7 @@ from kartothek.core.testing import get_dataframe_alltypes
 from kartothek.serialization import ParquetSerializer
 
 
-@pytest.fixture(params=["0.12.1", "0.13.0", "0.14.1", "0.15.0", "0.16.0"])
+@pytest.fixture(params=["0.12.1", "0.13.0", "0.14.1", "0.15.0", "0.16.0", "1.0.0"])
 def arrow_version(request):
     yield request.param
 
@@ -48,7 +48,10 @@ def test_arrow_compat(arrow_version, reference_store, mocker):
         store=reference_store, key=arrow_version + ".parquet", date_as_object=True
     )
 
-    if arrow_version in ("0.14.1", "0.15.0", "0.16.0") and not ARROW_LARGER_EQ_0141:
+    if (
+        arrow_version in ("0.14.1", "0.15.0", "0.16.0", "1.0.0")
+        and not ARROW_LARGER_EQ_0141
+    ):
         orig = orig.astype({"null": float})
 
     pdt.assert_frame_equal(orig, restored)
