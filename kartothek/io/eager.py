@@ -5,6 +5,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
 
 import pandas as pd
 
+from kartothek.core._deprecation import deprecate_multi_table_read
 from kartothek.core.common_metadata import (
     empty_dataframe_from_schema,
     make_meta,
@@ -80,6 +81,7 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
     delete_top_level_metadata(dataset_factory=ds_factory)
 
 
+@deprecate_multi_table_read
 @default_docs
 @normalize_args
 def read_dataset_as_dataframes(
@@ -147,6 +149,7 @@ def read_dataset_as_dataframes(
     return [mp.data for mp in mps]
 
 
+@deprecate_multi_table_read
 @default_docs
 @normalize_args
 def read_dataset_as_metapartitions(

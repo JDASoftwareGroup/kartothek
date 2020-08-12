@@ -10,6 +10,10 @@ Improvements
 
 * Expand ``pandas`` version pin to include 1.1.X
 
+Deprecations
+^^^^^^^^^^^^
+
+* Multi-table read support is now deprecated and will be removed in the next major version.
 
 Version 3.13.1 (2020-08-04)
 ===========================

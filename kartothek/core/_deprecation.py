@@ -1,5 +1,5 @@
 """
-Code was taken from pandas
+`deprecate_kwarg` code was taken from pandas
 
 https://github.com/pandas-dev/pandas/blob/c5a47118d73a53a016a28103726b57e27924bf29/pandas/util/_decorators.py#L66
 
@@ -149,3 +149,20 @@ def deprecate_kwarg(old_arg_name, new_arg_name, mapping=None, stacklevel=2):
         return wrapper
 
     return _deprecate_kwarg
+
+
+def deprecate_multi_table_read(func, *, stacklevel=2):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        tables = kwargs.get("tables")
+        if tables is None:  # sometimes `tables=None` is passed
+            tables = []
+        if len(tables) > 1:
+            warnings.warn(
+                "multi-table support is deprecated and will be removed in the next major release.",
+                DeprecationWarning,
+                stacklevel=stacklevel,
+            )
+        return func(*args, **kwargs)
+
+    return wrapper

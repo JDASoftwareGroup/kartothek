@@ -723,3 +723,42 @@ def test_extensiondtype_rountrip(store_factory, bound_load_dataframes):
         result_dfs = result
     result_df = pd.concat(result_dfs).reset_index(drop=True)
     pdt.assert_frame_equal(df["data"][0][1], result_df)
+
+
+@pytest.fixture(scope="session")
+def multi_tables_uuid():
+    import uuid
+
+    return uuid.uuid1().hex
+
+
+@pytest.fixture(scope="session")
+def multi_tables(store_session_factory, multi_tables_uuid):
+    df = pd.DataFrame({"A": range(10), "B": range(10)})
+    df_helper = pd.DataFrame({"A": range(10), "h": "x"})
+
+    data = {"main": df, "helper": df_helper}
+
+    store_dataframes_as_dataset__iter(
+        df_generator=[data],
+        store=store_session_factory,
+        dataset_uuid=multi_tables_uuid,
+    )
+    return set(data.keys())  # Table names
+
+
+def test_read_multi_table_deprecation(
+    store_session_factory,
+    bound_load_dataframes,
+    output_type,
+    multi_tables,
+    multi_tables_uuid,
+):
+    if output_type == "table":
+        pytest.skip()
+    with pytest.warns(DeprecationWarning, match="multi-table"):
+        bound_load_dataframes(
+            dataset_uuid=multi_tables_uuid,
+            store=store_session_factory,
+            tables=multi_tables,
+        )

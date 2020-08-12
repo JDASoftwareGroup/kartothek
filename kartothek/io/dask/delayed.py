@@ -8,6 +8,7 @@ import dask
 from dask import delayed
 
 from kartothek.core import naming
+from kartothek.core._deprecation import deprecate_multi_table_read
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
@@ -242,6 +243,7 @@ def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
     )
 
 
+@deprecate_multi_table_read
 @default_docs
 def read_dataset_as_delayed_metapartitions(
     dataset_uuid=None,
@@ -330,6 +332,7 @@ def read_dataset_as_delayed_metapartitions(
     return list(mps)
 
 
+@deprecate_multi_table_read
 @default_docs
 def read_dataset_as_delayed(
     dataset_uuid=None,

@@ -4,6 +4,7 @@ import warnings
 from functools import partial
 from typing import cast
 
+from kartothek.core._deprecation import deprecate_multi_table_read
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import (
@@ -30,6 +31,7 @@ from kartothek.io_components.write import (
 )
 
 
+@deprecate_multi_table_read
 @default_docs
 def read_dataset_as_metapartitions__iterator(
     dataset_uuid=None,
@@ -106,6 +108,7 @@ def read_dataset_as_metapartitions__iterator(
         yield mp
 
 
+@deprecate_multi_table_read
 @default_docs
 def read_dataset_as_dataframes__iterator(
     dataset_uuid=None,

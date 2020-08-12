@@ -5,6 +5,7 @@ from functools import partial
 import dask.bag as db
 
 from kartothek.core import naming
+from kartothek.core._deprecation import deprecate_multi_table_read
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.utils import _check_callable
@@ -40,6 +41,7 @@ def _load_and_concat_metapartitions_inner(mps, *args, **kwargs):
     )
 
 
+@deprecate_multi_table_read
 @default_docs
 def read_dataset_as_metapartitions_bag(
     dataset_uuid=None,
@@ -124,6 +126,7 @@ def read_dataset_as_metapartitions_bag(
     return mps
 
 
+@deprecate_multi_table_read
 @default_docs
 def read_dataset_as_dataframe_bag(
     dataset_uuid=None,
