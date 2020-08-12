@@ -63,7 +63,7 @@ def _read_as_ddf(
     def extract_dataframe(ix):
         df = ddf.iloc[[ix]].copy()
         for col in df.columns:
-            if pd.api.types.is_categorical(df[col]):
+            if pd.api.types.is_categorical_dtype(df[col]):
                 df[col] = df[col].cat.remove_unused_categories()
         return df.reset_index(drop=True)
 

@@ -288,7 +288,7 @@ def align_categories(dfs, categoricals):
         largest_df_categories = set()
         for ix, df in enumerate(dfs):
             ser = df[column]
-            if not pd.api.types.is_categorical(ser):
+            if not pd.api.types.is_categorical_dtype(ser):
                 cats = ser.unique()
                 LOGGER.info(
                     "Encountered non-categorical type where categorical was expected\n"
@@ -339,7 +339,7 @@ def sort_values_categorical(df, column):
             column = column[0]
         else:
             raise ValueError("Can only sort after a single column")
-    if pd.api.types.is_categorical(df[column]):
+    if pd.api.types.is_categorical_dtype(df[column]):
         cat_accesor = df[column].cat
         df[column] = cat_accesor.reorder_categories(
             sorted(cat_accesor.categories), ordered=True

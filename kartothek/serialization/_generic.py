@@ -302,7 +302,7 @@ def filter_df_from_predicates(
 
 
 def _handle_categorical_data(array_like, require_ordered):
-    if require_ordered and pd.api.types.is_categorical(array_like):
+    if require_ordered and pd.api.types.is_categorical_dtype(array_like):
         if isinstance(array_like, pd.Categorical):
             categorical = array_like
         else:

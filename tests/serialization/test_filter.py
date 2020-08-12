@@ -160,7 +160,7 @@ def test_filter_df_from_predicates(op, data, value):
 
     predicates = [[("A", op, value)]]
     actual = filter_df_from_predicates(df, predicates)
-    if pd.api.types.is_categorical(df["A"]):
+    if pd.api.types.is_categorical_dtype(df["A"]):
         df["A"] = df["A"].astype(df["A"].cat.as_ordered().dtype)
     if isinstance(value, datetime.date) and (df["A"].dtype == "datetime64[ns]"):
         # silence pandas warning
@@ -183,7 +183,7 @@ def test_filter_df_from_predicates_bool(op, col):
     value = True
     predicates = [[(col, op, value)]]
     actual = filter_df_from_predicates(df, predicates)
-    if pd.api.types.is_categorical(df[col]):
+    if pd.api.types.is_categorical_dtype(df[col]):
         df[col] = df[col].astype(df[col].cat.as_ordered().dtype)
     expected = eval(f"df[df[col] {op} value]")
     pdt.assert_frame_equal(actual, expected, check_categorical=False)
