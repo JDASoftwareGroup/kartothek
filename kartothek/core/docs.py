@@ -28,8 +28,8 @@ _PARAMETER_MAPPING = {
         The table to be loaded. If none is specified, the default 'table' is used.""",
     "tables": """
     tables : list of str
-        A list of tables to be loaded. If None is given, all tables of
-        a partition are loaded""",
+        A list of tables to be loaded. If None is given, all tables of a partition are loaded.
+        Note: this keyword is deprecated. In the future, only single table datasets will be allowed.""",
     "table_meta": """
     table_meta: Dict[str, SchemaWrapper]
         The dataset table schemas""",
