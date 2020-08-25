@@ -9,12 +9,11 @@ Improvements
 ^^^^^^^^^^^^
 
 * Expand ``pandas`` version pin to include 1.1.X
-
+* Expand ``pyarrow`` version pin to include 1.x
 
 Version 3.13.1 (2020-08-04)
 ===========================
 * Fix evaluation of "OR"-connected predicates (#295)
-
 
 Version 3.13.0 (2020-07-30)
 ===========================

@@ -23,7 +23,7 @@ jobs:
       matrix:
         numfocus_nightly: [false]
         os: ["ubuntu-latest"]
-        pyarrow: ["0.13.0", "0.14.1", "0.15.0", "0.16.0", "0.17.1", "nightly"]
+        pyarrow: ["0.13.0", "0.14.1", "0.15.0", "0.16.0", "0.17.1", "1.0.0", "nightly"]
         python: ["3.6", "3.7", "3.8"]
         include:
           - numfocus_nightly: true
