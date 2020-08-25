@@ -13,9 +13,6 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0141, ARROW_LARGER_EQ_0150
-from kartothek.serialization._arrow_compat import _fix_pyarrow_07992_table
-
 from ._generic import (
     DataFrameSerializer,
     check_predicates,
@@ -40,62 +37,28 @@ EPOCH_ORDINAL = datetime.date(1970, 1, 1).toordinal()
 def _empty_table_from_schema(parquet_file):
     schema = parquet_file.schema.to_arrow_schema()
 
-    if ARROW_LARGER_EQ_0150:
-        # ARROW-6872: empty dictionary columns raise ArrowNotImplementedError
-        for i in range(len(schema)):
-            field = schema[i]
-            if pa.types.is_dictionary(field.type):
-                new_field = pa.field(
-                    field.name, field.type.value_type, field.nullable, field.metadata
-                )
-                schema = schema.remove(i).insert(i, new_field)
-
     return schema.empty_table()
 
 
 def _reset_dictionary_columns(table, exclude=None):
     """
-    1. Categorical columns of null won't cast https://issues.apache.org/jira/browse/ARROW-5085
-    2. Massive performance issue due to non-fast path implementation https://issues.apache.org/jira/browse/ARROW-5089
-    3. We need to ensure that the dtype is exactly as requested, see GH227
+    We need to ensure that the dtype is exactly as requested, see GH227
     """
     if exclude is None:
         exclude = []
 
-    if ARROW_LARGER_EQ_0150:
-        # https://issues.apache.org/jira/browse/ARROW-8142
-        if len(table) == 0:
-            df = table.to_pandas(date_as_object=True)
-            new_types = {
-                col: df[col].cat.categories.dtype
-                for col in df.select_dtypes("category")
-            }
-            if new_types:
-                df = df.astype(new_types)
-                table = pa.Table.from_pandas(df)
-        else:
-            schema = table.schema
-            for i in range(len(schema)):
-                field = schema[i]
-                if pa.types.is_dictionary(field.type):
-                    new_field = pa.field(
-                        field.name,
-                        field.type.value_type,
-                        field.nullable,
-                        field.metadata,
-                    )
-                    schema = schema.remove(i).insert(i, new_field)
+    schema = table.schema
+    for i in range(len(schema)):
+        field = schema[i]
+        if field.name in exclude:
+            continue
+        if pa.types.is_dictionary(field.type):
+            new_field = pa.field(
+                field.name, field.type.value_type, field.nullable, field.metadata,
+            )
+            schema = schema.remove(i).insert(i, new_field)
 
-            table = table.cast(schema)
-    else:
-        for i in range(table.num_columns):
-            col = table[i]
-            if col.name in exclude:
-                continue
-            if pa.types.is_dictionary(col.type):
-                new_type = col.data.chunk(0).dictionary.type
-                new_col = col.cast(new_type)
-                table = table.remove_column(i).add_column(i, new_col)
+    table = table.cast(schema)
     return table
 
 
@@ -186,8 +149,6 @@ class ParquetSerializer(DataFrameSerializer):
             finally:
                 reader.close()
 
-        table = _fix_pyarrow_07992_table(table)
-
         if columns is not None:
             missing_columns = set(columns) - set(table.schema.names)
             if missing_columns:
@@ -218,12 +179,7 @@ class ParquetSerializer(DataFrameSerializer):
         else:
             table = pa.Table.from_pandas(df)
         buf = pa.BufferOutputStream()
-        if (
-            self.chunk_size
-            and self.chunk_size < len(table)
-            and not ARROW_LARGER_EQ_0150
-        ):
-            table = _reset_dictionary_columns(table)
+
         pq.write_table(
             table,
             buf,
@@ -330,23 +286,6 @@ def _timelike_to_arrow_encoding(value, pa_type):
     if pa.types.is_date32(pa_type):
         if isinstance(value, datetime.date):
             return value.toordinal() - EPOCH_ORDINAL
-    elif pa.types.is_temporal(pa_type) and not ARROW_LARGER_EQ_0141:
-        unit = pa_type.unit
-        if unit == "ns":
-            conversion_factor = 1
-        elif unit == "us":
-            conversion_factor = 10 ** 3
-        elif unit == "ms":
-            conversion_factor = 10 ** 6
-        elif unit == "s":
-            conversion_factor = 10 ** 9
-        else:
-            raise TypeError(
-                "Unkwnown timestamp resolution encoudtered `{}`".format(unit)
-            )
-        val = pd.Timestamp(value).to_datetime64()
-        val = int(val.astype("int64") / conversion_factor)
-        return val
     else:
         return value
 
@@ -426,16 +365,11 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     max_value = parquet_statistics.max
     # Transform the predicate value to the respective type used in the statistics.
 
-    if pa.types.is_string(pa_type) and not ARROW_LARGER_EQ_0141:
-        # String types are always UTF-8 encoded binary strings in parquet
-        min_value = min_value.decode("utf-8")
-        max_value = max_value.decode("utf-8")
-
     # integer overflow protection since statistics are stored as signed integer, see ARROW-5166
     if pa.types.is_integer(pa_type) and (max_value < min_value):
         return True
 
-    if pa.types.is_timestamp(pa_type) and ARROW_LARGER_EQ_0150:
+    if pa.types.is_timestamp(pa_type):
         # timestamps in the parquet statistic might be of type datetime.datetime, which is not compatible w/ numpy
         min_value = np.datetime64(min_value)
         max_value = np.datetime64(max_value)

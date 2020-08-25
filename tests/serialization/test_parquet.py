@@ -5,13 +5,15 @@ import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
-import pyarrow.parquet as pq
 import pytest
 import storefact
 from pyarrow.parquet import ParquetFile
 
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
-from kartothek.serialization._parquet import _predicate_accepts
+from kartothek.serialization._parquet import (
+    _predicate_accepts,
+    _reset_dictionary_columns,
+)
 from kartothek.serialization._util import _check_contains_null
 
 
@@ -32,46 +34,6 @@ def test_timestamp_us(store):
     df = pd.DataFrame({"ts": [ts]})
     serialiser = ParquetSerializer()
     key = serialiser.store(store, "prefix", df)
-    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-
-def test_pyarrow_07992(store):
-    key = "test.parquet"
-    df = pd.DataFrame({"a": [1]})
-    table = pa.Table.from_pandas(df)
-    meta = b"""{
-        "pandas_version": "0.20.3",
-        "index_columns": ["__index_level_0__"],
-        "columns": [
-            {"metadata": null, "name": "a", "numpy_type": "int64", "pandas_type": "int64"},
-            {"metadata": null, "name": null, "numpy_type": "int64", "pandas_type": "int64"}
-        ],
-        "column_indexes": [
-            {"metadata": null, "name": null, "numpy_type": "object", "pandas_type": "string"}
-        ]
-    }"""
-    table = table.replace_schema_metadata({b"pandas": meta})
-    buf = pa.BufferOutputStream()
-    pq.write_table(table, buf)
-    store.put(key, buf.getvalue().to_pybytes())
-    pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
-
-
-def test_index_metadata(store):
-    key = "test.parquet"
-    df = pd.DataFrame({"a": [1]})
-    table = pa.Table.from_pandas(df)
-    meta = b"""{
-        "pandas_version": "0.20.3",
-        "index_columns": ["__index_level_0__"],
-        "columns": [
-            {"metadata": null, "name": "a", "numpy_type": "int64", "pandas_type": "int64"}
-        ]
-    }"""
-    table = table.replace_schema_metadata({b"pandas": meta})
-    buf = pa.BufferOutputStream()
-    pq.write_table(table, buf)
-    store.put(key, buf.getvalue().to_pybytes())
     pdt.assert_frame_equal(DataFrameSerializer.restore_dataframe(store, key), df)
 
 
@@ -457,3 +419,23 @@ def test_read_categorical_empty(store):
     df = serialiser.restore_dataframe(store, key, categories=["col"])
 
     assert df.dtypes["col"] == pd.CategoricalDtype([], ordered=False)
+
+
+def test_reset_dict_cols(store):
+
+    df = pd.DataFrame({"col": ["a"], "colB": ["b"]}).astype(
+        {"col": "category", "colB": "category"}
+    )
+    table = pa.Table.from_pandas(df)
+    orig_schema = table.schema
+
+    assert pa.types.is_dictionary(orig_schema.field_by_name("col").type)
+    assert pa.types.is_dictionary(orig_schema.field_by_name("colB").type)
+
+    all_reset = _reset_dictionary_columns(table).schema
+    assert not pa.types.is_dictionary(all_reset.field_by_name("col").type)
+    assert not pa.types.is_dictionary(all_reset.field_by_name("colB").type)
+
+    only_a_reset = _reset_dictionary_columns(table, exclude=["colB"]).schema
+    assert not pa.types.is_dictionary(only_a_reset.field_by_name("col").type)
+    assert pa.types.is_dictionary(only_a_reset.field_by_name("colB").type)

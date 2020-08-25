@@ -17,8 +17,6 @@ from kartothek.core import naming
 from kartothek.core._compat import load_json
 from kartothek.core.utils import ensure_string_type
 
-from ._compat import ARROW_LARGER_EQ_0141, ARROW_LARGER_EQ_0150
-
 _logger = logging.getLogger()
 
 
@@ -78,10 +76,7 @@ class SchemaWrapper:
 
             schema = schema.remove_metadata()
             md = {b"pandas": _dict_to_binary(pandas_metadata)}
-            if ARROW_LARGER_EQ_0150:
-                schema = schema.with_metadata(md)
-            else:
-                schema = schema.add_metadata(md)
+            schema = schema.add_metadata(md)
             self.__schema = schema
 
     def internal(self):
@@ -323,10 +318,7 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
         return pa.list_(t_pa2), "list[{}]".format(t_pd2), "object", None
     elif pa.types.is_dictionary(t_pa):
         # downcast to dictionary content, `t_pd` is useless in that case
-        if ARROW_LARGER_EQ_0141:
-            return normalize_type(t_pa.value_type, t_np, t_np, None)
-        else:
-            return normalize_type(t_pa.dictionary.type, t_np, t_np, None)
+        return normalize_type(t_pa.value_type, t_np, t_np, None)
     else:
         return t_pa, t_pd, t_np, metadata
 
@@ -513,10 +505,7 @@ def _determine_schemas_to_compare(schemas, ignore_pandas):
 
 
 def _swap_fields_by_name(reference, current, field_name):
-    if ARROW_LARGER_EQ_0150:
-        current_field = current.field(field_name)
-    else:
-        current_field = current.field_by_name(field_name)
+    current_field = current.field(field_name)
     reference_index = reference.get_field_index(field_name)
     return reference.set(reference_index, current_field)
 

@@ -18,7 +18,6 @@ import pyarrow as pa
 from simplekv import KeyValueStore
 
 from kartothek.core import naming
-from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core.common_metadata import (
     make_meta,
     normalize_column_order,
@@ -823,10 +822,7 @@ class MetaPartition(Iterable):
             if columns is not None and primary_key not in columns:
                 continue
 
-            if ARROW_LARGER_EQ_0150:
-                pa_dtype = schema.field(primary_key).type
-            else:
-                pa_dtype = schema.field_by_name(primary_key).type
+            pa_dtype = schema.field(primary_key).type
             dtype = pa_dtype.to_pandas_dtype()
             convert_to_date = False
             if date_as_object and pa_dtype in [pa.date32(), pa.date64()]:
@@ -1249,19 +1245,11 @@ class MetaPartition(Iterable):
 
             # There is at least one table with this column (see check above), so we can get the dtype from there. Also,
             # shared dtypes are ensured to be compatible.
-            if ARROW_LARGER_EQ_0150:
-                dtype = list(
-                    meta.field(col).type
-                    for meta in self.table_meta.values()
-                    if col in meta.names
-                )[0]
-            else:
-                dtype = list(
-                    meta.field_by_name(col).type
-                    for meta in self.table_meta.values()
-                    if col in meta.names
-                )[0]
-
+            dtype = list(
+                meta.field(col).type
+                for meta in self.table_meta.values()
+                if col in meta.names
+            )[0]
             new_index = ExplicitSecondaryIndex(
                 column=col,
                 index_dct={value: [self.label] for value in possible_values},

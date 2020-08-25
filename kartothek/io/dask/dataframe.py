@@ -7,7 +7,6 @@ import numpy as np
 import pandas as pd
 from simplekv import KeyValueStore
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0141
 from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import DatasetFactory, _ensure_factory
@@ -369,8 +368,6 @@ def collect_dataset_metadata(
       If no metadata could be retrieved, raise an error.
 
     """
-    if not ARROW_LARGER_EQ_0141:
-        raise RuntimeError("This function requires `pyarrow>=0.14.1`.")
     if not 0.0 < frac <= 1.0:
         raise ValueError(
             f"Invalid value for parameter `frac`: {frac}."
