@@ -5,6 +5,10 @@ Changelog
 Version 3.14.0 (2020-XX-YY)
 ===========================
 
+New functionality
+^^^^^^^^^^^^^^^^^
+* Add ``hash_dataset`` functionality
+
 Improvements
 ^^^^^^^^^^^^
 
@@ -13,6 +17,7 @@ Improvements
 
 Version 3.13.1 (2020-08-04)
 ===========================
+
 * Fix evaluation of "OR"-connected predicates (#295)
 
 Version 3.13.0 (2020-07-30)
@@ -34,6 +39,7 @@ New functionality
 * Basic Features - Extend, Query, Remove(Partitions),
   Delete (can delete entire datasets/cube), API, CLI, Core and IO features.
 * Advanced Features - Multi-Dataset with Single Table, Explicit physical Partitions, Seed based join system.
+
 
 Version 3.11.0 (2020-07-15)
 ===========================

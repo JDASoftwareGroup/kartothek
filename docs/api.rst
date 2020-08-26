@@ -101,6 +101,17 @@ This is the most user friendly interface of the dask containers and offers direc
 
     read_dataset_as_ddf
     update_dataset_from_ddf
+    collect_dataset_metadata
+    hash_dataset
+
+.. currentmodule:: kartothek.io.dask.compression
+
+.. autosummary::
+
+    pack_payload_pandas
+    pack_payload
+    unpack_payload_pandas
+    unpack_payload
 
 Bag
 ^^^
