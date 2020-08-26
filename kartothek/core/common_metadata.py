@@ -76,7 +76,7 @@ class SchemaWrapper:
 
             schema = schema.remove_metadata()
             md = {b"pandas": _dict_to_binary(pandas_metadata)}
-            schema = schema.add_metadata(md)
+            schema = schema.with_metadata(md)
             self.__schema = schema
 
     def internal(self):

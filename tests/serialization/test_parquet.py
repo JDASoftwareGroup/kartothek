@@ -429,13 +429,13 @@ def test_reset_dict_cols(store):
     table = pa.Table.from_pandas(df)
     orig_schema = table.schema
 
-    assert pa.types.is_dictionary(orig_schema.field_by_name("col").type)
-    assert pa.types.is_dictionary(orig_schema.field_by_name("colB").type)
+    assert pa.types.is_dictionary(orig_schema.field("col").type)
+    assert pa.types.is_dictionary(orig_schema.field("colB").type)
 
     all_reset = _reset_dictionary_columns(table).schema
-    assert not pa.types.is_dictionary(all_reset.field_by_name("col").type)
-    assert not pa.types.is_dictionary(all_reset.field_by_name("colB").type)
+    assert not pa.types.is_dictionary(all_reset.field("col").type)
+    assert not pa.types.is_dictionary(all_reset.field("colB").type)
 
     only_a_reset = _reset_dictionary_columns(table, exclude=["colB"]).schema
-    assert not pa.types.is_dictionary(only_a_reset.field_by_name("col").type)
-    assert pa.types.is_dictionary(only_a_reset.field_by_name("colB").type)
+    assert not pa.types.is_dictionary(only_a_reset.field("col").type)
+    assert pa.types.is_dictionary(only_a_reset.field("colB").type)
