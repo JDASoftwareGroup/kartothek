@@ -1,6 +1,7 @@
 
 Query System
-============
+------------
+.. contents:: Table of Contents
 
 Kartothek views the whole cube as a large, virtual DataFrame. The seed dataset presents the groundtruth regarding rows, all
 other datasets are joined via a left join. The user should not see that data is partitioned via
@@ -13,7 +14,7 @@ other datasets are joined via a left join. The user should not see that data is 
 This section explain some technical details around this mechanism.
 
 Per-Dataset Partitions
-======================
+``````````````````````
 First of all, all partition files for all datasets are gathered. Every partition file is represented by a unique label.
 For every dataset, index data for the Primary Indices (aka partition columns) will be loaded and joined w/ the labels::
 
@@ -81,7 +82,7 @@ Finally, rows w/ identical partition information (physical and partition-by) are
 
 
 Alignment
-=========
+`````````
 After data is prepared for every dataset, they are aligned using their physical partitions. Partitions that are present
 in non-seed datasets but are missing from the seed dataset are dropped::
 
@@ -115,7 +116,7 @@ In case pre-conditions got applied to any non-seed dataset or partition-by colum
 removing potential partitions early.
 
 Re-grouping
-===========
+```````````
 Now, the DataFrame is grouped by partition-by::
 
     partition-by: I2
@@ -134,7 +135,7 @@ Now, the DataFrame is grouped by partition-by::
      1 | 0 |  2 | P=1/Q=0/<uuid5>.parquet                          | P=1/Q=0/<uuid8>.parquet, P=0/Q=1/<uuid9>.parquet
 
 Intra-Partition Joins
-=====================
+`````````````````````
 This section explains how DataFrames within a partition within a group are joined.
 
 A simple explanation of the join logic would be: "The coordinates (cube cells) are taken from the seed dataset, all
@@ -146,11 +147,13 @@ non-:term:`Dimension Column` and non-:term:`Partition Column` to which users wis
 conditions or via partition-by). Because these restrictions always need to apply, we can evaluate them pre-join and
 execute an inner join with the seed dataset.
 
+Examples
+````````
 The following sub-sections illustrate this system in multiple steps.
 
 
 Example 1 (Join Semantics)
---------------------------
+~~~~~~~~~~~~~~~~~~~~~~~~~~
 Here, a rather standard example is shown with explanations why data is kept or not::
 
     columns   = [P, PRED]
@@ -200,7 +203,7 @@ Here, a rather standard example is shown with explanations why data is kept or n
 
 
 Example 2 (Outer Join)
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 Now, we have a P-L cube, with all datasets except of ``schedule`` having P-L dimensionality::
 
     columns   = [P, L, PRED]
@@ -247,7 +250,7 @@ Now, we have a P-L cube, with all datasets except of ``schedule`` having P-L dim
 
 
 Example 3 (Projection)
-----------------------
+~~~~~~~~~~~~~~~~~~~~~~
 This shows how the seed dataset can be used to also produce sub-dimensional / projected results::
 
     columns   = [P, AVG]
@@ -287,5 +290,5 @@ This shows how the seed dataset can be used to also produce sub-dimensional / pr
                              1 |  10.2
 
 Final Concat
-============
+~~~~~~~~~~~~
 After DataFrames for all partitions in a group are joined, they are concatenated in order of :term:`Partition Columns`.

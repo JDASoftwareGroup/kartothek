@@ -1,20 +1,20 @@
 
-Command Line Interface
-======================
+Command Line Features
+---------------------
 
 .. raw:: html
 
-   <style>
-      .term-fg1 {
-         font-weight: bold;
-      }
-      .term-fg4 {
-         text-decoration: underline;
-      }
-      .term-fg33 {
-         color: orange;
-      }
-   </style>
+       <style>
+          .term-fg1 {
+             font-weight: bold;
+          }
+          .term-fg4 {
+             text-decoration: underline;
+          }
+          .term-fg33 {
+             color: orange;
+          }
+       </style>
 
 Kartothek Cube also features a command line interface (CLI) for some cube operations. To use it, create a ``skv.yml`` file that
 describes `storefact`_ stores:
@@ -30,7 +30,6 @@ Now use the ``kartothek_cube`` command to gather certain cube information:
 .. code-block:: bash
 
    kartothek_cube geodata info
-
 
 .. raw:: html
 

@@ -1,5 +1,9 @@
-Setup
-=====
+Examples
+--------
+.. contents:: Table of Contents
+
+This is a quick walk through the basic functionality of Kartothek Cubes.
+
 First, we want to create a cube for geodata:
 
 >>> from kartothek.core.cube.cube import Cube
@@ -9,7 +13,7 @@ First, we want to create a cube for geodata:
 ...     partition_columns=["country"],
 ... )
 
-Apart from an abstract cube definition, we need a `simplekv`_-based storage backed:
+Apart from an abstract cube definition, we need a `simplekv`_-based storage backend:
 
 >>> from functools import partial
 >>> import tempfile
@@ -26,12 +30,13 @@ Some generic setups of libraries:
 >>> import pandas as pd
 >>> pd.set_option("display.max_rows", 40)
 >>> pd.set_option("display.width", None)
-
+>>> pd.set_option('display.max_columns', None)
+>>> pd.set_option('display.expand_frame_repr', False)
 
 Build
-=====
+`````
 
-That cube should initially filled with the following information:
+Kartothek cube should be initially filled with the following information:
 
 >>> from io import StringIO
 >>> import pandas as pd
@@ -68,8 +73,7 @@ geodata++seed
 >>> print(", ".join(sorted(ds_seed.indices)))
 city, country, day
 
-Finally, let's have a quick look at the store content. Note that we cut out UUIDs and timestamps here for documentation
-purposes:
+Finally, let's have a quick look at the store content. Note that we cut out UUIDs and timestamps here for brevity.
 
 >>> import re
 >>> def print_filetree(s, prefix=""):
@@ -88,8 +92,8 @@ geodata++seed/table/country=DE/<uuid>.parquet
 geodata++seed/table/country=UK/<uuid>.parquet
 
 Extend
-======
-Now let's say we also would like to have longitude and latitude data in our cube.
+``````
+Now let's say we would also like to have longitude and latitude data in our cube.
 
 >>> from kartothek.io.eager_cube import extend_cube
 >>> df_location = pd.read_csv(
@@ -147,7 +151,7 @@ geodata++seed/table/country=DE/<uuid>.parquet
 geodata++seed/table/country=UK/<uuid>.parquet
 
 Query
-=====
+`````
 Now the whole beauty of Kartothek Cube does not come from storing multiple datasets, but especially from retrieving the data in a
 very comfortable way. It is possible to treat the entire cube as a single, large DataFrame:
 
@@ -201,7 +205,7 @@ The query system also supports selection and projection:
 1         4  Dresden      DE 2018-01-02
 
 Transform
-=========
+`````````
 Query and Extend can be combined to build powerful transformation pipelines. To better illustrate this we will use
 `Dask.Bag`_ for that example.
 
@@ -268,7 +272,7 @@ geodata++transformed/table/country=UK/<uuid>.parquet
 
 
 Append
-======
+``````
 New rows can be added to the cube using an append operation:
 
 >>> from kartothek.io.eager_cube import append_to_cube
@@ -313,9 +317,8 @@ Notice that the indices where updated automatically.
 6        20                   NaN  Santiago      CL 2018-01-01        NaN        NaN
 7        22                   NaN  Santiago      CL 2018-01-02        NaN        NaN
 
-
 Remove
-======
+``````
 You can remove entire partitions from the cube using the remove operation:
 
 >>> from kartothek.io.eager_cube import remove_partitions
@@ -339,9 +342,8 @@ You can remove entire partitions from the cube using the remove operation:
 6        20                   NaN  Santiago      CL 2018-01-01        NaN        NaN
 7        22                   NaN  Santiago      CL 2018-01-02        NaN        NaN
 
-
 Delete
-======
+``````
 You can also delete entire datasets (or the entire cube):
 
 >>> from kartothek.io.eager_cube import delete_cube
@@ -364,11 +366,8 @@ You can also delete entire datasets (or the entire cube):
 6        20  Santiago      CL 2018-01-01        NaN        NaN
 7        22  Santiago      CL 2018-01-02        NaN        NaN
 
-
-.. _Dimensionality and Partitioning Details:
-
 Dimensionality and Partitioning
-===============================
+```````````````````````````````
 Sometimes, you have data that only exists in a projection of the cube, like the ``latlong`` data from the `Extend`_
 section. For non-seed datasets, you can just leave out :term:`Dimension Columns`, as long as at least a single
 :term:`Dimension Column` remains.
@@ -419,12 +418,11 @@ geodata++time/table/_common_metadata
 7        22  Santiago      CL 2018-01-02        NaN        NaN      1        1  2018
 
 
-
 .. _Distributed: https://distributed.readthedocs.io/
 .. _DataFrame.merge: https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.merge.html?highlight=merge#pandas.DataFrame.merge
 .. _DataFrame.reset_index: https://pandas.pydata.org/pandas-docs/stable/generated/pandas.DataFrame.reset_index.html?highlight=reset_index#pandas.DataFrame.reset_index
 .. _Dask: https://docs.dask.org/
-.. _Dask.Bag: https://docs.dask.org/en/latest/bag-overview.html
+.. _Dask.Bag: https://docs.dask.org/en/latest/bag.html
 .. _Dask.DataFrame: https://docs.dask.org/en/latest/dataframe.html
 .. _simplekv: https://simplekv.readthedocs.io/
 .. _Yamal: https://software.blue-yonder.org/DynamicPricing/generic/yamal/latest/+doc/index.html
