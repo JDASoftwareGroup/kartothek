@@ -30,8 +30,6 @@ partitions and selects subsets of data transparently.
 To get started, have a look at our :doc:`guide/getting_started` guide,
 head to the description of the :doc:`spec/index` or head straight to the API documentation :doc:`api`.
 
-To get started with Cube Functionality, have a look at our :doc:`guide/cube/getting_started` guide,
-
 What is a (real) Kartothek?
 ---------------------------
 
