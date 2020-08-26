@@ -15,7 +15,7 @@ setuptools_scm
 asv
 
 # Documentation
-sphinx<3.2.0 # https://github.com/sphinx-doc/sphinx/issues/8096
+sphinx
 sphinx_rtd_theme
 sphinx-click
 IPython
