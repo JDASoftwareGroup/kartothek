@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 3.14.0 (2020-XX-YY)
+Version 3.14.0 (2020-08-27)
 ===========================
 
 New functionality
@@ -14,6 +14,7 @@ Improvements
 
 * Expand ``pandas`` version pin to include 1.1.X
 * Expand ``pyarrow`` version pin to include 1.x
+* Large addition to documentation for multi dataset handling (Kartothek Cubes)
 
 Version 3.13.1 (2020-08-04)
 ===========================
