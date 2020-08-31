@@ -1,6 +1,5 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# pylint: disable=C0103, C0111, W0621
+# noqa: E402
+# isort:skip_file
 
 import datetime
 import os
@@ -12,28 +11,30 @@ import pandas as pd
 import pytest
 import storefact
 
-from kartothek.core.common_metadata import make_meta
-from kartothek.core.factory import DatasetFactory
-from kartothek.core.testing import (
+# fmt: off
+pytest.register_assert_rewrite("kartothek.io.testing")
+# fmt: on
+
+from kartothek.core.common_metadata import make_meta  # noqa: E402
+from kartothek.core.factory import DatasetFactory  # noqa: E402
+from kartothek.core.testing import (  # noqa: E402
     TIME_TO_FREEZE,
     cm_frozen_time,
     get_dataframe_alltypes,
     get_dataframe_not_nested,
 )
-from kartothek.io.testing.utils import no_pickle_store_from_url
-from kartothek.io_components.metapartition import (
+from kartothek.io.testing.utils import no_pickle_store_from_url  # noqa: E402
+from kartothek.io_components.metapartition import (  # noqa: E402
     SINGLE_TABLE,
     MetaPartition,
     gen_uuid,
     parse_input_to_metapartition,
 )
-from kartothek.io_components.write import store_dataset_from_partitions
-from kartothek.serialization import ParquetSerializer
+from kartothek.io_components.write import store_dataset_from_partitions  # noqa: E402
+from kartothek.serialization import ParquetSerializer  # noqa: E402
+
 
 pd.options.mode.chained_assignment = "raise"
-
-
-pytest.register_assert_rewrite("kartothek.io.testing")
 
 
 @pytest.fixture

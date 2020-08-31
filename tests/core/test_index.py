@@ -14,7 +14,6 @@ import pytz
 from hypothesis import assume, given
 from pandas.testing import assert_series_equal
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core.index import ExplicitSecondaryIndex, IndexBase, merge_indices
 from kartothek.core.testing import get_numpy_array_strategy
 
@@ -483,13 +482,9 @@ def test_index_raises_null_dtype():
         (pa.string(), "x"),
         (pa.timestamp("ns"), pd.Timestamp("2018-01-01").to_datetime64()),
         (pa.date32(), datetime.date(2018, 1, 1)),
-        pytest.param(
+        (
             pa.timestamp("ns", tz=pytz.timezone("Europe/Berlin")),
             pd.Timestamp("2018-01-01", tzinfo=pytz.timezone("Europe/Berlin")),
-            marks=pytest.mark.xfail(
-                not ARROW_LARGER_EQ_0150,
-                reason="Timezone reoundtrips not supported in older versions",
-            ),
         ),
     ],
 )

@@ -12,7 +12,6 @@ from simplekv import KeyValueStore
 
 import kartothek.core._time
 from kartothek.core import naming
-from kartothek.core._compat import ARROW_LARGER_EQ_0150
 from kartothek.core._mixins import CopyMixin
 from kartothek.core.common_metadata import normalize_type
 from kartothek.core.docs import default_docs
@@ -24,7 +23,6 @@ from kartothek.serialization import (
     filter_df_from_predicates,
     filter_predicates_by_column,
 )
-from kartothek.serialization._parquet import _fix_pyarrow_07992_table
 
 ValueType = TypeVar("ValueType")
 IndexDictType = Dict[ValueType, List[str]]
@@ -849,10 +847,7 @@ def _parquet_bytes_to_dict(column: str, index_buffer: bytes):
     # This can be done much more efficient but would take a lot more
     # time to implement so this will be only done on request.
     table = pq.read_table(reader)
-    if ARROW_LARGER_EQ_0150:
-        column_type = table.schema.field(column).type
-    else:
-        column_type = table.schema.field_by_name(column).type
+    column_type = table.schema.field(column).type
 
     # `datetime.datetime` objects have a precision of up to microseconds only, so arrow
     # parses the type to `pa.timestamp("us")`. Since the
@@ -861,7 +856,7 @@ def _parquet_bytes_to_dict(column: str, index_buffer: bytes):
     if column_type == pa.timestamp("us"):
         column_type = pa.timestamp("ns")
 
-    df = _fix_pyarrow_07992_table(table).to_pandas()  # Could eventually be phased out
+    df = table.to_pandas()
 
     index_dct = dict(
         zip(df[column].values, (list(x) for x in df[_PARTITION_COLUMN_NAME].values))

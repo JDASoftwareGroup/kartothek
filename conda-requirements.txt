@@ -4,8 +4,7 @@ msgpack-python>=0.5.2
 # Currently dask and numpy==1.16.0 clash
 numpy!=1.15.0,!=1.16.0
 pandas>=0.23.0, !=1.0.0
-# pyarrow==0.14.0 breaks kartothek
-pyarrow>=0.13.0, !=0.14.0, <0.18.0 # Keep upper bound pinned until we see non-breaking releases in the future
+pyarrow>=0.17.1, <2
 simplejson
 simplekv
 storefact

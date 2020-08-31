@@ -1,7 +1,6 @@
 import pandas as pd
 import pytest
 
-from kartothek.core._compat import ARROW_LARGER_EQ_0141
 from kartothek.io.dask.dataframe import collect_dataset_metadata
 from kartothek.io.eager import (
     store_dataframes_as_dataset,
@@ -10,9 +9,6 @@ from kartothek.io.eager import (
 from kartothek.io_components.metapartition import _METADATA_SCHEMA, MetaPartition
 from kartothek.io_components.write import store_dataset_from_partitions
 from kartothek.serialization import ParquetSerializer
-
-if not ARROW_LARGER_EQ_0141:
-    pytest.skip("requires arrow >= 0.14.1", allow_module_level=True)
 
 
 def test_collect_dataset_metadata(store_session_factory, dataset):

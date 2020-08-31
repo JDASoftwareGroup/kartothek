@@ -23,7 +23,7 @@ jobs:
       matrix:
         numfocus_nightly: [false]
         os: ["ubuntu-latest"]
-        pyarrow: ["0.13.0", "0.14.1", "0.15.0", "0.16.0", "0.17.1", "1.0.0", "nightly"]
+        pyarrow: ["0.17.1", "1.0.0", "nightly"]
         python: ["3.6", "3.7", "3.8"]
         include:
           - numfocus_nightly: true
@@ -34,21 +34,6 @@ jobs:
             os: "macos-latest"
             pyarrow: "0.17.1"
             python: "3.8"
-        exclude:
-          # No pyarrow Python 3.8 builds for these versions available
-          - numfocus_nightly: false
-            os: "ubuntu-latest"
-            pyarrow: "0.13.0"
-            python: "3.8"
-          - numfocus_nightly: false
-            os: "ubuntu-latest"
-            pyarrow: "0.14.1"
-            python: "3.8"
-          - numfocus_nightly: false
-            os: "ubuntu-latest"
-            pyarrow: "0.15.0"
-            python: "3.8"
-
     continue-on-error: ${{ matrix.numfocus_nightly || matrix.pyarrow == 'nightly' }}
 
     runs-on: ${{ matrix.os }}
