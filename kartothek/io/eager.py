@@ -116,7 +116,7 @@ def read_dataset_as_dataframes(
     .. code ::
 
         >>> import storefact
-        >>> from kartothek.io.eager import read_table
+        >>> from kartothek.io.eager import read_dataset_as_dataframes
 
         >>> store = storefact.get_store_from_url('s3://bucket_with_dataset')
 
