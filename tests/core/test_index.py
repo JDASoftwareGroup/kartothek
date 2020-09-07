@@ -834,3 +834,19 @@ def test_unload(with_index_dct):
 def test_fail_type_unsafe():
     with pytest.raises(ValueError, match="Trying to create non-typesafe index"):
         ExplicitSecondaryIndex(column="col", index_dct={})
+
+
+def test_index_large(store):
+    storage_key = "dataset_uuid/some_index.parquet"
+    index1 = ExplicitSecondaryIndex(
+        column="col",
+        index_dct={i: ["part_1"] for i in range(100_000)},
+        index_storage_key=storage_key,
+    )
+    key1 = index1.store(store, "dataset_uuid")
+
+    index2 = ExplicitSecondaryIndex(column="col", index_storage_key=key1).load(store)
+    assert index1 == index2
+
+    index3 = pickle.loads(pickle.dumps(index1))
+    assert index1 == index3

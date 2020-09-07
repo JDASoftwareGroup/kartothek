@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 3.14.x (unreleased)
+===========================
+
+Improvements
+^^^^^^^^^^^^
+* Reduce memory consumption during index write.
+
+
 Version 3.14.0 (2020-08-27)
 ===========================
 
