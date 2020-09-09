@@ -25,7 +25,7 @@ some data there with Kartothek.
 
     dataset_dir = TemporaryDirectory()
 
-    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+    store_url = f"hfs://{dataset_dir.name}"
 
     df = pd.DataFrame(
         {
@@ -46,7 +46,7 @@ some data there with Kartothek.
 .. ipython:: python
 
     dm = store_dataframes_as_dataset(
-        store=store_factory, dataset_uuid="partitioned_dataset", dfs=[df], partition_on="B"
+        store=store_url, dataset_uuid="partitioned_dataset", dfs=[df], partition_on="B"
     )
     sorted(dm.partitions.keys())
 
@@ -77,9 +77,7 @@ Now, we create ``another_df`` with the same schema as our intial dataframe
         }
     )
 
-    dm = update_dataset_from_dataframes(
-        [another_df], store=store_factory, dataset_uuid=dm.uuid
-    )
+    dm = update_dataset_from_dataframes([another_df], store=store_url, dataset_uuid=dm.uuid)
     sorted(dm.partitions.keys())
 
 
@@ -93,7 +91,7 @@ previous contents.
 
     from kartothek.io.eager import read_table
 
-    updated_df = read_table(dataset_uuid=dm.uuid, store=store_factory, table="table")
+    updated_df = read_table(dataset_uuid=dm.uuid, store=store_url, table="table")
     updated_df
 
 
@@ -118,7 +116,7 @@ To illustrate this point better, let's first create a dataset with two tables:
     df2
 
     dm_two_tables = store_dataframes_as_dataset(
-        store_factory, "two_tables", dfs=[{"data": {"table1": df, "table2": df2}}]
+        store_url, "two_tables", dfs=[{"data": {"table1": df, "table2": df2}}]
     )
     dm_two_tables.tables
     sorted(dm_two_tables.partitions.keys())
@@ -150,7 +148,7 @@ with new data for ``table1`` and ``table2``:
 
     dm_two_tables = update_dataset_from_dataframes(
         {"data": {"table1": another_df, "table2": another_df2}},
-        store=store_factory,
+        store=store_url,
         dataset_uuid=dm_two_tables.uuid,
     )
     dm_two_tables.tables
@@ -169,7 +167,7 @@ Trying to update only a subset of tables throws a ``ValueError``:
        ....:              "table2": another_df2
        ....:           }
        ....:        },
-       ....:        store=store_factory,
+       ....:        store=store_url,
        ....:        dataset_uuid=dm_two_tables.uuid
        ....:        )
        ....:
@@ -190,7 +188,7 @@ To do so we use the ``delete_scope`` keyword argument as shown in the example be
 
     dm = update_dataset_from_dataframes(
         None,
-        store=store_factory,
+        store=store_url,
         dataset_uuid=dm.uuid,
         partition_on="B",
         delete_scope=[{"B": pd.Timestamp("20130102")}],
@@ -227,7 +225,7 @@ list but have to be specified instead as individual dictionaries, i.e.
     duplicate_df.F = "bar"
 
     dm = store_dataframes_as_dataset(
-        store_factory,
+        store_url,
         "another_partitioned_dataset",
         [df, duplicate_df],
         partition_on=["E", "F"],
@@ -239,7 +237,7 @@ list but have to be specified instead as individual dictionaries, i.e.
 
     dm = update_dataset_from_dataframes(
         None,
-        store=store_factory,
+        store=store_url,
         dataset_uuid=dm.uuid,
         partition_on=["E", "F"],
         delete_scope=[{"E": "train", "F": "foo"}, {"E": "test", "F": "bar"}],
@@ -260,9 +258,7 @@ with one update:
 
     df  # Column B includes 2 values for '2013-01-02' and another 2 for '2013-01-03'
 
-    dm = store_dataframes_as_dataset(
-        store_factory, "replace_partition", [df], partition_on="B"
-    )
+    dm = store_dataframes_as_dataset(store_url, "replace_partition", [df], partition_on="B")
     sorted(dm.partitions.keys())  # two partitions, one for each value of `B`
 
     modified_df = another_df.copy()
@@ -273,7 +269,7 @@ with one update:
         [
             modified_df
         ],  # specify dataframe which has 'new' data for partition to be replaced
-        store=store_factory,
+        store=store_url,
         dataset_uuid=dm.uuid,
         partition_on="B",  # don't forget to specify the partitioning column
         delete_scope=[
@@ -282,7 +278,7 @@ with one update:
     )
     sorted(dm.partitions.keys())
 
-    read_table(dm.uuid, store_factory, table="table")
+    read_table(dm.uuid, store_url, table="table")
 
 
 As can be seen in the example above, the resultant dataframe from :func:`~kartothek.io.eager.read_table`
@@ -317,12 +313,13 @@ When garbage collection is called, the files are removed.
 .. ipython:: python
 
     from kartothek.io.eager import garbage_collect_dataset
+    from storefact import get_store_from_url
 
-    store = store_factory()
+    store = get_store_from_url(store_url)
 
     files_before = set(store.keys())
 
-    garbage_collect_dataset(store=store_factory, dataset_uuid=dm.uuid)
+    garbage_collect_dataset(store=store, dataset_uuid=dm.uuid)
 
     files_before.difference(store.keys())  # Show files removed
 

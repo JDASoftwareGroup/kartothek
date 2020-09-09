@@ -7,7 +7,7 @@ import dask.bag as db
 from kartothek.core import naming
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
-from kartothek.core.utils import _check_callable
+from kartothek.core.utils import lazy_store
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.dask._utils import (
     _cast_categorical_to_index_cat,
@@ -203,7 +203,7 @@ def store_bag_as_dataset(
     -------
     A dask.bag.Item dataset object.
     """
-    _check_callable(store)
+    store = lazy_store(store)
     if dataset_uuid is None:
         dataset_uuid = gen_uuid()
 

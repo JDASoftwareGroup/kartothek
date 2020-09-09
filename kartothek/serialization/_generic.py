@@ -12,11 +12,12 @@ Available constants
 **LiteralValue** - A type indicating the value of a predicate literal
 """
 
-from typing import Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Dict, Iterable, List, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_list_like
+from simplekv import KeyValueStore
 
 from kartothek.serialization._util import _check_contains_null
 
@@ -49,15 +50,15 @@ class DataFrameSerializer:
     @classmethod
     def restore_dataframe(
         cls,
-        store,
-        key,
-        filter_query=None,
-        columns=None,
-        predicate_pushdown_to_io=True,
-        categories=None,
-        predicates=None,
-        date_as_object=False,
-    ):
+        store: KeyValueStore,
+        key: str,
+        filter_query: Optional[str] = None,
+        columns: Optional[Iterable[str]] = None,
+        predicate_pushdown_to_io: bool = True,
+        categories: Optional[Iterable[str]] = None,
+        predicates: Optional[PredicatesType] = None,
+        date_as_object: bool = False,
+    ) -> pd.DataFrame:
         """
         Load a DataFrame from the specified store. The key is also used to
         detect the used format.
@@ -126,7 +127,7 @@ class DataFrameSerializer:
             "The specified file format for '{}' is not supported".format(key)
         )
 
-    def store(self, store, key_prefix, df):
+    def store(self, store: KeyValueStore, key_prefix: str, df: pd.DataFrame) -> str:
         """
         Persist a DataFrame to the specified store.
 

@@ -31,6 +31,7 @@ from kartothek.io_components.write import (
 
 
 @default_docs
+@normalize_args
 def read_dataset_as_metapartitions__iterator(
     dataset_uuid=None,
     store=None,
@@ -107,6 +108,7 @@ def read_dataset_as_metapartitions__iterator(
 
 
 @default_docs
+@normalize_args
 def read_dataset_as_dataframes__iterator(
     dataset_uuid=None,
     store=None,

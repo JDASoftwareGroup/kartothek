@@ -123,7 +123,7 @@ def _test_condition_types(conditions, datasets):
                 meta = get_dataset_schema(dataset)
                 if col not in meta.names:
                     continue
-                pa_type = meta.field_by_name(col).type
+                pa_type = meta.field(col).type
 
                 if pa.types.is_null(pa_type):
                     # ignore all-NULL columns

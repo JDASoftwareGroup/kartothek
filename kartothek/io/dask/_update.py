@@ -1,13 +1,13 @@
 from functools import partial
-from typing import Callable, List, Optional
+from typing import List, Optional
 
 import dask.array as da
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 from dask.delayed import Delayed
-from simplekv import KeyValueStore
 
+from kartothek.core.typing import STORE_FACTORY_TYPE
 from kartothek.io.dask.compression import pack_payload, unpack_payload_pandas
 from kartothek.io_components.metapartition import (
     MetaPartition,
@@ -17,9 +17,6 @@ from kartothek.io_components.utils import sort_values_categorical
 from kartothek.serialization import DataFrameSerializer
 
 from ._utils import map_delayed
-
-StoreFactoryType = Callable[[], KeyValueStore]
-
 
 _KTK_HASH_BUCKET = "__KTK_HASH_BUCKET"
 
@@ -47,7 +44,7 @@ def update_dask_partitions_shuffle(
     secondary_indices: List[str],
     metadata_version: int,
     partition_on: List[str],
-    store_factory: StoreFactoryType,
+    store_factory: STORE_FACTORY_TYPE,
     df_serializer: DataFrameSerializer,
     dataset_uuid: str,
     num_buckets: int,
@@ -142,7 +139,7 @@ def update_dask_partitions_one_to_one(
     secondary_indices: List[str],
     metadata_version: int,
     partition_on: List[str],
-    store_factory: StoreFactoryType,
+    store_factory: STORE_FACTORY_TYPE,
     df_serializer: DataFrameSerializer,
     dataset_uuid: str,
     sort_partitions_by: Optional[str],
@@ -189,7 +186,7 @@ def _store_partition(
     table: str,
     dataset_uuid: str,
     partition_on: Optional[List[str]],
-    store_factory: StoreFactoryType,
+    store_factory: STORE_FACTORY_TYPE,
     df_serializer: DataFrameSerializer,
     metadata_version: int,
     unpacked_meta: pd.DataFrame,

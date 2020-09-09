@@ -1,7 +1,11 @@
+from functools import partial
+from typing import Callable
+
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
+from storefact import get_store_from_url
 
 from kartothek.io_components.utils import (
     align_categories,
@@ -85,6 +89,29 @@ def test_normalize_args(test_input, expected):
         test_arg1, test_partition_on, delete_scope=test_delete_scope
     )
     assert (expected[0], expected[1], []) == func(test_arg1, test_partition_on)
+
+
+@pytest.mark.parametrize("_type", ["callable", "url", "simplekv"])
+def test_normalize_store(tmpdir, _type):
+
+    store_url = f"hfs://{tmpdir}"
+    store = get_store_from_url(store_url)
+    store.put("test", b"")
+
+    @normalize_args
+    def func(store):
+        assert isinstance(store, Callable)
+        return store().keys()
+
+    if _type == "callable":
+        store_test = partial(get_store_from_url, store_url)
+    elif _type == "url":
+        store_test = store_url
+    elif _type == "simplekv":
+        store_test = store
+    else:
+        raise AssertionError(f"unknown parametrization {_type}")
+    assert func(store_test)
 
 
 @pytest.mark.parametrize(

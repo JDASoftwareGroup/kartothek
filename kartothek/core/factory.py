@@ -1,37 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import copy
-from typing import TYPE_CHECKING, Callable, Optional, TypeVar, cast
+from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
 
 from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
-from kartothek.core.utils import _check_callable
+from kartothek.core.typing import STORE_TYPE
+from kartothek.core.utils import lazy_store
 
 if TYPE_CHECKING:
     from simplekv import KeyValueStore
-
-
-def _ensure_factory(
-    dataset_uuid: Optional[str],
-    store: Optional[Callable[[], "KeyValueStore"]],
-    factory: Optional["DatasetFactory"],
-    load_dataset_metadata: bool,
-    load_schema: bool = True,
-) -> "DatasetFactory":
-    if store is None and dataset_uuid is None and factory is not None:
-        return factory
-    elif store is not None and dataset_uuid is not None and factory is None:
-        return DatasetFactory(
-            dataset_uuid=dataset_uuid,
-            store_factory=store,
-            load_dataset_metadata=load_dataset_metadata,
-            load_schema=load_schema,
-        )
-
-    else:
-        raise ValueError(
-            "Need to supply either a `factory` or `dataset_uuid` and `store`"
-        )
-
 
 T = TypeVar("T", bound="DatasetFactory")
 
@@ -46,7 +23,7 @@ class DatasetFactory(DatasetMetadataBase):
     def __init__(
         self,
         dataset_uuid: str,
-        store_factory: Callable[[], "KeyValueStore"],
+        store_factory: STORE_TYPE,
         load_schema: bool = True,
         load_all_indices: bool = False,
         load_dataset_metadata: bool = True,
@@ -86,8 +63,7 @@ class DatasetFactory(DatasetMetadataBase):
         self._cache_metadata: Optional[DatasetMetadata] = None
         self._cache_store = None
 
-        _check_callable(store_factory)
-        self.store_factory = store_factory
+        self.store_factory = lazy_store(store_factory)
         self.dataset_uuid = dataset_uuid
         self.load_schema = load_schema
         self._ds_callable = None
@@ -171,9 +147,7 @@ class DatasetFactory(DatasetMetadataBase):
         return self
 
     def load_all_indices(
-        self: T,
-        store: Optional["KeyValueStore"] = None,
-        load_partition_indices: bool = True,
+        self: T, store: Any = None, load_partition_indices: bool = True,
     ) -> T:
         self._cache_metadata = self.dataset_metadata.load_all_indices(
             self.store, load_partition_indices=load_partition_indices
@@ -183,3 +157,27 @@ class DatasetFactory(DatasetMetadataBase):
     def load_partition_indices(self: T) -> T:
         self._cache_metadata = self.dataset_metadata.load_partition_indices()
         return self
+
+
+def _ensure_factory(
+    dataset_uuid: Optional[str],
+    store: STORE_TYPE,
+    factory: Optional[DatasetFactory],
+    load_dataset_metadata: bool,
+    load_schema: bool = True,
+) -> DatasetFactory:
+
+    if store is None and dataset_uuid is None and factory is not None:
+        return factory
+    elif store is not None and dataset_uuid is not None and factory is None:
+        return DatasetFactory(
+            dataset_uuid=dataset_uuid,
+            store_factory=lazy_store(store),
+            load_dataset_metadata=load_dataset_metadata,
+            load_schema=load_schema,
+        )
+
+    else:
+        raise ValueError(
+            "Need to supply either a `factory` or `dataset_uuid` and `store`"
+        )

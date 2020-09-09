@@ -42,7 +42,7 @@ def query(ctx):
         cols = get_dataset_columns(ds)
         all_columns |= cols
         for col in cols:
-            all_types[col] = ds.table_meta[SINGLE_TABLE].field_by_name(col).type
+            all_types[col] = ds.table_meta[SINGLE_TABLE].field(col).type
 
     ipython = _get_ipython()
 

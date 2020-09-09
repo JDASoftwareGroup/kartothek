@@ -47,6 +47,7 @@ from kartothek.io_components.write import raise_if_dataset_exists
 
 
 @default_docs
+@normalize_args
 def delete_dataset(dataset_uuid=None, store=None, factory=None):
     """
     Delete the entire dataset from the store.
@@ -81,7 +82,6 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
 
 
 @default_docs
-@normalize_args
 def read_dataset_as_dataframes(
     dataset_uuid: Optional[str] = None,
     store=None,
@@ -148,7 +148,6 @@ def read_dataset_as_dataframes(
 
 
 @default_docs
-@normalize_args
 def read_dataset_as_metapartitions(
     dataset_uuid=None,
     store=None,
@@ -750,6 +749,7 @@ def update_dataset_from_dataframes(
 
 
 @default_docs
+@normalize_args
 def build_dataset_indices(store, dataset_uuid, columns, factory=None):
     """
     Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
@@ -790,6 +790,7 @@ def build_dataset_indices(store, dataset_uuid, columns, factory=None):
 
 
 @default_docs
+@normalize_args
 def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
     """
     Remove auxiliary files that are no longer tracked by the dataset.

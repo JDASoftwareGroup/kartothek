@@ -1036,7 +1036,7 @@ def test_overwrite_rollback_ktk_cube(driver, function_store):
     assert isinstance(ds_enrich.indices["p"], PartitionIndex)
     assert set(ds_enrich.indices["i2"].index_dct.keys()) == {20, 21, 22, 23}
 
-    assert ds_source.table_meta[SINGLE_TABLE].field_by_name("v1").type == pa.int64()
+    assert ds_source.table_meta[SINGLE_TABLE].field("v1").type == pa.int64()
 
 
 def test_overwrite_rollback_ktk(driver, function_store):
@@ -1107,8 +1107,8 @@ def test_overwrite_rollback_ktk(driver, function_store):
 
     assert len(ds_source.partitions) == 1
 
-    assert ds_source.table_meta["ktk_source"].field_by_name("v1").type == pa.int64()
-    assert ds_source.table_meta["ktk_enrich"].field_by_name("v1").type == pa.int64()
+    assert ds_source.table_meta["ktk_source"].field("v1").type == pa.int64()
+    assert ds_source.table_meta["ktk_enrich"].field("v1").type == pa.int64()
 
 
 @pytest.mark.parametrize("none_first", [False, True])

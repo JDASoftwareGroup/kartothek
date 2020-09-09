@@ -72,7 +72,7 @@ def _info_dataset(ktk_cube_dataset_id, ds, cube):
 def _collist_string(cols, schema):
     if cols:
         return "\n" + "\n".join(
-            "  - {c}: {t}".format(c=c, t=schema.field_by_name(c).type) for c in cols
+            "  - {c}: {t}".format(c=c, t=schema.field(c).type) for c in cols
         )
     else:
         return ""
@@ -85,8 +85,6 @@ def _collist_string_index(cube, datasets):
             ds = datasets[ktk_cube_dataset_id]
             schema = ds.table_meta[SINGLE_TABLE]
             if col in schema.names:
-                lines.append(
-                    "  - {c}: {t}".format(c=col, t=schema.field_by_name(col).type)
-                )
+                lines.append("  - {c}: {t}".format(c=col, t=schema.field(col).type))
                 break
     return "\n" + "\n".join(lines)

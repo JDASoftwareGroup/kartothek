@@ -2,9 +2,7 @@
 Tooling to quickly discover datasets in a given blob store.
 """
 import logging
-from typing import Callable, Dict, Iterable, Optional, Set, Tuple, Union
-
-from simplekv import KeyValueStore
+from typing import Dict, Iterable, Optional, Set, Tuple, Union
 
 from kartothek.api.consistency import check_datasets
 from kartothek.core.cube.constants import (
@@ -20,6 +18,8 @@ from kartothek.core.naming import (
     METADATA_FORMAT_JSON,
     METADATA_FORMAT_MSGPACK,
 )
+from kartothek.core.typing import STORE_TYPE
+from kartothek.core.utils import ensure_store
 from kartothek.utils.converters import converter_str_set_optional
 
 __all__ = (
@@ -33,9 +33,7 @@ __all__ = (
 _logger = logging.getLogger(__name__)
 
 
-def _discover_dataset_meta_files(
-    prefix: str, store: Union[Callable[[], KeyValueStore], KeyValueStore]
-) -> Set[str]:
+def _discover_dataset_meta_files(prefix: str, store: STORE_TYPE) -> Set[str]:
     """
     Get meta file names for all datasets.
 
@@ -51,8 +49,8 @@ def _discover_dataset_meta_files(
     names: Set[str]
         The meta file names
     """
-    if callable(store):
-        store = store()
+
+    store = ensure_store(store)
 
     names = {
         name[: -len(METADATA_BASE_SUFFIX + suffix)]
@@ -63,9 +61,7 @@ def _discover_dataset_meta_files(
     return names
 
 
-def discover_ktk_cube_dataset_ids(
-    uuid_prefix: str, store: Union[Callable[[], KeyValueStore], KeyValueStore]
-) -> Set[str]:
+def discover_ktk_cube_dataset_ids(uuid_prefix: str, store: STORE_TYPE) -> Set[str]:
     """
     Get ktk_cube dataset ids for all datasets.
 
@@ -89,7 +85,7 @@ def discover_ktk_cube_dataset_ids(
 
 def discover_datasets_unchecked(
     uuid_prefix: str,
-    store: Union[Callable[[], KeyValueStore], KeyValueStore],
+    store: STORE_TYPE,
     filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
 ) -> Dict[str, DatasetMetadata]:
     """
@@ -113,8 +109,8 @@ def discover_datasets_unchecked(
     datasets: Dict[str, DatasetMetadata]
         All discovered datasets. Empty Dict if no dataset is found
     """
-    if callable(store):
-        store = store()
+    store = ensure_store(store)
+
     filter_ktk_cube_dataset_ids = converter_str_set_optional(
         filter_ktk_cube_dataset_ids
     )
@@ -144,7 +140,7 @@ def discover_datasets_unchecked(
 
 def discover_datasets(
     cube: Cube,
-    store: Union[Callable[[], KeyValueStore], KeyValueStore],
+    store: STORE_TYPE,
     filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
 ) -> Dict[str, DatasetMetadata]:
     """
@@ -194,7 +190,7 @@ def discover_datasets(
 
 def discover_cube(
     uuid_prefix: str,
-    store: Union[Callable[[], KeyValueStore]],
+    store: STORE_TYPE,
     filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
 ) -> Tuple[Cube, Dict[str, DatasetMetadata]]:
     """

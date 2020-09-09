@@ -11,7 +11,7 @@ from kartothek.core import naming
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
-from kartothek.core.utils import _check_callable
+from kartothek.core.utils import lazy_store
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.delete import (
     delete_common_metadata,
@@ -63,6 +63,7 @@ def _delete_tl_metadata(dataset_factory, *args):
 
 
 @default_docs
+@normalize_args
 def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
     """
     Parameters
@@ -94,6 +95,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
 
 
 @default_docs
+@normalize_args
 def garbage_collect_dataset__delayed(
     dataset_uuid=None, store=None, chunk_size=100, factory=None
 ):
@@ -143,6 +145,7 @@ def _load_and_merge_mps(mp_list, store, label_merger, metadata_merger, merge_tas
 
 
 @default_docs
+@normalize_args
 def merge_datasets_as_delayed(
     left_dataset_uuid,
     right_dataset_uuid,
@@ -210,7 +213,7 @@ def merge_datasets_as_delayed(
             ... ]
 
     """
-    _check_callable(store)
+    store = lazy_store(store)
 
     mps = align_datasets(
         left_dataset_uuid=left_dataset_uuid,
@@ -243,6 +246,7 @@ def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
 
 
 @default_docs
+@normalize_args
 def read_dataset_as_delayed_metapartitions(
     dataset_uuid=None,
     store=None,
@@ -371,6 +375,7 @@ def read_dataset_as_delayed(
 
 
 @default_docs
+@normalize_args
 def read_table_as_delayed(
     dataset_uuid=None,
     store=None,
@@ -452,6 +457,7 @@ def update_dataset_from_delayed(
     ----------
     """
     partition_on = normalize_arg("partition_on", partition_on)
+    store = normalize_arg("store", store)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
     delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
 
@@ -513,7 +519,7 @@ def store_delayed_as_dataset(
     -------
     A dask.delayed dataset object.
     """
-    _check_callable(store)
+    store = lazy_store(store)
     if dataset_uuid is None:
         dataset_uuid = gen_uuid()
 

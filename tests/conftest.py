@@ -23,13 +23,13 @@ from kartothek.core.testing import (  # noqa: E402
     get_dataframe_alltypes,
     get_dataframe_not_nested,
 )
-from kartothek.io.testing.utils import no_pickle_store_from_url  # noqa: E402
 from kartothek.io_components.metapartition import (  # noqa: E402
     SINGLE_TABLE,
     MetaPartition,
     gen_uuid,
     parse_input_to_metapartition,
 )
+from kartothek.core.utils import lazy_store  # noqa: E402
 from kartothek.io_components.write import store_dataset_from_partitions  # noqa: E402
 from kartothek.serialization import ParquetSerializer  # noqa: E402
 
@@ -71,21 +71,21 @@ def store_session_factory(tmpdir_factory):
     path = tmpdir_factory.mktemp("fsstore_test")
     path = path.realpath()
     url = "hfs://{}".format(path)
-    return partial(no_pickle_store_from_url, url)
+    return lazy_store(url)
 
 
 @pytest.fixture
 def store_factory(tmpdir):
     path = tmpdir.join("store").strpath
     url = "hfs://{}".format(path)
-    return partial(no_pickle_store_from_url, url)
+    return lazy_store(url)
 
 
 @pytest.fixture
 def store_factory2(tmpdir):
     path = tmpdir.join("store2").strpath
     url = "hfs://{}".format(path)
-    return partial(no_pickle_store_from_url, url)
+    return lazy_store(url)
 
 
 @pytest.fixture(scope="session")
@@ -103,15 +103,6 @@ def store2(store_factory2):
     return store_factory2()
 
 
-class NoPickle:
-    def __getstate__(self):
-        raise RuntimeError("do NOT pickle this object!")
-
-
-def mark_nopickle(obj):
-    setattr(obj, "_nopickle", NoPickle())
-
-
 def _check_and_delete(key, store, delete_orig):
     if key not in store.keys():
         raise KeyError(key)
@@ -126,7 +117,6 @@ def _get_store(path):
     url = "hfs://{}".format(path)
     store = storefact.get_store_from_url(url)
     store.delete = partial(_check_and_delete, store=store, delete_orig=store.delete)
-    mark_nopickle(store)
     return store
 
 

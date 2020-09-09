@@ -1,9 +1,11 @@
+from functools import partial
+from typing import cast
+
+from simplekv import KeyValueStore
+from storefact import get_store_from_url
+
 from kartothek.core.naming import MAX_METADATA_VERSION, MIN_METADATA_VERSION
-
-
-def _check_callable(store_factory, obj_type="store"):
-    if not callable(store_factory):
-        raise TypeError("{} must be a factory function".format(obj_type))
+from kartothek.core.typing import STORE_FACTORY_TYPE, STORE_TYPE
 
 
 def _verify_metadata_version(metadata_version):
@@ -46,3 +48,22 @@ def ensure_string_type(obj):
         return obj.decode()
     else:
         return str(obj)
+
+
+def ensure_store(store: STORE_TYPE) -> KeyValueStore:
+    return lazy_store(store)()
+
+
+def lazy_store(store: STORE_TYPE) -> STORE_FACTORY_TYPE:
+    if callable(store):
+        return cast(STORE_FACTORY_TYPE, store)
+    elif isinstance(store, KeyValueStore):
+        return lambda: store
+    elif isinstance(store, str):
+        ret_val = partial(get_store_from_url, store)
+        ret_val = cast(STORE_FACTORY_TYPE, ret_val)  # type: ignore
+        return ret_val
+    else:
+        raise TypeError(
+            f"Provided incompatible store type. Got {type(store)} but expected {STORE_TYPE}."
+        )

@@ -2,8 +2,6 @@ import string
 
 import numpy as np
 import pandas as pd
-import storefact
-from simplekv.decorator import StoreDecorator
 
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io_components.metapartition import SINGLE_TABLE
@@ -37,13 +35,3 @@ def create_dataset(dataset_uuid, store_factory, metadata_version):
         dataset_uuid=dataset_uuid,
         metadata_version=metadata_version,
     )
-
-
-class NoPickleDecorator(StoreDecorator):
-    def __getstate__(self):
-        raise RuntimeError("do NOT pickle this object!")
-
-
-def no_pickle_store_from_url(url):
-    store = storefact.get_store_from_url(url)
-    return NoPickleDecorator(store)

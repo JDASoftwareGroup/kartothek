@@ -7,7 +7,6 @@ from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 import pandas as pd
 import pyarrow as pa
 import simplejson
-from simplekv import KeyValueStore
 
 import kartothek.core._time
 import kartothek.core._zmsgpack as msgpack
@@ -24,8 +23,9 @@ from kartothek.core.index import (
 )
 from kartothek.core.naming import EXTERNAL_INDEX_SUFFIX, PARQUET_FILE_SUFFIX
 from kartothek.core.partition import Partition
+from kartothek.core.typing import STORE_TYPE
 from kartothek.core.urlencode import decode_key, quote_indices
-from kartothek.core.utils import verify_metadata_version
+from kartothek.core.utils import ensure_store, verify_metadata_version
 from kartothek.serialization import PredicatesType, columns_in_predicates
 
 _logger = logging.getLogger(__name__)
@@ -130,7 +130,7 @@ class DatasetMetadataBase(CopyMixin):
         }
 
     @staticmethod
-    def exists(uuid: str, store: KeyValueStore) -> bool:
+    def exists(uuid: str, store: STORE_TYPE) -> bool:
         """
         Check if  a dataset exists in a storage
 
@@ -146,6 +146,7 @@ class DatasetMetadataBase(CopyMixin):
         exists: bool
             Whether a metadata file could be found.
         """
+        store = ensure_store(store)
         key = naming.metadata_key_from_uuid(uuid)
 
         if key in store:
@@ -155,7 +156,7 @@ class DatasetMetadataBase(CopyMixin):
         return key in store
 
     @staticmethod
-    def storage_keys(uuid: str, store: KeyValueStore) -> List[str]:
+    def storage_keys(uuid: str, store: STORE_TYPE) -> List[str]:
         """
         Retrieve all keys that belong to the given dataset.
 
@@ -171,6 +172,7 @@ class DatasetMetadataBase(CopyMixin):
         keys:
             Sorted list of storage keys.
         """
+        store = ensure_store(store)
         start_markers = ["{}.".format(uuid), "{}/".format(uuid)]
         return list(
             sorted(
@@ -216,7 +218,7 @@ class DatasetMetadataBase(CopyMixin):
     def to_msgpack(self) -> bytes:
         return msgpack.packb(self.to_dict())
 
-    def load_index(self: T, column: str, store: KeyValueStore) -> T:
+    def load_index(self: T, column: str, store: STORE_TYPE) -> T:
         """
         Load an index into memory.
 
@@ -255,7 +257,7 @@ class DatasetMetadataBase(CopyMixin):
         return self.copy(indices=indices)
 
     def load_all_indices(
-        self: T, store: KeyValueStore, load_partition_indices: bool = True
+        self: T, store: STORE_TYPE, load_partition_indices: bool = True
     ) -> T:
         """
         Load all registered indices into memory.
@@ -495,7 +497,7 @@ class DatasetMetadata(DatasetMetadataBase):
 
     @staticmethod
     def load_from_buffer(
-        buf, store: KeyValueStore, format: str = "json"
+        buf, store: STORE_TYPE, format: str = "json"
     ) -> "DatasetMetadata":
         """
         Load a dataset from a (string) buffer.
@@ -521,7 +523,7 @@ class DatasetMetadata(DatasetMetadataBase):
     @staticmethod
     def load_from_store(
         uuid: str,
-        store: KeyValueStore,
+        store: STORE_TYPE,
         load_schema: bool = True,
         load_all_indices: bool = False,
     ) -> "DatasetMetadata":
@@ -545,6 +547,7 @@ class DatasetMetadata(DatasetMetadataBase):
             Parsed metadata.
         """
         key1 = naming.metadata_key_from_uuid(uuid)
+        store = ensure_store(store)
         try:
             value = store.get(key1)
             metadata = load_json(value)
@@ -564,7 +567,7 @@ class DatasetMetadata(DatasetMetadataBase):
         return ds
 
     @staticmethod
-    def load_from_dict(dct: Dict, store: KeyValueStore, load_schema: bool = True):
+    def load_from_dict(dct: Dict, store: STORE_TYPE, load_schema: bool = True):
         """
         Load dataset metadata from a dictionary and resolve any external includes.
 

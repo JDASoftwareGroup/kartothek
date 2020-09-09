@@ -6,15 +6,18 @@ This module contains functionality for persisting/serialising DataFrames.
 
 
 import datetime
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
+from simplekv import KeyValueStore
 
 from ._generic import (
     DataFrameSerializer,
+    PredicatesType,
     check_predicates,
     filter_df,
     filter_df_from_predicates,
@@ -84,14 +87,14 @@ class ParquetSerializer(DataFrameSerializer):
 
     @staticmethod
     def restore_dataframe(
-        store,
-        key,
-        filter_query=None,
-        columns=None,
-        predicate_pushdown_to_io=True,
-        categories=None,
-        predicates=None,
-        date_as_object=False,
+        store: KeyValueStore,
+        key: str,
+        filter_query: Optional[str] = None,
+        columns: Optional[Iterable[str]] = None,
+        predicate_pushdown_to_io: bool = True,
+        categories: Optional[Iterable[str]] = None,
+        predicates: Optional[PredicatesType] = None,
+        date_as_object: bool = False,
     ):
         check_predicates(predicates)
         # If we want to do columnar access we can benefit from partial reads
