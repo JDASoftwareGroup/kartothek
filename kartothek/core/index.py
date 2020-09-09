@@ -9,6 +9,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from simplekv import KeyValueStore
+from toolz.itertoolz import partition_all
 
 import kartothek.core._time
 from kartothek.core import naming
@@ -688,9 +689,27 @@ class ExplicitSecondaryIndex(IndexBase):
                 timestamp=quote(self.creation_time.isoformat()),
             )
 
-        table = _index_dct_to_table(self.index_dct, self.column, self.dtype)
+        # The arrow representation of index_dct requires a large amount of memory because strings are duplicated and
+        # flattened into the buffer. To avoid a high peak memory usage, split the index_dct into chunks and only convert
+        # one chunk a time to arrow.
+        parts_iter = partition_all(10_000, self.index_dct.items())
+
+        # Get first table explicit because its schema is required for ParquetWriter.
+        try:
+            table = _index_dct_to_table(dict(next(parts_iter)), self.column, self.dtype)
+        except StopIteration:
+            # index_dct was empty, just pass it entirely
+            table = _index_dct_to_table(self.index_dct, self.column, self.dtype)
+
         buf = pa.BufferOutputStream()
-        pq.write_table(table, buf)
+        with pq.ParquetWriter(buf, schema=table.schema) as writer:
+            writer.write_table(table)
+            del table
+
+            for part in parts_iter:
+                writer.write_table(
+                    _index_dct_to_table(dict(part), self.column, self.dtype)
+                )
 
         store.put(storage_key, buf.getvalue().to_pybytes())
         return storage_key
@@ -916,7 +935,7 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
     else:
         labeled_array = pa.array(keys, type=dtype)
 
-    partition_array = pa.array(list(index_dct.values()))
+    partition_array = pa.array(list(index_dct.values()), type=pa.list_(pa.string()))
 
     return pa.Table.from_arrays(
         [labeled_array, partition_array], names=[column, _PARTITION_COLUMN_NAME]
