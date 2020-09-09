@@ -689,7 +689,7 @@ class ExplicitSecondaryIndex(IndexBase):
                 timestamp=quote(self.creation_time.isoformat()),
             )
 
-        # The arrow representation of index_dct requires a large amount of memory because strings are duplidated and
+        # The arrow representation of index_dct requires a large amount of memory because strings are duplicated and
         # flattened into the buffer. To avoid a high peak memory usage, split the index_dct into chunks and only convert
         # one chunk a time to arrow.
         parts_iter = partition_all(10_000, self.index_dct.items())
