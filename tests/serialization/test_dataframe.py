@@ -531,6 +531,81 @@ def test_predicate_pushdown_null_col(
 
 
 @pytest.mark.parametrize(
+    "df, op, value, expected_index",
+    [
+        (
+            pd.DataFrame({"u": pd.Series([None, "x", np.nan], dtype=object)}),
+            "==",
+            None,
+            [0, 2],
+        ),
+        (
+            pd.DataFrame({"u": pd.Series([None, "x", np.nan], dtype=object)}),
+            "in",
+            [None],
+            [0, 2],
+        ),
+        (
+            pd.DataFrame({"u": pd.Series([None, "x", np.nan], dtype=object)}),
+            "!=",
+            None,
+            [1],
+        ),
+        (
+            pd.DataFrame({"u": pd.Series([None, "x", np.nan], dtype=object)}),
+            "in",
+            [None, "x"],
+            [0, 1, 2],
+        ),
+        (
+            pd.DataFrame({"f": pd.Series([np.nan, 1.0, np.nan], dtype=float)}),
+            "==",
+            np.nan,
+            [0, 2],
+        ),
+        (
+            pd.DataFrame({"f": pd.Series([np.nan, 1.0, np.nan], dtype=float)}),
+            "in",
+            [np.nan],
+            [0, 2],
+        ),
+        (
+            pd.DataFrame({"f": pd.Series([np.nan, 1.0, np.nan], dtype=float)}),
+            "!=",
+            np.nan,
+            [1],
+        ),
+        (
+            pd.DataFrame({"f": pd.Series([np.nan, 1.0, np.nan], dtype=float)}),
+            "in",
+            [np.nan, 1.0],
+            [0, 1, 2],
+        ),
+    ],
+)
+@predicate_serialisers
+@pytest.mark.parametrize("predicate_pushdown_to_io", [False])
+def test_predicate_parsing_null_values(
+    store, df, op, value, expected_index, predicate_pushdown_to_io, serialiser
+):
+    key = serialiser.store(store, "prefix", df)
+
+    expected = df.iloc[expected_index].copy()
+    predicates = [[(df.columns[0], op, value)]]
+    result = serialiser.restore_dataframe(
+        store,
+        key,
+        predicate_pushdown_to_io=predicate_pushdown_to_io,
+        predicates=predicates,
+    )
+    pdt.assert_frame_equal(
+        result.reset_index(drop=True),
+        expected.reset_index(drop=True),
+        check_dtype=serialiser.type_stable,
+    )
+
+
+@pytest.mark.parametrize(
     "df,value",
     [
         (pd.DataFrame({"nan": pd.Series([np.nan, -1.0, 1.0], dtype=float)}), 0.0),
