@@ -456,9 +456,15 @@ def filter_array_like(
 
     with np.errstate(invalid="ignore"):
         if op == "==":
-            np.logical_and(array_like == value, mask, out=out)
+            if pd.isnull(value):
+                np.logical_and(pd.isnull(array_like), mask, out=out)
+            else:
+                np.logical_and(array_like == value, mask, out=out)
         elif op == "!=":
-            np.logical_and(array_like != value, mask, out=out)
+            if pd.isnull(value):
+                np.logical_and(~pd.isnull(array_like), mask, out=out)
+            else:
+                np.logical_and(array_like != value, mask, out=out)
         elif op == "<=":
             np.logical_and(array_like <= value, mask, out=out)
         elif op == ">=":
@@ -469,13 +475,25 @@ def filter_array_like(
             np.logical_and(array_like > value, mask, out=out)
         elif op == "in":
             value = np.asarray(value)
-            np.logical_and(
-                np.isin(array_like, value)
-                if len(value) > 0
-                else np.zeros(len(array_like), dtype=bool),
-                mask,
-                out=out,
-            )
+            if any(pd.isnull(value)):
+                np.logical_and(
+                    pd.isnull(array_like)
+                    | (
+                        np.isin(array_like, value)
+                        if len(value) > 0
+                        else np.zeros(len(array_like), dype=bool)
+                    ),
+                    mask,
+                    out=out,
+                )
+            else:
+                np.logical_and(
+                    np.isin(array_like, value)
+                    if len(value) > 0
+                    else np.zeros(len(array_like), dtype=bool),
+                    mask,
+                    out=out,
+                )
         else:
             raise NotImplementedError("op not supported")
 
