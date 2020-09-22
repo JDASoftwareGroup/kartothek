@@ -234,7 +234,7 @@ def update_dataset_from_dataframes__iter(
 
     if sort_partitions_by:  # Define function which sorts each partition by column
         sort_partitions_by_fn = partial(
-            sort_values_categorical, column=sort_partitions_by
+            sort_values_categorical, columns=sort_partitions_by
         )
 
     new_partitions = []

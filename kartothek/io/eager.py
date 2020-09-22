@@ -725,7 +725,7 @@ def update_dataset_from_dataframes(
     )
 
     if sort_partitions_by:
-        mp = mp.apply(partial(sort_values_categorical, column=sort_partitions_by))
+        mp = mp.apply(partial(sort_values_categorical, columns=sort_partitions_by))
 
     if partition_on:
         mp = mp.partition_on(partition_on)

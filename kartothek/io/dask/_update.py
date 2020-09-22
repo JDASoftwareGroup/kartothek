@@ -161,7 +161,9 @@ def update_dask_partitions_one_to_one(
                 MetaPartition.apply,
                 # FIXME: Type checks collide with partial. We should rename
                 # apply func kwarg
-                **{"func": partial(sort_values_categorical, column=sort_partitions_by)},
+                **{
+                    "func": partial(sort_values_categorical, columns=sort_partitions_by)
+                },
             ),
             mps,
         )
@@ -202,7 +204,7 @@ def _store_partition(
     # delete reference to enable release after partition_on; before index build
     del df
     if sort_partitions_by:
-        mps = mps.apply(partial(sort_values_categorical, column=sort_partitions_by))
+        mps = mps.apply(partial(sort_values_categorical, columns=sort_partitions_by))
     if partition_on:
         mps = mps.partition_on(partition_on)
     if secondary_indices:

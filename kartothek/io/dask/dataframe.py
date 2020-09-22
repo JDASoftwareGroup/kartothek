@@ -27,6 +27,10 @@ from kartothek.io_components.utils import (
     normalize_args,
     validate_partition_keys,
 )
+from kartothek.io_components.write import (
+    raise_if_dataset_exists,
+    store_dataset_from_partitions,
+)
 from kartothek.serialization import PredicatesType
 
 from ._update import update_dask_partitions_one_to_one, update_dask_partitions_shuffle
@@ -138,6 +142,175 @@ def _get_dask_meta_for_dataset(
     if categoricals_from_index:
         meta = meta.astype(categoricals_from_index[table])
     return meta
+
+
+@default_docs
+def store_dataset_from_ddf(
+    ddf,
+    store=None,
+    dataset_uuid=None,
+    table=SINGLE_TABLE,
+    secondary_indices=None,
+    shuffle=False,
+    repartition_ratio=None,
+    num_buckets=1,
+    sort_partitions_by=None,
+    delete_scope=None,
+    metadata=None,
+    df_serializer=None,
+    metadata_merger=None,
+    default_metadata_version=DEFAULT_METADATA_VERSION,
+    partition_on=None,
+    bucket_by=None,
+    overwrite=False,
+):
+    """
+    Store a dataset from a dask.dataframe.
+
+
+    .. admonition:: Behavior without ``shuffle==False``
+
+        In the case without ``partition_on`` every dask partition is mapped to a single kartothek partition
+
+        In the case with ``partition_on`` every dask partition is mapped to N kartothek partitions, where N
+        depends on the content of the respective partition, such that every resulting kartothek partition has
+        only a single value in the respective ``partition_on`` columns.
+
+    .. admonition:: Behavior with ``shuffle==True``
+
+        ``partition_on`` is mandatory
+
+        Perform a data shuffle to ensure that every primary key will have at most ``num_bucket``.
+
+        .. note::
+            The number of allowed buckets will have an impact on the required resources and runtime.
+            Using a larger number of allowed buckets will usually reduce resource consumption and in some
+            cases also improves runtime performance.
+
+        :Example:
+
+            >>> partition_on="primary_key"
+            >>> num_buckets=2  # doctest: +SKIP
+            primary_key=1/bucket1.parquet
+            primary_key=1/bucket2.parquet
+
+    .. note:: This can only be used for datasets with a single table!
+
+    See also, :ref:`partitioning_dask`.
+
+    Parameters
+    ----------
+    ddf: Union[dask.dataframe.DataFrame, None]
+        The dask.Dataframe to be used to calculate the new partitions from. If this parameter is `None`, the update pipeline
+        will only delete partitions without creating new ones.
+    shuffle: bool
+        If `True` and `partition_on` is requested, shuffle the data to reduce number of output partitions.
+
+        See also, :ref:`shuffling`.
+
+        .. warning::
+
+            Dask uses a heuristic to determine how data is shuffled and there are two options, `partd` for local disk shuffling and `tasks` for distributed shuffling using a task graph. If there is no :class:`distributed.Client` in the context and the option is not set explicitly, dask will choose `partd` which may cause data loss when the graph is executed on a distributed cluster.
+
+            Therefore, we recommend to specify the dask shuffle method explicitly, e.g. by using a context manager.
+
+            .. code::
+
+                with dask.config.set(shuffle='tasks'):
+                    graph = update_dataset_from_ddf(...)
+                graph.compute()
+
+    repartition_ratio: Optional[Union[int, float]]
+        If provided, repartition the dataframe before calculation starts to ``ceil(ddf.npartitions / repartition_ratio)``
+    num_buckets: int
+        If provided, the output partitioning will have ``num_buckets`` files per primary key partitioning.
+        This effectively splits up the execution ``num_buckets`` times. Setting this parameter may be helpful when
+        scaling.
+        This only has an effect if ``shuffle==True``
+    bucket_by:
+        The subset of columns which should be considered for bucketing.
+
+        This parameter ensures that groups of the given subset are never split
+        across buckets within a given partition.
+
+        Without specifying this the buckets will be created randomly.
+
+        This only has an effect if ``shuffle==True``
+
+        .. admonition:: Secondary indices
+
+            This parameter has a strong effect on the performance of secondary
+            indices. Since it guarantees that a given tuple of the subset will
+            be entirely put into the same file you can build efficient indices
+            with this approach.
+
+        .. note::
+
+            Only columns with data types which can be hashed are allowed to be used in this.
+    """
+    partition_on = normalize_arg("partition_on", partition_on)
+    secondary_indices = normalize_arg("secondary_indices", secondary_indices)
+    delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
+
+    if table is None:
+        raise TypeError("The parameter `table` is not optional.")
+
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=None,
+        load_dataset_metadata=True,
+    )
+
+    if not overwrite:
+        raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
+
+    if repartition_ratio and ddf is not None:
+        ddf = ddf.repartition(
+            npartitions=int(np.ceil(ddf.npartitions / repartition_ratio))
+        )
+
+    if ddf is None:
+        mps = [
+            parse_input_to_metapartition(
+                None, metadata_version=default_metadata_version
+            )
+        ]
+    else:
+        if shuffle:
+            mps = update_dask_partitions_shuffle(
+                ddf=ddf,
+                table=table,
+                secondary_indices=secondary_indices,
+                metadata_version=DEFAULT_METADATA_VERSION,
+                partition_on=partition_on,
+                store_factory=store,
+                df_serializer=df_serializer,
+                dataset_uuid=dataset_uuid,
+                num_buckets=num_buckets,
+                sort_partitions_by=sort_partitions_by,
+                bucket_by=bucket_by,
+            )
+        else:
+            delayed_tasks = ddf.to_delayed()
+            delayed_tasks = [{"data": {table: task}} for task in delayed_tasks]
+            mps = update_dask_partitions_one_to_one(
+                delayed_tasks=delayed_tasks,
+                secondary_indices=secondary_indices,
+                metadata_version=DEFAULT_METADATA_VERSION,
+                partition_on=partition_on,
+                store_factory=store,
+                df_serializer=df_serializer,
+                dataset_uuid=dataset_uuid,
+                sort_partitions_by=sort_partitions_by,
+            )
+    return dask.delayed(store_dataset_from_partitions)(
+        mps,
+        store=ds_factory.store_factory if ds_factory else store,
+        dataset_uuid=ds_factory.dataset_uuid if ds_factory else dataset_uuid,
+        dataset_metadata=metadata,
+        metadata_merger=metadata_merger,
+    )
 
 
 @default_docs

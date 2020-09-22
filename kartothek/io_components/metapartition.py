@@ -1233,8 +1233,11 @@ class MetaPartition(Iterable):
             possible_values = set()
             col_in_partition = False
             for df in self.data.values():
+
                 if col in df:
-                    possible_values = possible_values | set(df[col].dropna().unique())
+                    if df[col].hasnans:
+                        raise ValueError(f'Found NULL-values in index column "{col}"')
+                    possible_values = possible_values | set(df[col].unique())
                     col_in_partition = True
 
             if (self.label is not None) and (not col_in_partition):

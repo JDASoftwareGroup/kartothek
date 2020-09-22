@@ -5,6 +5,7 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.io.eager_cube import build_cube
+from kartothek.io_components.cube.write import MultiTableCommitException
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
 __all__ = (
@@ -90,9 +91,11 @@ def test_fails_incompatible_dtypes(driver, function_store, existing_cube):
             "i3": [100, 101, 102, 103],
         }
     )
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(MultiTableCommitException) as exc_info:
         driver(data={"extra": df}, cube=existing_cube, store=function_store)
-    assert 'Found incompatible entries for column "x"' in str(exc.value)
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, ValueError)
+    assert 'Found incompatible entries for column "x"' in str(cause)
     assert not DatasetMetadata.exists(
         existing_cube.ktk_dataset_uuid("extra"), function_store()
     )
@@ -277,9 +280,11 @@ def test_fail_all_empty(driver, function_store, existing_cube):
         {"x": [0, 1, 2, 3], "p": [0, 0, 1, 1], "v": [10, 11, 12, 13]}
     ).loc[[]]
 
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(MultiTableCommitException) as exc_info:
         driver(data={"extra": df}, cube=existing_cube, store=function_store)
-    assert "Cannot write empty datasets: extra" in str(exc.value)
+    exc = exc_info.value.__cause__
+    assert isinstance(exc, ValueError)
+    assert "Cannot write empty datasets: extra" in str(exc)
     assert not DatasetMetadata.exists(
         existing_cube.ktk_dataset_uuid("extra"), function_store()
     )
