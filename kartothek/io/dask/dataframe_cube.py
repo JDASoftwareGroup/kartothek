@@ -1,7 +1,7 @@
 """
 Dask.DataFrame IO.
 """
-from typing import Any, Callable, Dict, Iterable, List, Mapping, Optional, Union
+from typing import Any, Callable, Dict, Iterable, Optional, Union
 
 import dask
 import dask.bag as db
@@ -20,10 +20,11 @@ from kartothek.io.dask.common_cube import (
 from kartothek.io.dask.dataframe import store_dataset_from_ddf
 from kartothek.io_components.cube.common import check_store_factory
 from kartothek.io_components.cube.write import (
-    _check_user_df,
     apply_postwrite_checks,
+    assert_dimesion_index_cols_notnull,
     check_datasets_prebuild,
     check_provided_metadata_dict,
+    check_user_df,
     prepare_ktk_metadata,
     prepare_ktk_partition_on,
 )
@@ -34,22 +35,6 @@ __all__ = (
     "extend_cube_from_dataframe",
     "query_cube_dataframe",
 )
-
-
-def get_indices_to_calculate(
-    cube: Cube,
-    partition_on: Mapping[str, Iterable[str]],
-    data: Mapping[str, dd.DataFrame],
-) -> Dict[str, List[str]]:
-    # calculate indices
-    result: Dict[str, List[str]] = {}
-    for table_name, ddf in data.items():
-        indices_to_build = set(cube.index_columns) & set(ddf.columns)
-        if table_name == cube.seed_dataset:
-            indices_to_build |= set(cube.dimension_columns)
-        indices_to_build -= set(partition_on[table_name])
-        result[table_name] = sorted(indices_to_build)
-    return result
 
 
 @default_docs
@@ -104,19 +89,29 @@ def build_cube_from_dataframe(
     )
     del partition_on
 
-    for table_name, ddf in data.items():
-        _check_user_df(table_name, ddf, cube, set(), partition_on_checked[table_name])
-    indices_to_calculate = get_indices_to_calculate(cube, partition_on_checked, data)
-
     dct = {}
     for table_name, ddf in data.items():
+        check_user_df(table_name, ddf, cube, set(), partition_on_checked[table_name])
+
+        indices_to_build = set(cube.index_columns) & set(ddf.columns)
+        if table_name == cube.seed_dataset:
+            indices_to_build |= set(cube.dimension_columns)
+        indices_to_build -= set(partition_on_checked[table_name])
+
+        ddf = ddf.map_partitions(
+            assert_dimesion_index_cols_notnull,
+            ktk_cube_dataset_id=table_name,
+            cube=cube,
+            partition_on=partition_on_checked[table_name],
+            meta=ddf._meta,
+        )
         graph = store_dataset_from_ddf(
             ddf,
             dataset_uuid=cube.ktk_dataset_uuid(table_name),
             store=store,
             metadata=prepare_ktk_metadata(cube, table_name, metadata),
             partition_on=partition_on_checked[table_name],
-            secondary_indices=indices_to_calculate[table_name],
+            secondary_indices=sorted(indices_to_build),
             sort_partitions_by=sorted(
                 (set(cube.dimension_columns) - set(cube.partition_columns))
                 & set(ddf.columns)

@@ -904,7 +904,8 @@ def test_fails_null_dimension(driver, function_store):
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="cube")
     with pytest.raises(ValueError) as exc:
         driver(data=df, cube=cube, store=function_store)
-    assert 'Found NULL-values in index column "x"' in str(exc.value)
+
+    assert 'Found NULL-values in dimension column "x" of dataset "seed"' in str(exc)
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("seed"), function_store())
 
 
@@ -918,9 +919,8 @@ def test_fails_null_partition(driver, function_store):
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="cube")
     with pytest.raises(ValueError) as exc:
         driver(data=df, cube=cube, store=function_store)
-    assert (
-        "Hint: you may see this if you are trying to use `partition_on` on a column with null values"
-        in str(exc.value)
+    assert 'Found NULL-values in partition column "p" of dataset "seed"' in str(
+        exc.value
     )
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("seed"), function_store())
 

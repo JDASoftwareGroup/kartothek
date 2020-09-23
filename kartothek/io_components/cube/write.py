@@ -3,7 +3,7 @@ Common functionality required to implement cube write functionality.
 """
 import itertools
 from copy import copy
-from typing import Dict, Iterable, Optional, Tuple
+from typing import Dict, Iterable, Optional, Sequence, Tuple
 
 import dask.dataframe as dd
 import pandas as pd
@@ -128,7 +128,37 @@ def prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata):
     return ds_metadata
 
 
-def _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on):
+def assert_dimesion_index_cols_notnull(
+    df: pd.DataFrame, ktk_cube_dataset_id: str, cube: Cube, partition_on: Sequence[str]
+) -> pd.DataFrame:
+    """
+    Assert that index and dimesion columns are not NULL and raise an appropriate error if so.
+
+    .. note::
+
+        Indices for plain non-cube dataset drop null during index build!
+    """
+
+    df_columns_set = set(df.columns)
+    dcols_present = set(cube.dimension_columns) & df_columns_set
+    icols_present = set(cube.index_columns) & df_columns_set
+
+    for cols, what in (
+        (partition_on, "partition"),
+        (dcols_present, "dimension"),
+        (icols_present, "index"),
+    ):
+        for col in sorted(cols):
+            if df[col].isnull().any():
+                raise ValueError(
+                    'Found NULL-values in {what} column "{col}" of dataset "{ktk_cube_dataset_id}"'.format(
+                        col=col, ktk_cube_dataset_id=ktk_cube_dataset_id, what=what
+                    )
+                )
+    return df
+
+
+def check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on):
     """
     Check user-provided DataFrame for sanity.
 
@@ -201,6 +231,16 @@ def _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on
                 ktk_cube_dataset_id=ktk_cube_dataset_id,
                 missing_partition_columns=", ".join(sorted(missing_partition_columns)),
             )
+        )
+
+    # Factor this check out. All others can be performed on the dask.DataFrame.
+    # This one can only be executed on a pandas DataFame
+    if isinstance(df, pd.DataFrame):
+        assert_dimesion_index_cols_notnull(
+            ktk_cube_dataset_id=ktk_cube_dataset_id,
+            df=df,
+            cube=cube,
+            partition_on=partition_on,
         )
 
     payload = get_payload_subset(df.columns, cube)
@@ -280,7 +320,7 @@ def prepare_data_for_ktk(
     ValueError
         In case anything is fishy.
     """
-    _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on)
+    check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on)
 
     if (df is None) or df.empty:
         # fast-path for empty DF
