@@ -1,3 +1,4 @@
+import pickle
 from functools import partial
 from typing import cast
 
@@ -51,14 +52,43 @@ def ensure_string_type(obj):
 
 
 def ensure_store(store: STORE_TYPE) -> KeyValueStore:
+    """
+    Ensure that the input is a valid KeyValueStore.
+    """
+    # This function is often used in an eager context where we may allow non-serializable stores, i.e. we do not need to check for serializability
+    if isinstance(store, KeyValueStore):
+        return store
     return lazy_store(store)()
 
 
+def _factory_from_store(pickled_store):
+    """
+    Ensure that we're using internally only deserialized stores / proper
+    factories to avoid funny business with unix sockets in forked subprocesses.
+    """
+    return pickle.loads(pickled_store)
+
+
 def lazy_store(store: STORE_TYPE) -> STORE_FACTORY_TYPE:
+    """
+    Create a store factory from the input. Acceptable inputs are
+    * Storefact store url
+    * Callable[[], KeyValueStore]
+    * KeyValueStore
+
+    If a KeyValueStore is provided, it is verified that the store is serializable
+    """
     if callable(store):
         return cast(STORE_FACTORY_TYPE, store)
     elif isinstance(store, KeyValueStore):
-        return lambda: store
+        try:
+            pickled_store = pickle.dumps(store)
+        except Exception as exc:
+            raise TypeError(
+                """KeyValueStore not serializable.
+Please consult https://kartothek.readthedocs.io/en/stable/spec/store_interface.html for more information."""
+            ) from exc
+        return partial(_factory_from_store, pickled_store)
     elif isinstance(store, str):
         ret_val = partial(get_store_from_url, store)
         ret_val = cast(STORE_FACTORY_TYPE, ret_val)  # type: ignore
