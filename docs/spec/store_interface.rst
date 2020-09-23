@@ -23,7 +23,7 @@ store but only verifies whether or not the store implements the pickle protocol.
 For all cases where the ``KeyValueStore`` does not implement the pickle
 protocol, or some more complex logic is required to initialize it, kartothek
 also accepts _factories_ which must be a callable returning a ``KeyValueStore``
-(see also ``kartothek.core.typing.STORE_FACTORY_TYPE``).
+(see also ``kartothek.core.typing.StoreFactory``).
 
 For convenience we also offer a `storefact`_ integration and accept store urls
 which proves another easy level of access and is well suited for ad-hoc

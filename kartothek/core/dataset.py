@@ -23,7 +23,7 @@ from kartothek.core.index import (
 )
 from kartothek.core.naming import EXTERNAL_INDEX_SUFFIX, PARQUET_FILE_SUFFIX
 from kartothek.core.partition import Partition
-from kartothek.core.typing import STORE_TYPE
+from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_store, verify_metadata_version
 from kartothek.serialization import PredicatesType, columns_in_predicates
@@ -130,7 +130,7 @@ class DatasetMetadataBase(CopyMixin):
         }
 
     @staticmethod
-    def exists(uuid: str, store: STORE_TYPE) -> bool:
+    def exists(uuid: str, store: StoreInput) -> bool:
         """
         Check if  a dataset exists in a storage
 
@@ -156,7 +156,7 @@ class DatasetMetadataBase(CopyMixin):
         return key in store
 
     @staticmethod
-    def storage_keys(uuid: str, store: STORE_TYPE) -> List[str]:
+    def storage_keys(uuid: str, store: StoreInput) -> List[str]:
         """
         Retrieve all keys that belong to the given dataset.
 
@@ -218,7 +218,7 @@ class DatasetMetadataBase(CopyMixin):
     def to_msgpack(self) -> bytes:
         return msgpack.packb(self.to_dict())
 
-    def load_index(self: T, column: str, store: STORE_TYPE) -> T:
+    def load_index(self: T, column: str, store: StoreInput) -> T:
         """
         Load an index into memory.
 
@@ -257,7 +257,7 @@ class DatasetMetadataBase(CopyMixin):
         return self.copy(indices=indices)
 
     def load_all_indices(
-        self: T, store: STORE_TYPE, load_partition_indices: bool = True
+        self: T, store: StoreInput, load_partition_indices: bool = True
     ) -> T:
         """
         Load all registered indices into memory.
@@ -497,7 +497,7 @@ class DatasetMetadata(DatasetMetadataBase):
 
     @staticmethod
     def load_from_buffer(
-        buf, store: STORE_TYPE, format: str = "json"
+        buf, store: StoreInput, format: str = "json"
     ) -> "DatasetMetadata":
         """
         Load a dataset from a (string) buffer.
@@ -523,7 +523,7 @@ class DatasetMetadata(DatasetMetadataBase):
     @staticmethod
     def load_from_store(
         uuid: str,
-        store: STORE_TYPE,
+        store: StoreInput,
         load_schema: bool = True,
         load_all_indices: bool = False,
     ) -> "DatasetMetadata":
@@ -567,7 +567,7 @@ class DatasetMetadata(DatasetMetadataBase):
         return ds
 
     @staticmethod
-    def load_from_dict(dct: Dict, store: STORE_TYPE, load_schema: bool = True):
+    def load_from_dict(dct: Dict, store: StoreInput, load_schema: bool = True):
         """
         Load dataset metadata from a dictionary and resolve any external includes.
 

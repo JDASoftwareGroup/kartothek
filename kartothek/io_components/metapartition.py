@@ -26,7 +26,7 @@ from kartothek.core.index import ExplicitSecondaryIndex, IndexBase
 from kartothek.core.index import merge_indices as merge_indices_algo
 from kartothek.core.naming import get_partition_file_prefix
 from kartothek.core.partition import Partition
-from kartothek.core.typing import STORE_TYPE
+from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import (
     ensure_store,
@@ -623,7 +623,7 @@ class MetaPartition(Iterable):
     @_apply_to_list
     def load_dataframes(
         self,
-        store: STORE_TYPE,
+        store: StoreInput,
         tables: _MULTI_TABLE_DICT_LIST = None,
         columns: _MULTI_TABLE_DICT_LIST = None,
         predicate_pushdown_to_io: bool = True,
@@ -774,7 +774,7 @@ class MetaPartition(Iterable):
 
     @_apply_to_list
     def load_all_table_meta(
-        self, store: STORE_TYPE, dataset_uuid: str
+        self, store: StoreInput, dataset_uuid: str
     ) -> "MetaPartition":
         """
         Loads all table metadata in memory and stores it under the `tables` attribute
@@ -785,7 +785,7 @@ class MetaPartition(Iterable):
         return self
 
     def _load_table_meta(
-        self, dataset_uuid: str, table: str, store: STORE_TYPE
+        self, dataset_uuid: str, table: str, store: StoreInput
     ) -> "MetaPartition":
         if table not in self.table_meta:
             _common_metadata = read_schema_metadata(
@@ -930,7 +930,7 @@ class MetaPartition(Iterable):
 
     @_apply_to_list
     def validate_schema_compatible(
-        self, store: STORE_TYPE, dataset_uuid: str
+        self, store: StoreInput, dataset_uuid: str
     ) -> "MetaPartition":
         """
         Validates that the currently held DataFrames match the schema of the existing dataset.
@@ -970,7 +970,7 @@ class MetaPartition(Iterable):
     @_apply_to_list
     def store_dataframes(
         self,
-        store: STORE_TYPE,
+        store: StoreInput,
         dataset_uuid: str,
         df_serializer: Optional[DataFrameSerializer] = None,
         store_metadata: bool = False,
@@ -1550,7 +1550,7 @@ class MetaPartition(Iterable):
 
     @_apply_to_list
     def delete_from_store(
-        self, dataset_uuid: Any, store: STORE_TYPE
+        self, dataset_uuid: Any, store: StoreInput
     ) -> "MetaPartition":
         store = ensure_store(store)
         # Delete data first
@@ -1558,7 +1558,7 @@ class MetaPartition(Iterable):
             store.delete(file_key)
         return self.copy(files={}, data={}, metadata={})
 
-    def get_parquet_metadata(self, store: STORE_TYPE, table_name: str) -> pd.DataFrame:
+    def get_parquet_metadata(self, store: StoreInput, table_name: str) -> pd.DataFrame:
         """
         Retrieve the parquet metadata for the MetaPartition.
         Especially relevant for calculating dataset statistics.

@@ -6,7 +6,7 @@ from simplekv import KeyValueStore
 from storefact import get_store_from_url
 
 from kartothek.core.naming import MAX_METADATA_VERSION, MIN_METADATA_VERSION
-from kartothek.core.typing import STORE_FACTORY_TYPE, STORE_TYPE
+from kartothek.core.typing import StoreFactory, StoreInput
 
 
 def _verify_metadata_version(metadata_version):
@@ -51,7 +51,7 @@ def ensure_string_type(obj):
         return str(obj)
 
 
-def ensure_store(store: STORE_TYPE) -> KeyValueStore:
+def ensure_store(store: StoreInput) -> KeyValueStore:
     """
     Ensure that the input is a valid KeyValueStore.
     """
@@ -69,7 +69,7 @@ def _factory_from_store(pickled_store):
     return pickle.loads(pickled_store)
 
 
-def lazy_store(store: STORE_TYPE) -> STORE_FACTORY_TYPE:
+def lazy_store(store: StoreInput) -> StoreFactory:
     """
     Create a store factory from the input. Acceptable inputs are
     * Storefact store url
@@ -79,7 +79,7 @@ def lazy_store(store: STORE_TYPE) -> STORE_FACTORY_TYPE:
     If a KeyValueStore is provided, it is verified that the store is serializable
     """
     if callable(store):
-        return cast(STORE_FACTORY_TYPE, store)
+        return cast(StoreFactory, store)
     elif isinstance(store, KeyValueStore):
         try:
             pickled_store = pickle.dumps(store)
@@ -91,9 +91,9 @@ Please consult https://kartothek.readthedocs.io/en/stable/spec/store_interface.h
         return partial(_factory_from_store, pickled_store)
     elif isinstance(store, str):
         ret_val = partial(get_store_from_url, store)
-        ret_val = cast(STORE_FACTORY_TYPE, ret_val)  # type: ignore
+        ret_val = cast(StoreFactory, ret_val)  # type: ignore
         return ret_val
     else:
         raise TypeError(
-            f"Provided incompatible store type. Got {type(store)} but expected {STORE_TYPE}."
+            f"Provided incompatible store type. Got {type(store)} but expected {StoreInput}."
         )

@@ -14,7 +14,7 @@ from kartothek.core.common_metadata import (
 from kartothek.core.dataset import DatasetMetadataBuilder
 from kartothek.core.index import ExplicitSecondaryIndex, IndexBase, PartitionIndex
 from kartothek.core.partition import Partition
-from kartothek.core.typing import STORE_TYPE
+from kartothek.core.typing import StoreInput
 from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
@@ -27,7 +27,7 @@ SINGLE_CATEGORY = SINGLE_TABLE
 
 
 def persist_indices(
-    store: STORE_TYPE, dataset_uuid: str, indices: Dict[str, IndexBase]
+    store: StoreInput, dataset_uuid: str, indices: Dict[str, IndexBase]
 ) -> Dict[str, str]:
     store = ensure_store(store)
     output_filenames = {}
@@ -98,7 +98,7 @@ def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid)
 
 def store_dataset_from_partitions(
     partition_list,
-    store: STORE_TYPE,
+    store: StoreInput,
     dataset_uuid,
     dataset_metadata=None,
     metadata_merger=None,

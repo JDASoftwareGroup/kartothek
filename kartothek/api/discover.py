@@ -18,7 +18,7 @@ from kartothek.core.naming import (
     METADATA_FORMAT_JSON,
     METADATA_FORMAT_MSGPACK,
 )
-from kartothek.core.typing import STORE_TYPE
+from kartothek.core.typing import StoreInput
 from kartothek.core.utils import ensure_store
 from kartothek.utils.converters import converter_str_set_optional
 
@@ -33,7 +33,7 @@ __all__ = (
 _logger = logging.getLogger(__name__)
 
 
-def _discover_dataset_meta_files(prefix: str, store: STORE_TYPE) -> Set[str]:
+def _discover_dataset_meta_files(prefix: str, store: StoreInput) -> Set[str]:
     """
     Get meta file names for all datasets.
 
@@ -61,7 +61,7 @@ def _discover_dataset_meta_files(prefix: str, store: STORE_TYPE) -> Set[str]:
     return names
 
 
-def discover_ktk_cube_dataset_ids(uuid_prefix: str, store: STORE_TYPE) -> Set[str]:
+def discover_ktk_cube_dataset_ids(uuid_prefix: str, store: StoreInput) -> Set[str]:
     """
     Get ktk_cube dataset ids for all datasets.
 
@@ -85,7 +85,7 @@ def discover_ktk_cube_dataset_ids(uuid_prefix: str, store: STORE_TYPE) -> Set[st
 
 def discover_datasets_unchecked(
     uuid_prefix: str,
-    store: STORE_TYPE,
+    store: StoreInput,
     filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
 ) -> Dict[str, DatasetMetadata]:
     """
@@ -140,7 +140,7 @@ def discover_datasets_unchecked(
 
 def discover_datasets(
     cube: Cube,
-    store: STORE_TYPE,
+    store: StoreInput,
     filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
 ) -> Dict[str, DatasetMetadata]:
     """
@@ -190,7 +190,7 @@ def discover_datasets(
 
 def discover_cube(
     uuid_prefix: str,
-    store: STORE_TYPE,
+    store: StoreInput,
     filter_ktk_cube_dataset_ids: Optional[Union[str, Iterable[str]]] = None,
 ) -> Tuple[Cube, Dict[str, DatasetMetadata]]:
     """

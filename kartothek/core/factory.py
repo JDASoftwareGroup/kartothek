@@ -4,7 +4,7 @@ import copy
 from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
 
 from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
-from kartothek.core.typing import STORE_TYPE
+from kartothek.core.typing import StoreInput
 from kartothek.core.utils import lazy_store
 
 if TYPE_CHECKING:
@@ -23,7 +23,7 @@ class DatasetFactory(DatasetMetadataBase):
     def __init__(
         self,
         dataset_uuid: str,
-        store_factory: STORE_TYPE,
+        store_factory: StoreInput,
         load_schema: bool = True,
         load_all_indices: bool = False,
         load_dataset_metadata: bool = True,
@@ -161,7 +161,7 @@ class DatasetFactory(DatasetMetadataBase):
 
 def _ensure_factory(
     dataset_uuid: Optional[str],
-    store: STORE_TYPE,
+    store: StoreInput,
     factory: Optional[DatasetFactory],
     load_dataset_metadata: bool,
     load_schema: bool = True,

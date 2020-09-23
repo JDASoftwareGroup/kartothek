@@ -5,7 +5,7 @@ import pandas as pd
 
 from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
-from kartothek.core.typing import STORE_TYPE
+from kartothek.core.typing import StoreInput
 from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.utils import normalize_args
 from kartothek.serialization import (
@@ -21,7 +21,7 @@ def dispatch_metapartitions_from_factory(
     label_filter: Optional[Callable] = None,
     concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
-    store: Optional[STORE_TYPE] = None,
+    store: Optional[StoreInput] = None,
     dispatch_by: None = None,
     dispatch_metadata: bool = False,
 ) -> Iterator[MetaPartition]:
@@ -34,7 +34,7 @@ def dispatch_metapartitions_from_factory(
     label_filter: Optional[Callable],
     concat_partitions_on_primary_index: bool,
     predicates: PredicatesType,
-    store: Optional[STORE_TYPE],
+    store: Optional[StoreInput],
     dispatch_by: List[str],
     dispatch_metadata: bool,
 ) -> Iterator[List[MetaPartition]]:
@@ -47,7 +47,7 @@ def dispatch_metapartitions_from_factory(
     label_filter: Optional[Callable] = None,
     concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
-    store: Optional[STORE_TYPE] = None,
+    store: Optional[StoreInput] = None,
     dispatch_by: Optional[List[str]] = None,
     dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
@@ -155,7 +155,7 @@ def dispatch_metapartitions_from_factory(
 
 def dispatch_metapartitions(
     dataset_uuid: str,
-    store: STORE_TYPE,
+    store: StoreInput,
     load_dataset_metadata: bool = True,
     keep_indices: bool = True,
     keep_table_meta: bool = True,

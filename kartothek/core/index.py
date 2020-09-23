@@ -15,7 +15,7 @@ from kartothek.core import naming
 from kartothek.core._mixins import CopyMixin
 from kartothek.core.common_metadata import normalize_type
 from kartothek.core.docs import default_docs
-from kartothek.core.typing import STORE_TYPE
+from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import quote
 from kartothek.core.utils import lazy_store
 from kartothek.serialization import (
@@ -658,7 +658,7 @@ class ExplicitSecondaryIndex(IndexBase):
         else:
             return ExplicitSecondaryIndex(column=column, index_dct=dct_or_str)
 
-    def store(self, store: STORE_TYPE, dataset_uuid: str) -> str:
+    def store(self, store: StoreInput, dataset_uuid: str) -> str:
         """
         Store the index as a parquet file
 
@@ -716,7 +716,7 @@ class ExplicitSecondaryIndex(IndexBase):
         store.put(storage_key, buf.getvalue().to_pybytes())
         return storage_key
 
-    def load(self, store: STORE_TYPE):
+    def load(self, store: StoreInput):
         """
         Load an external index into memory. Returns a new index object that
         contains the index dictionary. Returns itself if the index is internal

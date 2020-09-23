@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 from dask.delayed import Delayed
 
-from kartothek.core.typing import STORE_FACTORY_TYPE
+from kartothek.core.typing import StoreFactory
 from kartothek.io.dask.compression import pack_payload, unpack_payload_pandas
 from kartothek.io_components.metapartition import (
     MetaPartition,
@@ -44,7 +44,7 @@ def update_dask_partitions_shuffle(
     secondary_indices: List[str],
     metadata_version: int,
     partition_on: List[str],
-    store_factory: STORE_FACTORY_TYPE,
+    store_factory: StoreFactory,
     df_serializer: DataFrameSerializer,
     dataset_uuid: str,
     num_buckets: int,
@@ -139,7 +139,7 @@ def update_dask_partitions_one_to_one(
     secondary_indices: List[str],
     metadata_version: int,
     partition_on: List[str],
-    store_factory: STORE_FACTORY_TYPE,
+    store_factory: StoreFactory,
     df_serializer: DataFrameSerializer,
     dataset_uuid: str,
     sort_partitions_by: Optional[str],
@@ -186,7 +186,7 @@ def _store_partition(
     table: str,
     dataset_uuid: str,
     partition_on: Optional[List[str]],
-    store_factory: STORE_FACTORY_TYPE,
+    store_factory: StoreFactory,
     df_serializer: DataFrameSerializer,
     metadata_version: int,
     unpacked_meta: pd.DataFrame,
