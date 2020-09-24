@@ -9,6 +9,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
+from pyarrow.parquet import ParquetFile
 
 from kartothek.serialization import (
     CsvSerializer,
@@ -603,6 +604,47 @@ def test_predicate_parsing_null_values(
         expected.reset_index(drop=True),
         check_dtype=serialiser.type_stable,
     )
+
+
+@pytest.mark.parametrize(
+    "column, expected_null_count",
+    [
+        ("no_nulls_int", (0, 0, 0)),
+        ("partial_nulls_int", (0, 1, 2)),
+        ("no_nulls_float", (0, 0, 0)),
+        ("partial_nulls_float", (0, 1, 2)),
+        ("partial_nulls_obj", (0, 1, 2)),
+        ("no_nulls_obj", (0, 0, 0)),
+        ("partial_nulls_obj_mixed", (0, 2, 1)),
+        ("nulls_reverse_rg", (1, 0, 1)),
+    ],
+)
+def test_null_count(store, column, expected_null_count):
+    serialiser = ParquetSerializer(chunk_size=2)
+
+    df = pd.DataFrame(
+        {
+            "no_nulls_int": [1, 2, 3, 4, 5, 6],
+            "partial_nulls_int": [1, 2, 3, None, None, None],
+            "no_nulls_float": [1.1, 2.2, 3.3, 4.4, 5.5, 6.6],
+            "partial_nulls_float": [1.0, 2.2, 3.3, np.nan, np.nan, np.nan],
+            "partial_nulls_obj": [1.0, 2.2, 3.3, np.nan, np.nan, np.nan],
+            "no_nulls_obj": ["1.1", "2", "3", "vier", "fuenfeinhalb", "6.6"],
+            "partial_nulls_obj_mixed": [1.0, 2.2, None, np.nan, np.nan, 6.6],
+            "nulls_reverse_rg": [3.3, np.nan, 1.0, 2.0, np.nan, -1.1],
+        }
+    )
+
+    key = serialiser.store(store, "prefix", df)
+    reader = pa.BufferReader(store.get(key))
+    parquet_file = ParquetFile(reader)
+    col_idx = parquet_file.reader.column_name_idx(column)
+
+    assert parquet_file.num_row_groups == 3
+
+    for idx in range(0, 3):
+        rg = parquet_file.metadata.row_group(idx)
+        assert rg.column(col_idx).statistics.null_count == expected_null_count[idx]
 
 
 @pytest.mark.parametrize(
