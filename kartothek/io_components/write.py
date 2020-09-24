@@ -47,7 +47,7 @@ def write_partition(
     Write a dataframe to store, performing all necessary preprocessing tasks
     like partitioning, bucketing (NotImplemented), indexing, etc. in the correct order.
     """
-    store = store_factory()
+    store = ensure_store(store_factory)
     if isinstance(partition_df, pd.DataFrame) and dataset_table_name:
         parse_input = [{"data": {dataset_table_name: partition_df}}]
     else:

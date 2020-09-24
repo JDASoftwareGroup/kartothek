@@ -402,7 +402,7 @@ def multiplex_user_input(data, cube):
 
 
 class MultiTableCommitAborted(RuntimeError):
-    pass
+    """An Error occured during the commit of a MultiTable dataset (Cube) causing a rollback."""
 
 
 def apply_postwrite_checks(datasets, cube, store, existing_datasets):

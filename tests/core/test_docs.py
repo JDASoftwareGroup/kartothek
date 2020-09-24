@@ -10,7 +10,11 @@ from kartothek.io.dask.bag import (
     read_dataset_as_metapartitions_bag,
     store_bag_as_dataset,
 )
-from kartothek.io.dask.dataframe import read_dataset_as_ddf, update_dataset_from_ddf
+from kartothek.io.dask.dataframe import (
+    read_dataset_as_ddf,
+    store_dataset_from_ddf,
+    update_dataset_from_ddf,
+)
 from kartothek.io.dask.delayed import (
     delete_dataset__delayed,
     merge_datasets_as_delayed,
@@ -49,6 +53,7 @@ from kartothek.io.iter import (
         store_bag_as_dataset,
         build_dataset_indices__bag,
         read_dataset_as_ddf,
+        store_dataset_from_ddf,
         update_dataset_from_ddf,
         delete_dataset__delayed,
         merge_datasets_as_delayed,

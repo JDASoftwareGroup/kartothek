@@ -8,12 +8,17 @@ from typing import Callable, List, Optional, TypeVar, Union, overload
 
 import decorator
 import pandas as pd
-from typing_extensions import Literal
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.typing import StoreFactory, StoreInput
-from kartothek.core.utils import ensure_store
+from kartothek.core.utils import ensure_store, lazy_store
+
+try:
+    from typing_extensions import Literal  # type: ignore
+except ImportError:
+    from typing import Literal  # type: ignore
+
 
 signature = inspect.signature
 
@@ -253,6 +258,8 @@ def normalize_arg(arg_name, old_value):
             return old_value
         else:
             return _make_list(old_value)
+    elif arg_name == "store" and old_value is not None:
+        return lazy_store(old_value)
 
     return old_value
 

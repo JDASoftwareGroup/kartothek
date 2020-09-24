@@ -155,7 +155,8 @@ def _get_dask_meta_for_dataset(
     return meta
 
 
-_COMMON_SHUFFLE_DOCS = """
+def _shuffle_docs(func):
+    func.__doc__ += """
 
     .. admonition:: Behavior without ``shuffle==False``
 
@@ -237,9 +238,11 @@ _COMMON_SHUFFLE_DOCS = """
 
             Only columns with data types which can be hashed are allowed to be used in this.
 """
+    return func
 
 
 @default_docs
+@_shuffle_docs
 def store_dataset_from_ddf(
     ddf: dd.DataFrame,
     store: StoreInput,
@@ -261,8 +264,7 @@ def store_dataset_from_ddf(
 ):
     """
     Store a dataset from a dask.dataframe.
-
-    """ + _COMMON_SHUFFLE_DOCS
+    """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
     sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
@@ -362,6 +364,7 @@ def _write_dataframe_partitions(
 
 
 @default_docs
+@_shuffle_docs
 def update_dataset_from_ddf(
     ddf: dd.DataFrame,
     store: Optional[StoreInput] = None,
@@ -383,7 +386,7 @@ def update_dataset_from_ddf(
 ):
     """
     Update a dataset from a dask.dataframe.
-""" + _COMMON_SHUFFLE_DOCS
+    """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
     sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
@@ -458,7 +461,7 @@ def collect_dataset_metadata(
       Kartothek predicates to apply filters on the data for which to gather statistics
 
       .. warning::
-          defFiltering will only be applied for predicates on indices.
+          Filtering will only be applied for predicates on indices.
           The evaluation of the predicates therefore will therefore only return an approximate result.
 
     frac
@@ -532,7 +535,7 @@ def _hash_partition(part):
 @default_docs
 @normalize_args
 def hash_dataset(
-    store: Optional[Callable[[], KeyValueStore]] = None,
+    store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,
     subset=None,
     group_key=None,

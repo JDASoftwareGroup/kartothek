@@ -3,6 +3,7 @@
 
 import contextlib
 import datetime
+from datetime import date
 from unittest import mock
 from warnings import catch_warnings, simplefilter
 
@@ -19,25 +20,25 @@ TIME_TO_FREEZE_ISO = "2000-01-01T01:01:01.000001"
 TIME_TO_FREEZE_ISO_QUOTED = "2000-01-01T01%3A01%3A01.000001"
 
 
-def get_dataframe_alltypes(size=1):
+def get_dataframe_alltypes():
     """
     Return a pandas DataFrame of length one with a column for each commonly used data types
     """
     # fmt: off
-    not_nested = get_dataframe_not_nested(size)
+    not_nested = get_dataframe_not_nested()
     nested_types = pd.DataFrame(
         {
-            "array_int8": pd.Series([np.array([1], dtype=np.int8)] * size, dtype=object),
-            "array_int16": pd.Series([np.array([1], dtype=np.int16)] * size, dtype=object),
-            "array_int32": pd.Series([np.array([1], dtype=np.int32)] * size, dtype=object),
-            "array_int64": pd.Series([np.array([1], dtype=np.int64)] * size, dtype=object),
-            "array_uint8": pd.Series([np.array([1], dtype=np.uint8)] * size, dtype=object),
-            "array_uint16": pd.Series([np.array([1], dtype=np.uint16)] * size, dtype=object),
-            "array_uint32": pd.Series([np.array([1], dtype=np.uint32)] * size, dtype=object),
-            "array_uint64": pd.Series([np.array([1], dtype=np.uint64)] * size, dtype=object),
-            "array_float32": pd.Series([np.array([1], dtype=np.float32)] * size, dtype=object),
-            "array_float64": pd.Series([np.array([1], dtype=np.float64)] * size, dtype=object),
-            "array_unicode": pd.Series([np.array(["Ö"], dtype=object)] * size, dtype=object),
+            "array_int8": pd.Series([np.array([1], dtype=np.int8)], dtype=object),
+            "array_int16": pd.Series([np.array([1], dtype=np.int16)], dtype=object),
+            "array_int32": pd.Series([np.array([1], dtype=np.int32)], dtype=object),
+            "array_int64": pd.Series([np.array([1], dtype=np.int64)], dtype=object),
+            "array_uint8": pd.Series([np.array([1], dtype=np.uint8)], dtype=object),
+            "array_uint16": pd.Series([np.array([1], dtype=np.uint16)], dtype=object),
+            "array_uint32": pd.Series([np.array([1], dtype=np.uint32)], dtype=object),
+            "array_uint64": pd.Series([np.array([1], dtype=np.uint64)], dtype=object),
+            "array_float32": pd.Series([np.array([1], dtype=np.float32)], dtype=object),
+            "array_float64": pd.Series([np.array([1], dtype=np.float64)], dtype=object),
+            "array_unicode": pd.Series([np.array(["Ö"], dtype=object)], dtype=object),
         }
     )
 
@@ -45,62 +46,26 @@ def get_dataframe_alltypes(size=1):
     # fmt: on
 
 
-def _to_binary(x):
-    return str(x).encode("utf-8")
-
-
-BINARY_COLUMNS = [
-    _to_binary(chr(1)),
-    b"1",
-    b"2",
-    b"3",
-    "4".encode("utf-16"),
-    "4".encode("utf-32"),
-    # this is a type1 UUID
-    b"\x8f\xb6\xe5@\x90\xdc\x11\xe8\xa0\xae\x02B\xac\x12\x01\x06",
-    "🙈".encode("utf-8"),
-    _to_binary(chr(128)),
-    gen_uuid_object().bytes,
-]
-
-
-def get_dataframe_not_nested(size=1):
-    if size > len(BINARY_COLUMNS):
-        n_gen = size - len(BINARY_COLUMNS)
-        binaries = BINARY_COLUMNS + [
-            _to_binary(x)
-            for x in range(len(BINARY_COLUMNS), n_gen + len(BINARY_COLUMNS))
-        ]
-    else:
-        binaries = BINARY_COLUMNS[:size]
-
+def get_dataframe_not_nested():
     return pd.DataFrame(
         {
-            "bool": pd.Series(
-                [1] * int(np.floor(size / 2)) + [0] * int(np.ceil(size / 2)),
-                dtype=np.bool,
-            ),
-            "int8": pd.Series(range(size), dtype=np.int8),
-            "int16": pd.Series(range(size), dtype=np.int16),
-            "int32": pd.Series(range(size), dtype=np.int32),
-            "int64": pd.Series(range(size), dtype=np.int64),
-            "uint8": pd.Series(range(size), dtype=np.uint8),
-            "uint16": pd.Series(range(size), dtype=np.uint16),
-            "uint32": pd.Series(range(size), dtype=np.uint32),
-            "uint64": pd.Series(range(size), dtype=np.uint64),
-            "float32": pd.Series([float(x) for x in range(size)], dtype=np.float32),
-            "float64": pd.Series([float(x) for x in range(size)], dtype=np.float64),
-            "date": pd.Series(
-                [datetime.date(2018, 1, x % 31 + 1) for x in range(1, size + 1)],
-                dtype=object,
-            ),
-            "datetime64": pd.Series(
-                [datetime.datetime(2018, 1, x % 31 + 1) for x in range(1, size + 1)],
-                dtype="datetime64[ns]",
-            ),
-            "unicode": pd.Series([str(x) for x in range(size)], dtype=np.unicode),
-            "null": pd.Series([None] * size, dtype=object),
-            "bytes": pd.Series(binaries, dtype=np.object),
+            "bool": pd.Series([1], dtype=np.bool),
+            "int8": pd.Series([1], dtype=np.int8),
+            "int16": pd.Series([1], dtype=np.int16),
+            "int32": pd.Series([1], dtype=np.int32),
+            "int64": pd.Series([1], dtype=np.int64),
+            "uint8": pd.Series([1], dtype=np.uint8),
+            "uint16": pd.Series([1], dtype=np.uint16),
+            "uint32": pd.Series([1], dtype=np.uint32),
+            "uint64": pd.Series([1], dtype=np.uint64),
+            "float32": pd.Series([1.0], dtype=np.float32),
+            "float64": pd.Series([1.0], dtype=np.float64),
+            "date": pd.Series([date(2018, 1, 1)], dtype=object),
+            "datetime64": pd.Series(["2018-01-01"], dtype="datetime64[ns]"),
+            "unicode": pd.Series(["Ö"], dtype=np.unicode),
+            "null": pd.Series([None], dtype=object),
+            # Adding a byte type with value as byte sequence which can not be encoded as UTF8
+            "byte": pd.Series([gen_uuid_object().bytes], dtype=object),
         }
     ).sort_index(axis=1)
 
