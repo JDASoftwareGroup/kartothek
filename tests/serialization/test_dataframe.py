@@ -584,7 +584,7 @@ def test_predicate_pushdown_null_col(
     ],
 )
 @predicate_serialisers
-@pytest.mark.parametrize("predicate_pushdown_to_io", [False])
+@pytest.mark.parametrize("predicate_pushdown_to_io", [True, False])
 def test_predicate_parsing_null_values(
     store, df, op, value, expected_index, predicate_pushdown_to_io, serialiser
 ):
