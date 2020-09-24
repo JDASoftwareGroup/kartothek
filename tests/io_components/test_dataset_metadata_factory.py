@@ -3,11 +3,12 @@ from copy import copy
 from functools import partial
 
 import pytest
+from simplekv import KeyValueStore
 
 from kartothek.core.factory import DatasetFactory
 
 
-class CountStore:
+class CountStore(KeyValueStore):
     def __init__(self, inner):
         self.inner = inner
         self.get_count = 0

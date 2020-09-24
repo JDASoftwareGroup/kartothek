@@ -7,7 +7,7 @@ update of the content of existing partitions.
 
 
 from kartothek.core.index import PartitionIndex
-from kartothek.io_components.utils import _instantiate_store
+from kartothek.core.utils import ensure_store
 from kartothek.io_components.write import store_dataset_from_partitions
 
 
@@ -29,7 +29,7 @@ def update_dataset_from_partitions(
     metadata,
     metadata_merger,
 ):
-    store = _instantiate_store(store_factory)
+    store = ensure_store(store_factory)
 
     if ds_factory:
         ds_factory = ds_factory.load_all_indices()

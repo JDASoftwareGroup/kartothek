@@ -5,14 +5,12 @@ Setup a store
 
 .. ipython:: python
 
-    from storefact import get_store_from_url
-    from functools import partial
     from tempfile import TemporaryDirectory
 
     # You can, of course, also directly use S3, ABS or anything else
     # supported by :mod:`storefact`
     dataset_dir = TemporaryDirectory()
-    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+    store_url = f"hfs://{dataset_dir.name}"
 
 
 .. ipython:: python
@@ -34,14 +32,12 @@ Setup a store
     }
 
     store_dataframes_as_dataset(
-        store=store_factory, dataset_uuid=dataset_uuid, dfs=[df], metadata=metadata
+        store=store_url, dataset_uuid=dataset_uuid, dfs=[df], metadata=metadata
     )
 
     # Load your data
     # By default the single dataframe is stored in the 'core' table
-    df_from_store = read_table(
-        store=store_factory, dataset_uuid=dataset_uuid, table="table"
-    )
+    df_from_store = read_table(store=store_url, dataset_uuid=dataset_uuid, table="table")
     df_from_store
 
 
@@ -77,7 +73,7 @@ Write
     #  which refers to the created dataset
     dataset = store_dataframes_as_dataset(
         dfs=input_list_of_partitions,
-        store=store_factory,
+        store=store_url,
         dataset_uuid="MyFirstDataset",
         metadata={"dataset": "metadata"},  #  This is optional dataset metadata
         metadata_version=4,
@@ -95,7 +91,7 @@ Read
 
     #  Create the pipeline with a minimal set of configs
     list_of_partitions = read_dataset_as_dataframes(
-        dataset_uuid="MyFirstDataset", store=store_factory
+        dataset_uuid="MyFirstDataset", store=store_url
     )
 
     # In case you were using the dataset created in the Write example
@@ -139,7 +135,7 @@ Write
     #  which refers to the created dataset
     dataset = store_dataframes_as_dataset__iter(
         input_list_of_partitions,
-        store=store_factory,
+        store=store_url,
         dataset_uuid="MyFirstDatasetIter",
         metadata={"dataset": "metadata"},  #  This is optional dataset metadata
         metadata_version=4,
@@ -156,7 +152,7 @@ Read
 
     #  Create the pipeline with a minimal set of configs
     list_of_partitions = read_dataset_as_dataframes__iterator(
-        dataset_uuid="MyFirstDatasetIter", store=store_factory
+        dataset_uuid="MyFirstDatasetIter", store=store_url
     )
     # the iter backend returns a generator object. In our case we want to look at
     # all partitions at once
@@ -203,7 +199,7 @@ Write
     # show the generated task graph.
     task = store_delayed_as_dataset(
         input_list_of_partitions,
-        store=store_factory,
+        store=store_url,
         dataset_uuid="MyFirstDatasetDask",
         metadata={"dataset": "metadata"},  #  This is optional dataset metadata
         metadata_version=4,
@@ -225,6 +221,6 @@ Read
     import pandas as pd
     from kartothek.io.dask.delayed import read_dataset_as_delayed
 
-    tasks = read_dataset_as_delayed(dataset_uuid="MyFirstDatasetDask", store=store_factory)
+    tasks = read_dataset_as_delayed(dataset_uuid="MyFirstDatasetDask", store=store_url)
     tasks
     dask.compute(tasks)

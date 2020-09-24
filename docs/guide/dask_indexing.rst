@@ -10,15 +10,13 @@ Calculating a dask index is usually a very expensive operation which requires da
 
     import numpy as np
     import pandas as pd
-    from functools import partial
     from tempfile import TemporaryDirectory
-    from storefact import get_store_from_url
 
     from kartothek.io.eager import store_dataframes_as_dataset
 
     dataset_dir = TemporaryDirectory()
 
-    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+    store_url = f"hfs://{dataset_dir.name}"
 
     df = pd.DataFrame(
         {
@@ -51,10 +49,10 @@ Calculating a dask index is usually a very expensive operation which requires da
         ddf_indexed.reset_index(),
         table="table",
         dataset_uuid="dataset_ddf_with_index",
-        store=store_factory,
+        store=store_url,
         partition_on="B",
     ).compute()
 
     read_dataset_as_ddf(
-        dataset_uuid=dm.uuid, store=store_factory, dask_index_on="B", table="table"
+        dataset_uuid=dm.uuid, store=store_url, dask_index_on="B", table="table"
     )

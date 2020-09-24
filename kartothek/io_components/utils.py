@@ -1,7 +1,6 @@
 """
 This module is a collection of helper functions
 """
-
 import collections
 import inspect
 import logging
@@ -12,6 +11,7 @@ import pandas as pd
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.factory import _ensure_factory
+from kartothek.core.utils import ensure_store, lazy_store
 
 signature = inspect.signature
 
@@ -103,13 +103,6 @@ def _combine_metadata(dataset_metadata, append_to_list):
             return InvalidObject()
 
 
-def _instantiate_store(store):
-    if callable(store):
-        return store()
-    else:
-        return store
-
-
 def _ensure_compatible_indices(dataset, secondary_indices):
     if dataset:
         ds_secondary_indices = list(dataset.secondary_indices.keys())
@@ -158,7 +151,7 @@ def validate_partition_keys(
     partition_on,
     load_dataset_metadata=True,
 ):
-    if ds_factory or DatasetMetadata.exists(dataset_uuid, _instantiate_store(store)):
+    if ds_factory or DatasetMetadata.exists(dataset_uuid, ensure_store(store)):
         ds_factory = _ensure_factory(
             dataset_uuid=dataset_uuid,
             store=store,
@@ -185,15 +178,34 @@ def validate_partition_keys(
     return ds_factory, ds_metadata_version, partition_on
 
 
-_ARGS_TO_TYPE = {
-    "partition_on": list,
-    "delete_scope": list,
-    "secondary_indices": list,
-    "dispatch_by": list,
-}
+_NORMALIZE_ARGS = [
+    "partition_on",
+    "delete_scope",
+    "secondary_indices",
+    "dispatch_by",
+    "store",
+]
 
 
 def normalize_arg(arg_name, old_value):
+    """
+    Normalizes an argument according to pre-defined types
+
+    Type A:
+
+    * "partition_on"
+    * "delete_scope"
+    * "secondary_indices"
+    * "dispatch_by"
+
+    will be converted to a list. If it is None, an empty list will be created
+
+    Type B:
+    * "store"
+
+    Will be converted to a callable returning
+    """
+
     def _make_list(_args):
         if isinstance(_args, (str, bytes, int, float)):
             return [_args]
@@ -205,25 +217,21 @@ def normalize_arg(arg_name, old_value):
             )
         return list(_args)
 
-    type_to_normalize = {list: _make_list}
-    args_to_normalize = {
-        arg: type_to_normalize[type_] for arg, type_ in _ARGS_TO_TYPE.items()
-    }
+    if arg_name in ["partition_on", "delete_scope", "secondary_indices", "dispatch_by"]:
+        if old_value is None:
+            return []
+        elif isinstance(old_value, list):
+            return old_value
+        else:
+            return _make_list(old_value)
 
-    new_value = None
-    if isinstance(old_value, _ARGS_TO_TYPE[arg_name]):
-        return old_value
-    elif old_value is None:
-        new_value = _ARGS_TO_TYPE[arg_name]()
-    elif not isinstance(old_value, _ARGS_TO_TYPE[arg_name]):
-        new_value = args_to_normalize[arg_name](old_value)
-    else:
-        raise ValueError(
-            "Encountered unknown type `({}, {})` for parameter `{}`".format(
-                old_value, type(old_value), arg_name
-            )
-        )
-    return new_value
+    if arg_name in ["store"]:
+        if old_value is None:
+            return None
+        else:
+            return lazy_store(old_value)
+
+    return old_value
 
 
 @decorator.decorator
@@ -231,7 +239,7 @@ def normalize_args(function, *args, **kwargs):
     sig = signature(function)
 
     def _wrapper(*args, **kwargs):
-        for arg_name in _ARGS_TO_TYPE.keys():
+        for arg_name in _NORMALIZE_ARGS:
             if arg_name in sig.parameters.keys():
 
                 ix = inspect.getfullargspec(function).args.index(arg_name)

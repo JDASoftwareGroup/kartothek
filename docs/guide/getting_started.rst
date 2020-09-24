@@ -63,7 +63,7 @@ what follows is the filepath).
 
     dataset_dir = TemporaryDirectory()
 
-    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+    store_url = f"hfs://{dataset_dir.name}"
 
 .. admonition:: Storage locations
 
@@ -73,13 +73,6 @@ what follows is the filepath).
     - ``hfs``: Local filesystem
     - ``hazure``: AzureBlockBlobStorage
     - ``hs3``:  BotoStore (Amazon S3)
-
-.. admonition:: Store factories
-
-    The reason ``store_factory`` is defined as a ``partial`` callable with the store
-    information as arguments is because, when using distributed computing backends in
-    Kartothek, the connections of the store cannot be safely transferred between
-    processes and thus we pass storage information to workers as a factory function.
 
 Interface
 ---------
@@ -109,7 +102,7 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
     df.dtypes.equals(another_df.dtypes)  # both have the same schema
 
     dm = store_dataframes_as_dataset(
-        store_factory, "a_unique_dataset_identifier", [df, another_df]
+        store_url, "a_unique_dataset_identifier", [df, another_df]
     )
 
 
@@ -187,7 +180,7 @@ For example,
 
     @verbatim
     In [24]: store_dataframes_as_dataset(
-       ....:     store_factory,
+       ....:     store_url,
        ....:     "will_not_work",
        ....:     [df, df2],
        ....: )
@@ -231,7 +224,7 @@ default table name ``table`` and generates a UUID for the partition name.
             },
         ]
 
-        dm = store_dataframes_as_dataset(store_factory, dataset_uuid="two-tables", dfs=dfs)
+        dm = store_dataframes_as_dataset(store_url, dataset_uuid="two-tables", dfs=dfs)
         dm.tables
 
 
@@ -246,7 +239,7 @@ table of the dataset as a pandas DataFrame.
 
     from kartothek.io.eager import read_table
 
-    read_table("a_unique_dataset_identifier", store_factory, table="table")
+    read_table("a_unique_dataset_identifier", store_url, table="table")
 
 
 We can also read a dataframe iteratively, using
@@ -259,7 +252,7 @@ represent the `tables` of the dataset. For example,
     from kartothek.io.iter import read_dataset_as_dataframes__iterator
 
     for partition_index, df_dict in enumerate(
-        read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_factory)
+        read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_url)
     ):
         print(f"Partition #{partition_index}")
         for table_name, table_df in df_dict.items():
@@ -284,9 +277,7 @@ function but returns a collection of ``dask.delayed`` objects.
     .. ipython:: python
 
         # Read only values table `core-table` where `f` < 2.5
-        read_table(
-            "two-tables", store_factory, table="core-table", predicates=[[("f", "<", 2.5)]]
-        )
+        read_table("two-tables", store_url, table="core-table", predicates=[[("f", "<", 2.5)]])
 
 
 For a deeper dive into Kartothek you can take a look at

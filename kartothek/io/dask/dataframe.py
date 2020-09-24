@@ -246,6 +246,7 @@ def update_dataset_from_ddf(
     """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
+    store = normalize_arg("store", store)
     delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
 
     if table is None:
@@ -313,6 +314,8 @@ def update_dataset_from_ddf(
     )
 
 
+@default_docs
+@normalize_args
 def collect_dataset_metadata(
     store: Optional[Callable[[], KeyValueStore]] = None,
     dataset_uuid: Optional[str] = None,
@@ -333,12 +336,6 @@ def collect_dataset_metadata(
 
     Parameters
     ----------
-    store
-      A factory function providing a KeyValueStore
-    dataset_uuid
-      The dataset's unique identifier
-    table_name
-      Name of the kartothek table for which to retrieve the statistics
     predicates
       Kartothek predicates to apply filters on the data for which to gather statistics
 
@@ -348,8 +345,6 @@ def collect_dataset_metadata(
 
     frac
       Fraction of the total number of partitions to use for gathering statistics. `frac == 1.0` will use all partitions.
-    factory
-       A DatasetFactory holding the store and UUID to the source dataset.
 
     Returns
     -------
@@ -417,6 +412,7 @@ def _hash_partition(part):
 
 
 @default_docs
+@normalize_args
 def hash_dataset(
     store: Optional[Callable[[], KeyValueStore]] = None,
     dataset_uuid: Optional[str] = None,

@@ -2,13 +2,13 @@
 Changelog
 =========
 
-Version 3.14.x (unreleased)
+Version 3.15.0 (unreleased)
 ===========================
 
 Improvements
 ^^^^^^^^^^^^
 * Reduce memory consumption during index write.
-
+* Allow `simplekv` stores and `storefact` URLs to be passed explicitly as input for the `store` arguments
 
 Version 3.14.0 (2020-08-27)
 ===========================

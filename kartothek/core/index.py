@@ -8,7 +8,6 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
-from simplekv import KeyValueStore
 from toolz.itertoolz import partition_all
 
 import kartothek.core._time
@@ -16,7 +15,9 @@ from kartothek.core import naming
 from kartothek.core._mixins import CopyMixin
 from kartothek.core.common_metadata import normalize_type
 from kartothek.core.docs import default_docs
+from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import quote
+from kartothek.core.utils import lazy_store
 from kartothek.serialization import (
     PredicatesType,
     check_predicates,
@@ -657,7 +658,7 @@ class ExplicitSecondaryIndex(IndexBase):
         else:
             return ExplicitSecondaryIndex(column=column, index_dct=dct_or_str)
 
-    def store(self, store: KeyValueStore, dataset_uuid: str) -> str:
+    def store(self, store: StoreInput, dataset_uuid: str) -> str:
         """
         Store the index as a parquet file
 
@@ -674,6 +675,7 @@ class ExplicitSecondaryIndex(IndexBase):
         dataset_uuid:
         """
         storage_key = None
+        store = lazy_store(store)()
 
         if (
             self.index_storage_key is not None
@@ -714,7 +716,7 @@ class ExplicitSecondaryIndex(IndexBase):
         store.put(storage_key, buf.getvalue().to_pybytes())
         return storage_key
 
-    def load(self, store: KeyValueStore):
+    def load(self, store: StoreInput):
         """
         Load an external index into memory. Returns a new index object that
         contains the index dictionary. Returns itself if the index is internal
@@ -731,6 +733,7 @@ class ExplicitSecondaryIndex(IndexBase):
         """
         if self.loaded:
             return self
+        store = lazy_store(store)()
 
         index_buffer = store.get(self.index_storage_key)
         index_dct, column_type = _parquet_bytes_to_dict(self.column, index_buffer)
