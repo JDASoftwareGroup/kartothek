@@ -360,6 +360,8 @@ def _normalize_value(value, pa_type, column_name=None):
             return value.decode("utf-8")
         elif isinstance(value, str):
             return value
+        elif value is None:
+            return value
     elif pa.types.is_binary(pa_type):
         if isinstance(value, bytes):
             return value
@@ -448,12 +450,12 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
 
     # TODO: What to do for "<=", "<", ">", ">=" np.nan?
     if op == "==":
-        if np.isnan(val):
+        if pd.isnull(val):
             return parquet_statistics.null_count > 0
         else:
             return (min_value <= val) and (max_value >= val)
     elif op == "!=":
-        if np.isnan(val):
+        if pd.isnull(val):
             return parquet_statistics.null_count < row_meta.num_rows
         else:
             return not ((min_value >= val) and (max_value <= val))
@@ -471,8 +473,9 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
         # We accept the predicate if there is any value in the provided array which is equal to or between
         # the parquet min and max statistics. Otherwise, it is rejected.
         for x in val:
-            if np.isnan(x) and parquet_statistics.null_count > 0:
-                return True
+            if pd.isnull(x):
+                if parquet_statistics.null_count > 0:
+                    return True
             elif min_value <= x <= max_value:
                 return True
         return False
