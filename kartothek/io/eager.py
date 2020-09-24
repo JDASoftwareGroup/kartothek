@@ -679,7 +679,7 @@ def update_dataset_from_dataframes(
     partition_on: Optional[List[str]] = None,
     load_dynamic_metadata: bool = True,
     sort_partitions_by: Optional[str] = None,
-    secondary_indices: List[str] = None,
+    secondary_indices: Optional[List[str]] = None,
     factory: Optional[DatasetFactory] = None,
 ) -> DatasetMetadata:
     """

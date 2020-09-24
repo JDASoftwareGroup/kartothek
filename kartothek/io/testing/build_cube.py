@@ -16,7 +16,7 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.io.eager import store_dataframes_as_dataset
-from kartothek.io_components.cube.write import MultiTableCommitException
+from kartothek.io_components.cube.write import MultiTableCommitAborted
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
 __all__ = (
@@ -650,7 +650,7 @@ def test_fail_wrong_types(driver, function_store):
         uuid_prefix="cube",
         seed_dataset="source",
     )
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source, "enrich": df_enrich},
             cube=cube,
@@ -714,7 +714,7 @@ def test_fail_nondistinc_payload(driver, function_store):
         uuid_prefix="cube",
         seed_dataset="source",
     )
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source, "enrich": df_enrich},
             cube=cube,
@@ -958,7 +958,7 @@ def test_fail_all_empty(driver, driver_name, function_store):
     ).loc[[]]
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="cube")
 
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(data=df, cube=cube, store=function_store)
     exc = exc_info.value.__cause__
     assert isinstance(exc, ValueError)
@@ -1013,7 +1013,7 @@ def test_overwrite_rollback_ktk_cube(driver, function_store):
     df_enrich2 = pd.DataFrame(
         {"x": [10, 11], "p": [10, 10], "v1": [20, 21], "i4": [20, 21]}
     )
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source2, "enrich": df_enrich2},
             cube=cube,
@@ -1101,7 +1101,7 @@ def test_overwrite_rollback_ktk(driver, function_store):
             "i4": [20, 21],
         }
     )
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source2, "enrich": df_enrich2},
             cube=cube,
@@ -1433,7 +1433,7 @@ def test_fail_partition_on_nondistinc_payload(driver, function_store):
         uuid_prefix="cube",
         seed_dataset="source",
     )
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source, "enrich": df_enrich},
             cube=cube,

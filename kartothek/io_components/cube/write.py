@@ -401,7 +401,7 @@ def multiplex_user_input(data, cube):
     return data
 
 
-class MultiTableCommitException(Exception):
+class MultiTableCommitAborted(RuntimeError):
     pass
 
 
@@ -452,7 +452,7 @@ def apply_postwrite_checks(datasets, cube, store, existing_datasets):
             existing_datasets=existing_datasets, new_datasets=datasets, store=store
         )
 
-        raise MultiTableCommitException(
+        raise MultiTableCommitAborted(
             "Post commit check failed. Operation rolled back."
         ) from e
 

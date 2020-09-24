@@ -5,7 +5,7 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.io.eager_cube import build_cube
-from kartothek.io_components.cube.write import MultiTableCommitException
+from kartothek.io_components.cube.write import MultiTableCommitAborted
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
 __all__ = (
@@ -91,7 +91,7 @@ def test_fails_incompatible_dtypes(driver, function_store, existing_cube):
             "i3": [100, 101, 102, 103],
         }
     )
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(data={"extra": df}, cube=existing_cube, store=function_store)
     cause = exc_info.value.__cause__
     assert isinstance(cause, ValueError)
@@ -280,7 +280,7 @@ def test_fail_all_empty(driver, function_store, existing_cube):
         {"x": [0, 1, 2, 3], "p": [0, 0, 1, 1], "v": [10, 11, 12, 13]}
     ).loc[[]]
 
-    with pytest.raises(MultiTableCommitException) as exc_info:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(data={"extra": df}, cube=existing_cube, store=function_store)
     exc = exc_info.value.__cause__
     assert isinstance(exc, ValueError)

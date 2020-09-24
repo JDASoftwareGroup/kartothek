@@ -11,7 +11,7 @@ import pandas.testing as pdt
 import pytest
 
 from kartothek.core.factory import DatasetFactory
-from kartothek.io.dask._update import _KTK_HASH_BUCKET, _hash_bucket
+from kartothek.io.dask._shuffle import _KTK_HASH_BUCKET, _hash_bucket
 from kartothek.io.dask.dataframe import update_dataset_from_ddf
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
 from kartothek.io.testing.update import *  # noqa
@@ -241,74 +241,15 @@ def test_update_shuffle_buckets(
         assert len(df.primary.unique()) == 1
         assert df.sorted_column.is_monotonic
 
-    # update the dataset
-    # do not use partition_on since it should be interfered from the existing dataset
-    tasks = update_dataset_from_ddf(
-        ddf,
-        store_factory,
-        dataset_uuid="output_dataset_uuid",
-        table="core",
-        shuffle=True,
-        repartition_ratio=repartition,
-        num_buckets=num_buckets,
-        sort_partitions_by="sorted_column",
-        default_metadata_version=metadata_version,
-        bucket_by=bucket_by,
-    )
 
-    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
-    tasks = pickle.loads(s)
-
-    updated_dataset = tasks.compute()
-
-    assert len(updated_dataset.partitions) == 2 * len(dataset.partitions)
-
-    # Not allowed to use different partition_on
-    with pytest.raises(
-        ValueError, match="Incompatible set of partition keys encountered."
-    ):
-        update_dataset_from_ddf(
-            ddf,
-            store_factory,
-            dataset_uuid="output_dataset_uuid",
-            table="core",
-            shuffle=True,
-            repartition_ratio=repartition,
-            partition_on=["sorted_column"],
-            num_buckets=num_buckets,
-            sort_partitions_by="sorted_column",
-            default_metadata_version=metadata_version,
-        )
-
-    # Not allowed to update with indices which do not yet exist in dataset
-    with pytest.raises(ValueError, match="indices"):
-        update_dataset_from_ddf(
-            ddf,
-            store_factory,
-            dataset_uuid="output_dataset_uuid",
-            table="core",
-            shuffle=True,
-            partition_on=["primary"],
-            repartition_ratio=repartition,
-            secondary_indices=["sorted_column"],
-            num_buckets=num_buckets,
-            sort_partitions_by="sorted_column",
-            default_metadata_version=metadata_version,
-        )
-
+def test_delayed_as_delete_scope(store_factory, df_all_types):
     # Check that delayed objects are allowed as delete scope.
     tasks = update_dataset_from_ddf(
-        None,
+        dd.from_pandas(df_all_types, npartitions=1),
         store_factory,
         dataset_uuid="output_dataset_uuid",
         table="core",
-        shuffle=True,
-        repartition_ratio=repartition,
-        num_buckets=num_buckets,
-        sort_partitions_by="sorted_column",
-        default_metadata_version=metadata_version,
         delete_scope=dask.delayed(_return_none)(),
-        bucket_by=bucket_by,
     )
 
     s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)

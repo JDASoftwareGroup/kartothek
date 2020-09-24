@@ -4,14 +4,16 @@ This module is a collection of helper functions
 import collections
 import inspect
 import logging
-from typing import Callable, List, Optional, Union
+from typing import Callable, List, Optional, TypeVar, Union, overload
 
 import decorator
 import pandas as pd
+from typing_extensions import Literal
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.factory import _ensure_factory
-from kartothek.core.utils import ensure_store, lazy_store
+from kartothek.core.typing import StoreFactory, StoreInput
+from kartothek.core.utils import ensure_store
 
 signature = inspect.signature
 
@@ -178,13 +180,40 @@ def validate_partition_keys(
     return ds_factory, ds_metadata_version, partition_on
 
 
-_NORMALIZE_ARGS = [
+_NORMALIZE_ARGS_LIST = [
     "partition_on",
     "delete_scope",
     "secondary_indices",
+    "sort_partitions_by",
+    "bucket_by",
     "dispatch_by",
-    "store",
 ]
+
+_NORMALIZE_ARGS = _NORMALIZE_ARGS_LIST + ["store"]
+
+T = TypeVar("T")
+
+
+@overload
+def normalize_arg(
+    arg_name: Literal[
+        "partition_on",
+        "delete_scope",
+        "secondary_indices",
+        "bucket_by",
+        "sort_partitions_by",
+        "dispatch_by",
+    ],
+    old_value: Optional[Union[T, List[T]]],
+) -> List[T]:
+    ...
+
+
+@overload
+def normalize_arg(
+    arg_name: Literal["store"], old_value: Optional[StoreInput]
+) -> StoreFactory:
+    ...
 
 
 def normalize_arg(arg_name, old_value):
@@ -217,19 +246,13 @@ def normalize_arg(arg_name, old_value):
             )
         return list(_args)
 
-    if arg_name in ["partition_on", "delete_scope", "secondary_indices", "dispatch_by"]:
+    if arg_name in _NORMALIZE_ARGS_LIST:
         if old_value is None:
             return []
         elif isinstance(old_value, list):
             return old_value
         else:
             return _make_list(old_value)
-
-    if arg_name in ["store"]:
-        if old_value is None:
-            return None
-        else:
-            return lazy_store(old_value)
 
     return old_value
 
