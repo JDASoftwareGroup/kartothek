@@ -448,7 +448,7 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
         min_value -= _epsilon(min_value)
         max_value += _epsilon(max_value)
 
-    # TODO: What to do for "<=", "<", ">", ">=" np.nan?
+    # op can only be "==" or "!=" for scalar null values.
     if op == "==":
         if pd.isnull(val):
             return parquet_statistics.null_count > 0
