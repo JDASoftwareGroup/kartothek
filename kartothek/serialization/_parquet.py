@@ -445,10 +445,18 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     if isinstance(val, float):
         min_value -= _epsilon(min_value)
         max_value += _epsilon(max_value)
+
+    # TODO: What to do for "<=", "<", ">", ">=" np.nan?
     if op == "==":
-        return (min_value <= val) and (max_value >= val)
+        if np.isnan(val):
+            return parquet_statistics.null_count > 0
+        else:
+            return (min_value <= val) and (max_value >= val)
     elif op == "!=":
-        return not ((min_value >= val) and (max_value <= val))
+        if np.isnan(val):
+            return parquet_statistics.null_count < row_meta.num_rows
+        else:
+            return not ((min_value >= val) and (max_value <= val))
     elif op == "<=":
         return min_value <= val
     elif op == ">=":
@@ -463,7 +471,9 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
         # We accept the predicate if there is any value in the provided array which is equal to or between
         # the parquet min and max statistics. Otherwise, it is rejected.
         for x in val:
-            if min_value <= x <= max_value:
+            if np.isnan(x) and parquet_statistics.null_count > 0:
+                return True
+            elif min_value <= x <= max_value:
                 return True
         return False
     else:
