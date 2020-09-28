@@ -3,7 +3,9 @@ Common functionality required to implement cube write functionality.
 """
 import itertools
 from copy import copy
+from typing import Dict, Iterable, Optional, Sequence, Tuple
 
+import dask.dataframe as dd
 import pandas as pd
 from pandas.api.types import is_sparse
 
@@ -15,6 +17,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
     KTK_CUBE_METADATA_VERSION,
 )
+from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadataBuilder
 from kartothek.core.naming import metadata_key_from_uuid
 from kartothek.core.uuid import gen_uuid
@@ -125,7 +128,37 @@ def prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata):
     return ds_metadata
 
 
-def _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on):
+def assert_dimesion_index_cols_notnull(
+    df: pd.DataFrame, ktk_cube_dataset_id: str, cube: Cube, partition_on: Sequence[str]
+) -> pd.DataFrame:
+    """
+    Assert that index and dimesion columns are not NULL and raise an appropriate error if so.
+
+    .. note::
+
+        Indices for plain non-cube dataset drop null during index build!
+    """
+
+    df_columns_set = set(df.columns)
+    dcols_present = set(cube.dimension_columns) & df_columns_set
+    icols_present = set(cube.index_columns) & df_columns_set
+
+    for cols, what in (
+        (partition_on, "partition"),
+        (dcols_present, "dimension"),
+        (icols_present, "index"),
+    ):
+        for col in sorted(cols):
+            if df[col].isnull().any():
+                raise ValueError(
+                    'Found NULL-values in {what} column "{col}" of dataset "{ktk_cube_dataset_id}"'.format(
+                        col=col, ktk_cube_dataset_id=ktk_cube_dataset_id, what=what
+                    )
+                )
+    return df
+
+
+def check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on):
     """
     Check user-provided DataFrame for sanity.
 
@@ -149,7 +182,7 @@ def _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on
     """
     if df is None:
         return
-    if not isinstance(df, pd.DataFrame):
+    if not (isinstance(df, pd.DataFrame) or isinstance(df, dd.DataFrame)):
         raise TypeError(
             'Provided DataFrame is not a pandas.DataFrame or None, but is a "{t}"'.format(
                 t=type(df).__name__
@@ -162,7 +195,6 @@ def _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on
     df_columns = list(df.columns)
     df_columns_set = set(df_columns)
     dcols_present = set(cube.dimension_columns) & df_columns_set
-    icols_present = set(cube.index_columns) & df_columns_set
 
     if len(df_columns) != len(df_columns_set):
         raise ValueError(
@@ -201,18 +233,15 @@ def _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on
             )
         )
 
-    for cols, what in (
-        (partition_on, "partition"),
-        (dcols_present, "dimension"),
-        (icols_present, "index"),
-    ):
-        for col in sorted(cols):
-            if df[col].isnull().any():
-                raise ValueError(
-                    'Found NULL-values in {what} column "{col}" of dataset "{ktk_cube_dataset_id}"'.format(
-                        col=col, ktk_cube_dataset_id=ktk_cube_dataset_id, what=what
-                    )
-                )
+    # Factor this check out. All others can be performed on the dask.DataFrame.
+    # This one can only be executed on a pandas DataFame
+    if isinstance(df, pd.DataFrame):
+        assert_dimesion_index_cols_notnull(
+            ktk_cube_dataset_id=ktk_cube_dataset_id,
+            df=df,
+            cube=cube,
+            partition_on=partition_on,
+        )
 
     payload = get_payload_subset(df.columns, cube)
     payload_overlap = payload & existing_payload
@@ -291,7 +320,7 @@ def prepare_data_for_ktk(
     ValueError
         In case anything is fishy.
     """
-    _check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on)
+    check_user_df(ktk_cube_dataset_id, df, cube, existing_payload, partition_on)
 
     if (df is None) or df.empty:
         # fast-path for empty DF
@@ -372,6 +401,10 @@ def multiplex_user_input(data, cube):
     return data
 
 
+class MultiTableCommitAborted(RuntimeError):
+    """An Error occured during the commit of a MultiTable dataset (Cube) causing a rollback."""
+
+
 def apply_postwrite_checks(datasets, cube, store, existing_datasets):
     """
     Apply sanity checks that can only be done after Kartothek has written its datasets.
@@ -401,8 +434,9 @@ def apply_postwrite_checks(datasets, cube, store, existing_datasets):
         empty_datasets = {
             ktk_cube_dataset_id
             for ktk_cube_dataset_id, ds in datasets.items()
-            if SINGLE_TABLE not in ds.table_meta
+            if SINGLE_TABLE not in ds.table_meta or len(ds.partitions) == 0
         }
+
         if empty_datasets:
             raise ValueError(
                 "Cannot write empty datasets: {empty_datasets}".format(
@@ -418,7 +452,9 @@ def apply_postwrite_checks(datasets, cube, store, existing_datasets):
             existing_datasets=existing_datasets, new_datasets=datasets, store=store
         )
 
-        raise e
+        raise MultiTableCommitAborted(
+            "Post commit check failed. Operation rolled back."
+        ) from e
 
     return datasets
 
@@ -521,22 +557,26 @@ def _rollback_transaction(existing_datasets, new_datasets, store):
             )
 
 
-def prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on):
+def prepare_ktk_partition_on(
+    cube: Cube,
+    ktk_cube_dataset_ids: Iterable[str],
+    partition_on: Optional[Dict[str, Iterable[str]]],
+) -> Dict[str, Tuple[str, ...]]:
     """
     Prepare ``partition_on`` values for kartothek.
 
     Parameters
     ----------
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    ktk_cube_dataset_ids: Iterable[str]
+    ktk_cube_dataset_ids:
         ktk_cube_dataset_ids announced by the user.
-    partition_on: Optional[Dict[str, Iterable[str]]]
+    partition_on:
         Optional parition-on attributes for datasets.
 
     Returns
     -------
-    partition_on: Dict[str, Tuple[str, ...]]
+    partition_on:
         Partition-on per dataset.
 
     Raises

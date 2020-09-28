@@ -673,11 +673,74 @@ def test_partition_on_null(store_factory, bound_update_dataset):  # gh-262
     )
 
     with pytest.raises(
-        Exception, match=r"Original dataframe size .* on a column with null values.",
+        Exception, match=r"Original dataframe size .* on a column with null values."
     ):
         bound_update_dataset(
             [{"data": {"table": df}}],
             store=store_factory,
             dataset_uuid="a_unique_dataset_identifier",
             partition_on=["part"],
+        )
+
+
+def test_update_infers_partition_on(store_factory, bound_update_dataset, df_not_nested):
+    dataset_uuid = "dataset_uuid"
+
+    dataset = bound_update_dataset(
+        [{"data": {"table": df_not_nested}}],
+        dataset_uuid=dataset_uuid,
+        store=store_factory,
+        partition_on=df_not_nested.columns[0],
+    )
+    # update the dataset
+    # do not use partition_on since it should be interfered from the existing dataset
+
+    updated_dataset = bound_update_dataset(
+        [{"data": {"table": df_not_nested}}],
+        dataset_uuid=dataset_uuid,
+        store=store_factory,
+    )
+
+    assert len(updated_dataset.partitions) == 2 * len(dataset.partitions)
+
+
+def test_update_raises_incompatible_partition_keys(
+    store_factory, bound_update_dataset, df_not_nested
+):
+    dataset_uuid = "dataset_uuid"
+    bound_update_dataset(
+        [{"data": {"table": df_not_nested}}],
+        dataset_uuid=dataset_uuid,
+        store=store_factory,
+        partition_on=df_not_nested.columns[0],
+    )
+    # Not allowed to use different partition_on
+    with pytest.raises(
+        ValueError, match="Incompatible set of partition keys encountered."
+    ):
+        bound_update_dataset(
+            [{"data": {"table": df_not_nested}}],
+            dataset_uuid=dataset_uuid,
+            store=store_factory,
+            partition_on=df_not_nested.columns[1],
+        )
+
+
+def test_update_raises_incompatible_inidces(
+    store_factory, bound_update_dataset, df_not_nested
+):
+    dataset_uuid = "dataset_uuid"
+    bound_update_dataset(
+        [{"data": {"table": df_not_nested}}],
+        dataset_uuid=dataset_uuid,
+        store=store_factory,
+        secondary_indices=df_not_nested.columns[0],
+    )
+    # Not allowed to update with indices which do not yet exist in dataset
+    with pytest.raises(ValueError, match="indices"):
+        bound_update_dataset(
+            [{"data": {"table": df_not_nested}}],
+            dataset_uuid=dataset_uuid,
+            store=store_factory,
+            secondary_indices=df_not_nested.columns[1],
         )

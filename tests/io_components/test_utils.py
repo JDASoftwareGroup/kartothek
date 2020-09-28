@@ -218,6 +218,34 @@ def test_sort_cateogrical():
     assert all(sorted_df["cat"].cat.categories == sorted(categories))
 
 
+def test_sort_cateogrical_multiple_cols():
+    df = pd.DataFrame.from_records(
+        [
+            {"ColA": "B", "ColB": "Z", "Payload": 1},
+            {"ColA": "B", "ColB": "A", "Payload": 2},
+            {"ColA": "A", "ColB": "A", "Payload": 3},
+            {"ColA": "C", "ColB": "Z", "Payload": 4},
+        ]
+    )
+    df_expected = df.copy().sort_values(by=["ColA", "ColB"]).reset_index(drop=True)
+    df = df.astype({col: "category" for col in ["ColA", "ColB"]})
+    # Correct order
+    # {"ColA": "A", "ColB": "A", "Payload": 3},
+    # {"ColA": "B", "ColB": "A", "Payload": 2},
+    # {"ColA": "B", "ColB": "Z", "Payload": 1},
+    # {"ColA": "C", "ColB": "Z", "Payload": 4},
+    df_expected = df_expected.astype(
+        {
+            "ColA": pd.CategoricalDtype(categories=["A", "B", "C"], ordered=True),
+            "ColB": pd.CategoricalDtype(categories=["A", "Z"], ordered=True),
+        }
+    )
+
+    sorted_df = sort_values_categorical(df, ["ColA", "ColB"])
+
+    pdt.assert_frame_equal(sorted_df, df_expected)
+
+
 def test_sort_categorical_pyarrow_conversion():
     """
     Make sure sorting does not introduce indices that end up in the Arrow table.

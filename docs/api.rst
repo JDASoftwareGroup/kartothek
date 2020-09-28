@@ -100,6 +100,7 @@ This is the most user friendly interface of the dask containers and offers direc
 .. autosummary::
 
     read_dataset_as_ddf
+    store_dataset_from_ddf
     update_dataset_from_ddf
     collect_dataset_metadata
     hash_dataset

@@ -7,7 +7,7 @@ import warnings
 from collections import defaultdict, namedtuple
 from copy import copy
 from functools import wraps
-from typing import Any, Dict, Iterable, Iterator, Optional, cast
+from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Set, Union, cast
 
 import numpy as np
 import pandas as pd
@@ -1216,7 +1216,7 @@ class MetaPartition(Iterable):
             return mp
 
     @_apply_to_list
-    def build_indices(self, columns):
+    def build_indices(self, columns: Iterable[str]):
         """
         This builds the indices for this metapartition for the given columns. The indices for the passed columns
         are rebuilt, so exisiting index entries in the metapartition are overwritten.
@@ -1230,9 +1230,10 @@ class MetaPartition(Iterable):
 
         new_indices = {}
         for col in columns:
-            possible_values = set()
+            possible_values: Set[str] = set()
             col_in_partition = False
             for df in self.data.values():
+
                 if col in df:
                     possible_values = possible_values | set(df[col].dropna().unique())
                     col_in_partition = True
@@ -1267,7 +1268,7 @@ class MetaPartition(Iterable):
         return self.copy(indices=new_indices)
 
     @_apply_to_list
-    def partition_on(self, partition_on):
+    def partition_on(self, partition_on: Union[str, Sequence[str]]):
         """
         Partition all dataframes assigned to this MetaPartition according the the given columns.
 
