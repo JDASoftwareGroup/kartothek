@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 3.15.1 (2020-09-28)
+===========================
+* Fix a packaging issue where `typing_extensions` was not properly specified as
+  a requirement for python versions below 3.8
+
 Version 3.15.0 (2020-09-28)
 ===========================
 
