@@ -2,20 +2,20 @@
 Changelog
 =========
 
-Version 3.15.0 (unreleased)
+Version 3.15.0 (2020-09-28)
 ===========================
 
 New functionality
 ^^^^^^^^^^^^^^^^^
-* Add :func:``~kartothek.io.dask.dataframe.store_dataset_from_ddf`` to offer write
+* Add :func:`~kartothek.io.dask.dataframe.store_dataset_from_ddf` to offer write
   support of a dask dataframe without update support. This forbids or explicitly
   allows overwrites and does not update existing datasets.
 * The ``sort_partitions_by`` feature now supports multiple columns. While this
   has only marginal effect for predicate pushdown, it may be used to improve the
   parquet compression.
 * ``build_cube_from_dataframe`` now supports the ``shuffle`` methods offered by
-  :func:``~kartothek.io.dask.dataframe.store_dataset_from_ddf`` and
-  :func:``~kartothek.io.dask.dataframe.update_dataset_from_ddf`` but writes the
+  :func:`~kartothek.io.dask.dataframe.store_dataset_from_ddf` and
+  :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf` but writes the
   output in the cube format
 
 Improvements
