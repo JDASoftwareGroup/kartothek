@@ -60,6 +60,11 @@ def read_dataset_as_metapartitions__iterator(
     ----------
 
     """
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
 
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
@@ -159,6 +164,12 @@ def read_dataset_as_dataframes__iterator(
             {'core': pd.DataFrame, 'lookup': pd.DataFrame}
         ]
     """
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     mp_iter = read_dataset_as_metapartitions__iterator(
         dataset_uuid=dataset_uuid,
         store=store,

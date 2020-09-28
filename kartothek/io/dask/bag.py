@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import warnings
 from collections import defaultdict
 from functools import partial
 
@@ -68,6 +69,12 @@ def read_dataset_as_metapartitions_bag(
     -------
     A dask.bag object containing the metapartions.
     """
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -151,6 +158,12 @@ def read_dataset_as_dataframe_bag(
     dask.bag
         A dask.bag which contains the metapartitions and mapped to a function for retrieving the data.
     """
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     mps = read_dataset_as_metapartitions_bag(
         dataset_uuid=dataset_uuid,
         store=store,

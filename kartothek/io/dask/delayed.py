@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
-
-
+import warnings
 from collections import defaultdict
 from functools import partial
 
@@ -271,6 +270,12 @@ def read_dataset_as_delayed_metapartitions(
     ----------
 
     """
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -352,6 +357,12 @@ def read_dataset_as_delayed(
     Parameters
     ----------
     """
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     mps = read_dataset_as_delayed_metapartitions(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -404,6 +415,12 @@ def read_table_as_delayed(
     Parameters
     ----------
     """
+    if table is not SINGLE_TABLE or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     if not isinstance(columns, dict):
         columns = {table: columns}
     mps = read_dataset_as_delayed_metapartitions(

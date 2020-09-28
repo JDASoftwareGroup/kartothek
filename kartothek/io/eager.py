@@ -124,6 +124,12 @@ def read_dataset_as_dataframes(
 
     """
 
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=_make_callable(store),
@@ -191,6 +197,12 @@ def read_dataset_as_metapartitions(
         >>> list_mps = read_dataset_as_metapartitions('dataset_uuid', store, 'core')
 
     """
+
+    if tables is not None or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
 
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
@@ -279,6 +291,13 @@ def read_table(
         >>> df = read_table(store, 'dataset_uuid', 'core')
 
     """
+
+    if table is not SINGLE_TABLE or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     if concat_partitions_on_primary_index is not False:
         warnings.warn(
             "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release.",

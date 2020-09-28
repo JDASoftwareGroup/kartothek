@@ -66,6 +66,12 @@ def read_dataset_as_ddf(
 
         For details on performance, see also `dispatch_by`
     """
+    if table is not SINGLE_TABLE or isinstance(columns, dict):
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     if dask_index_on is not None and not isinstance(dask_index_on, str):
         raise TypeError(
             f"The paramter `dask_index_on` must be a string but got {type(dask_index_on)}"
@@ -244,6 +250,12 @@ def update_dataset_from_ddf(
 
             Only columns with data types which can be hashed are allowed to be used in this.
     """
+    if table is not SINGLE_TABLE:
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
     delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
@@ -369,6 +381,12 @@ def collect_dataset_metadata(
       If no metadata could be retrieved, raise an error.
 
     """
+    if table_name is not SINGLE_TABLE:
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     if not 0.0 < frac <= 1.0:
         raise ValueError(
             f"Invalid value for parameter `frac`: {frac}."
@@ -451,6 +469,12 @@ def hash_dataset(
     group_key:
         If provided, calculate hash per group instead of per partition
     """
+    if table is not SINGLE_TABLE:
+        warnings.warn(
+            "Deprecation Warning: Multi-table support will be deprecated in upcoming major release.",
+            DeprecationWarning,
+        )
+
     dataset_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
