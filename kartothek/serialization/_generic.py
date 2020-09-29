@@ -206,7 +206,7 @@ def check_predicates(predicates: PredicatesType) -> None:
                 raise ValueError(
                     f"Invalid predicates: Clause {clause_idx} in conjunction {conjunction_idx} "
                     f"with null value and operator {op}. Only operators supporting null values "
-                    "are '==' and '!='."
+                    "are '==', '!=' and 'in'."
                 )
 
 

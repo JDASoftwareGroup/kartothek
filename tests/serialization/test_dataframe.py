@@ -607,6 +607,27 @@ def test_predicate_parsing_null_values(
 
 
 @pytest.mark.parametrize(
+    "op, value", [("<", np.nan), ("<=", np.nan), (">", np.nan), (">=", np.nan)]
+)
+@predicate_serialisers
+@pytest.mark.parametrize("predicate_pushdown_to_io", [True, False])
+def test_predicate_parsing_null_values_failing(
+    store, op, value, predicate_pushdown_to_io, serialiser
+):
+    df = pd.DataFrame({"u": pd.Series([1.0, np.nan])})
+    key = serialiser.store(store, "prefix", df)
+
+    predicates = [[(df.columns[0], op, value)]]
+    with pytest.raises(ValueError, match="Only operators supporting null values"):
+        serialiser.restore_dataframe(
+            store,
+            key,
+            predicate_pushdown_to_io=predicate_pushdown_to_io,
+            predicates=predicates,
+        )
+
+
+@pytest.mark.parametrize(
     "column, expected_null_count",
     [
         ("no_nulls_int", (0, 0, 0)),
