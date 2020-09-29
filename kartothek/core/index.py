@@ -17,7 +17,7 @@ from kartothek.core.common_metadata import normalize_type
 from kartothek.core.docs import default_docs
 from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import quote
-from kartothek.core.utils import lazy_store
+from kartothek.core.utils import ensure_store
 from kartothek.serialization import (
     PredicatesType,
     check_predicates,
@@ -675,7 +675,7 @@ class ExplicitSecondaryIndex(IndexBase):
         dataset_uuid:
         """
         storage_key = None
-        store = lazy_store(store)()
+        store = ensure_store(store)
 
         if (
             self.index_storage_key is not None
@@ -733,7 +733,8 @@ class ExplicitSecondaryIndex(IndexBase):
         """
         if self.loaded:
             return self
-        store = lazy_store(store)()
+
+        store = ensure_store(store)
 
         index_buffer = store.get(self.index_storage_key)
         index_dct, column_type = _parquet_bytes_to_dict(self.column, index_buffer)

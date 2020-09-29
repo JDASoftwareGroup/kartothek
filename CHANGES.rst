@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 3.15.2 (2020-09-29)
+===========================
+* Fix a regression which would not allow the usage of non serializable stores even when using factories
+
+
 Version 3.15.1 (2020-09-28)
 ===========================
 * Fix a packaging issue where `typing_extensions` was not properly specified as
