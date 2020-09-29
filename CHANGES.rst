@@ -2,8 +2,15 @@
 Changelog
 =========
 
-Version 3.15.2 (2020-09-29)
+Version 3.16.0 (2020-09-29)
 ===========================
+
+New functionality
+^^^^^^^^^^^^^^^^^
+* Allow filtering of nans using "==", "!=" and "in" operators
+
+Bugfixes
+^^^^^^^^
 * Fix a regression which would not allow the usage of non serializable stores even when using factories
 
 
