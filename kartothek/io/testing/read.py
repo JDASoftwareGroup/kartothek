@@ -33,12 +33,14 @@ The following fixtures should be present (see tests.read.conftest)
 
 import datetime
 from distutils.version import LooseVersion
+from functools import partial
 from itertools import permutations
 
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
+from storefact import get_store_from_url
 
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import store_dataframes_as_dataset
@@ -84,6 +86,82 @@ def _strip_unused_categoricals(df):
         if pd.api.types.is_categorical_dtype(df[col]):
             df[col] = df[col].cat.remove_unused_categories()
     return df
+
+
+class NoPickle:
+    def __getstate__(self):
+        raise RuntimeError("do NOT pickle this object!")
+
+
+def mark_nopickle(obj):
+    setattr(obj, "_nopickle", NoPickle())
+
+
+def no_pickle_store(url):
+    store = get_store_from_url(url)
+    mark_nopickle(store)
+    return store
+
+
+def no_pickle_factory(url):
+
+    return partial(no_pickle_store, url)
+
+
+@pytest.fixture(params=["URL", "KeyValue", "Callable"])
+def store_input_types(request, tmpdir):
+    url = f"hfs://{tmpdir}"
+
+    if request.param == "URL":
+        return url
+    elif request.param == "KeyValue":
+        return get_store_from_url(url)
+    elif request.param == "Callable":
+        return no_pickle_factory(url)
+    else:
+        raise RuntimeError(f"Encountered unknown store type {type(request.param)}")
+
+
+def test_store_input_types(store_input_types, bound_load_dataframes):
+    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.serialization.testing import get_dataframe_not_nested
+
+    dataset_uuid = "dataset_uuid"
+    df = get_dataframe_not_nested(10)
+
+    store_dataframes_as_dataset(
+        dfs=[df],
+        dataset_uuid=dataset_uuid,
+        store=store_input_types,
+        partition_on=[df.columns[0]],
+        secondary_indices=[df.columns[1]],
+    )
+
+    # Use predicates to trigger partition pruning with indices
+    predicates = [
+        [
+            (df.columns[0], "==", df.loc[0, df.columns[0]]),
+            (df.columns[1], "==", df.loc[0, df.columns[1]]),
+        ]
+    ]
+
+    result = bound_load_dataframes(
+        dataset_uuid=dataset_uuid,
+        store=store_input_types,
+        predicates=predicates,
+        dates_as_object=True,
+    )
+
+    if isinstance(result, list):
+        result = result[0]
+
+    if isinstance(result, MetaPartition):
+        result = result.data
+
+    if isinstance(result, dict):
+        result = result[SINGLE_TABLE]
+
+    pdt.assert_frame_equal(result, df.head(1), check_dtype=False)
 
 
 def _perform_read_test(

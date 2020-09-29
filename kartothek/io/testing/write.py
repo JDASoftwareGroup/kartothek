@@ -4,17 +4,68 @@
 
 import string
 from collections import OrderedDict
+from functools import partial
 
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 import pytest
+from storefact import get_store_from_url
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.metapartition import MetaPartition
 from kartothek.serialization import DataFrameSerializer
+
+
+class NoPickle:
+    def __getstate__(self):
+        raise RuntimeError("do NOT pickle this object!")
+
+
+def mark_nopickle(obj):
+    setattr(obj, "_nopickle", NoPickle())
+
+
+def no_pickle_store(url):
+    store = get_store_from_url(url)
+    mark_nopickle(store)
+    return store
+
+
+def no_pickle_factory(url):
+
+    return partial(no_pickle_store, url)
+
+
+@pytest.fixture(params=["URL", "KeyValue", "Callable"])
+def store_input_types(request, tmpdir):
+    url = f"hfs://{tmpdir}"
+
+    if request.param == "URL":
+        return url
+    elif request.param == "KeyValue":
+        return get_store_from_url(url)
+    elif request.param == "Callable":
+        return no_pickle_factory(url)
+    else:
+        raise RuntimeError(f"Encountered unknown store type {type(request.param)}")
+
+
+def test_store_input_types(store_input_types, bound_store_dataframes):
+    from kartothek.serialization.testing import get_dataframe_not_nested
+
+    dataset_uuid = "dataset_uuid"
+    df = get_dataframe_not_nested(10)
+
+    assert bound_store_dataframes(
+        [df],
+        dataset_uuid=dataset_uuid,
+        store=store_input_types,
+        partition_on=[df.columns[0]],
+        secondary_indices=[df.columns[1]],
+    )
 
 
 def test_file_structure_dataset_v4(store_factory, bound_store_dataframes):
