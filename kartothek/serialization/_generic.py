@@ -190,7 +190,7 @@ def check_predicates(predicates: PredicatesType) -> None:
                     f"Invalid predicates: Clause {clause_idx} in conjunction {conjunction_idx} "
                     f"should be a 3-tuple, got object of type {type(clause)} instead"
                 )
-            _, _, val = clause
+            _, op, val = clause
             if (
                 isinstance(val, list)
                 and any(_check_contains_null(v) for v in val)
@@ -198,6 +198,16 @@ def check_predicates(predicates: PredicatesType) -> None:
             ):
                 raise NotImplementedError(
                     "Null-terminated binary strings are not supported as predicate values."
+                )
+            if (
+                pd.api.types.is_scalar(val)
+                and pd.isnull(val)
+                and op not in ["==", "!="]
+            ):
+                raise ValueError(
+                    f"Invalid predicates: Clause {clause_idx} in conjunction {conjunction_idx} "
+                    f"with null value and operator {op}. Only operators supporting null values "
+                    "are '==', '!=' and 'in'."
                 )
 
 
@@ -457,9 +467,15 @@ def filter_array_like(
 
     with np.errstate(invalid="ignore"):
         if op == "==":
-            np.logical_and(array_like == value, mask, out=out)
+            if pd.isnull(value):
+                np.logical_and(pd.isnull(array_like), mask, out=out)
+            else:
+                np.logical_and(array_like == value, mask, out=out)
         elif op == "!=":
-            np.logical_and(array_like != value, mask, out=out)
+            if pd.isnull(value):
+                np.logical_and(~pd.isnull(array_like), mask, out=out)
+            else:
+                np.logical_and(array_like != value, mask, out=out)
         elif op == "<=":
             np.logical_and(array_like <= value, mask, out=out)
         elif op == ">=":
@@ -470,12 +486,18 @@ def filter_array_like(
             np.logical_and(array_like > value, mask, out=out)
         elif op == "in":
             value = np.asarray(value)
-            np.logical_and(
+
+            matching_idx = (
                 np.isin(array_like, value)
                 if len(value) > 0
-                else np.zeros(len(array_like), dtype=bool),
-                mask,
-                out=out,
+                else np.zeros(len(array_like), dtype=bool)
+            )
+
+            if any(pd.isnull(value)):
+                matching_idx |= pd.isnull(array_like)
+
+            np.logical_and(
+                matching_idx, mask, out=out,
             )
         else:
             raise NotImplementedError("op not supported")

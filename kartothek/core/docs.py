@@ -135,6 +135,10 @@ _PARAMETER_MAPPING = {
 
         Available operators are: `==`, `!=`, `<=`, `>=`, `<`, `>` and `in`.
 
+        Filtering for missings is supported with operators `==`, `!=` and
+        `in` and values `np.nan` and `None` for float and string columns
+        respectively.
+
         .. admonition:: Categorical data
 
             When using order sensitive operators on categorical data we will
