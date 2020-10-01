@@ -511,7 +511,8 @@ def collect_dataset_metadata(
                     mp, store=dataset_factory.store_factory, table_name=table_name
                 )
                 for mp in mps
-            ]
+            ],
+            meta=_METADATA_SCHEMA,
         )
     else:
         df = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
