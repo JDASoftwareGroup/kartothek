@@ -4,9 +4,11 @@ Changelog
 
 Version 3.16.1 (2020-10-??)
 ===========================
+
 * Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would return
   improper rowgroup statistics
-
+* Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would execute
+  ``get_parquet_metadata`` at graph construction time
 
 Version 3.16.0 (2020-09-29)
 ===========================
