@@ -486,14 +486,30 @@ def filter_array_like(
             np.logical_and(array_like > value, mask, out=out)
         elif op == "in":
             value = np.asarray(value)
+            nullmask = pd.isnull(value)
+            if value.dtype.kind in ("U", "S", "O"):
+                # See GH358
 
-            matching_idx = (
-                np.isin(array_like, value)
-                if len(value) > 0
-                else np.zeros(len(array_like), dtype=bool)
-            )
+                # If the values include duplicates, this would blow up with the
+                # join below, rendering the mask useless
+                unique_vals = np.unique(value[~nullmask])
+                value_ser = pd.Series(unique_vals, name="value")
+                arr_ser = pd.Series(array_like, name="array").to_frame()
+                matching_idx = (
+                    ~arr_ser.merge(
+                        value_ser, left_on="array", right_on="value", how="left"
+                    )
+                    .value.isna()
+                    .values
+                )
+            else:
+                matching_idx = (
+                    np.isin(array_like, value)
+                    if len(value) > 0
+                    else np.zeros(len(array_like), dtype=bool)
+                )
 
-            if any(pd.isnull(value)):
+            if any(nullmask):
                 matching_idx |= pd.isnull(array_like)
 
             np.logical_and(
