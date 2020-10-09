@@ -1585,50 +1585,28 @@ class MetaPartition(Iterable):
         if table_name in self.files:
             with store.open(self.files[table_name]) as fd:  # type: ignore
                 pq_metadata = pa.parquet.ParquetFile(fd).metadata
-            try:
-                metadata_dict = pq_metadata.to_dict()
-            except AttributeError:  # No data in file
-                metadata_dict = None
-                data = {
-                    "partition_label": self.label,
-                    "serialized_size": pq_metadata.serialized_size,
-                    "number_rows_total": pq_metadata.num_rows,
-                    "number_row_groups": pq_metadata.num_row_groups,
-                    "row_group_id": [0],
-                    "number_rows_per_row_group": [0],
-                    "row_group_compressed_size": [0],
-                    "row_group_uncompressed_size": [0],
-                }
 
-            if metadata_dict:
-                # Note: could just parse this entire dict into a pandas dataframe, w/o the below processing
-                data = {
-                    "partition_label": self.label,
-                    "serialized_size": metadata_dict["serialized_size"],
-                    "number_rows_total": metadata_dict["num_rows"],
-                    "number_row_groups": metadata_dict["num_row_groups"],
-                    "row_group_id": [],
-                    "number_rows_per_row_group": [],
-                    "row_group_compressed_size": [],
-                    "row_group_uncompressed_size": [],
-                }
-
-                for row_group_id, row_group_metadata in enumerate(
-                    metadata_dict["row_groups"]
-                ):
-                    data["row_group_id"].append(row_group_id)
-                    data["number_rows_per_row_group"].append(
-                        row_group_metadata["num_rows"]
+            data = {
+                "partition_label": self.label,
+                "serialized_size": pq_metadata.serialized_size,
+                "number_rows_total": pq_metadata.num_rows,
+                "number_row_groups": pq_metadata.num_row_groups,
+                "row_group_id": [],
+                "number_rows_per_row_group": [],
+                "row_group_compressed_size": [],
+                "row_group_uncompressed_size": [],
+            }
+            for rg_ix in range(pq_metadata.num_row_groups):
+                rg = pq_metadata.row_group(rg_ix)
+                data["row_group_id"].append(rg_ix)
+                data["number_rows_per_row_group"].append(rg.num_rows)
+                data["row_group_compressed_size"].append(rg.total_byte_size)
+                data["row_group_uncompressed_size"].append(
+                    sum(
+                        rg.column(col_ix).total_uncompressed_size
+                        for col_ix in range(rg.num_columns)
                     )
-                    data["row_group_compressed_size"].append(
-                        row_group_metadata["total_byte_size"]
-                    )
-                    data["row_group_uncompressed_size"].append(
-                        sum(
-                            col["total_uncompressed_size"]
-                            for col in row_group_metadata["columns"]
-                        )
-                    )
+                )
 
         df = pd.DataFrame(data=data, columns=_METADATA_SCHEMA.keys())
         df = df.astype(_METADATA_SCHEMA)
