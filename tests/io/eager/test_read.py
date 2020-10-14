@@ -26,7 +26,8 @@ def output_type(request):
 
 def _read_table(*args, **kwargs):
     if "tables" in kwargs:
-        kwargs.pop("tables")
+        param_tables = kwargs.pop("tables")
+        kwargs["table"] = param_tables
     res = read_table(*args, **kwargs)
 
     if len(res):

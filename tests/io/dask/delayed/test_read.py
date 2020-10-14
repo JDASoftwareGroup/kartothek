@@ -23,7 +23,8 @@ def _load_dataframes(output_type, *args, **kwargs):
         func = read_dataset_as_delayed_metapartitions
     elif output_type == "table":
         if "tables" in kwargs:
-            kwargs.pop("tables")
+            param_tables = kwargs.pop("tables")
+            kwargs["table"] = param_tables
         func = partial(read_table_as_delayed)
     tasks = func(*args, **kwargs)
 
