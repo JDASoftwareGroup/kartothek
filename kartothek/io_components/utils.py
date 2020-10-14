@@ -1,17 +1,24 @@
 """
 This module is a collection of helper functions
 """
-
 import collections
 import inspect
 import logging
-from typing import Callable, Optional
+from typing import Callable, List, Optional, TypeVar, Union, overload
 
 import decorator
 import pandas as pd
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.factory import _ensure_factory
+from kartothek.core.typing import StoreFactory, StoreInput
+from kartothek.core.utils import ensure_store, lazy_store
+
+try:
+    from typing_extensions import Literal  # type: ignore
+except ImportError:
+    from typing import Literal  # type: ignore
+
 
 signature = inspect.signature
 
@@ -103,22 +110,15 @@ def _combine_metadata(dataset_metadata, append_to_list):
             return InvalidObject()
 
 
-def _instantiate_store(store):
-    if callable(store):
-        return store()
-    else:
-        return store
-
-
 def _ensure_compatible_indices(dataset, secondary_indices):
     if dataset:
         ds_secondary_indices = list(dataset.secondary_indices.keys())
 
         if secondary_indices and set(ds_secondary_indices) != set(secondary_indices):
             raise ValueError(
-                "Incorrect indices provided for dataset.\n"
-                "Expected: {}\n"
-                "But got: {}".format(ds_secondary_indices, secondary_indices)
+                f"Incorrect indices provided for dataset.\n"
+                f"Expected: {ds_secondary_indices}\n"
+                f"But got: {secondary_indices}"
             )
         return ds_secondary_indices
     else:
@@ -158,7 +158,7 @@ def validate_partition_keys(
     partition_on,
     load_dataset_metadata=True,
 ):
-    if ds_factory or DatasetMetadata.exists(dataset_uuid, _instantiate_store(store)):
+    if ds_factory or DatasetMetadata.exists(dataset_uuid, ensure_store(store)):
         ds_factory = _ensure_factory(
             dataset_uuid=dataset_uuid,
             store=store,
@@ -185,15 +185,61 @@ def validate_partition_keys(
     return ds_factory, ds_metadata_version, partition_on
 
 
-_ARGS_TO_TYPE = {
-    "partition_on": list,
-    "delete_scope": list,
-    "secondary_indices": list,
-    "dispatch_by": list,
-}
+_NORMALIZE_ARGS_LIST = [
+    "partition_on",
+    "delete_scope",
+    "secondary_indices",
+    "sort_partitions_by",
+    "bucket_by",
+    "dispatch_by",
+]
+
+_NORMALIZE_ARGS = _NORMALIZE_ARGS_LIST + ["store"]
+
+T = TypeVar("T")
+
+
+@overload
+def normalize_arg(
+    arg_name: Literal[
+        "partition_on",
+        "delete_scope",
+        "secondary_indices",
+        "bucket_by",
+        "sort_partitions_by",
+        "dispatch_by",
+    ],
+    old_value: Optional[Union[T, List[T]]],
+) -> List[T]:
+    ...
+
+
+@overload
+def normalize_arg(
+    arg_name: Literal["store"], old_value: Optional[StoreInput]
+) -> StoreFactory:
+    ...
 
 
 def normalize_arg(arg_name, old_value):
+    """
+    Normalizes an argument according to pre-defined types
+
+    Type A:
+
+    * "partition_on"
+    * "delete_scope"
+    * "secondary_indices"
+    * "dispatch_by"
+
+    will be converted to a list. If it is None, an empty list will be created
+
+    Type B:
+    * "store"
+
+    Will be converted to a callable returning
+    """
+
     def _make_list(_args):
         if isinstance(_args, (str, bytes, int, float)):
             return [_args]
@@ -205,25 +251,17 @@ def normalize_arg(arg_name, old_value):
             )
         return list(_args)
 
-    type_to_normalize = {list: _make_list}
-    args_to_normalize = {
-        arg: type_to_normalize[type_] for arg, type_ in _ARGS_TO_TYPE.items()
-    }
+    if arg_name in _NORMALIZE_ARGS_LIST:
+        if old_value is None:
+            return []
+        elif isinstance(old_value, list):
+            return old_value
+        else:
+            return _make_list(old_value)
+    elif arg_name == "store" and old_value is not None:
+        return lazy_store(old_value)
 
-    new_value = None
-    if isinstance(old_value, _ARGS_TO_TYPE[arg_name]):
-        return old_value
-    elif old_value is None:
-        new_value = _ARGS_TO_TYPE[arg_name]()
-    elif not isinstance(old_value, _ARGS_TO_TYPE[arg_name]):
-        new_value = args_to_normalize[arg_name](old_value)
-    else:
-        raise ValueError(
-            "Encountered unknown type `({}, {})` for parameter `{}`".format(
-                old_value, type(old_value), arg_name
-            )
-        )
-    return new_value
+    return old_value
 
 
 @decorator.decorator
@@ -231,7 +269,7 @@ def normalize_args(function, *args, **kwargs):
     sig = signature(function)
 
     def _wrapper(*args, **kwargs):
-        for arg_name in _ARGS_TO_TYPE.keys():
+        for arg_name in _NORMALIZE_ARGS:
             if arg_name in sig.parameters.keys():
 
                 ix = inspect.getfullargspec(function).args.index(arg_name)
@@ -330,21 +368,19 @@ def align_categories(dfs, categoricals):
     return return_dfs
 
 
-def sort_values_categorical(df, column):
+def sort_values_categorical(df: pd.DataFrame, columns: Union[List[str], str]):
     """
     Sort a dataframe lexicographically by the categories of column `column`
     """
-    if isinstance(column, list):
-        if len(column) == 1:
-            column = column[0]
-        else:
-            raise ValueError("Can only sort after a single column")
-    if pd.api.types.is_categorical_dtype(df[column]):
-        cat_accesor = df[column].cat
-        df[column] = cat_accesor.reorder_categories(
-            sorted(cat_accesor.categories), ordered=True
-        )
-    return df.sort_values(by=[column]).reset_index(drop=True)
+    if not isinstance(columns, list):
+        columns = [columns]
+    for col in columns:
+        if pd.api.types.is_categorical_dtype(df[col]):
+            cat_accesor = df[col].cat
+            df[col] = cat_accesor.reorder_categories(
+                sorted(cat_accesor.categories), ordered=True
+            )
+    return df.sort_values(by=columns).reset_index(drop=True)
 
 
 def check_single_table_dataset(dataset, expected_table=None):

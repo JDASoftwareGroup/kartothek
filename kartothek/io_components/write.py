@@ -1,7 +1,8 @@
-# -*- coding: utf-8 -*-
-
-
 from collections import defaultdict
+from functools import partial
+from typing import Any, Dict, Optional, Sequence, Union, cast
+
+import pandas as pd
 
 from kartothek.core import naming
 from kartothek.core.common_metadata import (
@@ -11,24 +12,69 @@ from kartothek.core.common_metadata import (
     validate_shared_columns,
 )
 from kartothek.core.dataset import DatasetMetadataBuilder
-from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
+from kartothek.core.index import ExplicitSecondaryIndex, IndexBase, PartitionIndex
 from kartothek.core.partition import Partition
+from kartothek.core.typing import StoreFactory, StoreInput
+from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
     MetaPartition,
+    parse_input_to_metapartition,
     partition_labels_from_mps,
 )
 from kartothek.io_components.utils import (
-    _instantiate_store,
     combine_metadata,
     extract_duplicates,
+    sort_values_categorical,
 )
+from kartothek.serialization import DataFrameSerializer
 
 SINGLE_CATEGORY = SINGLE_TABLE
 
 
-def persist_indices(store, dataset_uuid, indices):
-    store = _instantiate_store(store)
+def write_partition(
+    partition_df: Any,  # TODO: Establish typing for parse_input_to_metapartition
+    secondary_indices: Optional[Union[str, Sequence[str]]],
+    sort_partitions_by: Optional[Union[str, Sequence[str]]],
+    dataset_uuid: str,
+    partition_on: Optional[Union[str, Sequence[str]]],
+    store_factory: StoreFactory,
+    df_serializer: Optional[DataFrameSerializer],
+    metadata_version: int,
+    dataset_table_name: Optional[str] = None,
+) -> MetaPartition:
+    """
+    Write a dataframe to store, performing all necessary preprocessing tasks
+    like partitioning, bucketing (NotImplemented), indexing, etc. in the correct order.
+    """
+    store = ensure_store(store_factory)
+    if isinstance(partition_df, pd.DataFrame) and dataset_table_name:
+        parse_input = [{"data": {dataset_table_name: partition_df}}]
+    else:
+        parse_input = partition_df
+    # delete reference to enable release after partition_on; before index build
+    del partition_df
+    # I don't have access to the group values
+    mps = parse_input_to_metapartition(
+        parse_input,
+        metadata_version=metadata_version,
+        expected_secondary_indices=secondary_indices,
+    )
+    if sort_partitions_by:
+        mps = mps.apply(partial(sort_values_categorical, columns=sort_partitions_by))
+    if partition_on:
+        mps = mps.partition_on(partition_on)
+    if secondary_indices:
+        mps = mps.build_indices(secondary_indices)
+    return mps.store_dataframes(
+        store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer
+    )
+
+
+def persist_indices(
+    store: StoreInput, dataset_uuid: str, indices: Dict[str, IndexBase]
+) -> Dict[str, str]:
+    store = ensure_store(store)
     output_filenames = {}
     for column, index in indices.items():
         # backwards compat
@@ -43,6 +89,7 @@ def persist_indices(store, dataset_uuid, indices):
             )
         elif isinstance(index, PartitionIndex):
             continue
+        index = cast(ExplicitSecondaryIndex, index)
         output_filenames[column] = index.store(store=store, dataset_uuid=dataset_uuid)
     return output_filenames
 
@@ -96,7 +143,7 @@ def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid)
 
 def store_dataset_from_partitions(
     partition_list,
-    store,
+    store: StoreInput,
     dataset_uuid,
     dataset_metadata=None,
     metadata_merger=None,
@@ -104,7 +151,7 @@ def store_dataset_from_partitions(
     remove_partitions=None,
     metadata_storage_format=naming.DEFAULT_METADATA_STORAGE_FORMAT,
 ):
-    store = _instantiate_store(store)
+    store = ensure_store(store)
 
     if update_dataset:
         dataset_builder = DatasetMetadataBuilder.from_dataset(update_dataset)
@@ -236,7 +283,7 @@ def update_indices(dataset_builder, store, add_partitions, remove_partitions):
 
 def raise_if_dataset_exists(dataset_uuid, store):
     try:
-        store_instance = _instantiate_store(store)
+        store_instance = ensure_store(store)
         for form in ["msgpack", "json"]:
             key = naming.metadata_key_from_uuid(uuid=dataset_uuid, format=form)
             if key in store_instance:

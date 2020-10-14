@@ -22,7 +22,6 @@ from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
 def test_commit_dataset_from_metapartition(dataset_function, store):
-
     new_data = {
         "data": {
             SINGLE_TABLE: pd.DataFrame(

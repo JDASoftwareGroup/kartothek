@@ -1,8 +1,8 @@
 import logging
 
 from kartothek.core.dataset import DatasetMetadata
+from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import MetaPartition
-from kartothek.io_components.utils import _instantiate_store
 
 LOGGER = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ def align_datasets(left_dataset_uuid, right_dataset_uuid, store, match_how="exac
     list
 
     """
-    store = _instantiate_store(store)
+    store = ensure_store(store)
     left_dataset = DatasetMetadata.load_from_store(uuid=left_dataset_uuid, store=store)
     right_dataset = DatasetMetadata.load_from_store(
         uuid=right_dataset_uuid, store=store

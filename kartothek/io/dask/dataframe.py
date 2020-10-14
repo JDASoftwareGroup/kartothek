@@ -1,5 +1,14 @@
 import random
-from typing import Callable, Optional
+from typing import (
+    Callable,
+    Iterable,
+    List,
+    Mapping,
+    Optional,
+    SupportsFloat,
+    Union,
+    cast,
+)
 
 import dask
 import dask.dataframe as dd
@@ -11,6 +20,7 @@ from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
+from kartothek.core.typing import StoreFactory, StoreInput
 from kartothek.io.dask.compression import pack_payload, unpack_payload_pandas
 from kartothek.io_components.metapartition import (
     _METADATA_SCHEMA,
@@ -27,9 +37,14 @@ from kartothek.io_components.utils import (
     normalize_args,
     validate_partition_keys,
 )
-from kartothek.serialization import PredicatesType
+from kartothek.io_components.write import (
+    raise_if_dataset_exists,
+    store_dataset_from_partitions,
+    write_partition,
+)
+from kartothek.serialization import DataFrameSerializer, PredicatesType
 
-from ._update import update_dask_partitions_one_to_one, update_dask_partitions_shuffle
+from ._shuffle import shuffle_store_dask_partitions
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
 
@@ -140,29 +155,8 @@ def _get_dask_meta_for_dataset(
     return meta
 
 
-@default_docs
-def update_dataset_from_ddf(
-    ddf,
-    store=None,
-    dataset_uuid=None,
-    table=SINGLE_TABLE,
-    secondary_indices=None,
-    shuffle=False,
-    repartition_ratio=None,
-    num_buckets=1,
-    sort_partitions_by=None,
-    delete_scope=None,
-    metadata=None,
-    df_serializer=None,
-    metadata_merger=None,
-    default_metadata_version=DEFAULT_METADATA_VERSION,
-    partition_on=None,
-    factory=None,
-    bucket_by=None,
-):
-    """
-    Update a dataset from a dask.dataframe.
-
+def _shuffle_docs(func):
+    func.__doc__ += """
 
     .. admonition:: Behavior without ``shuffle==False``
 
@@ -243,40 +237,104 @@ def update_dataset_from_ddf(
         .. note::
 
             Only columns with data types which can be hashed are allowed to be used in this.
+"""
+    return func
+
+
+@default_docs
+@_shuffle_docs
+def store_dataset_from_ddf(
+    ddf: dd.DataFrame,
+    store: StoreInput,
+    dataset_uuid: str,
+    table: str = SINGLE_TABLE,
+    secondary_indices: Optional[List[str]] = None,
+    shuffle: bool = False,
+    repartition_ratio: Optional[SupportsFloat] = None,
+    num_buckets: int = 1,
+    sort_partitions_by: Optional[Union[List[str], str]] = None,
+    delete_scope: Optional[Iterable[Mapping[str, str]]] = None,
+    metadata: Optional[Mapping] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
+    metadata_merger: Optional[Callable] = None,
+    metadata_version: int = DEFAULT_METADATA_VERSION,
+    partition_on: Optional[List[str]] = None,
+    bucket_by: Optional[Union[List[str], str]] = None,
+    overwrite: bool = False,
+):
+    """
+    Store a dataset from a dask.dataframe.
     """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
+    sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
+    bucket_by = normalize_arg("bucket_by", bucket_by)
+    store = normalize_arg("store", store)
     delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
 
     if table is None:
         raise TypeError("The parameter `table` is not optional.")
-    ds_factory, metadata_version, partition_on = validate_partition_keys(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        default_metadata_version=default_metadata_version,
-        partition_on=partition_on,
-        ds_factory=factory,
+
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid, store=store, factory=None, load_dataset_metadata=True
     )
 
-    if ds_factory is not None:
-        check_single_table_dataset(ds_factory, table)
+    if not overwrite:
+        raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
+    mps = _write_dataframe_partitions(
+        ddf=ddf,
+        store=store,
+        dataset_uuid=dataset_uuid,
+        table=table,
+        secondary_indices=secondary_indices,
+        shuffle=shuffle,
+        repartition_ratio=repartition_ratio,
+        num_buckets=num_buckets,
+        sort_partitions_by=sort_partitions_by,
+        df_serializer=df_serializer,
+        metadata_version=metadata_version,
+        partition_on=partition_on,
+        bucket_by=bucket_by,
+    )
+    return dask.delayed(store_dataset_from_partitions)(
+        mps,
+        store=ds_factory.store_factory if ds_factory else store,
+        dataset_uuid=ds_factory.dataset_uuid if ds_factory else dataset_uuid,
+        dataset_metadata=metadata,
+        metadata_merger=metadata_merger,
+    )
 
+
+def _write_dataframe_partitions(
+    ddf: dd.DataFrame,
+    store: StoreFactory,
+    dataset_uuid: str,
+    table: str,
+    secondary_indices: List[str],
+    shuffle: bool,
+    repartition_ratio: Optional[SupportsFloat],
+    num_buckets: int,
+    sort_partitions_by: List[str],
+    df_serializer: Optional[DataFrameSerializer],
+    metadata_version: int,
+    partition_on: List[str],
+    bucket_by: List[str],
+) -> dd.Series:
     if repartition_ratio and ddf is not None:
         ddf = ddf.repartition(
             npartitions=int(np.ceil(ddf.npartitions / repartition_ratio))
         )
 
     if ddf is None:
-        mps = [
-            parse_input_to_metapartition(
-                None, metadata_version=default_metadata_version
-            )
-        ]
+        mps = dd.from_pandas(
+            pd.Series(
+                [parse_input_to_metapartition(None, metadata_version=metadata_version)]
+            ),
+            npartitions=1,
+        )
     else:
-        secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
-
         if shuffle:
-            mps = update_dask_partitions_shuffle(
+            mps = shuffle_store_dask_partitions(
                 ddf=ddf,
                 table=table,
                 secondary_indices=secondary_indices,
@@ -290,10 +348,8 @@ def update_dataset_from_ddf(
                 bucket_by=bucket_by,
             )
         else:
-            delayed_tasks = ddf.to_delayed()
-            delayed_tasks = [{"data": {table: task}} for task in delayed_tasks]
-            mps = update_dask_partitions_one_to_one(
-                delayed_tasks=delayed_tasks,
+            mps = ddf.map_partitions(
+                write_partition,
                 secondary_indices=secondary_indices,
                 metadata_version=metadata_version,
                 partition_on=partition_on,
@@ -301,7 +357,73 @@ def update_dataset_from_ddf(
                 df_serializer=df_serializer,
                 dataset_uuid=dataset_uuid,
                 sort_partitions_by=sort_partitions_by,
+                dataset_table_name=table,
+                meta=(MetaPartition),
             )
+    return mps
+
+
+@default_docs
+@_shuffle_docs
+def update_dataset_from_ddf(
+    ddf: dd.DataFrame,
+    store: Optional[StoreInput] = None,
+    dataset_uuid: Optional[str] = None,
+    table: str = SINGLE_TABLE,
+    secondary_indices: Optional[List[str]] = None,
+    shuffle: bool = False,
+    repartition_ratio: Optional[SupportsFloat] = None,
+    num_buckets: int = 1,
+    sort_partitions_by: Optional[Union[List[str], str]] = None,
+    delete_scope: Optional[Iterable[Mapping[str, str]]] = None,
+    metadata: Optional[Mapping] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
+    metadata_merger: Optional[Callable] = None,
+    default_metadata_version: int = DEFAULT_METADATA_VERSION,
+    partition_on: Optional[List[str]] = None,
+    factory: Optional[DatasetFactory] = None,
+    bucket_by: Optional[Union[List[str], str]] = None,
+):
+    """
+    Update a dataset from a dask.dataframe.
+    """
+    partition_on = normalize_arg("partition_on", partition_on)
+    secondary_indices = normalize_arg("secondary_indices", secondary_indices)
+    sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
+    bucket_by = normalize_arg("bucket_by", bucket_by)
+    store = normalize_arg("store", store)
+    delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
+
+    if table is None:
+        raise TypeError("The parameter `table` is not optional.")
+    ds_factory, metadata_version, partition_on = validate_partition_keys(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        default_metadata_version=default_metadata_version,
+        partition_on=partition_on,
+        ds_factory=factory,
+    )
+
+    _ensure_compatible_indices(ds_factory, secondary_indices)
+
+    if ds_factory is not None:
+        check_single_table_dataset(ds_factory, table)
+
+    mps = _write_dataframe_partitions(
+        ddf=ddf,
+        store=store,
+        dataset_uuid=dataset_uuid or ds_factory.dataset_uuid,
+        table=table,
+        secondary_indices=secondary_indices,
+        shuffle=shuffle,
+        repartition_ratio=repartition_ratio,
+        num_buckets=num_buckets,
+        sort_partitions_by=sort_partitions_by,
+        df_serializer=df_serializer,
+        metadata_version=metadata_version,
+        partition_on=cast(List[str], partition_on),
+        bucket_by=bucket_by,
+    )
     return dask.delayed(update_dataset_from_partitions)(
         mps,
         store_factory=store,
@@ -313,6 +435,8 @@ def update_dataset_from_ddf(
     )
 
 
+@default_docs
+@normalize_args
 def collect_dataset_metadata(
     store: Optional[Callable[[], KeyValueStore]] = None,
     dataset_uuid: Optional[str] = None,
@@ -333,12 +457,6 @@ def collect_dataset_metadata(
 
     Parameters
     ----------
-    store
-      A factory function providing a KeyValueStore
-    dataset_uuid
-      The dataset's unique identifier
-    table_name
-      Name of the kartothek table for which to retrieve the statistics
     predicates
       Kartothek predicates to apply filters on the data for which to gather statistics
 
@@ -348,8 +466,6 @@ def collect_dataset_metadata(
 
     frac
       Fraction of the total number of partitions to use for gathering statistics. `frac == 1.0` will use all partitions.
-    factory
-       A DatasetFactory holding the store and UUID to the source dataset.
 
     Returns
     -------
@@ -395,7 +511,8 @@ def collect_dataset_metadata(
                     mp, store=dataset_factory.store_factory, table_name=table_name
                 )
                 for mp in mps
-            ]
+            ],
+            meta=_METADATA_SCHEMA,
         )
     else:
         df = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
@@ -417,8 +534,9 @@ def _hash_partition(part):
 
 
 @default_docs
+@normalize_args
 def hash_dataset(
-    store: Optional[Callable[[], KeyValueStore]] = None,
+    store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,
     subset=None,
     group_key=None,

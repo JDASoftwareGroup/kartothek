@@ -36,7 +36,7 @@ first and store the data there with Kartothek:
 
     dataset_dir = TemporaryDirectory()
 
-    store_factory = partial(get_store_from_url, f"hfs://{dataset_dir.name}")
+    store_url = f"hfs://{dataset_dir.name}"
 
     df = pd.DataFrame(
         {
@@ -64,7 +64,7 @@ column all get written to the same partition. To do this, we use the
 .. ipython:: python
 
     dm = store_dataframes_as_dataset(
-        store_factory, "partitioned_dataset", [df], partition_on="B"
+        store_url, "partitioned_dataset", [df], partition_on="B"
     )
 
 Partitioning based on a date column ussually makes sense for timeseries data.
@@ -88,7 +88,7 @@ should be specified as a list:
     duplicate_df.F = "bar"
 
     dm = store_dataframes_as_dataset(
-        store_factory,
+        store_url,
         "another_partitioned_dataset",
         [df, duplicate_df],
         partition_on=["E", "F"],
@@ -118,7 +118,7 @@ For example:
     different_df.dtypes
 
     dm = store_dataframes_as_dataset(
-        store_factory,
+        store_url,
         "multiple_partitioned_tables",
         [{"data": {"table1": df, "table2": different_df}}],
         partition_on="B",
@@ -166,7 +166,7 @@ number of physical input partitions.
     ddf = dd.from_pandas(df, npartitions=10)
 
     dm = update_dataset_from_ddf(
-        ddf, dataset_uuid="no_shuffle", store=store_factory, partition_on="A", table="table"
+        ddf, dataset_uuid="no_shuffle", store=store_url, partition_on="A", table="table"
     ).compute()
     sorted(dm.partitions.keys())
 
@@ -185,7 +185,7 @@ partitioning values of A to be fused into a single file.
     dm = update_dataset_from_ddf(
         ddf,
         dataset_uuid="with_shuffle",
-        store=store_factory,
+        store=store_url,
         partition_on="A",
         shuffle=True,
         table="table",
@@ -233,7 +233,7 @@ When investigating the index, we can also see that a query for a given value in 
     dm = update_dataset_from_ddf(
         ddf,
         dataset_uuid="with_bucketing",
-        store=store_factory,
+        store=store_url,
         partition_on="A",
         shuffle=True,
         table="table",
@@ -243,7 +243,7 @@ When investigating the index, we can also see that a query for a given value in 
     ).compute()
     sorted(dm.partitions.keys())
 
-    dm = dm.load_index("B", store_factory())
+    dm = dm.load_index("B", store_url)
 
     sorted(dm.indices["B"].eval_operator("==", 1))
 

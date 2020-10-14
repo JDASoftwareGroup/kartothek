@@ -30,6 +30,7 @@ from kartothek.io_components.cube.stats import (
     reduce_stats,
 )
 from kartothek.io_components.cube.write import (
+    MultiTableCommitAborted,
     apply_postwrite_checks,
     check_datasets_prebuild,
     check_datasets_preextend,
@@ -659,10 +660,13 @@ def _prepare_data_for_ktk_all(data, cube, existing_payload, partition_on):
         if part.is_sentinel
     }
     if empty_datasets:
-        raise ValueError(
+        cause = ValueError(
             "Cannot write empty datasets: {empty_datasets}".format(
                 empty_datasets=", ".join(sorted(empty_datasets))
             )
         )
+        exc = MultiTableCommitAborted("Aborting commit.")
+        exc.__cause__ = cause
+        raise exc
 
     return data

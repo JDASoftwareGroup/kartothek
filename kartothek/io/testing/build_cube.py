@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
@@ -17,6 +16,7 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io_components.cube.write import MultiTableCommitAborted
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
 __all__ = (
@@ -127,9 +127,7 @@ def test_simple_two_datasets(driver, function_store):
     assert isinstance(ds_source.indices["p"], PartitionIndex)
     assert isinstance(ds_source.indices["x"], ExplicitSecondaryIndex)
 
-    assert set(ds_enrich.indices.keys()) == {
-        "p",
-    }
+    assert set(ds_enrich.indices.keys()) == {"p"}
     assert isinstance(ds_enrich.indices["p"], PartitionIndex)
 
     assert set(ds_source.table_meta) == {SINGLE_TABLE}
@@ -236,7 +234,7 @@ def test_parquet(driver, function_store):
             .rename(columns={"föö".encode("utf8"): "föö"})
         )
 
-        pdt.assert_frame_equal(df_actual, df_expected)
+        pdt.assert_frame_equal(df_actual.reset_index(drop=True), df_expected)
 
 
 def test_fail_sparse(driver, driver_name, function_store):
@@ -546,10 +544,12 @@ def test_empty_df(driver, function_store, empty_first):
     )  # DS metadata, "x" index, common metadata, 1 partition
 
 
-def test_fail_duplicates_local(driver, function_store):
+def test_fail_duplicates_local(driver, driver_name, function_store):
     """
     Might happen during DB queries.
     """
+    if driver_name == "dask_dataframe":
+        pytest.xfail(reason="Cannot guarantee duplicates for DDF")
     df = pd.DataFrame(
         {
             "x": [0, 0],
@@ -650,13 +650,16 @@ def test_fail_wrong_types(driver, function_store):
         uuid_prefix="cube",
         seed_dataset="source",
     )
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source, "enrich": df_enrich},
             cube=cube,
             store=function_store,
         )
-    assert 'Found incompatible entries for column "x"' in str(exc.value)
+
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, ValueError)
+    assert 'Found incompatible entries for column "x"' in str(cause)
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("source"), function_store())
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("enrich"), function_store())
 
@@ -711,13 +714,15 @@ def test_fail_nondistinc_payload(driver, function_store):
         uuid_prefix="cube",
         seed_dataset="source",
     )
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source, "enrich": df_enrich},
             cube=cube,
             store=function_store,
         )
-    assert "Found columns present in multiple datasets" in str(exc.value)
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, ValueError)
+    assert "Found columns present in multiple datasets" in str(cause)
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("source"), function_store())
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("enrich"), function_store())
 
@@ -805,10 +810,12 @@ def test_fail_partial_build(driver, function_store):
     assert set(function_store().keys()) == keys
 
 
-def test_fails_projected_duplicates(driver, function_store):
+def test_fails_projected_duplicates(driver, driver_name, function_store):
     """
     Test if duplicate check also works w/ projected data. (was a regression)
     """
+    if driver_name == "dask_dataframe":
+        pytest.xfail(reason="Cannot guarantee duplicates for DDF")
     df_source = pd.DataFrame(
         {
             "x": [0, 1, 0, 1],
@@ -897,9 +904,8 @@ def test_fails_null_dimension(driver, function_store):
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="cube")
     with pytest.raises(ValueError) as exc:
         driver(data=df, cube=cube, store=function_store)
-    assert 'Found NULL-values in dimension column "x" of dataset "seed"' in str(
-        exc.value
-    )
+
+    assert 'Found NULL-values in dimension column "x" of dataset "seed"' in str(exc)
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("seed"), function_store())
 
 
@@ -939,11 +945,11 @@ def test_fails_null_index(driver, function_store):
     )
     with pytest.raises(ValueError) as exc:
         driver(data=df, cube=cube, store=function_store)
-    assert 'Found NULL-values in index column "i1" of dataset "seed"' in str(exc.value)
+    assert 'Found NULL-values in index column "i1"' in str(exc.value)
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("seed"), function_store())
 
 
-def test_fail_all_empty(driver, function_store):
+def test_fail_all_empty(driver, driver_name, function_store):
     """
     Might happen due to DB-based filters.
     """
@@ -951,9 +957,12 @@ def test_fail_all_empty(driver, function_store):
         {"x": [0, 1, 2, 3], "p": [0, 0, 1, 1], "v": [10, 11, 12, 13]}
     ).loc[[]]
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="cube")
-    with pytest.raises(ValueError) as exc:
+
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(data=df, cube=cube, store=function_store)
-    assert "Cannot write empty datasets: seed" in str(exc.value)
+    exc = exc_info.value.__cause__
+    assert isinstance(exc, ValueError)
+    assert "Cannot write empty datasets" in str(exc)
 
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("source"), function_store())
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("enrich"), function_store())
@@ -1004,14 +1013,16 @@ def test_overwrite_rollback_ktk_cube(driver, function_store):
     df_enrich2 = pd.DataFrame(
         {"x": [10, 11], "p": [10, 10], "v1": [20, 21], "i4": [20, 21]}
     )
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source2, "enrich": df_enrich2},
             cube=cube,
             store=function_store,
             overwrite=True,
         )
-    assert str(exc.value).startswith("Found columns present in multiple datasets:")
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, ValueError)
+    assert str(cause).startswith("Found columns present in multiple datasets:")
 
     ds_source = DatasetMetadata.load_from_store(
         uuid=cube.ktk_dataset_uuid("source"), store=function_store()
@@ -1036,7 +1047,7 @@ def test_overwrite_rollback_ktk_cube(driver, function_store):
     assert isinstance(ds_enrich.indices["p"], PartitionIndex)
     assert set(ds_enrich.indices["i2"].index_dct.keys()) == {20, 21, 22, 23}
 
-    assert ds_source.table_meta[SINGLE_TABLE].field_by_name("v1").type == pa.int64()
+    assert ds_source.table_meta[SINGLE_TABLE].field("v1").type == pa.int64()
 
 
 def test_overwrite_rollback_ktk(driver, function_store):
@@ -1090,14 +1101,15 @@ def test_overwrite_rollback_ktk(driver, function_store):
             "i4": [20, 21],
         }
     )
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source2, "enrich": df_enrich2},
             cube=cube,
             store=function_store,
             overwrite=True,
         )
-    assert str(exc.value).startswith("Found columns present in multiple datasets:")
+    cause = exc_info.value.__cause__
+    assert str(cause).startswith("Found columns present in multiple datasets:")
 
     ds_source = DatasetMetadata.load_from_store(
         uuid=cube.ktk_dataset_uuid(cube.seed_dataset), store=function_store()
@@ -1107,8 +1119,8 @@ def test_overwrite_rollback_ktk(driver, function_store):
 
     assert len(ds_source.partitions) == 1
 
-    assert ds_source.table_meta["ktk_source"].field_by_name("v1").type == pa.int64()
-    assert ds_source.table_meta["ktk_enrich"].field_by_name("v1").type == pa.int64()
+    assert ds_source.table_meta["ktk_source"].field("v1").type == pa.int64()
+    assert ds_source.table_meta["ktk_enrich"].field("v1").type == pa.int64()
 
 
 @pytest.mark.parametrize("none_first", [False, True])
@@ -1211,16 +1223,20 @@ def test_fail_partition_on_1(driver, function_store):
         dimension_columns=["x"], partition_columns=["p", "q"], uuid_prefix="cube"
     )
 
-    with pytest.raises(
-        ValueError,
-        match="Seed dataset seed must have the following, fixed partition-on attribute: p, q",
-    ):
+    with pytest.raises(ValueError) as exc_info:
         driver(
             data=df,
             cube=cube,
             store=function_store,
             partition_on={cube.seed_dataset: ["x", "p"]},
         )
+
+    cause = exc_info.value  # .__cause__
+    assert isinstance(cause, ValueError)
+    assert (
+        "Seed dataset seed must have the following, fixed partition-on attribute: p, q"
+        in str(cause)
+    )
 
     assert set(function_store().keys()) == set()
 
@@ -1417,13 +1433,15 @@ def test_fail_partition_on_nondistinc_payload(driver, function_store):
         uuid_prefix="cube",
         seed_dataset="source",
     )
-    with pytest.raises(ValueError) as exc:
+    with pytest.raises(MultiTableCommitAborted) as exc_info:
         driver(
             data={"source": df_source, "enrich": df_enrich},
             cube=cube,
             store=function_store,
             partition_on={"enrich": ["v1"]},
         )
-    assert "Found columns present in multiple datasets" in str(exc.value)
+    cause = exc_info.value.__cause__
+    assert isinstance(cause, ValueError)
+    assert "Found columns present in multiple datasets" in str(cause)
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("source"), function_store())
     assert not DatasetMetadata.exists(cube.ktk_dataset_uuid("enrich"), function_store())

@@ -76,15 +76,27 @@ jobs:
         # nightlies and the latest release would otherwise work together.
         run: conda install -c arrow-nightlies arrow-cpp pyarrow
         if: matrix.pyarrow == 'nightly'
-      - name: Conda Install conda-requirements.txt + conda-test-requirements.txt
+      - name: Conda Install conda-requirements.txt
         # run this AFTER pyarrow, since this is less restrictive (so conda doesn't spend too much time downgrading)
-        run: conda install --file=conda-requirements.txt --file=conda-test-requirements.txt
+        run: conda install --file=conda-requirements.txt
+      - name: Pip Install kartothek
+        run: pip install --no-deps .
+      - name: Test import
+        run: |
+          python -c "import kartothek"
+          python -c "import kartothek.api"
+          python -c "import kartothek.cli"
+          python -c "import kartothek.core"
+          python -c "import kartothek.io"
+          python -c "import kartothek.io_components"
+          python -c "import kartothek.serialization"
+          python -c "import kartothek.utils"
+      - name: Conda install test requirements
+        run: conda install --file=conda-test-requirements.txt
       - name: Pip Instal NumFOCUS nightly
         # NumFOCUS nightly wheels, contains numpy and pandas
         run: env PRE_WHEELS="https://pypi.anaconda.org/scipy-wheels-nightly/simple" pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS pandas numpy
         if: matrix.numfocus_nightly
-      - name: Pip Install kartothek
-        run: pip install --no-deps -e .
       - name: Conda Export
         run: conda list --export
 

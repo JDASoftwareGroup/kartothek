@@ -2,6 +2,7 @@ from collections import Counter
 
 import pandas as pd
 import pytest
+from simplekv import KeyValueStore
 
 from kartothek.api.discover import (
     discover_cube,
@@ -298,7 +299,7 @@ class TestDiscoverDatasetsUnchecked:
             overwrite=True,
         )
 
-        class StoreMock:
+        class StoreMock(KeyValueStore):
             def __init__(self, store):
                 self._store = store
                 self._iter_keys_called = 0

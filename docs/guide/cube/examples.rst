@@ -169,7 +169,7 @@ very comfortable way. It is possible to treat the entire cube as a single, large
 5         8   London      UK 2018-01-02  51.509865  -0.118092
 
 As you can see, we get a list of results back. This is because Kartothek Cube naturally supports partition-by semantic, which is
-more helpful for distributed backends like `Distributed`_ or `Yamal`_:
+more helpful for distributed backends like `Distributed`_:
 
 >>> dfs = query_cube(
 ...     cube=cube,
@@ -425,4 +425,3 @@ geodata++time/table/_common_metadata
 .. _Dask.Bag: https://docs.dask.org/en/latest/bag.html
 .. _Dask.DataFrame: https://docs.dask.org/en/latest/dataframe.html
 .. _simplekv: https://simplekv.readthedocs.io/
-.. _Yamal: https://software.blue-yonder.org/DynamicPricing/generic/yamal/latest/+doc/index.html

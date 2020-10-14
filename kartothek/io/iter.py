@@ -31,6 +31,7 @@ from kartothek.io_components.write import (
 
 
 @default_docs
+@normalize_args
 def read_dataset_as_metapartitions__iterator(
     dataset_uuid=None,
     store=None,
@@ -107,6 +108,7 @@ def read_dataset_as_metapartitions__iterator(
 
 
 @default_docs
+@normalize_args
 def read_dataset_as_dataframes__iterator(
     dataset_uuid=None,
     store=None,
@@ -232,7 +234,7 @@ def update_dataset_from_dataframes__iter(
 
     if sort_partitions_by:  # Define function which sorts each partition by column
         sort_partitions_by_fn = partial(
-            sort_values_categorical, column=sort_partitions_by
+            sort_values_categorical, columns=sort_partitions_by
         )
 
     new_partitions = []

@@ -1,14 +1,32 @@
 """
 Dask.DataFrame IO.
 """
-import dask.bag as db
-import dask.dataframe as ddf
+from typing import Any, Callable, Dict, Iterable, Optional, Union
 
+import dask
+import dask.bag as db
+import dask.dataframe as dd
+import simplekv
+from dask.delayed import Delayed
+
+from kartothek.api.discover import discover_datasets_unchecked
+from kartothek.core.cube.cube import Cube
+from kartothek.core.docs import default_docs
 from kartothek.io.dask.common_cube import (
     append_to_cube_from_bag_internal,
-    build_cube_from_bag_internal,
     extend_cube_from_bag_internal,
     query_cube_bag_internal,
+)
+from kartothek.io.dask.dataframe import store_dataset_from_ddf
+from kartothek.io_components.cube.common import check_store_factory
+from kartothek.io_components.cube.write import (
+    apply_postwrite_checks,
+    assert_dimesion_index_cols_notnull,
+    check_datasets_prebuild,
+    check_provided_metadata_dict,
+    check_user_df,
+    prepare_ktk_metadata,
+    prepare_ktk_partition_on,
 )
 
 __all__ = (
@@ -19,49 +37,94 @@ __all__ = (
 )
 
 
+@default_docs
 def build_cube_from_dataframe(
-    data, cube, store, metadata=None, overwrite=False, partition_on=None
-):
+    data: Union[dd.DataFrame, Dict[str, dd.DataFrame]],
+    cube: Cube,
+    store: Callable[[], simplekv.KeyValueStore],
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    overwrite: bool = False,
+    partition_on: Optional[Dict[str, Iterable[str]]] = None,
+    shuffle: bool = False,
+    num_buckets: int = 1,
+    bucket_by: Optional[Iterable[str]] = None,
+) -> Delayed:
     """
     Create dask computation graph that builds a cube with the data supplied from a dask dataframe.
 
     Parameters
     ----------
-    data: Union[dask.DataFrame, Dict[str, dask.DataFrame]
+    data:
         Data that should be written to the cube. If only a single dataframe is given, it is assumed to be the seed
         dataset.
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: Callable[[], simplekv.KeyValueStore]
+    store:
         Store to which the data should be written to.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset.
-    overwrite: bool
+    overwrite:
         If possibly existing datasets should be overwritten.
-    partition_on: Optional[Dict[str, Iterable[str]]]
+    partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
 
     Returns
     -------
-    metadata_dict: dask.Delayed
+    metadata_dict:
         A dask delayed object containing the compute graph to build a cube returning the dict of dataset metadata
         objects.
     """
-    data, ktk_cube_dataset_ids = _ddfs_to_bag(data, cube)
+    check_store_factory(store)
+    if not isinstance(data, dict):
+        data = {cube.seed_dataset: data}
 
-    return (
-        build_cube_from_bag_internal(
-            data=data,
+    ktk_cube_dataset_ids = sorted(data.keys())
+
+    metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
+    existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, store)
+    check_datasets_prebuild(ktk_cube_dataset_ids, cube, existing_datasets)
+    partition_on_checked = prepare_ktk_partition_on(
+        cube, ktk_cube_dataset_ids, partition_on
+    )
+    del partition_on
+
+    dct = {}
+    for table_name, ddf in data.items():
+        check_user_df(table_name, ddf, cube, set(), partition_on_checked[table_name])
+
+        indices_to_build = set(cube.index_columns) & set(ddf.columns)
+        if table_name == cube.seed_dataset:
+            indices_to_build |= set(cube.dimension_columns)
+        indices_to_build -= set(partition_on_checked[table_name])
+
+        ddf = ddf.map_partitions(
+            assert_dimesion_index_cols_notnull,
+            ktk_cube_dataset_id=table_name,
             cube=cube,
-            store=store,
-            ktk_cube_dataset_ids=ktk_cube_dataset_ids,
-            metadata=metadata,
-            overwrite=overwrite,
-            partition_on=partition_on,
+            partition_on=partition_on_checked[table_name],
+            meta=ddf._meta,
         )
-        .map_partitions(_unpack_list, default=None)
-        .to_delayed()[0]
+        graph = store_dataset_from_ddf(
+            ddf,
+            dataset_uuid=cube.ktk_dataset_uuid(table_name),
+            store=store,
+            metadata=prepare_ktk_metadata(cube, table_name, metadata),
+            partition_on=partition_on_checked[table_name],
+            secondary_indices=sorted(indices_to_build),
+            sort_partitions_by=sorted(
+                (set(cube.dimension_columns) - set(cube.partition_columns))
+                & set(ddf.columns)
+            ),
+            overwrite=overwrite,
+            shuffle=shuffle,
+            num_buckets=num_buckets,
+            bucket_by=bucket_by,
+        )
+        dct[table_name] = graph
+
+    return dask.delayed(apply_postwrite_checks)(
+        dct, cube=cube, store=store, existing_datasets=existing_datasets
     )
 
 
@@ -169,7 +232,7 @@ def query_cube_dataframe(
 
     dfs = b.map_partitions(_unpack_list, default=empty).to_delayed()
 
-    return ddf.from_delayed(
+    return dd.from_delayed(
         dfs=dfs, meta=empty, divisions=None  # TODO: figure out an API to support this
     )
 

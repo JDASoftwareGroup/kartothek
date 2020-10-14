@@ -12,6 +12,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import simplejson
+from simplekv import KeyValueStore
 
 from kartothek.core import naming
 from kartothek.core._compat import load_json
@@ -327,7 +328,9 @@ def _get_common_metadata_key(dataset_uuid, table):
     return "{}/{}/{}".format(dataset_uuid, table, naming.TABLE_METADATA_FILE)
 
 
-def read_schema_metadata(dataset_uuid, store, table):
+def read_schema_metadata(
+    dataset_uuid: str, store: KeyValueStore, table: str
+) -> SchemaWrapper:
     """
     Read schema and metadata from store.
 
@@ -349,7 +352,9 @@ def read_schema_metadata(dataset_uuid, store, table):
     return SchemaWrapper(_bytes2schema(store.get(key)), key)
 
 
-def store_schema_metadata(schema, dataset_uuid, store, table):
+def store_schema_metadata(
+    schema: SchemaWrapper, dataset_uuid: str, store: KeyValueStore, table: str
+) -> str:
     """
     Store schema and metadata to store.
 
@@ -373,13 +378,13 @@ def store_schema_metadata(schema, dataset_uuid, store, table):
     return store.put(key, _schema2bytes(schema.internal()))
 
 
-def _schema2bytes(schema):
+def _schema2bytes(schema: SchemaWrapper) -> bytes:
     buf = pa.BufferOutputStream()
     pq.write_metadata(schema, buf, version="2.0", coerce_timestamps="us")
     return buf.getvalue().to_pybytes()
 
 
-def _bytes2schema(data):
+def _bytes2schema(data: bytes) -> SchemaWrapper:
     reader = pa.BufferReader(data)
     schema = pq.read_schema(reader)
     fields = []

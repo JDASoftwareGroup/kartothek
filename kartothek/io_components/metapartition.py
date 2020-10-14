@@ -1,21 +1,17 @@
-# -*- coding: utf-8 -*-
-
-
 import inspect
 import io
 import logging
 import os
 import time
 import warnings
-from collections import Iterable, defaultdict, namedtuple
+from collections import defaultdict, namedtuple
 from copy import copy
 from functools import wraps
-from typing import Any, Callable, Dict, Iterator, Optional, cast
+from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Set, Union, cast
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from simplekv import KeyValueStore
 
 from kartothek.core import naming
 from kartothek.core.common_metadata import (
@@ -30,16 +26,18 @@ from kartothek.core.index import ExplicitSecondaryIndex, IndexBase
 from kartothek.core.index import merge_indices as merge_indices_algo
 from kartothek.core.naming import get_partition_file_prefix
 from kartothek.core.partition import Partition
+from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import decode_key, quote_indices
-from kartothek.core.utils import ensure_string_type, verify_metadata_version
-from kartothek.core.uuid import gen_uuid
-from kartothek.io_components.utils import (
-    _ensure_valid_indices,
-    _instantiate_store,
-    combine_metadata,
+from kartothek.core.utils import (
+    ensure_store,
+    ensure_string_type,
+    verify_metadata_version,
 )
+from kartothek.core.uuid import gen_uuid
+from kartothek.io_components.utils import _ensure_valid_indices, combine_metadata
 from kartothek.serialization import (
     DataFrameSerializer,
+    PredicatesType,
     default_serializer,
     filter_df_from_predicates,
 )
@@ -61,6 +59,8 @@ _METADATA_SCHEMA = {
     "serialized_size": np.dtype(int),
     "number_rows_per_row_group": np.dtype(int),
 }
+
+_MULTI_TABLE_DICT_LIST = Dict[str, Iterable[str]]
 
 
 def _predicates_to_named(predicates):
@@ -87,9 +87,7 @@ def _initialize_store_for_metapartition(method, method_args, method_kwargs):
 
     for store_variable in ["store", "storage"]:
         if store_variable in method_kwargs:
-            method_kwargs[store_variable] = _instantiate_store(
-                method_kwargs[store_variable]
-            )
+            method_kwargs[store_variable] = ensure_store(method_kwargs[store_variable])
         else:
             method = cast(object, method)
             args = inspect.getfullargspec(method).args
@@ -98,7 +96,7 @@ def _initialize_store_for_metapartition(method, method_args, method_kwargs):
                 ix = args.index(store_variable)
                 # reduce index since the argspec and method_args start counting differently due to self
                 ix -= 1
-                instantiated_store = _instantiate_store(method_args[ix])
+                instantiated_store = ensure_store(method_args[ix])
                 new_args = []
                 for ix_method, arg in enumerate(method_args):
                     if ix_method != ix:
@@ -625,14 +623,14 @@ class MetaPartition(Iterable):
     @_apply_to_list
     def load_dataframes(
         self,
-        store,
-        tables=None,
-        columns=None,
-        predicate_pushdown_to_io=True,
-        categoricals=None,
-        dates_as_object=False,
-        predicates=None,
-    ):
+        store: StoreInput,
+        tables: _MULTI_TABLE_DICT_LIST = None,
+        columns: _MULTI_TABLE_DICT_LIST = None,
+        predicate_pushdown_to_io: bool = True,
+        categoricals: _MULTI_TABLE_DICT_LIST = None,
+        dates_as_object: bool = False,
+        predicates: PredicatesType = None,
+    ) -> "MetaPartition":
         """
         Load the dataframes of the partitions from store into memory.
 
@@ -775,7 +773,9 @@ class MetaPartition(Iterable):
         return self.copy(data=new_data)
 
     @_apply_to_list
-    def load_all_table_meta(self, store, dataset_uuid):
+    def load_all_table_meta(
+        self, store: StoreInput, dataset_uuid: str
+    ) -> "MetaPartition":
         """
         Loads all table metadata in memory and stores it under the `tables` attribute
 
@@ -784,7 +784,9 @@ class MetaPartition(Iterable):
             self._load_table_meta(dataset_uuid, table, store)
         return self
 
-    def _load_table_meta(self, dataset_uuid, table, store):
+    def _load_table_meta(
+        self, dataset_uuid: str, table: str, store: StoreInput
+    ) -> "MetaPartition":
         if table not in self.table_meta:
             _common_metadata = read_schema_metadata(
                 dataset_uuid=dataset_uuid, store=store, table=table
@@ -927,7 +929,9 @@ class MetaPartition(Iterable):
         return self.copy(files={}, data=new_data, table_meta=new_table_meta)
 
     @_apply_to_list
-    def validate_schema_compatible(self, store, dataset_uuid):
+    def validate_schema_compatible(
+        self, store: StoreInput, dataset_uuid: str
+    ) -> "MetaPartition":
         """
         Validates that the currently held DataFrames match the schema of the existing dataset.
 
@@ -966,12 +970,12 @@ class MetaPartition(Iterable):
     @_apply_to_list
     def store_dataframes(
         self,
-        store,
-        dataset_uuid,
-        df_serializer=None,
-        store_metadata=False,
-        metadata_storage_format=None,
-    ):
+        store: StoreInput,
+        dataset_uuid: str,
+        df_serializer: Optional[DataFrameSerializer] = None,
+        store_metadata: bool = False,
+        metadata_storage_format: Optional[str] = None,
+    ) -> "MetaPartition":
         """
         Stores all dataframes of the MetaPartitions and registers the saved
         files under the `files` atrribute. The dataframe itself is deleted from memory.
@@ -1212,7 +1216,7 @@ class MetaPartition(Iterable):
             return mp
 
     @_apply_to_list
-    def build_indices(self, columns):
+    def build_indices(self, columns: Iterable[str]):
         """
         This builds the indices for this metapartition for the given columns. The indices for the passed columns
         are rebuilt, so exisiting index entries in the metapartition are overwritten.
@@ -1226,9 +1230,10 @@ class MetaPartition(Iterable):
 
         new_indices = {}
         for col in columns:
-            possible_values = set()
+            possible_values: Set[str] = set()
             col_in_partition = False
             for df in self.data.values():
+
                 if col in df:
                     possible_values = possible_values | set(df[col].dropna().unique())
                     col_in_partition = True
@@ -1263,7 +1268,7 @@ class MetaPartition(Iterable):
         return self.copy(indices=new_indices)
 
     @_apply_to_list
-    def partition_on(self, partition_on):
+    def partition_on(self, partition_on: Union[str, Sequence[str]]):
         """
         Partition all dataframes assigned to this MetaPartition according the the given columns.
 
@@ -1545,15 +1550,16 @@ class MetaPartition(Iterable):
         return new_mp
 
     @_apply_to_list
-    def delete_from_store(self, dataset_uuid, store):
+    def delete_from_store(
+        self, dataset_uuid: Any, store: StoreInput
+    ) -> "MetaPartition":
+        store = ensure_store(store)
         # Delete data first
         for file_key in self.files.values():
             store.delete(file_key)
         return self.copy(files={}, data={}, metadata={})
 
-    def get_parquet_metadata(
-        self, store: Callable[[], KeyValueStore], table_name: str
-    ) -> pd.DataFrame:
+    def get_parquet_metadata(self, store: StoreInput, table_name: str) -> pd.DataFrame:
         """
         Retrieve the parquet metadata for the MetaPartition.
         Especially relevant for calculating dataset statistics.
@@ -1573,57 +1579,34 @@ class MetaPartition(Iterable):
         if not isinstance(table_name, str):
             raise TypeError("Expecting a string for parameter `table_name`.")
 
-        if callable(store):
-            store = store()
+        store = ensure_store(store)
 
         data = {}
         if table_name in self.files:
             with store.open(self.files[table_name]) as fd:  # type: ignore
                 pq_metadata = pa.parquet.ParquetFile(fd).metadata
-            try:
-                metadata_dict = pq_metadata.to_dict()
-            except AttributeError:  # No data in file
-                metadata_dict = None
-                data = {
-                    "partition_label": self.label,
-                    "serialized_size": pq_metadata.serialized_size,
-                    "number_rows_total": pq_metadata.num_rows,
-                    "number_row_groups": pq_metadata.num_row_groups,
-                    "row_group_id": [0],
-                    "number_rows_per_row_group": [0],
-                    "row_group_compressed_size": [0],
-                    "row_group_uncompressed_size": [0],
-                }
 
-            if metadata_dict:
-                # Note: could just parse this entire dict into a pandas dataframe, w/o the below processing
-                data = {
-                    "partition_label": self.label,
-                    "serialized_size": metadata_dict["serialized_size"],
-                    "number_rows_total": metadata_dict["num_rows"],
-                    "number_row_groups": metadata_dict["num_row_groups"],
-                    "row_group_id": [],
-                    "number_rows_per_row_group": [],
-                    "row_group_compressed_size": [],
-                    "row_group_uncompressed_size": [],
-                }
-
-                for row_group_id, row_group_metadata in enumerate(
-                    metadata_dict["row_groups"]
-                ):
-                    data["row_group_id"].append(row_group_id)
-                    data["number_rows_per_row_group"].append(
-                        row_group_metadata["num_rows"]
+            data = {
+                "partition_label": self.label,
+                "serialized_size": pq_metadata.serialized_size,
+                "number_rows_total": pq_metadata.num_rows,
+                "number_row_groups": pq_metadata.num_row_groups,
+                "row_group_id": [],
+                "number_rows_per_row_group": [],
+                "row_group_compressed_size": [],
+                "row_group_uncompressed_size": [],
+            }
+            for rg_ix in range(pq_metadata.num_row_groups):
+                rg = pq_metadata.row_group(rg_ix)
+                data["row_group_id"].append(rg_ix)
+                data["number_rows_per_row_group"].append(rg.num_rows)
+                data["row_group_compressed_size"].append(rg.total_byte_size)
+                data["row_group_uncompressed_size"].append(
+                    sum(
+                        rg.column(col_ix).total_uncompressed_size
+                        for col_ix in range(rg.num_columns)
                     )
-                    data["row_group_compressed_size"].append(
-                        row_group_metadata["total_byte_size"]
-                    )
-                    data["row_group_uncompressed_size"].append(
-                        sum(
-                            col["total_uncompressed_size"]
-                            for col in row_group_metadata["columns"]
-                        )
-                    )
+                )
 
         df = pd.DataFrame(data=data, columns=_METADATA_SCHEMA.keys())
         df = df.astype(_METADATA_SCHEMA)

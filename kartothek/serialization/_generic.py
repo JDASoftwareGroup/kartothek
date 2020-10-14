@@ -12,11 +12,12 @@ Available constants
 **LiteralValue** - A type indicating the value of a predicate literal
 """
 
-from typing import Dict, List, Optional, Set, Tuple, TypeVar
+from typing import Dict, Iterable, List, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
 from pandas.api.types import is_list_like
+from simplekv import KeyValueStore
 
 from kartothek.serialization._util import _check_contains_null
 
@@ -49,15 +50,15 @@ class DataFrameSerializer:
     @classmethod
     def restore_dataframe(
         cls,
-        store,
-        key,
-        filter_query=None,
-        columns=None,
-        predicate_pushdown_to_io=True,
-        categories=None,
-        predicates=None,
-        date_as_object=False,
-    ):
+        store: KeyValueStore,
+        key: str,
+        filter_query: Optional[str] = None,
+        columns: Optional[Iterable[str]] = None,
+        predicate_pushdown_to_io: bool = True,
+        categories: Optional[Iterable[str]] = None,
+        predicates: Optional[PredicatesType] = None,
+        date_as_object: bool = False,
+    ) -> pd.DataFrame:
         """
         Load a DataFrame from the specified store. The key is also used to
         detect the used format.
@@ -126,7 +127,7 @@ class DataFrameSerializer:
             "The specified file format for '{}' is not supported".format(key)
         )
 
-    def store(self, store, key_prefix, df):
+    def store(self, store: KeyValueStore, key_prefix: str, df: pd.DataFrame) -> str:
         """
         Persist a DataFrame to the specified store.
 
@@ -189,7 +190,7 @@ def check_predicates(predicates: PredicatesType) -> None:
                     f"Invalid predicates: Clause {clause_idx} in conjunction {conjunction_idx} "
                     f"should be a 3-tuple, got object of type {type(clause)} instead"
                 )
-            _, _, val = clause
+            _, op, val = clause
             if (
                 isinstance(val, list)
                 and any(_check_contains_null(v) for v in val)
@@ -197,6 +198,16 @@ def check_predicates(predicates: PredicatesType) -> None:
             ):
                 raise NotImplementedError(
                     "Null-terminated binary strings are not supported as predicate values."
+                )
+            if (
+                pd.api.types.is_scalar(val)
+                and pd.isnull(val)
+                and op not in ["==", "!="]
+            ):
+                raise ValueError(
+                    f"Invalid predicates: Clause {clause_idx} in conjunction {conjunction_idx} "
+                    f"with null value and operator {op}. Only operators supporting null values "
+                    "are '==', '!=' and 'in'."
                 )
 
 
@@ -456,9 +467,15 @@ def filter_array_like(
 
     with np.errstate(invalid="ignore"):
         if op == "==":
-            np.logical_and(array_like == value, mask, out=out)
+            if pd.isnull(value):
+                np.logical_and(pd.isnull(array_like), mask, out=out)
+            else:
+                np.logical_and(array_like == value, mask, out=out)
         elif op == "!=":
-            np.logical_and(array_like != value, mask, out=out)
+            if pd.isnull(value):
+                np.logical_and(~pd.isnull(array_like), mask, out=out)
+            else:
+                np.logical_and(array_like != value, mask, out=out)
         elif op == "<=":
             np.logical_and(array_like <= value, mask, out=out)
         elif op == ">=":
@@ -469,12 +486,34 @@ def filter_array_like(
             np.logical_and(array_like > value, mask, out=out)
         elif op == "in":
             value = np.asarray(value)
+            nullmask = pd.isnull(value)
+            if value.dtype.kind in ("U", "S", "O"):
+                # See GH358
+
+                # If the values include duplicates, this would blow up with the
+                # join below, rendering the mask useless
+                unique_vals = np.unique(value[~nullmask])
+                value_ser = pd.Series(unique_vals, name="value")
+                arr_ser = pd.Series(array_like, name="array").to_frame()
+                matching_idx = (
+                    ~arr_ser.merge(
+                        value_ser, left_on="array", right_on="value", how="left"
+                    )
+                    .value.isna()
+                    .values
+                )
+            else:
+                matching_idx = (
+                    np.isin(array_like, value)
+                    if len(value) > 0
+                    else np.zeros(len(array_like), dtype=bool)
+                )
+
+            if any(nullmask):
+                matching_idx |= pd.isnull(array_like)
+
             np.logical_and(
-                np.isin(array_like, value)
-                if len(value) > 0
-                else np.zeros(len(array_like), dtype=bool),
-                mask,
-                out=out,
+                matching_idx, mask, out=out,
             )
         else:
             raise NotImplementedError("op not supported")

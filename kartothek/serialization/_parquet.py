@@ -6,15 +6,18 @@ This module contains functionality for persisting/serialising DataFrames.
 
 
 import datetime
+from typing import Iterable, Optional
 
 import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from pyarrow.parquet import ParquetFile
+from simplekv import KeyValueStore
 
 from ._generic import (
     DataFrameSerializer,
+    PredicatesType,
     check_predicates,
     filter_df,
     filter_df_from_predicates,
@@ -84,14 +87,14 @@ class ParquetSerializer(DataFrameSerializer):
 
     @staticmethod
     def restore_dataframe(
-        store,
-        key,
-        filter_query=None,
-        columns=None,
-        predicate_pushdown_to_io=True,
-        categories=None,
-        predicates=None,
-        date_as_object=False,
+        store: KeyValueStore,
+        key: str,
+        filter_query: Optional[str] = None,
+        columns: Optional[Iterable[str]] = None,
+        predicate_pushdown_to_io: bool = True,
+        categories: Optional[Iterable[str]] = None,
+        predicates: Optional[PredicatesType] = None,
+        date_as_object: bool = False,
     ):
         check_predicates(predicates)
         # If we want to do columnar access we can benefit from partial reads
@@ -299,6 +302,8 @@ def _normalize_value(value, pa_type, column_name=None):
             return value.decode("utf-8")
         elif isinstance(value, str):
             return value
+        elif value is None:
+            return value
     elif pa.types.is_binary(pa_type):
         if isinstance(value, bytes):
             return value
@@ -379,10 +384,18 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     if isinstance(val, float):
         min_value -= _epsilon(min_value)
         max_value += _epsilon(max_value)
+
+    # op can only be "==" or "!=" for scalar null values.
     if op == "==":
-        return (min_value <= val) and (max_value >= val)
+        if pd.isnull(val):
+            return parquet_statistics.null_count > 0
+        else:
+            return (min_value <= val) and (max_value >= val)
     elif op == "!=":
-        return not ((min_value >= val) and (max_value <= val))
+        if pd.isnull(val):
+            return parquet_statistics.null_count < row_meta.num_rows
+        else:
+            return not ((min_value >= val) and (max_value <= val))
     elif op == "<=":
         return min_value <= val
     elif op == ">=":
@@ -397,7 +410,10 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
         # We accept the predicate if there is any value in the provided array which is equal to or between
         # the parquet min and max statistics. Otherwise, it is rejected.
         for x in val:
-            if min_value <= x <= max_value:
+            if pd.isnull(x):
+                if parquet_statistics.null_count > 0:
+                    return True
+            elif min_value <= x <= max_value:
                 return True
         return False
     else:

@@ -76,6 +76,7 @@ A Kartothek (or more modern: Zettelkasten/Katalogkasten) is a tool to organize
    Specification <spec/index>
    Type System <spec/type_system>
    DataFrame Serialization <spec/serialization>
+   KeyValueStore Interface <spec/store_interface>
    Storage Layout <spec/storage_layout>
    Partition Indices <spec/partition_indices>
    Efficient Querying <spec/efficient_querying>

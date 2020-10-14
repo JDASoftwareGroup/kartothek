@@ -1,7 +1,11 @@
+from functools import partial
+from typing import Callable
+
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
+from storefact import get_store_from_url
 
 from kartothek.io_components.utils import (
     align_categories,
@@ -85,6 +89,29 @@ def test_normalize_args(test_input, expected):
         test_arg1, test_partition_on, delete_scope=test_delete_scope
     )
     assert (expected[0], expected[1], []) == func(test_arg1, test_partition_on)
+
+
+@pytest.mark.parametrize("_type", ["callable", "url", "simplekv"])
+def test_normalize_store(tmpdir, _type):
+
+    store_url = f"hfs://{tmpdir}"
+    store = get_store_from_url(store_url)
+    store.put("test", b"")
+
+    @normalize_args
+    def func(store):
+        assert isinstance(store, Callable)
+        return store().keys()
+
+    if _type == "callable":
+        store_test = partial(get_store_from_url, store_url)
+    elif _type == "url":
+        store_test = store_url
+    elif _type == "simplekv":
+        store_test = store
+    else:
+        raise AssertionError(f"unknown parametrization {_type}")
+    assert func(store_test)
 
 
 @pytest.mark.parametrize(
@@ -189,6 +216,34 @@ def test_sort_cateogrical():
     assert sorted_df["cat"].is_monotonic
     assert sorted_df["cat"].cat.ordered
     assert all(sorted_df["cat"].cat.categories == sorted(categories))
+
+
+def test_sort_cateogrical_multiple_cols():
+    df = pd.DataFrame.from_records(
+        [
+            {"ColA": "B", "ColB": "Z", "Payload": 1},
+            {"ColA": "B", "ColB": "A", "Payload": 2},
+            {"ColA": "A", "ColB": "A", "Payload": 3},
+            {"ColA": "C", "ColB": "Z", "Payload": 4},
+        ]
+    )
+    df_expected = df.copy().sort_values(by=["ColA", "ColB"]).reset_index(drop=True)
+    df = df.astype({col: "category" for col in ["ColA", "ColB"]})
+    # Correct order
+    # {"ColA": "A", "ColB": "A", "Payload": 3},
+    # {"ColA": "B", "ColB": "A", "Payload": 2},
+    # {"ColA": "B", "ColB": "Z", "Payload": 1},
+    # {"ColA": "C", "ColB": "Z", "Payload": 4},
+    df_expected = df_expected.astype(
+        {
+            "ColA": pd.CategoricalDtype(categories=["A", "B", "C"], ordered=True),
+            "ColB": pd.CategoricalDtype(categories=["A", "Z"], ordered=True),
+        }
+    )
+
+    sorted_df = sort_values_categorical(df, ["ColA", "ColB"])
+
+    pdt.assert_frame_equal(sorted_df, df_expected)
 
 
 def test_sort_categorical_pyarrow_conversion():

@@ -2,13 +2,52 @@
 Changelog
 =========
 
-Version 3.14.x (unreleased)
+Version 3.16.1 (2020-10-??)
 ===========================
+
+* Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would return
+  improper rowgroup statistics
+* Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would execute
+  ``get_parquet_metadata`` at graph construction time
+* Improve performance for "in" predicate literals using long object lists as values
+
+Version 3.16.0 (2020-09-29)
+===========================
+
+New functionality
+^^^^^^^^^^^^^^^^^
+* Allow filtering of nans using "==", "!=" and "in" operators
+
+Bugfixes
+^^^^^^^^
+* Fix a regression which would not allow the usage of non serializable stores even when using factories
+
+
+Version 3.15.1 (2020-09-28)
+===========================
+* Fix a packaging issue where `typing_extensions` was not properly specified as
+  a requirement for python versions below 3.8
+
+Version 3.15.0 (2020-09-28)
+===========================
+
+New functionality
+^^^^^^^^^^^^^^^^^
+* Add :func:`~kartothek.io.dask.dataframe.store_dataset_from_ddf` to offer write
+  support of a dask dataframe without update support. This forbids or explicitly
+  allows overwrites and does not update existing datasets.
+* The ``sort_partitions_by`` feature now supports multiple columns. While this
+  has only marginal effect for predicate pushdown, it may be used to improve the
+  parquet compression.
+* ``build_cube_from_dataframe`` now supports the ``shuffle`` methods offered by
+  :func:`~kartothek.io.dask.dataframe.store_dataset_from_ddf` and
+  :func:`~kartothek.io.dask.dataframe.update_dataset_from_ddf` but writes the
+  output in the cube format
 
 Improvements
 ^^^^^^^^^^^^
 * Reduce memory consumption during index write.
-
+* Allow `simplekv` stores and `storefact` URLs to be passed explicitly as input for the `store` arguments
 
 Version 3.14.0 (2020-08-27)
 ===========================

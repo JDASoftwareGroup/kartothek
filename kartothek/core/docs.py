@@ -7,8 +7,11 @@ from io import StringIO
 
 _PARAMETER_MAPPING = {
     "store": """
-    store: callable
-        Factory function producing a KeyValueStore.""",
+    store: Callable or Str or simplekv.KeyValueStore
+        The store where we can find or store the dataset.
+
+        Can be either ``simplekv.KeyValueStore``, a storefact store url or a
+        generic Callable producing a ``simplekv.KeyValueStore``""",
     "overwrite": """
     overwrite: bool, optional
         If True, allow overwrite of an existing dataset.""",
@@ -65,10 +68,12 @@ _PARAMETER_MAPPING = {
         `merge_datasets__pipeline` key that contains the source dataset uuids for
         the merge.""",
     "output_store": """
-    output_store : callable
-        Factory function producing a KeyValueStore.
+    output_store : Callable or Str or simplekv.KeyValueStore
         If given, the resulting dataset is written to this store. By default
-        the input store""",
+        the input store.
+
+        Can be either ``simplekv.KeyValueStore``, a storefact store url or a
+        generic Callable producing a ``simplekv.KeyValueStore``""",
     "metadata": """
     metadata : dict, optional
         A dictionary used to update the dataset metadata.""",
@@ -129,6 +134,10 @@ _PARAMETER_MAPPING = {
         kinds of predicates that are possible using boolean logic.
 
         Available operators are: `==`, `!=`, `<=`, `>=`, `<`, `>` and `in`.
+
+        Filtering for missings is supported with operators `==`, `!=` and
+        `in` and values `np.nan` and `None` for float and string columns
+        respectively.
 
         .. admonition:: Categorical data
 
