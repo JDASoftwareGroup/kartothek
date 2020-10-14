@@ -380,7 +380,8 @@ class DatasetMetadataBase(CopyMixin):
         """
         if columns is None:
             columns = sorted(self.indices.keys())
-        elif columns == []:
+
+        if columns == []:
             return pd.DataFrame(index=self.partitions)
 
         columns_to_scan = columns[:]
