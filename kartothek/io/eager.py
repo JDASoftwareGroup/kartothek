@@ -197,6 +197,16 @@ def read_dataset_as_metapartitions(
         factory=factory,
         load_dataset_metadata=False,
     )
+
+    if len(ds_factory.tables) > 1:
+        warnings.warn(
+            "Trying to read a dataset with multiple internal tables. This functionality will be removed in the next "
+            "major release. If you require a multi tabled data format, we recommend to switch to the kartothek Cube "
+            "functionality. "
+            "https://kartothek.readthedocs.io/en/stable/guide/cube/kartothek_cubes.html",
+            DeprecationWarning,
+        )
+
     from .iter import read_dataset_as_metapartitions__iterator
 
     ds_iter = read_dataset_as_metapartitions__iterator(

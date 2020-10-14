@@ -1,4 +1,5 @@
 import random
+import warnings
 from typing import (
     Callable,
     Iterable,
@@ -98,6 +99,16 @@ def read_dataset_as_ddf(
         factory=factory,
         load_dataset_metadata=False,
     )
+
+    if len(ds_factory.tables) > 1:
+        warnings.warn(
+            "Trying to read a dataset with multiple internal tables. This functionality will be removed in the next "
+            "major release. If you require a multi tabled data format, we recommend to switch to the kartothek Cube "
+            "functionality. "
+            "https://kartothek.readthedocs.io/en/stable/guide/cube/kartothek_cubes.html",
+            DeprecationWarning,
+        )
+
     if isinstance(columns, dict):
         columns = columns[table]
     meta = _get_dask_meta_for_dataset(
@@ -575,6 +586,7 @@ def hash_dataset(
         factory=factory,
         load_dataset_metadata=False,
     )
+
     columns = subset
     if subset and group_key:
         columns = sorted(set(subset) | set(group_key))
