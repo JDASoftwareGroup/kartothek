@@ -7,17 +7,9 @@ from collections import OrderedDict
 
 import pandas as pd
 import pandas.testing as pdt
-import pytest
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex
-
-
-def test_dataset_get_indices_as_dataframe_raise_index_not_loaded(dataset_with_index):
-    with pytest.raises(RuntimeError):
-        dataset_with_index.get_indices_as_dataframe(
-            columns=dataset_with_index.partition_keys
-        )
 
 
 def test_dataset_get_indices_as_dataframe_partition_keys_only(
@@ -117,3 +109,22 @@ def test_dataset_get_indices_as_dataframe_predicates():
         columns=["l_external_code"], index=pd.Index([], name="partition")
     )
     pdt.assert_frame_equal(result, expected)
+
+
+def test_dataset_get_indices_as_dataframe_no_index(dataset):
+    assert not dataset.primary_indices_loaded
+    df = dataset.get_indices_as_dataframe()
+    assert not dataset.primary_indices_loaded
+    pdt.assert_frame_equal(df, pd.DataFrame(index=["cluster_1", "cluster_2"]))
+
+
+def test_dataset_get_indices_as_dataframe_with_index(dataset_with_index, store_session):
+    assert not dataset_with_index.primary_indices_loaded
+    df = dataset_with_index.get_indices_as_dataframe()
+    assert not dataset_with_index.primary_indices_loaded
+    pdt.assert_frame_equal(
+        df,
+        pd.DataFrame(columns=["L", "P"], index=pd.Index([], name="partition")).astype(
+            {"L": "object", "P": "int64"}
+        ),
+    )
