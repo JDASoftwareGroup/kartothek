@@ -57,7 +57,7 @@ def test_dispatch_metapartitions_without_dataset_metadata(dataset, store_session
     assert list(mp.dataset_metadata.keys()) == ["creation_time"]
 
     mp = partitions[1]
-    assert list(mp.dataset_metadata) == ["creation_time"]
+    assert list(mp.dataset_metadata.keys()) == ["creation_time"]
 
 
 @pytest.mark.parametrize(

@@ -203,7 +203,7 @@ def _shuffle_docs(func):
     ----------
     ddf: Union[dask.dataframe.DataFrame, None]
         The dask.Dataframe to be used to calculate the new partitions from. If this parameter is `None`, the update pipeline
-        will only delete partitions without creating new  ones.
+        will only delete partitions without creating new ones.
     shuffle: bool
         If `True` and `partition_on` is requested, shuffle the data to reduce number of output partitions.
 

@@ -392,7 +392,6 @@ class DatasetMetadataBase(CopyMixin):
 
         if predicates:
             predicate_columns = columns_in_predicates(predicates)
-
             columns_to_scan = sorted(
                 (predicate_columns & self.indices.keys()) | set(columns)
             )
@@ -461,7 +460,7 @@ class DatasetMetadataBase(CopyMixin):
         dfs = []
         for col in columns:
             df = pd.DataFrame(
-                dm.indices[col].as_flat_series(
+                self.indices[col].as_flat_series(
                     partitions_as_index=True,
                     date_as_object=date_as_object,
                     predicates=predicates,
@@ -477,6 +476,7 @@ class DatasetMetadataBase(CopyMixin):
         for df in dfs_sorted:
             df_result = df_result.merge(
                 df, left_index=True, right_index=True, copy=False
+            )
         return df_result
 
 
