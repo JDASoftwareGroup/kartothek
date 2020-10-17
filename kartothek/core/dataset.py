@@ -378,21 +378,27 @@ class DatasetMetadataBase(CopyMixin):
         Parameters
         ----------
         """
+        if not self.primary_indices_loaded:
+            # self.load_partition_indices is not inplace
+            dm = self.load_partition_indices()
+        else:
+            dm = self
+
         if columns is None:
-            columns = sorted(self.indices.keys())
+            columns = sorted(dm.indices.keys())
 
         if columns == []:
-            return pd.DataFrame(index=self.partitions)
+            return pd.DataFrame(index=dm.partitions)
 
-        columns_to_scan = columns[:]
         if predicates:
             predicate_columns = columns_in_predicates(predicates)
+
             columns_to_scan = sorted(
                 (predicate_columns & self.indices.keys()) | set(columns)
             )
 
             dfs = (
-                self._evaluate_conjunction(
+                dm._evaluate_conjunction(
                     columns=columns_to_scan,
                     predicates=[conjunction],
                     date_as_object=date_as_object,
@@ -406,8 +412,8 @@ class DatasetMetadataBase(CopyMixin):
                 df.loc[:, columns].reset_index().drop_duplicates().set_index(index_name)
             )
         else:
-            df = self._evaluate_conjunction(
-                columns=columns_to_scan, predicates=None, date_as_object=date_as_object,
+            df = dm._evaluate_conjunction(
+                columns=columns, predicates=None, date_as_object=date_as_object,
             )
         return df
 
@@ -455,13 +461,14 @@ class DatasetMetadataBase(CopyMixin):
         dfs = []
         for col in columns:
             df = pd.DataFrame(
-                self.indices[col].as_flat_series(
+                dm.indices[col].as_flat_series(
                     partitions_as_index=True,
                     date_as_object=date_as_object,
                     predicates=predicates,
                 )
             )
             dfs.append(df)
+
         # dfs contains one df per index column. Each df stores indices filtered by `predicates` for each column.
         # Performing an inner join on these dfs yields the resulting "AND" evaluation for all of these predicates.
         # We start joining with the smallest dataframe, therefore the sorting.
@@ -470,7 +477,6 @@ class DatasetMetadataBase(CopyMixin):
         for df in dfs_sorted:
             df_result = df_result.merge(
                 df, left_index=True, right_index=True, copy=False
-            )
         return df_result
 
 
