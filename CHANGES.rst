@@ -2,9 +2,11 @@
 Changelog
 =========
 
-Version 3.16.1 (2020-10-??)
+Version 3.17.0 (2020-10-??)
 ===========================
 
+* :func:`~kartothek.io.eager.commit_dataset` now allows to modify the user
+  metadata without adding new data.
 * Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would return
   improper rowgroup statistics
 * Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would execute
