@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import warnings
 from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
@@ -19,6 +18,7 @@ from kartothek.core.naming import (
     PARQUET_FILE_SUFFIX,
     get_partition_file_prefix,
 )
+from kartothek.core.utils import lazy_store
 from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.delete import (
     delete_common_metadata,
@@ -37,7 +37,6 @@ from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     NoDefault,
     _ensure_compatible_indices,
-    _make_callable,
     align_categories,
     normalize_args,
     sort_values_categorical,
@@ -59,7 +58,7 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         load_schema=False,
-        store=_make_callable(store),
+        store=store,
         factory=factory,
         load_dataset_metadata=False,
     )
@@ -126,7 +125,7 @@ def read_dataset_as_dataframes(
 
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
-        store=_make_callable(store),
+        store=store,
         factory=factory,
         load_dataset_metadata=True,
     )
@@ -302,7 +301,7 @@ def read_table(
 
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
-        store=_make_callable(store),
+        store=store,
         factory=factory,
         load_dataset_metadata=False,
     )
@@ -417,7 +416,7 @@ def commit_dataset(
 
     if isinstance(new_partitions, NoDefault):
         raise TypeError("The parameter `new_partitions` is not optional")
-    store = _make_callable(store)
+    store = lazy_store(store)
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -552,7 +551,7 @@ def create_empty_dataset_header(
     Parameters
     ----------
     """
-    store = _make_callable(store)()
+    store = lazy_store(store)()
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
 
@@ -653,7 +652,7 @@ def write_single_partition(
         raise TypeError("The parameter `data` is not optional")
     _, ds_metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
-        store=_make_callable(store),
+        store=lazy_store(store),
         ds_factory=factory,
         default_metadata_version=metadata_version,
         partition_on=partition_on,
