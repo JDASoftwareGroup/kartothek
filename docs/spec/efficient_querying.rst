@@ -54,6 +54,10 @@ Through restrictions on partitioned columns and indexed columns, Kartothek can
 significantly reduce the number of parquet files to look at. The selection of
 columns allows it to transfer only a subset of the data.
 
+.. warning::
+   When using the `in` operation to filter your data, avoid passing a long list
+   of values (i.e. larger than 100 elements in the list), as this might slow
+   down the read performance.
 
 Example
 -------
