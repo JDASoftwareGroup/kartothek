@@ -61,30 +61,26 @@ def prepare_metapartitions_for_removal_action(
     for ktk_cube_dataset_id in ktk_cube_dataset_ids:
         ds = existing_datasets[ktk_cube_dataset_id]
         ds = ds.load_partition_indices()
-
-        df_partitions = get_partition_dataframe(dataset=ds, cube=cube)
-        df_partitions = df_partitions.drop_duplicates()
-        local_condition = reduce(
-            lambda a, b: a & b,
-            (
-                cond
-                for col, cond in conditions_split.items()
-                if col in df_partitions.columns
-            ),
-            Conjunction([]),
-        )
-        df_partitions = local_condition.filter_df(df_partitions)
-
         mp = _prepare_mp_empty(ds)
 
-        if df_partitions.empty:
-            # might be empty due to:
-            #  - empty dataset
-            #  - empty partition_keys
-            #
-            # in both cases, use a "delete all"-scope
+        if not ds.partition_keys:
+            # no partition keys --> delete all
             delete_scope = [{}]
         else:
+
+            df_partitions = get_partition_dataframe(dataset=ds, cube=cube)
+            df_partitions = df_partitions.drop_duplicates()
+            local_condition = reduce(
+                lambda a, b: a & b,
+                (
+                    cond
+                    for col, cond in conditions_split.items()
+                    if col in df_partitions.columns
+                ),
+                Conjunction([]),
+            )
+            df_partitions = local_condition.filter_df(df_partitions)
+
             delete_scope = df_partitions.to_dict(orient="records")
 
         metapartitions[ktk_cube_dataset_id] = (ds, mp, delete_scope)

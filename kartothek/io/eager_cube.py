@@ -482,6 +482,12 @@ def remove_partitions(
     """
     Remove given partition range from cube using a transaction.
 
+    Remove the partitions selected by ``conditions``. If no ``conditions`` are given,
+    remove all partitions. For each considered dataset, only the subset of
+    ``conditions`` that refers to the partition columns of the respective dataset
+    is used. In particular, a dataset that is not partitioned at all is always considered
+    selected by ``conditions``.
+
     Parameters
     ----------
     cube: kartothek.core.cube.cube.Cube
@@ -489,7 +495,7 @@ def remove_partitions(
     store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Store.
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
-        Conditions that should be applied, optional. Defaults to "entire cube".
+        Select the partitions to be removed. Must be a condition only on partition columns.
     ktk_cube_dataset_ids: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
         Ktk_cube dataset IDs to apply the remove action to, optional. Default to "all".
     metadata: Optional[Dict[str, Dict[str, Any]]]
