@@ -17,6 +17,8 @@ Version 3.16.1 (2020-10-??)
 * Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would execute
   ``get_parquet_metadata`` at graph construction time
 * Improve performance for "in" predicate literals using long object lists as values
+* Fix a bug in :func:`kartothek.io.eager_cube.remove_partitions` where all partitions were removed
+  instead of non at all.
 
 Version 3.16.0 (2020-09-29)
 ===========================

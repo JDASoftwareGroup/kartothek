@@ -104,6 +104,22 @@ def test_conditions(driver, function_store, existing_cube):
     assert parts_source1 - parts_source_to_delete == parts_source2
 
 
+def test_remove_nonmatching_condition(driver, function_store, existing_cube):
+    parts_source_before = set(
+        DatasetMetadata.load_from_store(
+            existing_cube.ktk_dataset_uuid("source"), function_store()
+        ).partitions
+    )
+    result = driver(
+        cube=existing_cube,
+        store=function_store,
+        ktk_cube_dataset_ids=["source"],
+        conditions=C("p") > 10000,
+    )
+    parts_source_after = set(result["source"].partitions)
+    assert parts_source_before == parts_source_after
+
+
 def test_fail_wrong_condition(driver, function_store, existing_cube):
     with pytest.raises(
         ValueError,
