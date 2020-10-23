@@ -1,4 +1,3 @@
-import math
 import random
 import warnings
 from typing import (
@@ -14,6 +13,7 @@ from typing import (
 
 import dask
 import dask.dataframe as dd
+import numpy as np
 import pandas as pd
 from simplekv import KeyValueStore
 
@@ -332,7 +332,9 @@ def _write_dataframe_partitions(
     bucket_by: List[str],
 ) -> dd.Series:
     if repartition_ratio and ddf is not None:
-        ddf = repartition_ddf(ddf, repartition_ratio=repartition_ratio)
+        ddf = ddf.repartition(
+            npartitions=int(np.ceil(ddf.npartitions / repartition_ratio))
+        )
 
     if ddf is None:
         mps = dd.from_pandas(
@@ -604,67 +606,3 @@ def hash_dataset(
             .apply(_unpack_hash, unpack_meta=ddf._meta, subset=subset, meta="uint64")
             .astype("uint64")
         )
-
-
-def calculate_repartition_ratio(
-    dataset_factory: DatasetFactory,
-    predicates: Optional[PredicatesType] = None,
-    *,
-    target_nrows_per_partition: int,
-    dataset_metadata_frac: float,
-) -> dd.core.Scalar:
-    """
-    Calculate a `repartition_ratio` according to the dataset input and `target_nrows_per_partition` (the desired
-    number of rows of each dataframe partition).
-
-
-    Parameters
-    ----------
-    dataset_factory
-        dataset factory
-    predicates
-        Optional , but predicates to be applied during calculatin repartition ratio
-    target_nrows_per_partition
-        target num of rows per partition
-    dataset_metadata_frac
-        used during collection of dataset metadata
-
-    Returns
-    -------
-    repartition_ratio
-        calculated repartition_ratio
-    """
-    dataset_metadata = collect_dataset_metadata(
-        factory=dataset_factory, predicates=predicates, frac=dataset_metadata_frac,
-    )
-    expected_nrows_per_partition = dataset_metadata.groupby("partition_label")[
-        "number_rows_per_row_group"
-    ].sum()
-
-    mean_nrows_per_partition = expected_nrows_per_partition.mean()
-    repartition_ratio = target_nrows_per_partition / mean_nrows_per_partition
-    return repartition_ratio
-
-
-def repartition_ddf(
-    ddf: dd.DataFrame, repartition_ratio: SupportsFloat
-) -> dd.DataFrame:
-    """
-    Repartition a dask DataFrame according, dividing the current number of partitions by `repartition_ratio`.
-
-    Parameters
-    ----------
-    ddf
-        dask.Dataframe
-    repartition_ratio
-        calculated repartition ratio
-
-    Returns
-    -------
-    dask.DataFrame
-    """
-    with dask.config.set({"optimization.fuse.ave-width": math.ceil(repartition_ratio)}):
-        # Minimum amount of partitions is 1.
-        target_npartitions = max(1, int(math.ceil(ddf.npartitions / repartition_ratio)))
-        ddf2 = ddf.repartition(npartitions=target_npartitions)
-        return dask.optimize(ddf2, optimizations=[dask.dataframe.optimize])[0]

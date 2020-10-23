@@ -2,13 +2,6 @@
 Changelog
 =========
 
-Version 3.17.0 (2020-10-22)
-===========================
-
-* Kartothek now support functionality to calculate repartition_ratio and repartition dask Dataframe using this ratio.
-    :func:`~kartothek.io.dask.dataframe.calculate_repartition_ratio`
-    :func:`~kartothek.io.dask.dataframe.repartition_ddf`
-
 Version 3.16.1 (2020-10-??)
 ===========================
 
