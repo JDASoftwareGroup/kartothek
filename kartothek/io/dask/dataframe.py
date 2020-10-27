@@ -1,3 +1,4 @@
+import math
 import random
 import warnings
 from typing import (
@@ -606,3 +607,82 @@ def hash_dataset(
             .apply(_unpack_hash, unpack_meta=ddf._meta, subset=subset, meta="uint64")
             .astype("uint64")
         )
+
+
+def _calc_target_npartitions(
+    ddf: dd.DataFrame, dataset_metadata: dd.DataFrame, target_nrows_per_partition: int
+) -> float:
+    """
+        This is an internal function to calculate target_npartitions using dataset metadata information and target_nrows_per_partition.
+
+        Parameters
+        ----------
+        ddf
+            dask.DataFrame
+        dataset_metadata
+            dask.DataFrame . This is the dataset metadata information of the input ddf
+        target_nrows_per_partition
+            Target num of rows per partition provided by customer
+
+
+        Returns
+        -------
+        target_npartitions
+            int
+        """
+    expected_nrows_per_partition = dataset_metadata.groupby("partition_label")[
+        "number_rows_per_row_group"
+    ].sum()
+
+    mean_nrows_per_partition = expected_nrows_per_partition.mean()
+    repartition_ratio = target_nrows_per_partition / mean_nrows_per_partition
+    repartition_ratio = repartition_ratio.compute()
+    with dask.config.set({"optimization.fuse.ave-width": math.ceil(repartition_ratio)}):
+        # Minimum amount of partitions is 1.
+        target_npartitions = max(1, int(math.ceil(ddf.npartitions / repartition_ratio)))
+        return target_npartitions
+
+
+def repartition_ddf(
+    ddf: dd.DataFrame,
+    dataset_factory: DatasetFactory,
+    target_nrows_per_partition: int,
+    dataset_metadata_frac: float,
+    predicates: Optional[PredicatesType] = None,
+) -> dd.DataFrame:
+    """
+    This is an IO  function used to repartition the input ddf using the target_nrows_per_partition input param
+    The metadata of the ddf is collected using Ktk Functions and expected_nrows_per_partition is extracted`.
+    An intermediate parameter repartition_ratio (per_partition) which is target_rows/expected_rows is computed.
+    Final target number of partitions (target_npartitions) are calculated  on the ddf using the above ratio.
+    The input ddf is repartitioned using target_npartitions value.
+
+    Parameters
+    ----------
+    ddf
+        dask.DataFrame
+    dataset_factory
+        dataset factory
+    predicates
+        Optional , but predicates can be applied while collecting_dataset_metadata.
+        Note that predicates will only be applied during query planning, predicate pushdown is not (yet) supported.
+        Thus, this is only useful if providing predicates involving indexed columns.
+    target_nrows_per_partition
+        target num of rows per partition
+    dataset_metadata_frac
+        This fraction is helps in collecting metadata on a fraction(sample) of the ddf, instead of the whole ddf.
+
+
+    Returns
+    -------
+    dask.DataFrame
+    """
+
+    dataset_metadata = collect_dataset_metadata(
+        factory=dataset_factory, predicates=predicates, frac=dataset_metadata_frac,
+    )
+    target_npartitions = _calc_target_npartitions(
+        ddf, dataset_metadata, target_nrows_per_partition
+    )
+    ddf2 = ddf.repartition(npartitions=target_npartitions)
+    return dask.optimize(ddf2, optimizations=[dask.dataframe.optimize])[0]
