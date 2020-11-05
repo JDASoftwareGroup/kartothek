@@ -378,7 +378,7 @@ class DatasetMetadataBase(CopyMixin):
         Parameters
         ----------
         """
-        if not self.primary_indices_loaded:
+        if not self.primary_indices_loaded and columns != []:
             # self.load_partition_indices is not inplace
             dm = self.load_partition_indices()
         else:
