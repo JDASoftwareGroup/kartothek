@@ -108,16 +108,20 @@ def dispatch_metapartitions_from_factory(
         if isinstance(ix, ExplicitSecondaryIndex)
     }
 
-    if dispatch_by:
+    if dispatch_by is not None:
         base_df = cast(pd.DataFrame, base_df)
 
-        # Group the resulting MetaParitions by partition keys or a subset of those keys
-        merged_partitions = base_df.groupby(
-            by=list(dispatch_by), sort=True, as_index=False
-        )
+        if dispatch_by == []:
+            merged_partitions = [((""), base_df)]
+        else:
+            # Group the resulting MetaParitions by partition keys or a subset of those keys
+            merged_partitions = base_df.groupby(
+                by=list(dispatch_by), sort=True, as_index=False
+            )
+
         for group_name, group in merged_partitions:
             if not isinstance(group_name, tuple):
-                group_name = (group_name,)
+                group_name = (group_name,)  # type: ignore
             mps = []
             logical_conjunction = list(
                 zip(dispatch_by, ["=="] * len(dispatch_by), group_name)
