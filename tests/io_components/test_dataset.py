@@ -114,14 +114,12 @@ def test_dataset_get_indices_as_dataframe_predicates():
 def test_dataset_get_indices_as_dataframe_no_index(dataset):
     assert not dataset.primary_indices_loaded
     df = dataset.get_indices_as_dataframe()
-    assert not dataset.primary_indices_loaded
     pdt.assert_frame_equal(df, pd.DataFrame(index=["cluster_1", "cluster_2"]))
 
 
 def test_dataset_get_indices_as_dataframe_with_index(dataset_with_index, store_session):
     assert not dataset_with_index.primary_indices_loaded
     df = dataset_with_index.get_indices_as_dataframe()
-    assert not dataset_with_index.primary_indices_loaded
     pdt.assert_frame_equal(
         df,
         pd.DataFrame(columns=["L", "P"], index=pd.Index([], name="partition")).astype(
