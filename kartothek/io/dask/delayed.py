@@ -300,7 +300,7 @@ def read_dataset_as_delayed_metapartitions(
         dispatch_metadata=dispatch_metadata,
     )
 
-    if concat_partitions_on_primary_index or dispatch_by:
+    if concat_partitions_on_primary_index or dispatch_by is not None:
         mps = _load_and_concat_metapartitions(
             mps,
             store=store,

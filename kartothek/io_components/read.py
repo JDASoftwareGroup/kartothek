@@ -61,7 +61,7 @@ def dispatch_metapartitions_from_factory(
             DeprecationWarning,
         )
 
-    if dispatch_by and concat_partitions_on_primary_index:
+    if dispatch_by is not None and concat_partitions_on_primary_index:
         raise ValueError(
             "Both `dispatch_by` and `concat_partitions_on_primary_index` are provided, "
             "`concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. "
@@ -74,7 +74,7 @@ def dispatch_metapartitions_from_factory(
         )
         dispatch_by = dataset_factory.partition_keys
 
-    if dispatch_by and not set(dispatch_by).issubset(
+    if dispatch_by is not None and not set(dispatch_by).issubset(
         set(dataset_factory.index_columns)
     ):
         raise RuntimeError(
