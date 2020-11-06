@@ -17,7 +17,7 @@ Bugfixes
   ``get_parquet_metadata`` at graph construction time
 * Fix a bug in :func:`kartothek.io.eager_cube.remove_partitions` where all partitions were removed
   instead of non at all.
-* Fix a bug in :meth:`~kartothek.core.dataset.DatasetMetadata.get_indices_as_dataframe` which would
+* Fix a bug in :meth:`~kartothek.core.dataset.DatasetMetadataBase.get_indices_as_dataframe` which would
   raise an ``IndexError`` if indices were empty or had not been loaded
 
 Version 3.16.0 (2020-09-29)
