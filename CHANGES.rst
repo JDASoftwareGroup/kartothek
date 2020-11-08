@@ -2,12 +2,14 @@
 Changelog
 =========
 
-Version 3.16.1 (2020-10-??)
+Version 3.17.0 (2020-10-??)
 ===========================
 
 Improvements
 ^^^^^^^^^^^^
 * Improve performance for "in" predicate literals using long object lists as values
+* :func:`~kartothek.io.eager.commit_dataset` now allows to modify the user
+  metadata without adding new data.
 
 Bugfixes
 ^^^^^^^^

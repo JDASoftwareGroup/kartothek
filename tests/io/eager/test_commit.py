@@ -1,11 +1,8 @@
-# -*- coding: utf-8 -*-
-# pylint: disable=E1101
-
-
 import datetime
 from collections import OrderedDict
 
 import pandas as pd
+import pytest
 from pandas.testing import assert_frame_equal
 
 from kartothek.core.common_metadata import make_meta
@@ -302,3 +299,35 @@ def test_commit_dataset_delete_all(store, metadata_version):
     )
     assert len(updated_dataset.partitions) == 0
     assert updated_dataset.explicit_partitions is True
+
+
+def test_commit_dataset_add_metadata(store, metadata_version):
+    df = pd.DataFrame({"p": [1]})
+    dataset = store_dataframes_as_dataset(
+        dfs=[df],
+        store=lambda: store,
+        metadata={"old": "metadata"},
+        dataset_uuid="dataset_uuid",
+        metadata_version=metadata_version,
+    )
+
+    commit_dataset(store=store, dataset_uuid=dataset.uuid, metadata={"new": "metadata"})
+    restored_ds = DatasetMetadata.load_from_store(uuid="dataset_uuid", store=store)
+
+    actual_metadata = restored_ds.metadata
+    del actual_metadata["creation_time"]
+    expected_meta = {"new": "metadata", "old": "metadata"}
+    assert actual_metadata == expected_meta
+
+
+def test_commit_dataset_raises_no_input(store):
+
+    with pytest.raises(ValueError, match="Need to provide either"):
+        commit_dataset(store=store, dataset_uuid="something")
+
+    with pytest.raises(ValueError, match="Need to provide either"):
+        commit_dataset(store=store, dataset_uuid="something", new_partitions=[])
+    with pytest.raises(ValueError, match="Need to provide either"):
+        commit_dataset(store=store, dataset_uuid="something", metadata={})
+    with pytest.raises(ValueError, match="Need to provide either"):
+        commit_dataset(store=store, dataset_uuid="something", delete_scope=[])
