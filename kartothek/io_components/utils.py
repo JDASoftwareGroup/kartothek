@@ -191,10 +191,9 @@ _NORMALIZE_ARGS_LIST = [
     "secondary_indices",
     "sort_partitions_by",
     "bucket_by",
-    "dispatch_by",
 ]
 
-_NORMALIZE_ARGS = _NORMALIZE_ARGS_LIST + ["store"]
+_NORMALIZE_ARGS = _NORMALIZE_ARGS_LIST + ["store", "dispatch_by"]
 
 T = TypeVar("T")
 
@@ -252,6 +251,13 @@ def normalize_arg(arg_name, old_value):
         return list(_args)
 
     if arg_name in _NORMALIZE_ARGS_LIST:
+        if old_value is None:
+            return []
+        elif isinstance(old_value, list):
+            return old_value
+        else:
+            return _make_list(old_value)
+    elif arg_name == "dispatch_by":
         if old_value is None:
             return []
         elif isinstance(old_value, list):

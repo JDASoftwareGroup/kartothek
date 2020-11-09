@@ -51,7 +51,6 @@ def dispatch_metapartitions_from_factory(
     dispatch_by: Optional[List[str]] = None,
     dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
-
     if dispatch_metadata:
 
         warnings.warn(
