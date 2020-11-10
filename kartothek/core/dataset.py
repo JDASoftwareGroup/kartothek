@@ -378,12 +378,18 @@ class DatasetMetadataBase(CopyMixin):
         Parameters
         ----------
         """
-        if columns is None:
-            columns = sorted(self.indices.keys())
-        elif columns == []:
-            return pd.DataFrame(index=self.partitions)
+        if not self.primary_indices_loaded and columns != []:
+            # self.load_partition_indices is not inplace
+            dm = self.load_partition_indices()
+        else:
+            dm = self
 
-        columns_to_scan = columns[:]
+        if columns is None:
+            columns = sorted(dm.indices.keys())
+
+        if columns == []:
+            return pd.DataFrame(index=dm.partitions)
+
         if predicates:
             predicate_columns = columns_in_predicates(predicates)
             columns_to_scan = sorted(
@@ -391,7 +397,7 @@ class DatasetMetadataBase(CopyMixin):
             )
 
             dfs = (
-                self._evaluate_conjunction(
+                dm._evaluate_conjunction(
                     columns=columns_to_scan,
                     predicates=[conjunction],
                     date_as_object=date_as_object,
@@ -405,8 +411,8 @@ class DatasetMetadataBase(CopyMixin):
                 df.loc[:, columns].reset_index().drop_duplicates().set_index(index_name)
             )
         else:
-            df = self._evaluate_conjunction(
-                columns=columns_to_scan, predicates=None, date_as_object=date_as_object,
+            df = dm._evaluate_conjunction(
+                columns=columns, predicates=None, date_as_object=date_as_object,
             )
         return df
 
@@ -461,6 +467,7 @@ class DatasetMetadataBase(CopyMixin):
                 )
             )
             dfs.append(df)
+
         # dfs contains one df per index column. Each df stores indices filtered by `predicates` for each column.
         # Performing an inner join on these dfs yields the resulting "AND" evaluation for all of these predicates.
         # We start joining with the smallest dataframe, therefore the sorting.

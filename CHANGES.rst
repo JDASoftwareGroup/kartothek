@@ -5,15 +5,22 @@ Changelog
 Version 3.17.0 (2020-10-??)
 ===========================
 
+Improvements
+^^^^^^^^^^^^
+* Improve performance for "in" predicate literals using long object lists as values
 * :func:`~kartothek.io.eager.commit_dataset` now allows to modify the user
   metadata without adding new data.
+
+Bugfixes
+^^^^^^^^
 * Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would return
   improper rowgroup statistics
 * Fix an issue where :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` would execute
   ``get_parquet_metadata`` at graph construction time
-* Improve performance for "in" predicate literals using long object lists as values
 * Fix a bug in :func:`kartothek.io.eager_cube.remove_partitions` where all partitions were removed
   instead of non at all.
+* Fix a bug in :meth:`~kartothek.core.dataset.DatasetMetadataBase.get_indices_as_dataframe` which would
+  raise an ``IndexError`` if indices were empty or had not been loaded
 
 Version 3.16.0 (2020-09-29)
 ===========================
