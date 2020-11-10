@@ -259,7 +259,7 @@ def normalize_arg(arg_name, old_value):
             return _make_list(old_value)
     elif arg_name == "dispatch_by":
         if old_value is None:
-            return []
+            return old_value
         elif isinstance(old_value, list):
             return old_value
         else:

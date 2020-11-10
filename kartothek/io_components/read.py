@@ -110,7 +110,7 @@ def dispatch_metapartitions_from_factory(
     if dispatch_by is not None:
         base_df = cast(pd.DataFrame, base_df)
 
-        if dispatch_by == []:
+        if len(dispatch_by) == 0:
             merged_partitions = [((""), base_df)]
         else:
             # Group the resulting MetaParitions by partition keys or a subset of those keys
