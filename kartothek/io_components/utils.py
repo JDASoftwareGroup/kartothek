@@ -421,12 +421,3 @@ def raise_if_indices_overlap(partition_on, secondary_indices):
         raise RuntimeError(
             f"Cannot create secondary index on partition columns: {partition_secondary_overlap}"
         )
-
-
-class NoDefault:
-    """
-    This is used to flag non-optional keyword arguments for
-    which None is a perfectly valid input
-    """
-
-    pass

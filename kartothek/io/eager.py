@@ -1,6 +1,6 @@
 import warnings
 from functools import partial
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union, cast
+from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import pandas as pd
 
@@ -18,6 +18,7 @@ from kartothek.core.naming import (
     PARQUET_FILE_SUFFIX,
     get_partition_file_prefix,
 )
+from kartothek.core.typing import StoreInput
 from kartothek.core.utils import lazy_store
 from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.delete import (
@@ -35,7 +36,6 @@ from kartothek.io_components.metapartition import (
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
-    NoDefault,
     _ensure_compatible_indices,
     align_categories,
     normalize_args,
@@ -43,6 +43,7 @@ from kartothek.io_components.utils import (
     validate_partition_keys,
 )
 from kartothek.io_components.write import raise_if_dataset_exists
+from kartothek.serialization import DataFrameSerializer
 
 
 @default_docs
@@ -339,66 +340,87 @@ def read_table(
 @default_docs
 @normalize_args
 def commit_dataset(
-    store=None,
-    dataset_uuid=None,
-    new_partitions=NoDefault(),
-    output_dataset_uuid=None,
-    delete_scope=None,
-    metadata=None,
-    df_serializer=None,
-    metadata_merger=None,
-    default_metadata_version=DEFAULT_METADATA_VERSION,
-    partition_on=None,
-    factory=None,
-    secondary_indices=None,
+    store: Optional[StoreInput] = None,
+    dataset_uuid: Optional[str] = None,
+    new_partitions: Optional[Iterable[MetaPartition]] = None,
+    output_dataset_uuid: Optional[str] = None,
+    delete_scope: Optional[Iterable[Dict[str, Any]]] = None,
+    metadata: Dict = None,
+    df_serializer: DataFrameSerializer = None,
+    metadata_merger: Callable[[List[Dict]], Dict] = None,
+    default_metadata_version: int = DEFAULT_METADATA_VERSION,
+    partition_on: Optional[Iterable[str]] = None,
+    factory: Optional[DatasetFactory] = None,
+    secondary_indices: Optional[Iterable[str]] = None,
 ):
     """
-    Update an existing dataset with new, already written partitions. This should be used in combination with
-    :func:`~kartothek.io.eager.write_single_partition` and :func:`~kartothek.io.eager.create_empty_dataset_header`.
+    Commit new state to an existing dataset. This can be used for three distinct operations
 
-    .. note::
+    1. Add previously written partitions to this dataset
 
-        It is highly recommended to use the full pipelines whenever possible. This functionality should be
-        used with caution and should only be necessary in cases where traditional pipeline scheduling is not an
-        option.
+        If for some reasons, the existing pipelines are not sufficient but you need more control, you can write the files outside of a kartothek pipeline and commit them whenever you choose to.
 
-    Example:
+        This should be used in combination with
+        :func:`~kartothek.io.eager.write_single_partition` and :func:`~kartothek.io.eager.create_empty_dataset_header`.
 
         .. code::
 
-            import storefact
             import pandas as pd
-            from functools import partial
-            from kartothek.io.eager import write_single_partition
-            form kartothek.io.eager.update import commit_dataset
+            from kartothek.io.eager import write_single_partition, commit_dataset
 
-            store = partial(storefact.get_store_from_url, url="hfs://my_store")
+            store = "hfs://my_store"
 
-            new_data={
-                "data": {
-                    "table_1": pd.DataFrame({'column': [1, 2]}),
-                    "table_1": pd.DataFrame({'other_column': ['a', 'b']}),
-                }
-            }
             # The partition writing can be done concurrently and distributed if wanted.
             # Only the information about what partitions have been written is required for the commit.
             new_partitions = [
                 write_single_partition(
                     store=store,
                     dataset_uuid='dataset_uuid',
-                    data=new_data
+                    data=pd.DataFrame({'column': [1, 2]}),
                 )
             ]
 
             new_dataset = commit_dataset(
                 store=store,
                 dataset_uuid='dataset_uuid',
-                new_partitions=new_partitions
+                new_partitions=new_partitions,
             )
+
+    2. Simple delete of partitions
+
+        If you want to remove some partitions this is one of the simples ways of doing so. By simply providing a delete_scope, this removes the references to these files in an atomic commit.
+
+        .. code::
+
+            commit_dataset(
+                store=store,
+                dataset_uuid='dataset_uuid',
+                delete_scope=[
+                    {
+                        "partition_column": "part_value_to_be_removed"
+                    }
+                ],
+            )
+
+    3. Add additional metadata
+
+        To add new metadata to an existing dataset
+
+        .. code::
+
+            commit_dataset(
+                store=store,
+                dataset_uuid='dataset_uuid',
+                metadata={"new": "user_metadata"},
+            )
+
+        Note::
+
+            If you do not want the new metadata to be merged with the existing one, povide a custom ``metadata_merger``
 
     Parameters
     ----------
-    new_partitions: List[kartothek.io_components.metapartition.MetaPartition]
+    new_partitions:
         Input partition to be committed.
 
     """
@@ -414,8 +436,10 @@ def commit_dataset(
             DeprecationWarning,
         )
 
-    if isinstance(new_partitions, NoDefault):
-        raise TypeError("The parameter `new_partitions` is not optional")
+    if not new_partitions and not metadata and not delete_scope:
+        raise ValueError(
+            "Need to provide either new data, new metadata or a delete scope. None of it was provided."
+        )
     store = lazy_store(store)
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
@@ -432,10 +456,10 @@ def commit_dataset(
     if secondary_indices:
         mps = mps.build_indices(columns=secondary_indices)
 
-    mps = [_maybe_infer_files_attribute(mp, dataset_uuid) for mp in mps]
+    mps_list = [_maybe_infer_files_attribute(mp, dataset_uuid) for mp in mps]
 
     dmd = update_dataset_from_partitions(
-        mps,
+        mps_list,
         store_factory=store,
         dataset_uuid=dataset_uuid,
         ds_factory=ds_factory,
