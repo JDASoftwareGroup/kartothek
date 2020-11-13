@@ -21,6 +21,9 @@ Bugfixes
   instead of non at all.
 * Fix a bug in :meth:`~kartothek.core.dataset.DatasetMetadataBase.get_indices_as_dataframe` which would
   raise an ``IndexError`` if indices were empty or had not been loaded
+* Fix a bug in :func:`~kartothek.io_components.read.dispatch_metapartitions_from_factory` where
+  `dispatch_by=[]` would be treated like `dispatch_by=None`, not merging all dataset partitions into
+  a single partitions.
 
 Version 3.16.0 (2020-09-29)
 ===========================
