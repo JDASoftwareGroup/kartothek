@@ -27,6 +27,7 @@ from kartothek.utils.store import copy_keys
 
 __all__ = (
     "append_to_cube_from_bag",
+    "update_cube_from_bag",
     "build_cube_from_bag",
     "cleanup_cube_bag",
     "collect_stats_bag",
@@ -378,7 +379,7 @@ def append_to_cube_from_bag(data, cube, store, ktk_cube_dataset_ids, metadata=No
     .. hint::
 
         To have better control over the overwrite "mask" (i.e. which partitions are overwritten), you should use
-        :meth:`remove_partitions` beforehand.
+        :meth:`remove_partitions` beforehand or use :meth:`update_cube_from_bag` instead.
 
     Parameters
     ----------
@@ -404,6 +405,49 @@ def append_to_cube_from_bag(data, cube, store, ktk_cube_dataset_ids, metadata=No
         data=data,
         cube=cube,
         store=store,
+        ktk_cube_dataset_ids=ktk_cube_dataset_ids,
+        metadata=metadata,
+    )
+
+
+def update_cube_from_bag(
+    data, cube, store, remove_conditions, ktk_cube_dataset_ids, metadata=None
+):
+    """
+    Remove partitions and append data to existing cube.
+
+    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+
+    Only datasets in `ktk_cube_dataset_ids` will be affected.
+
+    Parameters
+    ----------
+    data: dask.Bag
+        Bag containing dataframes
+    cube: kartothek.core.cube.cube.Cube
+        Cube specification.
+    store: Callable[[], simplekv.KeyValueStore]
+        Store to which the data should be written to.
+    remove_conditions
+        Conditions that select the partitions to remove. Must be a condition that only uses
+        partition columns.
+    ktk_cube_dataset_ids: Optional[Iterable[str]]
+        Datasets that will be written, must be specified in advance.
+    metadata: Optional[Dict[str, Dict[str, Any]]]
+        Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
+        metadata keys is not possible.
+
+    Returns
+    -------
+    metadata_dict: dask.bag.Bag
+        A dask bag object containing the compute graph to append to the cube returning the dict of dataset metadata
+        objects. The bag has a single partition with a single element.
+    """
+    return append_to_cube_from_bag_internal(
+        data=data,
+        cube=cube,
+        store=store,
+        remove_conditions=remove_conditions,
         ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata=metadata,
     )
