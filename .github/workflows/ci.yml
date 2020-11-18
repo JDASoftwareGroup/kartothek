@@ -40,7 +40,7 @@ jobs:
 
     defaults:
       run:
-        # see https://github.com/goanpeca/setup-miniconda/#important
+        # see https://github.com/conda-incubator/setup-miniconda/#important
         shell: bash -l {0}
 
     env:
@@ -54,7 +54,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v2
       - name: Conda Bootstrap
-        uses: goanpeca/setup-miniconda@v1
+        uses: conda-incubator/setup-miniconda@v2
         with:
           auto-update-conda: true
           channel-priority: strict
