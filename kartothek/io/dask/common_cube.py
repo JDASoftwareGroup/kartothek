@@ -16,6 +16,9 @@ from kartothek.core.cube.constants import (
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.common import check_blocksize, check_store_factory
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
+from kartothek.io_components.cube.remove import (
+    prepare_metapartitions_for_removal_action,
+)
 from kartothek.io_components.cube.write import (
     apply_postwrite_checks,
     check_datasets_prebuild,
@@ -293,7 +296,9 @@ def query_cube_bag_internal(
     return empty, b
 
 
-def append_to_cube_from_bag_internal(data, cube, store, ktk_cube_dataset_ids, metadata):
+def append_to_cube_from_bag_internal(
+    data, cube, store, ktk_cube_dataset_ids, metadata, remove_conditions=None
+):
     """
     Append data to existing cube.
 
@@ -304,10 +309,6 @@ def append_to_cube_from_bag_internal(data, cube, store, ktk_cube_dataset_ids, me
         Physical partitions must be updated as a whole. If only single rows within a physical partition are updated, the
         old data is treated as "removed".
 
-    .. hint::
-
-        To have better control over the overwrite "mask" (i.e. which partitions are overwritten), you should use
-        :meth:`remove_partitions` beforehand.
 
     Parameters
     ----------
@@ -322,6 +323,8 @@ def append_to_cube_from_bag_internal(data, cube, store, ktk_cube_dataset_ids, me
     metadata: Dict[str, Dict[str, Any]]
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
+    remove_conditions
+        Conditions that select which partitions to remove.
 
     Returns
     -------
@@ -344,9 +347,20 @@ def append_to_cube_from_bag_internal(data, cube, store, ktk_cube_dataset_ids, me
         existing_datasets=existing_datasets, ktk_cube_dataset_ids=ktk_cube_dataset_ids
     )
 
+    if remove_conditions is not None:
+        remove_metapartitions = prepare_metapartitions_for_removal_action(
+            cube, store, remove_conditions, ktk_cube_dataset_ids, existing_datasets
+        )
+        delete_scopes = {
+            k: delete_scope for k, (_, _, delete_scope) in remove_metapartitions.items()
+        }
+    else:
+        delete_scopes = {}
+
     data = (
         data.map(multiplex_user_input, cube=cube)
         .map(_check_dataset_ids, ktk_cube_dataset_ids=ktk_cube_dataset_ids)
+        .map(_fill_dataset_ids, ktk_cube_dataset_ids=ktk_cube_dataset_ids)
         .map(
             _multiplex_prepare_data_for_ktk,
             cube=cube,
@@ -368,6 +382,7 @@ def append_to_cube_from_bag_internal(data, cube, store, ktk_cube_dataset_ids, me
         },
         update=True,
         existing_datasets=existing_datasets,
+        delete_scopes=delete_scopes,
     )
 
     data = data.map(
@@ -421,6 +436,13 @@ def _check_dataset_ids(dct, ktk_cube_dataset_ids):
     return dct
 
 
+def _fill_dataset_ids(dct, ktk_cube_dataset_ids):
+    # make sure dct contains an entry for each ktk_cube_dataset_ids, filling in None
+    # if necessary
+    dct.update({ktk_id: None for ktk_id in ktk_cube_dataset_ids if ktk_id not in dct})
+    return dct
+
+
 def _store_bag_as_dataset_parallel(
     bag,
     store,
@@ -430,10 +452,14 @@ def _store_bag_as_dataset_parallel(
     existing_datasets,
     overwrite=False,
     update=False,
+    delete_scopes=None,
 ):
     """
     Vendored, simplified and modified version of kartotheks ``store_bag_as_dataset`` which cannot be easily used to
     store datasets in parallel (e.g. from a dict).
+
+    `delete_scope` is a dictionary mapping the kartothek dataset id to the `delete_scope` of the dataset
+    (see `update_dataset_from_partitions` for the definition of the single dataset `delete_scope`).
     """
     if (not update) and (not overwrite):
         for ktk_cube_dataset_id in ktk_cube_dataset_ids:
@@ -455,6 +481,7 @@ def _store_bag_as_dataset_parallel(
         metadata=metadata,
         store=store,
         update=update,
+        delete_scopes=delete_scopes or {},
     )
 
     return mps.reduction(
@@ -478,7 +505,7 @@ def _multiplex_prepare_data_for_ktk(data, cube, existing_payload, partition_on):
 
 
 def _multiplex_store_dataset_from_partitions_flat(
-    mpss, cube, metadata, update, store, existing_datasets
+    mpss, cube, metadata, update, store, existing_datasets, delete_scopes
 ):
     dct = defaultdict(list)
     for sublist in mpss:
@@ -489,19 +516,23 @@ def _multiplex_store_dataset_from_partitions_flat(
     result = {}
     for k, v in dct.items():
         if update:
+            print(
+                f"_multiplex_store_dataset_from_partitions_flat: {k} delete scope: {delete_scopes.get(k, [])}"
+            )
             ds_factory = metadata_factory_from_dataset(
                 existing_datasets[k], with_schema=True, store=store
             )
             result[k] = update_dataset_from_partitions(
                 v,
                 dataset_uuid=cube.ktk_dataset_uuid(k),
-                delete_scope=[],
+                delete_scope=delete_scopes.get(k, []),
                 ds_factory=ds_factory,
                 metadata=metadata[k],
                 metadata_merger=None,
                 store_factory=store,
             )
         else:
+            print(f"_multiplex_store_dataset_from_partitions_flat: {k} no update")
             result[k] = store_dataset_from_partitions(
                 v,
                 dataset_metadata=metadata[k],
