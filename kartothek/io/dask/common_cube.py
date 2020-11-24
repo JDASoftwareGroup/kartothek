@@ -532,7 +532,6 @@ def _multiplex_store_dataset_from_partitions_flat(
                 store_factory=store,
             )
         else:
-            print(f"_multiplex_store_dataset_from_partitions_flat: {k} no update")
             result[k] = store_dataset_from_partitions(
                 v,
                 dataset_metadata=metadata[k],

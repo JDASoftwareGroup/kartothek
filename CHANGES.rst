@@ -2,6 +2,16 @@
 Changelog
 =========
 
+
+Version 3.17.1 (2020-11-24)
+===========================
+
+Bugfixes
+^^^^^^^^
+
+* Fix GitHub #375 by loosening checks of the supplied store argument
+
+
 Version 3.17.0 (2020-11-23)
 ===========================
 

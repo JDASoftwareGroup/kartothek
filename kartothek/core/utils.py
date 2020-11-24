@@ -1,6 +1,6 @@
 import pickle
 from functools import partial
-from typing import cast
+from typing import Any, cast
 
 from simplekv import KeyValueStore
 from storefact import get_store_from_url
@@ -51,22 +51,33 @@ def ensure_string_type(obj):
         return str(obj)
 
 
+def _is_simplekv_key_value_store(obj: Any) -> bool:
+    """
+    Check whether ``obj`` is the ``simplekv.KeyValueStore``-like class.
+
+    simplekv uses duck-typing, e.g. for decorators. Therefore,
+    avoid `isinstance(store, KeyValueStore)`, as it would be unreliable. Instead,
+    only roughly verify that `store` looks like a KeyValueStore.
+    """
+    return hasattr(obj, "iter_prefixes")
+
+
 def ensure_store(store: StoreInput) -> KeyValueStore:
     """
-    Ensure that the input is a valid KeyValueStore.
+    Convert the ``store`` argument to a ``KeyValueStore``, without pickle test.
     """
-    # This function is often used in an eager context where we may allow non-serializable stores, i.e. we do not need to check for serializability
-    if isinstance(store, KeyValueStore):
+    # This function is often used in an eager context where we may allow
+    # non-serializable stores, so skip the pickle test.
+    if _is_simplekv_key_value_store(store):
         return store
     return lazy_store(store)()
 
 
-def _factory_from_store(pickled_store):
+def _identity(store: KeyValueStore) -> KeyValueStore:
     """
-    Ensure that we're using internally only deserialized stores / proper
-    factories to avoid funny business with unix sockets in forked subprocesses.
+    Helper function for `lazy_store`.
     """
-    return pickle.loads(pickled_store)
+    return store
 
 
 def lazy_store(store: StoreInput) -> StoreFactory:
@@ -77,23 +88,26 @@ def lazy_store(store: StoreInput) -> StoreFactory:
     * KeyValueStore
 
     If a KeyValueStore is provided, it is verified that the store is serializable
+    (i.e. that pickle.dumps does not raise an exception).
     """
     if callable(store):
         return cast(StoreFactory, store)
-    elif isinstance(store, KeyValueStore):
-        try:
-            pickled_store = pickle.dumps(store)
-        except Exception as exc:
-            raise TypeError(
-                """KeyValueStore not serializable.
-Please consult https://kartothek.readthedocs.io/en/stable/spec/store_interface.html for more information."""
-            ) from exc
-        return partial(_factory_from_store, pickled_store)
     elif isinstance(store, str):
         ret_val = partial(get_store_from_url, store)
         ret_val = cast(StoreFactory, ret_val)  # type: ignore
         return ret_val
     else:
-        raise TypeError(
-            f"Provided incompatible store type. Got {type(store)} but expected {StoreInput}."
-        )
+
+        if not _is_simplekv_key_value_store(store):
+            raise TypeError(
+                f"Provided incompatible store type. Got {type(store)} but expected {StoreInput}."
+            )
+
+        try:
+            pickle.dumps(store, pickle.HIGHEST_PROTOCOL)
+        except Exception as exc:
+            raise TypeError(
+                """KeyValueStore not serializable.
+Please consult https://kartothek.readthedocs.io/en/stable/spec/store_interface.html for more information."""
+            ) from exc
+        return partial(_identity, store)
