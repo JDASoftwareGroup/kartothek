@@ -2,6 +2,7 @@ from functools import partial
 
 import pytest
 from simplekv import KeyValueStore
+from simplekv.decorator import PrefixDecorator
 from storefact import get_store_from_url
 
 from kartothek.core.utils import ensure_store, lazy_store
@@ -63,3 +64,19 @@ def test_ensure_store_fact(store_input_types):
     assert value == store.get(key)
 
     assert store_fact is lazy_store(store_fact)
+
+
+def test_ensure_store_returns_same_store():
+    store = get_store_from_url("memory://")
+    assert ensure_store(lambda: store) is store
+
+
+def test_lazy_store_returns_same_store():
+    store = get_store_from_url("memory://")
+    assert lazy_store(lambda: store)() is store
+
+
+def test_lazy_store_accepts_decorated_store():
+    store = get_store_from_url("memory://")
+    pstore = PrefixDecorator("pre", store)
+    assert lazy_store(pstore)() is pstore
