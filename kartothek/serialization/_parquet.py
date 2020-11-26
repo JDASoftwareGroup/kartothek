@@ -6,7 +6,7 @@ This module contains functionality for persisting/serialising DataFrames.
 
 
 import datetime
-from typing import Iterable, Optional
+from typing import Iterable, List, Optional
 
 import numpy as np
 import pandas as pd
@@ -57,7 +57,7 @@ def _reset_dictionary_columns(table, exclude=None):
             continue
         if pa.types.is_dictionary(field.type):
             new_field = pa.field(
-                field.name, field.type.value_type, field.nullable, field.metadata,
+                field.name, field.type.value_type, field.nullable, field.metadata
             )
             schema = schema.remove(i).insert(i, new_field)
 
@@ -206,35 +206,68 @@ def _columns_for_pushdown(columns, predicates):
     return new_cols
 
 
-def _read_row_groups_into_tables(parquet_file, columns, predicates_in):
+def row_group_matches_predicates(
+    parquet_file: pq.ParquetFile,
+    rg_id: int,
+    arrow_schema: pa.Schema,
+    predicates: PredicatesType,
+) -> bool:
+    """ Check if a given row group has a possible match for the provided predicates
+
+    Parameters
+    ----------
+    parquet_file
+        The parquet file to read from
+    rg_id
+        Rowgroup ID
+    arrow_schema
+        The arrow schema of the file used for predicate evaluation. Passing this
+        to the function instead of reading is a performance benefit since this
+        function is _usually_ called often
+    predicates
+        The predicates to be evaluated on the RG
+
+    Returns
+    -------
+        Whether or not the RG has a potential match
+    """
+    if predicates is None:
+        return True
+
+    # Check if the predicates evaluate on this RowGroup.
+    # As the predicate is in DNF, we only need a single of the
+    # inner lists to match. Once we have found a positive match,
+    # there is no need to check whether the remaining ones apply.
+    row_meta = parquet_file.metadata.row_group(rg_id)
+    for predicate_list in predicates:
+        if all(
+            _predicate_accepts(predicate, row_meta, arrow_schema, parquet_file.reader)
+            for predicate in predicate_list
+        ):
+            return True
+    return False
+
+
+def _read_row_groups_into_tables(
+    parquet_file: pq.ParquetFile,
+    columns: Optional[List[str]],
+    predicates_in: PredicatesType,
+) -> List[pa.Table]:
     """
     For each RowGroup check if the predicate in DNF applies and then
     read the respective RowGroup.
     """
     arrow_schema = parquet_file.schema.to_arrow_schema()
-    parquet_reader = parquet_file.reader
-
-    def all_predicates_accept(row):
-        # Check if the predicates evaluate on this RowGroup.
-        # As the predicate is in DNF, we only need a single of the
-        # inner lists to match. Once we have found a positive match,
-        # there is no need to check whether the remaining ones apply.
-        row_meta = parquet_file.metadata.row_group(row)
-        for predicate_list in predicates_in:
-            if all(
-                _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader)
-                for predicate in predicate_list
-            ):
-                return True
-        return False
 
     # Iterate over the RowGroups and evaluate the list of predicates on each
     # one of them. Only access those that could contain a row where we could
     # get an exact match of the predicate.
     result = []
-    for row in range(parquet_file.num_row_groups):
-        if all_predicates_accept(row):
-            row_group = parquet_file.read_row_group(row, columns=columns)
+    for rg_id in range(parquet_file.num_row_groups):
+        if row_group_matches_predicates(
+            parquet_file, rg_id, arrow_schema, predicates=predicates_in
+        ):
+            row_group = parquet_file.read_row_group(rg_id, columns=columns)
             result.append(row_group)
     return result
 

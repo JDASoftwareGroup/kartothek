@@ -1,10 +1,11 @@
-# -*- coding: utf-8 -*-
+from typing import List, Tuple, Union, cast
+
 from urlquote import quote as urlquote_quote
 from urlquote import unquote as urlquote_unquote
 from urlquote.quoting import PYTHON_3_7_QUOTING
 
 
-def quote(value):
+def quote(value: str) -> str:
     """
     Performs percent encoding on a sequence of bytes. if the given value is of string type, it will
     be encoded. If the value is neither of string type nor bytes type, it will be cast using the `str`
@@ -13,14 +14,19 @@ def quote(value):
     return urlquote_quote(value, quoting=PYTHON_3_7_QUOTING).decode("utf-8")
 
 
-def unquote(value):
+def unquote(value: str) -> str:
     """
     Decodes a urlencoded string and performs necessary decoding depending on the used python version.
     """
     return urlquote_unquote(value).decode("utf-8")
 
 
-def decode_key(key):
+def decode_key(
+    key: str,
+) -> Union[
+    Tuple[str, str, List[Tuple[str, str]], str],
+    Tuple[str, None, List[Tuple[str, str]], None],
+]:
     """
     Split a given key into its kartothek components `{dataset_uuid}/{table}/{key_indices}/{filename}`
 
@@ -39,14 +45,14 @@ def decode_key(key):
     key_components = key.split("/")
     dataset_uuid = key_components[0]
     if len(key_components) < 3:
-        return key, None, [], None
+        return key, None, cast(List[Tuple[str, str]], []), None
     table = key_components[1]
     file_ = key_components[-1]
     key_indices = unquote_indices(key_components[2:-1])
     return dataset_uuid, table, key_indices, file_
 
 
-def quote_indices(indices):
+def quote_indices(indices: List[Tuple[str, str]]) -> List[str]:
     """
     Urlencode a list of column-value pairs and encode them as:
 
@@ -71,7 +77,7 @@ def quote_indices(indices):
     return quoted_pairs
 
 
-def unquote_indices(index_strings):
+def unquote_indices(index_strings: List[str]) -> List[Tuple[str, str]]:
     """
     Take a list of encoded column-value strings and decode them to tuples
 

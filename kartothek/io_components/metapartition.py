@@ -7,7 +7,19 @@ import warnings
 from collections import defaultdict, namedtuple
 from copy import copy
 from functools import wraps
-from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Set, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -40,6 +52,7 @@ from kartothek.serialization import (
     PredicatesType,
     default_serializer,
     filter_df_from_predicates,
+    row_group_matches_predicates,
 )
 
 LOGGER = logging.getLogger(__name__)
@@ -63,9 +76,8 @@ _METADATA_SCHEMA = {
 _MULTI_TABLE_DICT_LIST = Dict[str, Iterable[str]]
 
 
-def _predicates_to_named(predicates):
-    if predicates is None:
-        return None
+def _predicates_to_named(predicates: PredicatesType) -> List[List[_Literal]]:
+    assert predicates is not None
     return [[_Literal(*x) for x in conjunction] for conjunction in predicates]
 
 
@@ -555,7 +567,9 @@ class MetaPartition(Iterable):
         """
         return self.copy(data={})
 
-    def _split_predicates_in_index_and_content(self, predicates):
+    def _split_predicates_in_index_and_content(
+        self, predicates: List[List[_Literal]]
+    ) -> Tuple[List[_SplitPredicate], bool]:
         """
         Split a list of predicates in the parts that can be resolved by the
         partition columns and the ones that are persisted in the data file.
@@ -617,6 +631,38 @@ class MetaPartition(Iterable):
                     # A condititon applies to the whole DataFrame, so we need to
                     # load all data.
                     return None
+        return filtered_predicates
+
+    def _filter_predicates(
+        self,
+        *,
+        table_name: str,
+        indices: List[Tuple[str, str]],
+        predicates: PredicatesType,
+    ) -> PredicatesType:
+        if predicates is None:
+            return None
+        named_predicates = _predicates_to_named(predicates)
+        # Filter predicates that would apply to this partition and remove the partition columns
+
+        # Check if there are predicates that match to the partition columns.
+        # For these we need to check if the partition columns already falsify
+        # the conditition.
+        #
+        # We separate these predicates into their index and their Parquet part.
+        (
+            split_predicates,
+            has_index_condition,
+        ) = self._split_predicates_in_index_and_content(named_predicates)
+
+        filtered_predicates = []
+        if has_index_condition:
+            filtered_predicates = self._apply_partition_key_predicates(
+                table_name, indices, split_predicates
+            )
+        else:
+            filtered_predicates = [pred.content_part for pred in split_predicates]
+
         return filtered_predicates
 
     @default_docs
@@ -681,7 +727,6 @@ class MetaPartition(Iterable):
             return self
         new_data = copy(self.data)
         predicates = _combine_predicates(predicates, self.logical_conjunction)
-        predicates = _predicates_to_named(predicates)
 
         for table, key in self.files.items():
             table_columns = columns.get(table, None)
@@ -701,27 +746,9 @@ class MetaPartition(Iterable):
 
             self._load_table_meta(dataset_uuid=dataset_uuid, table=table, store=store)
 
-            # Filter predicates that would apply to this partition and remove the partition columns
-            if predicates:
-                # Check if there are predicates that match to the partition columns.
-                # For these we need to check if the partition columns already falsify
-                # the conditition.
-                #
-                # We separate these predicates into their index and their Parquet part.
-                (
-                    split_predicates,
-                    has_index_condition,
-                ) = self._split_predicates_in_index_and_content(predicates)
-
-                filtered_predicates = []
-                if has_index_condition:
-                    filtered_predicates = self._apply_partition_key_predicates(
-                        table, indices, split_predicates
-                    )
-                else:
-                    filtered_predicates = [
-                        pred.content_part for pred in split_predicates
-                    ]
+            filtered_predicates = self._filter_predicates(
+                predicates=predicates, table_name=table, indices=indices
+            )
 
             # Remove partition_keys from table_columns_to_io
             if self.partition_keys and table_columns_to_io is not None:
@@ -1559,7 +1586,9 @@ class MetaPartition(Iterable):
             store.delete(file_key)
         return self.copy(files={}, data={}, metadata={})
 
-    def get_parquet_metadata(self, store: StoreInput, table_name: str) -> pd.DataFrame:
+    def get_parquet_metadata(
+        self, store: StoreInput, table_name: str, predicates: PredicatesType = None
+    ) -> pd.DataFrame:
         """
         Retrieve the parquet metadata for the MetaPartition.
         Especially relevant for calculating dataset statistics.
@@ -1567,9 +1596,11 @@ class MetaPartition(Iterable):
         Parameters
         ----------
         store
-          A factory function providing a KeyValueStore
+          A factory function providing a KeyValueStore.
         table_name
-          Name of the kartothek table for which the statistics should be retrieved
+          Name of the kartothek table for which the statistics should be retrieved.
+        predicates
+            Only return row groups with a possible match to the given predicates.
 
         Returns
         -------
@@ -1583,30 +1614,46 @@ class MetaPartition(Iterable):
 
         data = {}
         if table_name in self.files:
-            with store.open(self.files[table_name]) as fd:  # type: ignore
-                pq_metadata = pa.parquet.ParquetFile(fd).metadata
-
-            data = {
-                "partition_label": self.label,
-                "serialized_size": pq_metadata.serialized_size,
-                "number_rows_total": pq_metadata.num_rows,
-                "number_row_groups": pq_metadata.num_row_groups,
-                "row_group_id": [],
-                "number_rows_per_row_group": [],
-                "row_group_compressed_size": [],
-                "row_group_uncompressed_size": [],
-            }
-            for rg_ix in range(pq_metadata.num_row_groups):
-                rg = pq_metadata.row_group(rg_ix)
-                data["row_group_id"].append(rg_ix)
-                data["number_rows_per_row_group"].append(rg.num_rows)
-                data["row_group_compressed_size"].append(rg.total_byte_size)
-                data["row_group_uncompressed_size"].append(
-                    sum(
-                        rg.column(col_ix).total_uncompressed_size
-                        for col_ix in range(rg.num_columns)
+            key = self.files[table_name]
+            reader = store.open(key)
+            try:
+                pq_file = pa.parquet.ParquetFile(reader)
+                pq_metadata = pq_file.metadata
+                arrow_schema = pq_file.schema.to_arrow_schema()
+                data = {
+                    "partition_label": self.label,
+                    "serialized_size": pq_metadata.serialized_size,
+                    "number_rows_total": pq_metadata.num_rows,
+                    "number_row_groups": pq_metadata.num_row_groups,
+                    "row_group_id": [],
+                    "number_rows_per_row_group": [],
+                    "row_group_compressed_size": [],
+                    "row_group_uncompressed_size": [],
+                }
+                for rg_ix in range(pq_metadata.num_row_groups):
+                    _, _, indices, _ = decode_key(key)
+                    predicates = self._filter_predicates(
+                        table_name=table_name, indices=indices, predicates=predicates
                     )
-                )
+                    if predicates is not None and not row_group_matches_predicates(
+                        parquet_file=pq_file,
+                        rg_id=rg_ix,
+                        arrow_schema=arrow_schema,
+                        predicates=predicates,
+                    ):
+                        continue
+                    rg = pq_metadata.row_group(rg_ix)
+                    data["row_group_id"].append(rg_ix)
+                    data["number_rows_per_row_group"].append(rg.num_rows)
+                    data["row_group_compressed_size"].append(rg.total_byte_size)
+                    data["row_group_uncompressed_size"].append(
+                        sum(
+                            rg.column(col_ix).total_uncompressed_size
+                            for col_ix in range(rg.num_columns)
+                        )
+                    )
+            finally:
+                reader.close()
 
         df = pd.DataFrame(data=data, columns=_METADATA_SCHEMA.keys())
         df = df.astype(_METADATA_SCHEMA)

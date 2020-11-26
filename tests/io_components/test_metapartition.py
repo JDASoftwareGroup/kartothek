@@ -1649,8 +1649,8 @@ def test_parse_input_schema_formats():
 
 def test_get_parquet_metadata(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(label="test_label", data={"core": df})
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid")
 
     actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
     actual.drop(labels="serialized_size", axis=1, inplace=True)
@@ -1669,10 +1669,75 @@ def test_get_parquet_metadata(store):
     pd.testing.assert_frame_equal(actual, expected)
 
 
+def test_get_parquet_metadata_rowgroups_no_predicates(store):
+    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
+    mp = MetaPartition(label="test_label", data={"core": df})
+    meta_partition = mp.store_dataframes(
+        store=store,
+        dataset_uuid="dataset_uuid",
+        df_serializer=ParquetSerializer(chunk_size=5),
+    )
+
+    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual.drop(labels="serialized_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_compressed_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_uncompressed_size", axis=1, inplace=True)
+
+    expected = pd.DataFrame.from_records(
+        [
+            {
+                "partition_label": "test_label",
+                "row_group_id": 0,
+                "number_rows_total": 10,
+                "number_row_groups": 2,
+                "number_rows_per_row_group": 5,
+            },
+            {
+                "partition_label": "test_label",
+                "row_group_id": 1,
+                "number_rows_total": 10,
+                "number_row_groups": 2,
+                "number_rows_per_row_group": 5,
+            },
+        ]
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+
+
+def test_get_parquet_metadata_rowgroups_predicates(store):
+    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
+    mp = MetaPartition(label="test_label", data={"core": df})
+    meta_partition = mp.store_dataframes(
+        store=store,
+        dataset_uuid="dataset_uuid",
+        df_serializer=ParquetSerializer(chunk_size=5),
+    )
+
+    actual = meta_partition.get_parquet_metadata(
+        store=store, table_name="core", predicates=[[("P", "==", 5)]]
+    )
+    actual.drop(labels="serialized_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_compressed_size", axis=1, inplace=True)
+    actual.drop(labels="row_group_uncompressed_size", axis=1, inplace=True)
+
+    expected = pd.DataFrame.from_records(
+        [
+            {
+                "partition_label": "test_label",
+                "row_group_id": 1,
+                "number_rows_total": 10,
+                "number_row_groups": 2,
+                "number_rows_per_row_group": 5,
+            }
+        ]
+    )
+    pd.testing.assert_frame_equal(actual, expected)
+
+
 def test_get_parquet_metadata_empty_df(store):
     df = pd.DataFrame()
-    mp = MetaPartition(label="test_label", data={"core": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(label="test_label", data={"core": df})
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid")
 
     actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
     actual.drop(
@@ -1700,7 +1765,7 @@ def test_get_parquet_metadata_empty_df(store):
 
 def test_get_parquet_metadata_row_group_size(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df},)
+    mp = MetaPartition(label="test_label", data={"core": df})
     ps = ParquetSerializer(chunk_size=5)
 
     meta_partition = mp.store_dataframes(
@@ -1731,8 +1796,8 @@ def test_get_parquet_metadata_row_group_size(store):
 
 def test_get_parquet_metadata_table_name_not_str(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df, "another_table": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(label="test_label", data={"core": df, "another_table": df})
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid")
 
     with pytest.raises(TypeError):
         meta_partition.get_parquet_metadata(

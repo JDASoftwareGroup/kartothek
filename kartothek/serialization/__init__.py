@@ -14,7 +14,7 @@ from ._generic import (
     filter_df_from_predicates,
     filter_predicates_by_column,
 )
-from ._parquet import ParquetSerializer
+from ._parquet import ParquetSerializer, row_group_matches_predicates
 
 try:
     __version__ = pkg_resources.get_distribution(__name__).version
@@ -44,6 +44,7 @@ __all__ = [
     "filter_df_from_predicates",
     "filter_df",
     "filter_predicates_by_column",
+    "row_group_matches_predicates",
     # types
     "ConjunctionType",
     "LiteralType",

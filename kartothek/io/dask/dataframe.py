@@ -471,9 +471,11 @@ def collect_dataset_metadata(
     predicates
       Kartothek predicates to apply filters on the data for which to gather statistics
 
-      .. warning::
-          Filtering will only be applied for predicates on indices.
-          The evaluation of the predicates therefore will therefore only return an approximate result.
+      .. note::
+          Predicates will be used for partition pruning and row group selection.
+          The statistics cannot be more accurate than the information we have
+          in the rowgroup statistics and will threfore always only be an
+          approximate result.
 
     frac
       Fraction of the total number of partitions to use for gathering statistics. `frac == 1.0` will use all partitions.
@@ -519,7 +521,10 @@ def collect_dataset_metadata(
         ddf = dd.from_delayed(
             [
                 dask.delayed(MetaPartition.get_parquet_metadata)(
-                    mp, store=dataset_factory.store_factory, table_name=table_name
+                    mp,
+                    store=dataset_factory.store_factory,
+                    table_name=table_name,
+                    predicates=predicates,
                 )
                 for mp in mps
             ],

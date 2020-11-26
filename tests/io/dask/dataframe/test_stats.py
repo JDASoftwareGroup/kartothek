@@ -44,6 +44,8 @@ def test_collect_dataset_metadata(store_session_factory, dataset):
 
 
 def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
+    # P 1 is only in one partition. Partition pruning will not help
+    # but RG evaluation will not return anything for that file
     predicates = [[("P", "==", 1)]]
 
     df_stats = collect_dataset_metadata(
@@ -52,7 +54,7 @@ def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
         table_name="table",
         predicates=predicates,
         frac=1,
-    ).compute()
+    ).compute(scheduler="sync")
 
     actual = df_stats.drop(
         columns=[
@@ -67,13 +69,12 @@ def test_collect_dataset_metadata_predicates(store_session_factory, dataset):
     # Predicates are only evaluated on index level and have therefore no effect on this dataset
     expected = pd.DataFrame(
         data={
-            "partition_label": ["cluster_1", "cluster_2"],
-            "row_group_id": [0, 0],
-            "number_rows_total": [1, 1],
-            "number_row_groups": [1, 1],
-            "number_rows_per_row_group": [1, 1],
+            "partition_label": ["cluster_1"],
+            "row_group_id": [0],
+            "number_rows_total": [1],
+            "number_row_groups": [1],
+            "number_rows_per_row_group": [1],
         },
-        index=[0, 0],
     )
     pd.testing.assert_frame_equal(actual, expected)
 

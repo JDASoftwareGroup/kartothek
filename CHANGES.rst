@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Improvements
+^^^^^^^^^^^^
+* :func:`~kartothek.io.dask.dataframe.collect_dataset_metadata` now resolves predicates up to row group level
+
+
 Version 3.17.0 (2020-11-23)
 ===========================
 
