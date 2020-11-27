@@ -5,6 +5,9 @@ The main issues w/ ``io.BufferedReader`` is that it is only meant of sequencial 
 ``.seek(...)``. This happens quite often in pyarrow and basically renders the buffereing inefficient.
 """
 import io
+import logging
+
+_logger = logging.getLogger(__name__)
 
 
 class BlockBuffer(io.BufferedIOBase):
@@ -103,7 +106,12 @@ class BlockBuffer(io.BufferedIOBase):
         # read data into temporary variable and dump it into cache
         size = min(self._blocksize * n, self._size - offset)
         data = self._raw.read(size)
-        assert len(data) == size
+        if len(data) != size:
+            err = (
+                f"Expected raw read to return {size} bytes, but instead got {len(data)}"
+            )
+            _logger.error(err)
+            raise AssertionError(err)
 
         # fill blocks
         for i in range(n):
@@ -124,7 +132,10 @@ class BlockBuffer(io.BufferedIOBase):
         size: int
             Number of bytes in the range.
         """
-        assert size >= 0
+        if size < 0:
+            msg = f"Expected size >= 0, but got start={start}, size={size}"
+            _logger.error(msg)
+            raise AssertionError(msg)
 
         block = start // self._blocksize
         offset = start % self._blocksize
