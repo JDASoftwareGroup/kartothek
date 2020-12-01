@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 3.17.2 (2020-12-01)
+===========================
+
+* #378 Improve logging information for potential buffer serialization errors
+
 
 Version 3.17.1 (2020-11-24)
 ===========================
