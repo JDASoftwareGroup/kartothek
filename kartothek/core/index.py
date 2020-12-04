@@ -132,7 +132,7 @@ class IndexBase(CopyMixin):
             class_=type(self).__name__, attrs=", ".join(repr_str)
         )
 
-    def observed_values(self, date_as_object=True) -> np.array:
+    def observed_values(self, date_as_object=True) -> np.ndarray:
         """
         Return an array of all observed values
         """
