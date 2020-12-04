@@ -2,7 +2,18 @@
 
 import logging
 from copy import copy
-from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar, Union, cast
+from typing import (
+    Any,
+    Dict,
+    Iterable,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    TypeVar,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -913,7 +924,7 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
 
     # fix pyarrow input
     if dtype is None:
-        keys = np.asarray(list(keys_it))
+        keys: Union[Sequence[Any], np.ndarray] = np.asarray(list(keys_it))
     else:
         if pa.types.is_unsigned_integer(dtype):
             # numpy might create object ndarrays here, which pyarrow might (for some reason) convert fo floats
