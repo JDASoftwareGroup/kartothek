@@ -142,7 +142,7 @@ jobs:
           path: docs/_build/html
         if: env.IS_MASTER_BUILD == 'true'
       - name: Codecov
-        uses: codecov/codecov-action@v1.0.15
+        uses: codecov/codecov-action@v1.1.0
         with:
           # NOTE: `token` is not required, because the kartothek repo is public
           file: ./coverage.xml
