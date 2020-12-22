@@ -28,7 +28,7 @@ jobs:
         include:
           - numfocus_nightly: true
             os: "ubuntu-latest"
-            pyarrow: "0.17.1"
+            pyarrow: "2.0.0"
             python: "3.8"
           - numfocus_nightly: false
             os: "macos-latest"
