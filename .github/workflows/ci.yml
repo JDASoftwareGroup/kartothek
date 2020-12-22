@@ -102,8 +102,8 @@ jobs:
       # Linters
       - name: Flake8
         run: flake8
-      - name: Mypy
-        run: mypy .
+      # - name: Mypy
+      #   run: mypy .
       - name: Black
         run: black --check .
       - name: blacken-docs
