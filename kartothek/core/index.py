@@ -132,7 +132,7 @@ class IndexBase(CopyMixin):
             class_=type(self).__name__, attrs=", ".join(repr_str)
         )
 
-    def observed_values(self, date_as_object=True) -> np.array:
+    def observed_values(self, date_as_object=True) -> np.ndarray:
         """
         Return an array of all observed values
         """
@@ -913,7 +913,7 @@ def _index_dct_to_table(index_dct: IndexDictType, column: str, dtype: pa.DataTyp
 
     # fix pyarrow input
     if dtype is None:
-        keys = np.asarray(list(keys_it))
+        keys: Union[np.ndarray, List[Any]] = np.asarray(list(keys_it))
     else:
         if pa.types.is_unsigned_integer(dtype):
             # numpy might create object ndarrays here, which pyarrow might (for some reason) convert fo floats
