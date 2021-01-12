@@ -7,7 +7,7 @@ from kartothek.io.eager_cube import query_cube
 from kartothek.io.testing.query_cube import *  # noqa
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def driver(driver_name):
     if driver_name == "dask_bag_bs1":
         return wrap_bag_read(query_cube_bag, blocksize=1)

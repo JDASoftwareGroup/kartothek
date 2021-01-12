@@ -578,7 +578,7 @@ def testset(request):
     return request.param
 
 
-@pytest.fixture
+@pytest.fixture(scope="module")
 def test_cube(
     testset,
     fullrange_cube,
