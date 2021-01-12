@@ -41,5 +41,8 @@ KTK_CUBE_METADATA_DIMENSION_COLUMNS = "ktk_cube_dimension_columns"
 #: Metadata key to store partition columns
 KTK_CUBE_METADATA_PARTITION_COLUMNS = "ktk_cube_partition_columns"
 
+#: Metadata key to store the set of dimension columns index creation is suppressed for
+KTK_CUBE_METADATA_SUPPRESS_INDEX_ON = "ktk_cube_suppress_index_on"
+
 #: Character sequence used to seperate cube and dataset UUID
 KTK_CUBE_UUID_SEPERATOR = "++"

@@ -20,7 +20,7 @@ def _validate_not_subset(of, allow_none=False):
     Parameters
     ----------
     of: str
-        Attribute name that the subject under validatation should not be a subset of.
+        Attribute name that the subject under validation should not be a subset of.
 
     Returns
     -------
@@ -42,6 +42,43 @@ def _validate_not_subset(of, allow_none=False):
             raise ValueError(
                 "{attribute} cannot share columns with {of}, but share the following: {share}".format(
                     attribute=attribute.name, of=of, share=", ".join(sorted(share))
+                )
+            )
+
+    return _v
+
+
+def _validate_subset(of, allow_none=False):
+    """
+    Create validator to check that an attribute is a subset of ``of``.
+
+    Parameters
+    ----------
+    of: str
+        Attribute name that the subject under validation should be a subset of.
+
+    Returns
+    -------
+    validator: Callable
+        Validator that can be used for ``attr.ib``.
+    """
+
+    def _v(instance, attribute, value):
+        if allow_none and value is None:
+            return
+        other_set = set(getattr(instance, of))
+        if isinstance(value, str):
+            my_set = {value}
+        else:
+            my_set = set(value)
+        too_much = my_set - other_set
+
+        if too_much:
+            raise ValueError(
+                "{attribute} must be a subset of {of}, but it has additional values: {too_much}".format(
+                    attribute=attribute.name,
+                    of=of,
+                    too_much=", ".join(sorted(too_much)),
                 )
             )
 
@@ -89,7 +126,8 @@ class Cube:
     Parameters
     ----------
     dimension_columns: Tuple[str, ...]
-        Columns that span dimensions. This will imply index columns for the seed dataset.
+        Columns that span dimensions. This will imply index columns for the seed dataset, unless
+        the automatic index creation is suppressed via ``suppress_index_on``.
     partition_columns: Tuple[str, ...]
         Columns that are used to partition the data. They also create (implicit) primary indices.
     uuid_prefix: str
@@ -98,6 +136,9 @@ class Cube:
         Dataset that present the ground-truth regarding cells present in the cube.
     index_columns: Tuple[str, ...]
         Columns for which secondary indices will be created. They may also be part of non-seed datasets.
+    suppress_index_on: Tuple[str, ...]
+        Suppress auto-creation of an index on the given dimension columns. Must be a subset of ``dimension_columns``
+        (other columns are not subject to automatic index creation).
     """
 
     dimension_columns = attr.ib(
@@ -128,6 +169,13 @@ class Cube:
             _validate_not_subset("dimension_columns"),
             _validate_not_subset("partition_columns"),
         ],
+    )
+
+    suppress_index_on = attr.ib(
+        converter=converter_str_set,
+        default=None,
+        type=typing.FrozenSet[str],
+        validator=[_validate_subset("dimension_columns", allow_none=True)],
     )
 
     def ktk_dataset_uuid(self, ktk_cube_dataset_id):
@@ -162,10 +210,11 @@ class Cube:
         """
         Set of all available index columns through Kartothek, primary and secondary.
         """
+        # FIXME: do not always add dimension columns. Also, check all users of this property!
         return (
             set(self.partition_columns)
-            | set(self.dimension_columns)
             | set(self.index_columns)
+            | (set(self.dimension_columns) - set(self.suppress_index_on))
         )
 
     def copy(self, **kwargs):

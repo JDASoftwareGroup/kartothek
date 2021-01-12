@@ -95,7 +95,7 @@ def build_cube_from_dataframe(
 
         indices_to_build = set(cube.index_columns) & set(ddf.columns)
         if table_name == cube.seed_dataset:
-            indices_to_build |= set(cube.dimension_columns)
+            indices_to_build |= set(cube.dimension_columns) - cube.suppress_index_on
         indices_to_build -= set(partition_on_checked[table_name])
 
         ddf = ddf.map_partitions(

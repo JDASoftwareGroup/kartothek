@@ -4,6 +4,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_DIMENSION_COLUMNS,
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.io_components.cube.write import (
@@ -28,6 +29,7 @@ def test_prepare_ktk_metadata_simple(cube):
         KTK_CUBE_METADATA_DIMENSION_COLUMNS: ["x"],
         KTK_CUBE_METADATA_PARTITION_COLUMNS: ["p"],
         KTK_CUBE_METADATA_KEY_IS_SEED: True,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON: [],
     }
 
 
@@ -37,6 +39,18 @@ def test_prepare_ktk_metadata_no_source(cube):
         KTK_CUBE_METADATA_DIMENSION_COLUMNS: ["x"],
         KTK_CUBE_METADATA_PARTITION_COLUMNS: ["p"],
         KTK_CUBE_METADATA_KEY_IS_SEED: False,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON: [],
+    }
+
+
+def test_prepare_ktk_metadata_suppress_index_on(cube):
+    cube = cube.copy(suppress_index_on=["x"])
+    metadata = prepare_ktk_metadata(cube, "no_source", None)
+    assert metadata == {
+        KTK_CUBE_METADATA_DIMENSION_COLUMNS: ["x"],
+        KTK_CUBE_METADATA_PARTITION_COLUMNS: ["p"],
+        KTK_CUBE_METADATA_KEY_IS_SEED: False,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON: ["x"],
     }
 
 
@@ -50,6 +64,7 @@ def test_prepare_ktk_metadata_usermeta(cube):
         KTK_CUBE_METADATA_DIMENSION_COLUMNS: ["x"],
         KTK_CUBE_METADATA_PARTITION_COLUMNS: ["p"],
         KTK_CUBE_METADATA_KEY_IS_SEED: False,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON: [],
         "user_key0": "value0",
     }
 

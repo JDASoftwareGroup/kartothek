@@ -50,7 +50,8 @@ Metadata:
     "ktk_cube_partition_columns": [
       "p",
       "q"
-    ]
+    ],
+    "ktk_cube_suppress_index_on": []
   }
 Dimension Columns:
   - y: int64
@@ -75,7 +76,8 @@ Metadata:
     "ktk_cube_partition_columns": [
       "p",
       "q"
-    ]
+    ],
+    "ktk_cube_suppress_index_on": []
   }
 Dimension Columns:
   - x: int64

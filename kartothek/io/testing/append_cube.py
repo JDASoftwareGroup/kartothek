@@ -5,6 +5,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_DIMENSION_COLUMNS,
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
@@ -307,6 +308,7 @@ def test_metadata(driver, function_store, existing_cube):
         KTK_CUBE_METADATA_DIMENSION_COLUMNS,
         KTK_CUBE_METADATA_KEY_IS_SEED,
         KTK_CUBE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
     }
     assert ds_source.metadata["a"] == 12
     assert ds_source.metadata["b"] == 11
@@ -318,6 +320,7 @@ def test_metadata(driver, function_store, existing_cube):
     assert ds_source.metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] == list(
         existing_cube.partition_columns
     )
+    assert ds_source.metadata[KTK_CUBE_METADATA_SUPPRESS_INDEX_ON] == []
 
     ds_enrich = DatasetMetadata.load_from_store(
         existing_cube.ktk_dataset_uuid("enrich"), function_store()
@@ -329,6 +332,7 @@ def test_metadata(driver, function_store, existing_cube):
         KTK_CUBE_METADATA_DIMENSION_COLUMNS,
         KTK_CUBE_METADATA_KEY_IS_SEED,
         KTK_CUBE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
     }
     assert ds_enrich.metadata["a"] == 20
     assert ds_enrich.metadata["b"] == 21
@@ -339,3 +343,4 @@ def test_metadata(driver, function_store, existing_cube):
     assert ds_enrich.metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] == list(
         existing_cube.partition_columns
     )
+    assert ds_source.metadata[KTK_CUBE_METADATA_SUPPRESS_INDEX_ON] == []
