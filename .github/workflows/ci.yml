@@ -78,6 +78,10 @@ jobs:
       - name: Conda Install conda-requirements.txt
         # run this AFTER pyarrow, since this is less restrictive (so conda doesn't spend too much time downgrading)
         run: conda install --file=conda-requirements.txt
+      - name: Fix Pandas-Pyarrow Interaction
+        # pandas >=1.2.0 requires newer pyarrow versions, so downgrade pandas
+        run: conda install 'pandas<1.2'
+        if: matrix.pyarrow == '0.17.1' && !matrix.numfocus_nightly
       - name: Pip Install kartothek
         run: pip install --no-deps .
       - name: Test import
