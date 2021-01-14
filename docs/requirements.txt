@@ -1,8 +1,0 @@
--r ../requirements.txt
-
-cloudpickle
-# Documentation
-sphinx
-sphinx_rtd_theme
-sphinx-click
-IPython

@@ -14,12 +14,6 @@ setuptools-scm
 # Benchmarks
 asv
 
-# Documentation
-sphinx
-sphinx_rtd_theme
-sphinx-click
-IPython
-
 # Formatting / Checking
 pre-commit
 flake8-mutable

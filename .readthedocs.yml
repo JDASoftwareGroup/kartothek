@@ -6,9 +6,10 @@
 version: 2
 
 # Optionally set the version of Python and requirements required to build your docs
+conda:
+  environment: docs/environment-docs.yml
+
 python:
-  version: 3.7
   install:
-    - method: pip
+    - method: setuptools
       path: .
-    - requirements: test-requirements.txt
