@@ -9,6 +9,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_DIMENSION_COLUMNS,
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
     KTK_CUBE_UUID_SEPERATOR,
 )
 from kartothek.core.cube.cube import Cube
@@ -305,6 +306,7 @@ def discover_cube(
         partition_columns=partition_columns,
         index_columns=index_columns,
         seed_dataset=seed_dataset,
+        suppress_index_on=seed_ds.metadata.get(KTK_CUBE_METADATA_SUPPRESS_INDEX_ON),
     )
 
     datasets = check_datasets(datasets, cube)

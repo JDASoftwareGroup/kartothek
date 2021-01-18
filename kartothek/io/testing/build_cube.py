@@ -10,6 +10,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_DIMENSION_COLUMNS,
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
     KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.cube.cube import Cube
@@ -180,6 +181,37 @@ def test_indices(driver, function_store):
     assert isinstance(ds_enrich.indices["i2"], ExplicitSecondaryIndex)
 
 
+def test_dimension_index_suppression(driver, function_store):
+    """
+    Test that suppress_index_on works as expected
+    """
+    df_source = pd.DataFrame(
+        {
+            "x": [0, 0, 1, 1],
+            "y": [10, 11, 12, 13],
+            "p": [0, 0, 1, 1],
+            "v1": [10, 11, 12, 13],
+            "i1": [100, 101, 102, 103],
+        }
+    )
+    cube = Cube(
+        dimension_columns=["x", "y"],
+        partition_columns=["p"],
+        uuid_prefix="cube",
+        seed_dataset="source",
+        index_columns=["i1", "i2"],
+        suppress_index_on=["x"],
+    )
+    result = driver(data={"source": df_source}, cube=cube, store=function_store)
+
+    ds_source = result[cube.seed_dataset].load_all_indices(function_store())
+
+    assert set(ds_source.indices.keys()) == {"p", "i1", "y"}
+    assert isinstance(ds_source.indices["p"], PartitionIndex)
+    assert isinstance(ds_source.indices["i1"], ExplicitSecondaryIndex)
+    assert isinstance(ds_source.indices["y"], ExplicitSecondaryIndex)
+
+
 def test_do_not_modify_df(driver, function_store):
     """
     Functions should not modify their inputs.
@@ -288,6 +320,7 @@ def test_metadata(driver, function_store):
         KTK_CUBE_METADATA_DIMENSION_COLUMNS,
         KTK_CUBE_METADATA_KEY_IS_SEED,
         KTK_CUBE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
     }
     assert ds_source.metadata[KTK_CUBE_METADATA_DIMENSION_COLUMNS] == list(
         cube.dimension_columns
@@ -296,6 +329,7 @@ def test_metadata(driver, function_store):
     assert ds_source.metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] == list(
         cube.partition_columns
     )
+    assert ds_source.metadata[KTK_CUBE_METADATA_SUPPRESS_INDEX_ON] == []
 
     ds_enrich = result["enrich"]
     assert set(ds_enrich.metadata.keys()) == {
@@ -303,6 +337,7 @@ def test_metadata(driver, function_store):
         KTK_CUBE_METADATA_DIMENSION_COLUMNS,
         KTK_CUBE_METADATA_KEY_IS_SEED,
         KTK_CUBE_METADATA_PARTITION_COLUMNS,
+        KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
         "foo",
     }
     assert ds_enrich.metadata[KTK_CUBE_METADATA_DIMENSION_COLUMNS] == list(
@@ -313,6 +348,7 @@ def test_metadata(driver, function_store):
         cube.partition_columns
     )
     assert ds_enrich.metadata["foo"] == 1
+    assert ds_source.metadata[KTK_CUBE_METADATA_SUPPRESS_INDEX_ON] == []
 
 
 def test_fails_metadata_wrong_type(driver, function_store):

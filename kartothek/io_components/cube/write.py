@@ -15,6 +15,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_DIMENSION_COLUMNS,
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
+    KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
     KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.cube.cube import Cube
@@ -124,6 +125,7 @@ def prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata):
         ktk_cube_dataset_id == cube.seed_dataset
     )
     ds_metadata[KTK_CUBE_METADATA_PARTITION_COLUMNS] = list(cube.partition_columns)
+    ds_metadata[KTK_CUBE_METADATA_SUPPRESS_INDEX_ON] = list(cube.suppress_index_on)
 
     return ds_metadata
 
@@ -372,7 +374,7 @@ def prepare_data_for_ktk(
     # calculate indices
     indices_to_build = set(cube.index_columns) & df_columns_set
     if ktk_cube_dataset_id == cube.seed_dataset:
-        indices_to_build |= set(cube.dimension_columns)
+        indices_to_build |= set(cube.dimension_columns) - set(cube.suppress_index_on)
     indices_to_build -= set(partition_on)
 
     mp = mp.build_indices(indices_to_build)

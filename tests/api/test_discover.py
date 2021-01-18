@@ -16,6 +16,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
     KTK_CUBE_METADATA_STORAGE_FORMAT,
+    KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
     KTK_CUBE_METADATA_VERSION,
 )
 from kartothek.core.cube.cube import Cube
@@ -49,6 +50,7 @@ def store_data(
     metadata=None,
     overwrite=False,
     new_ktk_cube_metadata=True,
+    write_suppress_index_on=True,
 ):
     if partition_on == "default":
         partition_on = cube.partition_columns
@@ -60,7 +62,9 @@ def store_data(
 
         indices_to_build = set(cube.index_columns) & set(df.columns)
         if name == cube.seed_dataset:
-            indices_to_build |= set(cube.dimension_columns)
+            indices_to_build |= set(cube.dimension_columns) - set(
+                cube.suppress_index_on
+            )
         mp = mp.build_indices(indices_to_build)
         dfs = mp
     else:
@@ -76,6 +80,10 @@ def store_data(
         if new_ktk_cube_metadata:
             metadata.update(
                 {KTK_CUBE_METADATA_PARTITION_COLUMNS: cube.partition_columns}
+            )
+        if write_suppress_index_on:
+            metadata.update(
+                {KTK_CUBE_METADATA_SUPPRESS_INDEX_ON: list(cube.suppress_index_on)}
             )
 
     return store_dataframes_as_dataset(
@@ -947,6 +955,29 @@ class TestDiscoverCube:
         cube_actual, datasets = discover_cube(cube.uuid_prefix, function_store)
         assert cube_actual == cube
         assert set(datasets.keys()) == {cube.seed_dataset}
+
+    def test_reads_suppress_index(self, cube, function_store):
+        cube = cube.copy(suppress_index_on=cube.dimension_columns)
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0], "i1": [0]}),
+            name=cube.seed_dataset,
+        )
+        cube_actual, datasets = discover_cube(cube.uuid_prefix, function_store)
+        assert cube_actual == cube
+
+    def test_reads_suppress_index_default(self, cube, function_store):
+        # test that reading also works for old metadata that does not contain the suppress_index_on method.
+        store_data(
+            cube=cube,
+            function_store=function_store,
+            df=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0], "i1": [0]}),
+            name=cube.seed_dataset,
+            write_suppress_index_on=False,
+        )
+        cube_actual, datasets = discover_cube(cube.uuid_prefix, function_store)
+        assert cube_actual == cube
 
     def test_multiple(self, cube, function_store):
         store_data(

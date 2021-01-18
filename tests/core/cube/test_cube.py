@@ -10,6 +10,7 @@ def test_defaults():
     assert isinstance(cube.seed_dataset, str)
 
     assert cube.index_columns == set()
+    assert cube.suppress_index_on == set()
 
 
 def test_converters():
@@ -19,6 +20,7 @@ def test_converters():
         uuid_prefix=b"my_prefix",
         seed_dataset=b"my_seed",
         index_columns=b"my_index",
+        suppress_index_on=b"my_dim",
     )
 
     assert cube.dimension_columns == ("my_dim",)
@@ -35,6 +37,8 @@ def test_converters():
 
     assert cube.index_columns == {"my_index"}
     assert all(isinstance(s, str) for s in cube.index_columns)
+
+    assert cube.suppress_index_on == {"my_dim"}
 
 
 def test_frozen():
@@ -119,6 +123,21 @@ def test_init_fail_index_columns_subsetof_partition_columns():
     assert (
         str(exc.value)
         == "index_columns cannot share columns with partition_columns, but share the following: q, r"
+    )
+
+
+def test_init_fail_suppress_index_on_not_subsetof_dimension_columns():
+    with pytest.raises(ValueError) as exc:
+        Cube(
+            dimension_columns=["x", "y", "z"],
+            partition_columns=["p", "q", "r"],
+            uuid_prefix="cube",
+            index_columns=[],
+            suppress_index_on=["x", "a", "b"],
+        )
+    assert (
+        str(exc.value)
+        == "suppress_index_on must be a subset of dimension_columns, but it has additional values: a, b"
     )
 
 

@@ -516,9 +516,6 @@ def _multiplex_store_dataset_from_partitions_flat(
     result = {}
     for k, v in dct.items():
         if update:
-            print(
-                f"_multiplex_store_dataset_from_partitions_flat: {k} delete scope: {delete_scopes.get(k, [])}"
-            )
             ds_factory = metadata_factory_from_dataset(
                 existing_datasets[k], with_schema=True, store=store
             )

@@ -197,8 +197,10 @@ def _check_indices(datasets: Dict[str, DatasetMetadata], cube: Cube) -> None:
     """
     Check if required indices are present in given datasets.
 
-    For all datasets the primary indices must be equal to ``ds.partition_keys``. For the seed dataset secondary
-    indices for all dimension columns are expected.
+    For all datasets the primary indices must be equal to ``ds.partition_keys``. For the seed dataset, secondary
+    indices for all dimension columns except ``cube.suppress_index_on`` are expected.
+
+    Additional indices are accepted and will not bew reported as error.
 
     Parameters
     ----------
@@ -219,7 +221,9 @@ def _check_indices(datasets: Dict[str, DatasetMetadata], cube: Cube) -> None:
         any_indices = set(cube.index_columns) & columns
 
         if ktk_cube_dataset_id == cube.seed_dataset:
-            secondary_indices |= set(cube.dimension_columns)
+            secondary_indices |= set(cube.dimension_columns) - set(
+                cube.suppress_index_on
+            )
 
         for types_untyped, elements in (
             ((PartitionIndex,), primary_indices),

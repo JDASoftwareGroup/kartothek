@@ -2,7 +2,14 @@
 Changelog
 =========
 
-Version 3.17.3 (2010-12-04)
+
+Version 3.X.Y (2021-01-DD; unreleased)
+======================================
+
+* Add ``cube.suppress_index_on`` to switch off the default index creation for dimension columns
+
+
+Version 3.17.3 (2020-12-04)
 ===========================
 
 * Allow ``pyarrow==2`` as a dependency.
