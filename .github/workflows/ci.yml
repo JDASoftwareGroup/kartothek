@@ -104,7 +104,7 @@ jobs:
         run: flake8
       - name: Mypy
         run: mypy .
-        if: !matrix.numfocus_nightly
+        if: ${{ !matrix.numfocus_nightly }}
       - name: Black
         run: black --check .
       - name: blacken-docs
