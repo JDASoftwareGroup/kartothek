@@ -98,7 +98,7 @@ jobs:
         run: conda install --file=conda-test-requirements.txt
       - name: Pip Instal NumFOCUS nightly
         # NumFOCUS nightly wheels, contains numpy and pandas
-        run: env PRE_WHEELS="https://pypi.anaconda.org/scipy-wheels-nightly/simple" pip install --pre --upgrade --timeout=60 -f $PRE_WHEELS pandas numpy
+        run: pip install --pre --upgrade --timeout=60 --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple pandas numpy
         if: matrix.numfocus_nightly
       - name: Conda Export
         run: conda list --export
@@ -108,6 +108,7 @@ jobs:
         run: flake8
       - name: Mypy
         run: mypy .
+        if: ${{ !matrix.numfocus_nightly }}
       - name: Black
         run: black --check .
       - name: blacken-docs
