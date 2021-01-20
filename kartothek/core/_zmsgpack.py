@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import msgpack
+
 try:
     import zstandard as zstd
 except ImportError:
