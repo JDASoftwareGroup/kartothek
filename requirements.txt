@@ -16,4 +16,3 @@ attrs
 click
 prompt-toolkit
 pyyaml
-zstd

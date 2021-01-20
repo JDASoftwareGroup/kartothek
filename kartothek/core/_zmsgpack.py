@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 import msgpack
-import zstd  # type: ignore
+try:
+    import zstandard as zstd
+except ImportError:
+    # zstandard < 0.15.0
+    import zstd  # type: ignore
 
 
 def packb(obj):
