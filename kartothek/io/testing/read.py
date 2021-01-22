@@ -424,6 +424,27 @@ def test_read_dataset_as_dataframes_concat_primary(
     pdt.assert_frame_equal(expected_df, result_df, check_like=True)
 
 
+def test_read_dataset_as_dataframes_dispatch_by_empty(
+    store_session_factory,
+    dataset_dispatch_by,
+    bound_load_dataframes,
+    backend_identifier,
+    output_type,
+    metadata_version,
+    dataset_dispatch_by_uuid,
+):
+    if output_type == "table":
+        pytest.skip()
+    # Dispatch by primary index "A"
+    dispatched = bound_load_dataframes(
+        dataset_uuid=dataset_dispatch_by_uuid,
+        store=store_session_factory,
+        dispatch_by=[],
+    )
+
+    assert len(dispatched) == 1
+
+
 @pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
 def test_read_dataset_as_dataframes_dispatch_by_single_col(
     store_session_factory,
@@ -452,7 +473,7 @@ def test_read_dataset_as_dataframes_dispatch_by_single_col(
             data = part["data"]
         unique_dispatch = data[dispatch_by].unique()
         assert len(unique_dispatch) == 1
-        unique_dispatch[0] not in unique_a
+        assert unique_dispatch[0] not in unique_a
         unique_a.add(unique_dispatch[0])
 
 
