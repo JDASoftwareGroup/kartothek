@@ -96,7 +96,7 @@ def read_dataset_as_metapartitions_bag(
     )
     mps = db.from_sequence(mps, partition_size=partition_size)
 
-    if concat_partitions_on_primary_index or dispatch_by:
+    if concat_partitions_on_primary_index or dispatch_by is not None:
         mps = mps.map(
             _load_and_concat_metapartitions_inner,
             store=store,

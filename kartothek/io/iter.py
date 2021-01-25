@@ -89,7 +89,7 @@ def read_dataset_as_metapartitions__iterator(
     )
 
     for mp in mps:
-        if concat_partitions_on_primary_index or dispatch_by:
+        if concat_partitions_on_primary_index or dispatch_by is not None:
             mp = MetaPartition.concat_metapartitions(
                 [
                     mp_inner.load_dataframes(

@@ -51,7 +51,6 @@ def dispatch_metapartitions_from_factory(
     dispatch_by: Optional[List[str]] = None,
     dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
-
     if dispatch_metadata:
 
         warnings.warn(
@@ -61,7 +60,7 @@ def dispatch_metapartitions_from_factory(
             DeprecationWarning,
         )
 
-    if dispatch_by and concat_partitions_on_primary_index:
+    if dispatch_by is not None and concat_partitions_on_primary_index:
         raise ValueError(
             "Both `dispatch_by` and `concat_partitions_on_primary_index` are provided, "
             "`concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. "
@@ -74,7 +73,7 @@ def dispatch_metapartitions_from_factory(
         )
         dispatch_by = dataset_factory.partition_keys
 
-    if dispatch_by and not set(dispatch_by).issubset(
+    if dispatch_by is not None and not set(dispatch_by).issubset(
         set(dataset_factory.index_columns)
     ):
         raise RuntimeError(
@@ -108,16 +107,20 @@ def dispatch_metapartitions_from_factory(
         if isinstance(ix, ExplicitSecondaryIndex)
     }
 
-    if dispatch_by:
+    if dispatch_by is not None:
         base_df = cast(pd.DataFrame, base_df)
 
-        # Group the resulting MetaParitions by partition keys or a subset of those keys
-        merged_partitions = base_df.groupby(
-            by=list(dispatch_by), sort=True, as_index=False
-        )
+        if len(dispatch_by) == 0:
+            merged_partitions = [((""), base_df)]
+        else:
+            # Group the resulting MetaParitions by partition keys or a subset of those keys
+            merged_partitions = base_df.groupby(
+                by=list(dispatch_by), sort=True, as_index=False
+            )
+
         for group_name, group in merged_partitions:
             if not isinstance(group_name, tuple):
-                group_name = (group_name,)
+                group_name = (group_name,)  # type: ignore
             mps = []
             logical_conjunction = list(
                 zip(dispatch_by, ["=="] * len(dispatch_by), group_name)
