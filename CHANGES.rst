@@ -3,12 +3,15 @@ Changelog
 =========
 
 
-Version 3.X.Y (2021-01-DD; unreleased)
-======================================
+Version 3.18.0 (2021-01-25)
+===========================
 
 * Add ``cube.suppress_index_on`` to switch off the default index creation for dimension columns
 * Fixed the import issue of zstd module for `kartothek.core _zmsgpack`.
-
+* Fix a bug in :func:`~kartothek.io_components.read.dispatch_metapartitions_from_factory` where
+  `dispatch_by=[]` would be treated like `dispatch_by=None`, not merging all dataset partitions into
+  a single partitions.
+  
 Version 3.17.3 (2020-12-04)
 ===========================
 
@@ -48,9 +51,6 @@ Bugfixes
   instead of non at all.
 * Fix a bug in :meth:`~kartothek.core.dataset.DatasetMetadataBase.get_indices_as_dataframe` which would
   raise an ``IndexError`` if indices were empty or had not been loaded
-* Fix a bug in :func:`~kartothek.io_components.read.dispatch_metapartitions_from_factory` where
-  `dispatch_by=[]` would be treated like `dispatch_by=None`, not merging all dataset partitions into
-  a single partitions.
 
 Version 3.16.0 (2020-09-29)
 ===========================
