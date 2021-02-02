@@ -585,6 +585,8 @@ def test_raises_on_invalid_input(store_factory, bound_update_dataset):
 def test_raises_on_new_index_creation(
     backend_identifier, store_factory, bound_update_dataset, define_indices_on_partition
 ):
+    # This test can be removed once the variable index input is removed in
+    # favour of the test `test_update_secondary_indices_subset`
     if backend_identifier == "dask.dataframe" and define_indices_on_partition:
         pytest.skip()  # Constructs a dataframe which ignores index information passed as dict
 
@@ -623,6 +625,31 @@ def test_raises_on_new_index_creation(
             store=store_factory,
             dataset_uuid=dataset_uuid,
             secondary_indices=dataset_update_secondary_indices,
+        )
+
+
+def test_update_secondary_indices_subset(store_factory, bound_update_dataset):
+    df1 = pd.DataFrame({"A": range(10), "indexed": 1})
+    dataset_uuid = "dataset_uuid"
+    bound_update_dataset(
+        df1, dataset_uuid=dataset_uuid, store=store_factory, secondary_indices="indexed"
+    )
+
+    df2 = pd.DataFrame({"A": range(10), "indexed": 2})
+    # secondary index is omitted. Kartothek should pick it up regardless
+    bound_update_dataset(df2, dataset_uuid=dataset_uuid, store=store_factory)
+
+    dm = DatasetMetadata.load_from_store(
+        dataset_uuid, store_factory(), load_all_indices=True
+    )
+    obs_values = dm.indices["indexed"].observed_values()
+
+    assert sorted(obs_values) == [1, 2]
+
+    with pytest.raises(ValueError, match="Incorrect indices provided"):
+        # secondary index is omitted. Kartothek should pick it up regardless
+        bound_update_dataset(
+            df2, dataset_uuid=dataset_uuid, store=store_factory, secondary_indices="A"
         )
 
 

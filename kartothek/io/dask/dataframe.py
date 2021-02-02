@@ -49,6 +49,11 @@ from ._shuffle import shuffle_store_dask_partitions
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
 
+try:
+    from typing_extensions import Literal  # type: ignore
+except ImportError:
+    from typing import Literal  # type: ignore
+
 
 @default_docs
 @normalize_args
@@ -321,7 +326,7 @@ def _write_dataframe_partitions(
     store: StoreFactory,
     dataset_uuid: str,
     table: str,
-    secondary_indices: List[str],
+    secondary_indices: Union[Literal[False], List[str]],
     shuffle: bool,
     repartition_ratio: Optional[SupportsFloat],
     num_buckets: int,
@@ -415,7 +420,8 @@ def update_dataset_from_ddf(
         ds_factory=factory,
     )
 
-    _ensure_compatible_indices(ds_factory, secondary_indices)
+    inferred_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
+    del secondary_indices
 
     if ds_factory is not None:
         check_single_table_dataset(ds_factory, table)
@@ -425,7 +431,7 @@ def update_dataset_from_ddf(
         store=store,
         dataset_uuid=dataset_uuid or ds_factory.dataset_uuid,
         table=table,
-        secondary_indices=secondary_indices,
+        secondary_indices=inferred_indices,
         shuffle=shuffle,
         repartition_ratio=repartition_ratio,
         num_buckets=num_buckets,

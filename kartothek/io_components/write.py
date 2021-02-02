@@ -29,12 +29,18 @@ from kartothek.io_components.utils import (
 )
 from kartothek.serialization import DataFrameSerializer
 
+try:
+    from typing_extensions import Literal  # type: ignore
+except ImportError:
+    from typing import Literal  # type: ignore
+
+
 SINGLE_CATEGORY = SINGLE_TABLE
 
 
 def write_partition(
     partition_df: Any,  # TODO: Establish typing for parse_input_to_metapartition
-    secondary_indices: Optional[Union[str, Sequence[str]]],
+    secondary_indices: Optional[Union[Literal[False], Sequence[str]]],
     sort_partitions_by: Optional[Union[str, Sequence[str]]],
     dataset_uuid: str,
     partition_on: Optional[Union[str, Sequence[str]]],

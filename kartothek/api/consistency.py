@@ -200,7 +200,7 @@ def _check_indices(datasets: Dict[str, DatasetMetadata], cube: Cube) -> None:
     For all datasets the primary indices must be equal to ``ds.partition_keys``. For the seed dataset, secondary
     indices for all dimension columns except ``cube.suppress_index_on`` are expected.
 
-    Additional indices are accepted and will not bew reported as error.
+    Additional indices are accepted and will not be reported as error.
 
     Parameters
     ----------
