@@ -24,16 +24,7 @@ from ._generic import (
     filter_df,
     filter_df_from_predicates,
 )
-from ._io_buffer import BlockBuffer
 from ._util import ensure_unicode_string_type
-
-try:
-    # Only check for BotoStore instance if boto is really installed
-    from simplekv.net.botostore import BotoStore
-
-    HAVE_BOTO = True
-except ImportError:
-    HAVE_BOTO = False
 
 _logger = logging.getLogger(__name__)
 
@@ -164,15 +155,7 @@ def _restore_dataframe(
         with pa.BufferReader(store.get(key)) as reader:
             table = pq.read_pandas(reader, columns=columns)
     else:
-        if HAVE_BOTO and isinstance(store, BotoStore):
-            # Parquet and seeks on S3 currently leak connections thus
-            # we omit column projection to the store.
-            reader = pa.BufferReader(store.get(key))
-        else:
-            reader = store.open(key)
-            # Buffer at least 4 MB in requests. This is chosen because the default block size of the Azure
-            # storage client is 4MB.
-            reader = BlockBuffer(reader, 4 * 1024 * 1024)
+        reader = pa.BufferReader(store.get(key))
         try:
             parquet_file = ParquetFile(reader)
             if predicates and parquet_file.metadata.num_rows > 0:
