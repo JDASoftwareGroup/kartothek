@@ -4,13 +4,13 @@ This module is a collection of helper functions
 import collections
 import inspect
 import logging
-from typing import List, Optional, TypeVar, Union, overload
+from typing import List, Optional, Sequence, TypeVar, Union, overload
 
 import decorator
 import pandas as pd
 
 from kartothek.core.dataset import DatasetMetadata
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.typing import StoreFactory, StoreInput
 from kartothek.core.utils import ensure_store, lazy_store
 
@@ -110,11 +110,16 @@ def _combine_metadata(dataset_metadata, append_to_list):
             return InvalidObject()
 
 
-def _ensure_compatible_indices(dataset, secondary_indices):
+def _ensure_compatible_indices(
+    dataset: Optional[Union[DatasetMetadata, DatasetFactory]],
+    secondary_indices: Optional[Sequence[str]],
+) -> Union[Literal[False], List[str]]:
     if dataset:
         ds_secondary_indices = list(dataset.secondary_indices.keys())
 
-        if secondary_indices and set(ds_secondary_indices) != set(secondary_indices):
+        if secondary_indices and not set(secondary_indices).issubset(
+            ds_secondary_indices
+        ):
             raise ValueError(
                 f"Incorrect indices provided for dataset.\n"
                 f"Expected: {ds_secondary_indices}\n"
@@ -125,7 +130,10 @@ def _ensure_compatible_indices(dataset, secondary_indices):
         # We return `False` if there is no dataset in storage and `secondary_indices` is undefined
         # (`secondary_indices` is normalized to `[]` by default).
         # In consequence, `parse_input_to_metapartition` will not check indices at the partition level.
-        return secondary_indices or False
+        if secondary_indices:
+            return list(secondary_indices)
+        else:
+            return False
 
 
 def _ensure_valid_indices(mp_indices, secondary_indices=None, data=None):

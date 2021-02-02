@@ -42,6 +42,12 @@ from kartothek.serialization import (
     filter_df_from_predicates,
 )
 
+try:
+    from typing_extensions import Literal  # type: ignore
+except ImportError:
+    from typing import Literal  # type: ignore
+
+
 LOGGER = logging.getLogger(__name__)
 
 SINGLE_TABLE = "table"
@@ -1647,7 +1653,9 @@ def partition_labels_from_mps(mps):
 
 
 def parse_input_to_metapartition(
-    obj, metadata_version=None, expected_secondary_indices=False
+    obj: Optional[Union[Dict, pd.DataFrame, Sequence, MetaPartition]],
+    metadata_version: Optional[int] = None,
+    expected_secondary_indices: Optional[Union[Literal[False], Sequence[str]]] = False,
 ) -> MetaPartition:
     """
     Parses given user input and returns a MetaPartition

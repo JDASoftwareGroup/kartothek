@@ -749,12 +749,13 @@ def update_dataset_from_dataframes(
         partition_on=partition_on,
     )
 
-    secondary_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
+    inferred_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
+    del secondary_indices
 
     mp = parse_input_to_metapartition(
         df_list,
         metadata_version=metadata_version,
-        expected_secondary_indices=secondary_indices,
+        expected_secondary_indices=inferred_indices,
     )
 
     if sort_partitions_by:
@@ -763,8 +764,8 @@ def update_dataset_from_dataframes(
     if partition_on:
         mp = mp.partition_on(partition_on)
 
-    if secondary_indices:
-        mp = mp.build_indices(secondary_indices)
+    if inferred_indices:
+        mp = mp.build_indices(inferred_indices)
 
     mp = mp.store_dataframes(
         store=store, dataset_uuid=dataset_uuid, df_serializer=df_serializer

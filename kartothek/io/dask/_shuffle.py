@@ -12,6 +12,12 @@ from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.write import write_partition
 from kartothek.serialization import DataFrameSerializer
 
+try:
+    from typing_extensions import Literal  # type: ignore
+except ImportError:
+    from typing import Literal  # type: ignore
+
+
 _KTK_HASH_BUCKET = "__KTK_HASH_BUCKET"
 
 
@@ -35,7 +41,7 @@ def _hash_bucket(df: pd.DataFrame, subset: Optional[Sequence[str]], num_buckets:
 def shuffle_store_dask_partitions(
     ddf: dd.DataFrame,
     table: str,
-    secondary_indices: Optional[Union[str, Sequence[str]]],
+    secondary_indices: Optional[Union[Literal[False], Sequence[str]]],
     metadata_version: int,
     partition_on: List[str],
     store_factory: StoreFactory,
