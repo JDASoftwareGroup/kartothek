@@ -1800,6 +1800,8 @@ def parse_input_to_metapartition(
     elif isinstance(obj, MetaPartition):
         return obj
     else:
-        raise ValueError("Unexpected type: {}".format(type(obj)))
+        raise ValueError(
+            f"Unexpected type during parsing encountered: ({type(obj)}, {obj})"
+        )
 
     return mp

@@ -2,6 +2,7 @@ import pickle
 
 import dask
 import dask.dataframe as dd
+import pandas as pd
 import pytest
 
 from kartothek.io.dask.dataframe import update_dataset_from_ddf
@@ -18,8 +19,11 @@ def _unwrap_partition(part):
 
 
 def _update_dataset(partitions, *args, **kwargs):
-    # TODO: fix the parsing below to adapt for all supported formats (see: parse_input_to_metapartition)
-    if any(partitions):
+    # TODO: Simplify once parse_input_to_metapartition is removed / obsolete
+    if isinstance(partitions, pd.DataFrame):
+        table_name = "core"
+        partitions = dd.from_pandas(partitions, npartitions=1)
+    elif any(partitions):
         table_name = next(iter(dict(partitions[0]["data"]).keys()))
         delayed_partitions = [
             dask.delayed(_unwrap_partition)(part) for part in partitions

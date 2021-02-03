@@ -18,6 +18,8 @@ def _unwrap_partition(part):
 
 
 def _update_dataset(partitions, *args, **kwargs):
+    if not isinstance(partitions, list):
+        partitions = [partitions]
     tasks = update_dataset_from_delayed(partitions, *args, **kwargs)
 
     s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
