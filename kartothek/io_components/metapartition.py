@@ -34,19 +34,17 @@ from kartothek.core.utils import (
     verify_metadata_version,
 )
 from kartothek.core.uuid import gen_uuid
-from kartothek.io_components.utils import _ensure_valid_indices, combine_metadata
+from kartothek.io_components.utils import (
+    INFERRED_INDICES,
+    _ensure_valid_indices,
+    combine_metadata,
+)
 from kartothek.serialization import (
     DataFrameSerializer,
     PredicatesType,
     default_serializer,
     filter_df_from_predicates,
 )
-
-try:
-    from typing_extensions import Literal  # type: ignore
-except ImportError:
-    from typing import Literal  # type: ignore
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -67,6 +65,7 @@ _METADATA_SCHEMA = {
 }
 
 _MULTI_TABLE_DICT_LIST = Dict[str, Iterable[str]]
+METAPARTITION_INPUT_TYPE = Union[Dict, pd.DataFrame, Sequence, "MetaPartition"]
 
 
 def _predicates_to_named(predicates):
@@ -1653,9 +1652,9 @@ def partition_labels_from_mps(mps):
 
 
 def parse_input_to_metapartition(
-    obj: Optional[Union[Dict, pd.DataFrame, Sequence, MetaPartition]],
+    obj: METAPARTITION_INPUT_TYPE,
     metadata_version: Optional[int] = None,
-    expected_secondary_indices: Optional[Union[Literal[False], Sequence[str]]] = False,
+    expected_secondary_indices: Optional[INFERRED_INDICES] = False,
 ) -> MetaPartition:
     """
     Parses given user input and returns a MetaPartition

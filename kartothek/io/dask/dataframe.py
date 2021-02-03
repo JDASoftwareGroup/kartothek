@@ -32,6 +32,7 @@ from kartothek.io_components.metapartition import (
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
+    INFERRED_INDICES,
     _ensure_compatible_indices,
     check_single_table_dataset,
     normalize_arg,
@@ -48,11 +49,6 @@ from kartothek.serialization import DataFrameSerializer, PredicatesType
 from ._shuffle import shuffle_store_dask_partitions
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
-
-try:
-    from typing_extensions import Literal  # type: ignore
-except ImportError:
-    from typing import Literal  # type: ignore
 
 
 @default_docs
@@ -326,7 +322,7 @@ def _write_dataframe_partitions(
     store: StoreFactory,
     dataset_uuid: str,
     table: str,
-    secondary_indices: Union[Literal[False], List[str]],
+    secondary_indices: Optional[INFERRED_INDICES],
     shuffle: bool,
     repartition_ratio: Optional[SupportsFloat],
     num_buckets: int,

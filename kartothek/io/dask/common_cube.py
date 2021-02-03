@@ -3,6 +3,7 @@ Common code for dask backends.
 """
 from collections import defaultdict
 from functools import partial
+from typing import Dict
 
 import dask.bag as db
 
@@ -13,6 +14,8 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_STORAGE_FORMAT,
     KTK_CUBE_METADATA_VERSION,
 )
+from kartothek.core.cube.cube import Cube
+from kartothek.core.dataset import DatasetMetadataBase
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.common import check_blocksize, check_store_factory
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
@@ -50,7 +53,17 @@ __all__ = (
 )
 
 
-def ensure_valid_cube_indices(existing_datasets, cube):
+def ensure_valid_cube_indices(
+    existing_datasets: Dict[str, DatasetMetadataBase], cube: Cube
+) -> Cube:
+    """
+    Parse all existing datasets and infer the required set of indices. We do not
+    allow indices to be removed or added in update steps at the momenent and
+    need to make sure that existing ones are updated properly.
+    The returned `Cube` instance will be a copy of the input with
+    `index_columns` and `suppress_index_on` fields adjusted to reflect the
+    existing datasets.
+    """
     required_indices = set(cube.index_columns)
     suppress_index_on = set(cube.suppress_index_on)
     for ds in existing_datasets.values():
@@ -58,9 +71,9 @@ def ensure_valid_cube_indices(existing_datasets, cube):
         table_indices = required_indices & dataset_columns
         compatible_indices = _ensure_compatible_indices(ds, table_indices)
         if compatible_indices:
-            compatible_indices = set(compatible_indices)
-            suppress_index_on -= compatible_indices
-            required_indices |= compatible_indices
+            required_indices = set(compatible_indices)
+            suppress_index_on -= required_indices
+            required_indices |= required_indices
     # Need to remove dimension columns since they *are* technically indices but
     # the cube interface class declares them as not indexed just to add them
     # later on, assuming it is not blacklisted

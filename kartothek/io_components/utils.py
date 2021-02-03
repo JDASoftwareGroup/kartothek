@@ -4,13 +4,13 @@ This module is a collection of helper functions
 import collections
 import inspect
 import logging
-from typing import List, Optional, Sequence, TypeVar, Union, overload
+from typing import Iterable, List, Optional, TypeVar, Union, overload
 
 import decorator
 import pandas as pd
 
-from kartothek.core.dataset import DatasetMetadata
-from kartothek.core.factory import DatasetFactory, _ensure_factory
+from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
+from kartothek.core.factory import _ensure_factory
 from kartothek.core.typing import StoreFactory, StoreInput
 from kartothek.core.utils import ensure_store, lazy_store
 
@@ -19,6 +19,8 @@ try:
 except ImportError:
     from typing import Literal  # type: ignore
 
+# Literal false is sentinel, see function body of `_ensure_compatible_indices` for details
+INFERRED_INDICES = Union[Literal[False], List[str]]
 
 signature = inspect.signature
 
@@ -111,9 +113,8 @@ def _combine_metadata(dataset_metadata, append_to_list):
 
 
 def _ensure_compatible_indices(
-    dataset: Optional[Union[DatasetMetadata, DatasetFactory]],
-    secondary_indices: Optional[Sequence[str]],
-) -> Union[Literal[False], List[str]]:
+    dataset: Optional[DatasetMetadataBase], secondary_indices: Optional[Iterable[str]],
+) -> INFERRED_INDICES:
     if dataset:
         ds_secondary_indices = list(dataset.secondary_indices.keys())
 

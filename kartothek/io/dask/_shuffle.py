@@ -1,5 +1,5 @@
 from functools import partial
-from typing import List, Optional, Sequence, Union
+from typing import List, Optional, Sequence, cast
 
 import dask.array as da
 import dask.dataframe as dd
@@ -9,14 +9,9 @@ import pandas as pd
 from kartothek.core.typing import StoreFactory
 from kartothek.io.dask.compression import pack_payload, unpack_payload_pandas
 from kartothek.io_components.metapartition import MetaPartition
+from kartothek.io_components.utils import INFERRED_INDICES
 from kartothek.io_components.write import write_partition
 from kartothek.serialization import DataFrameSerializer
-
-try:
-    from typing_extensions import Literal  # type: ignore
-except ImportError:
-    from typing import Literal  # type: ignore
-
 
 _KTK_HASH_BUCKET = "__KTK_HASH_BUCKET"
 
@@ -41,7 +36,7 @@ def _hash_bucket(df: pd.DataFrame, subset: Optional[Sequence[str]], num_buckets:
 def shuffle_store_dask_partitions(
     ddf: dd.DataFrame,
     table: str,
-    secondary_indices: Optional[Union[Literal[False], Sequence[str]]],
+    secondary_indices: Optional[INFERRED_INDICES],
     metadata_version: int,
     partition_on: List[str],
     store_factory: StoreFactory,
@@ -115,28 +110,29 @@ def shuffle_store_dask_partitions(
     unpacked_meta = ddf._meta
 
     ddf = pack_payload(ddf, group_key=group_cols)
-    ddf = ddf.groupby(by=group_cols)
-    ddf = ddf.apply(
-        partial(
-            _unpack_store_partition,
-            secondary_indices=secondary_indices,
-            sort_partitions_by=sort_partitions_by,
-            table=table,
-            dataset_uuid=dataset_uuid,
-            partition_on=partition_on,
-            store_factory=store_factory,
-            df_serializer=df_serializer,
-            metadata_version=metadata_version,
-            unpacked_meta=unpacked_meta,
-        ),
-        meta=("MetaPartition", "object"),
+    ddf_grouped = ddf.groupby(by=group_cols)
+
+    unpack = partial(
+        _unpack_store_partition,
+        secondary_indices=secondary_indices,
+        sort_partitions_by=sort_partitions_by,
+        table=table,
+        dataset_uuid=dataset_uuid,
+        partition_on=partition_on,
+        store_factory=store_factory,
+        df_serializer=df_serializer,
+        metadata_version=metadata_version,
+        unpacked_meta=unpacked_meta,
     )
-    return ddf
+    return cast(
+        da.Array,  # Output type depends on meta but mypy cannot infer this easily.
+        ddf_grouped.apply(unpack, meta=("MetaPartition", "object")),
+    )
 
 
 def _unpack_store_partition(
     df: pd.DataFrame,
-    secondary_indices: List[str],
+    secondary_indices: Optional[INFERRED_INDICES],
     sort_partitions_by: List[str],
     table: str,
     dataset_uuid: str,
