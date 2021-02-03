@@ -55,7 +55,7 @@ def get_dataframe_not_nested(n):
                 [datetime(2018, 1, x % 31 + 1) for x in range(1, n + 1)],
                 dtype="datetime64[ns]",
             ),
-            "unicode": pd.Series([str(x) for x in range(n)], dtype=np.unicode),
+            "unicode": pd.Series([str(x) for x in range(n)], dtype=str),
             "null": pd.Series([None] * n, dtype=object),
             "bytes": pd.Series(binaries, dtype=np.object),
         }
