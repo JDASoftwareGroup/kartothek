@@ -71,9 +71,9 @@ def ensure_valid_cube_indices(
         table_indices = required_indices & dataset_columns
         compatible_indices = _ensure_compatible_indices(ds, table_indices)
         if compatible_indices:
-            required_indices = set(compatible_indices)
-            suppress_index_on -= required_indices
-            required_indices |= required_indices
+            dataset_indices = set(compatible_indices)
+            suppress_index_on -= dataset_indices
+            required_indices |= dataset_indices
     # Need to remove dimension columns since they *are* technically indices but
     # the cube interface class declares them as not indexed just to add them
     # later on, assuming it is not blacklisted
