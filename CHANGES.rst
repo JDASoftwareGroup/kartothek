@@ -5,7 +5,7 @@ Changelog
 Version 3.1X.X (2021-XX-XX)
 ===========================
 
-* Add retries to  :func:`~kartothek.serialization.parquet.ParquetSerializer.restore_dataframe`
+* Add retries to  :func:`~kartothek.serialization._parquet.ParquetSerializer.restore_dataframe`
 
 
 Version 3.18.0 (2021-01-25)
