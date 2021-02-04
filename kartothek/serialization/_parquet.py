@@ -149,7 +149,7 @@ class ParquetSerializer(DataFrameSerializer):
                     time.sleep(BACKOFF_TIME * 2 ** nb_retry)
 
         raise ParquetReadError(
-            "Failed to restore dataframe after {MAX_NB_RETRIES} attempts. Parameters: "
+            f"Failed to restore dataframe after {MAX_NB_RETRIES} attempts. Parameters: "
             f"key: {key}, filter_query: {filter_query}, columns: {columns}, "
             f"predicate_pushdown_to_io: {predicate_pushdown_to_io}, categories: {categories}, "
             f"date_as_object: {date_as_object}, predicates: {predicates}."
