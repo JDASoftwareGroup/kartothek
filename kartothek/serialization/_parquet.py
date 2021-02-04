@@ -140,7 +140,7 @@ class ParquetSerializer(DataFrameSerializer):
             "Failed to restore dataframe after {MAX_NB_RETRIES} attempts. Parameters: "
             f"key: {key}, filter_query: {filter_query}, columns: {columns}, "
             f"predicate_pushdown_to_io: {predicate_pushdown_to_io}, categories: {categories}, "
-            f"predicates: {predicates}, date_as_object: {date_as_object}."
+            f"date_as_object: {date_as_object}, predicates: {predicates}."
         )
 
     def store(self, store, key_prefix, df):
