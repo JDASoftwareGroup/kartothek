@@ -20,7 +20,7 @@ except ImportError:
     from typing import Literal  # type: ignore
 
 # Literal false is sentinel, see function body of `_ensure_compatible_indices` for details
-INFERRED_INDICES = Union[Literal[False], List[str]]
+InferredIndices = Union[Literal[False], List[str]]
 
 signature = inspect.signature
 
@@ -114,7 +114,7 @@ def _combine_metadata(dataset_metadata, append_to_list):
 
 def _ensure_compatible_indices(
     dataset: Optional[DatasetMetadataBase], secondary_indices: Optional[Iterable[str]],
-) -> INFERRED_INDICES:
+) -> InferredIndices:
     if dataset:
         ds_secondary_indices = list(dataset.secondary_indices.keys())
 

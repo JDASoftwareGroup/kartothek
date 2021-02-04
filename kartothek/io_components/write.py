@@ -17,14 +17,14 @@ from kartothek.core.partition import Partition
 from kartothek.core.typing import StoreFactory, StoreInput
 from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import (
-    METAPARTITION_INPUT_TYPE,
     SINGLE_TABLE,
     MetaPartition,
+    MetaPartitionInput,
     parse_input_to_metapartition,
     partition_labels_from_mps,
 )
 from kartothek.io_components.utils import (
-    INFERRED_INDICES,
+    InferredIndices,
     combine_metadata,
     extract_duplicates,
     sort_values_categorical,
@@ -35,8 +35,8 @@ SINGLE_CATEGORY = SINGLE_TABLE
 
 
 def write_partition(
-    partition_df: METAPARTITION_INPUT_TYPE,
-    secondary_indices: Optional[INFERRED_INDICES],
+    partition_df: MetaPartitionInput,
+    secondary_indices: Optional[InferredIndices],
     sort_partitions_by: Optional[Union[str, Sequence[str]]],
     dataset_uuid: str,
     partition_on: Optional[Union[str, Sequence[str]]],
@@ -50,7 +50,7 @@ def write_partition(
     like partitioning, bucketing (NotImplemented), indexing, etc. in the correct order.
     """
     store = ensure_store(store_factory)
-    parse_input: METAPARTITION_INPUT_TYPE
+    parse_input: MetaPartitionInput
     if isinstance(partition_df, pd.DataFrame) and dataset_table_name:
         parse_input = [{"data": {dataset_table_name: partition_df}}]
     else:

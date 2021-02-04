@@ -35,7 +35,7 @@ from kartothek.core.utils import (
 )
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.utils import (
-    INFERRED_INDICES,
+    InferredIndices,
     _ensure_valid_indices,
     combine_metadata,
 )
@@ -65,7 +65,7 @@ _METADATA_SCHEMA = {
 }
 
 _MULTI_TABLE_DICT_LIST = Dict[str, Iterable[str]]
-METAPARTITION_INPUT_TYPE = Union[Dict, pd.DataFrame, Sequence, "MetaPartition"]
+MetaPartitionInput = Union[Dict, pd.DataFrame, Sequence, "MetaPartition"]
 
 
 def _predicates_to_named(predicates):
@@ -1652,9 +1652,9 @@ def partition_labels_from_mps(mps):
 
 
 def parse_input_to_metapartition(
-    obj: METAPARTITION_INPUT_TYPE,
+    obj: MetaPartitionInput,
     metadata_version: Optional[int] = None,
-    expected_secondary_indices: Optional[INFERRED_INDICES] = False,
+    expected_secondary_indices: Optional[InferredIndices] = False,
 ) -> MetaPartition:
     """
     Parses given user input and returns a MetaPartition
