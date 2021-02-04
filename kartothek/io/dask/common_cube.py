@@ -33,7 +33,6 @@ from kartothek.io_components.cube.write import (
     prepare_ktk_partition_on,
 )
 from kartothek.io_components.metapartition import (
-    SINGLE_TABLE,
     MetaPartition,
     parse_input_to_metapartition,
 )
@@ -67,13 +66,14 @@ def ensure_valid_cube_indices(
     required_indices = set(cube.index_columns)
     suppress_index_on = set(cube.suppress_index_on)
     for ds in existing_datasets.values():
-        dataset_columns = set(ds.table_meta[SINGLE_TABLE].names)
-        table_indices = required_indices & dataset_columns
-        compatible_indices = _ensure_compatible_indices(ds, table_indices)
-        if compatible_indices:
-            dataset_indices = set(compatible_indices)
-            suppress_index_on -= dataset_indices
-            required_indices |= dataset_indices
+        for internal_table in ds.table_meta:
+            dataset_columns = set(ds.table_meta[internal_table].names)
+            table_indices = required_indices & dataset_columns
+            compatible_indices = _ensure_compatible_indices(ds, table_indices)
+            if compatible_indices:
+                dataset_indices = set(compatible_indices)
+                suppress_index_on -= dataset_indices
+                required_indices |= dataset_indices
     # Need to remove dimension columns since they *are* technically indices but
     # the cube interface class declares them as not indexed just to add them
     # later on, assuming it is not blacklisted
