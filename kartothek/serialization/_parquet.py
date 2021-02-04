@@ -100,7 +100,98 @@ class ParquetSerializer(DataFrameSerializer):
         )
 
     @staticmethod
+    def _restore_dataframe(
+        store: KeyValueStore,
+        key: str,
+        filter_query: Optional[str] = None,
+        columns: Optional[Iterable[str]] = None,
+        predicate_pushdown_to_io: bool = True,
+        categories: Optional[Iterable[str]] = None,
+        predicates: Optional[PredicatesType] = None,
+        date_as_object: bool = False,
+    ) -> pd.DataFrame:
+        check_predicates(predicates)
+        # If we want to do columnar access we can benefit from partial reads
+        # otherwise full read en block is the better option.
+        if (not predicate_pushdown_to_io) or (columns is None and predicates is None):
+            with pa.BufferReader(store.get(key)) as reader:
+                table = pq.read_pandas(reader, columns=columns)
+        else:
+            if HAVE_BOTO and isinstance(store, BotoStore):
+                # Parquet and seeks on S3 currently leak connections thus
+                # we omit column projection to the store.
+                reader = pa.BufferReader(store.get(key))
+            else:
+                reader = store.open(key)
+                # Buffer at least 4 MB in requests. This is chosen because the default block size of the Azure
+                # storage client is 4MB.
+                reader = BlockBuffer(reader, 4 * 1024 * 1024)
+            try:
+                parquet_file = ParquetFile(reader)
+                if predicates and parquet_file.metadata.num_rows > 0:
+                    # We need to calculate different predicates for predicate
+                    # pushdown and the later DataFrame filtering. This is required
+                    # e.g. in the case where we have an `in` predicate as this has
+                    # different normalized values.
+                    columns_to_io = _columns_for_pushdown(columns, predicates)
+                    predicates_for_pushdown = _normalize_predicates(
+                        parquet_file, predicates, True
+                    )
+                    predicates = _normalize_predicates(parquet_file, predicates, False)
+                    tables = _read_row_groups_into_tables(
+                        parquet_file, columns_to_io, predicates_for_pushdown
+                    )
+
+                    if len(tables) == 0:
+                        table = _empty_table_from_schema(parquet_file)
+                    else:
+                        table = pa.concat_tables(tables)
+                else:
+                    # ARROW-5139 Column projection with empty columns returns a table w/out index
+                    if columns == []:
+                        # Create an arrow table with expected index length.
+                        df = (
+                            parquet_file.schema.to_arrow_schema()
+                            .empty_table()
+                            .to_pandas(date_as_object=date_as_object)
+                        )
+                        index = pd.Int64Index(
+                            pd.RangeIndex(start=0, stop=parquet_file.metadata.num_rows)
+                        )
+                        df = pd.DataFrame(df, index=index)
+                        # convert back to table to keep downstream code untouched by this patch
+                        table = pa.Table.from_pandas(df)
+                    else:
+                        table = pq.read_pandas(reader, columns=columns)
+            finally:
+                reader.close()
+
+        if columns is not None:
+            missing_columns = set(columns) - set(table.schema.names)
+            if missing_columns:
+                raise ValueError(
+                    "Columns cannot be found in stored dataframe: {missing}".format(
+                        missing=", ".join(sorted(missing_columns))
+                    )
+                )
+
+        table = _reset_dictionary_columns(table, exclude=categories)
+        df = table.to_pandas(categories=categories, date_as_object=date_as_object)
+        df.columns = df.columns.map(ensure_unicode_string_type)
+        if predicates:
+            df = filter_df_from_predicates(
+                df, predicates, strict_date_types=date_as_object
+            )
+        else:
+            df = filter_df(df, filter_query)
+        if columns is not None:
+            return df.reindex(columns=columns, copy=False)
+        else:
+            return df
+
+    @classmethod
     def restore_dataframe(
+        cls,
         store: KeyValueStore,
         key: str,
         filter_query: Optional[str] = None,
@@ -112,7 +203,7 @@ class ParquetSerializer(DataFrameSerializer):
     ) -> pd.DataFrame:
         for nb_retry in range(MAX_NB_RETRIES):
             try:
-                return _restore_dataframe(
+                return cls._restore_dataframe(
                     store=store,
                     key=key,
                     filter_query=filter_query,
@@ -161,94 +252,6 @@ class ParquetSerializer(DataFrameSerializer):
         )
         store.put(key, buf.getvalue().to_pybytes())
         return key
-
-
-def _restore_dataframe(
-    store: KeyValueStore,
-    key: str,
-    filter_query: Optional[str] = None,
-    columns: Optional[Iterable[str]] = None,
-    predicate_pushdown_to_io: bool = True,
-    categories: Optional[Iterable[str]] = None,
-    predicates: Optional[PredicatesType] = None,
-    date_as_object: bool = False,
-) -> pd.DataFrame:
-    check_predicates(predicates)
-    # If we want to do columnar access we can benefit from partial reads
-    # otherwise full read en block is the better option.
-    if (not predicate_pushdown_to_io) or (columns is None and predicates is None):
-        with pa.BufferReader(store.get(key)) as reader:
-            table = pq.read_pandas(reader, columns=columns)
-    else:
-        if HAVE_BOTO and isinstance(store, BotoStore):
-            # Parquet and seeks on S3 currently leak connections thus
-            # we omit column projection to the store.
-            reader = pa.BufferReader(store.get(key))
-        else:
-            reader = store.open(key)
-            # Buffer at least 4 MB in requests. This is chosen because the default block size of the Azure
-            # storage client is 4MB.
-            reader = BlockBuffer(reader, 4 * 1024 * 1024)
-        try:
-            parquet_file = ParquetFile(reader)
-            if predicates and parquet_file.metadata.num_rows > 0:
-                # We need to calculate different predicates for predicate
-                # pushdown and the later DataFrame filtering. This is required
-                # e.g. in the case where we have an `in` predicate as this has
-                # different normalized values.
-                columns_to_io = _columns_for_pushdown(columns, predicates)
-                predicates_for_pushdown = _normalize_predicates(
-                    parquet_file, predicates, True
-                )
-                predicates = _normalize_predicates(parquet_file, predicates, False)
-                tables = _read_row_groups_into_tables(
-                    parquet_file, columns_to_io, predicates_for_pushdown
-                )
-
-                if len(tables) == 0:
-                    table = _empty_table_from_schema(parquet_file)
-                else:
-                    table = pa.concat_tables(tables)
-            else:
-                # ARROW-5139 Column projection with empty columns returns a table w/out index
-                if columns == []:
-                    # Create an arrow table with expected index length.
-                    df = (
-                        parquet_file.schema.to_arrow_schema()
-                        .empty_table()
-                        .to_pandas(date_as_object=date_as_object)
-                    )
-                    index = pd.Int64Index(
-                        pd.RangeIndex(start=0, stop=parquet_file.metadata.num_rows)
-                    )
-                    df = pd.DataFrame(df, index=index)
-                    # convert back to table to keep downstream code untouched by this patch
-                    table = pa.Table.from_pandas(df)
-                else:
-                    table = pq.read_pandas(reader, columns=columns)
-        finally:
-            reader.close()
-
-    if columns is not None:
-        missing_columns = set(columns) - set(table.schema.names)
-        if missing_columns:
-            raise ValueError(
-                "Columns cannot be found in stored dataframe: {missing}".format(
-                    missing=", ".join(sorted(missing_columns))
-                )
-            )
-
-    table = _reset_dictionary_columns(table, exclude=categories)
-    df = table.to_pandas(categories=categories, date_as_object=date_as_object)
-    df.columns = df.columns.map(ensure_unicode_string_type)
-    if predicates:
-        df = filter_df_from_predicates(df, predicates, strict_date_types=date_as_object)
-    else:
-        df = filter_df(df, filter_query)
-    if columns is not None:
-        return df.reindex(columns=columns, copy=False)
-    else:
-        return df
 
 
 def _columns_for_pushdown(columns, predicates):
