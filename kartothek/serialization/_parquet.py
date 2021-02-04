@@ -125,7 +125,7 @@ class ParquetSerializer(DataFrameSerializer):
             except (AssertionError, OSError):
                 _logger.warning(
                     msg=(
-                        f"Failed to restore dataframe, attempt {nb_retry} of {MAX_NB_RETRIES} with parameters "
+                        f"Failed to restore dataframe, attempt {nb_retry + 1} of {MAX_NB_RETRIES} with parameters "
                         f"key: {key}, filter_query: {filter_query}, columns: {columns}, "
                         f"predicate_pushdown_to_io: {predicate_pushdown_to_io}, categories: {categories}, "
                         f"predicates: {predicates}, date_as_object: {date_as_object}."
