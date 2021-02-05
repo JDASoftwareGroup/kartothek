@@ -11,9 +11,6 @@ pytest-cov
 pytest-mock
 setuptools-scm
 
-# Benchmarks
-asv
-
 # Formatting / Checking
 pre-commit
 flake8-mutable

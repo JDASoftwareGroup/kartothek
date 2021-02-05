@@ -11,17 +11,5 @@ pytest-cov
 pytest-mock
 setuptools_scm
 
-# Benchmarks
-asv
-
-# Formatting / Checking
-black==19.10b0
-blacken-docs==1.7.0
-flake8==3.8.3
-isort==4.3.21
-mypy==0.780
-pre-commit
-flake8-mutable
-
 # GitHub CI
 pandoc
