@@ -213,7 +213,8 @@ class ParquetSerializer(DataFrameSerializer):
                     predicates=predicates,
                     date_as_object=date_as_object,
                 )
-            except (AssertionError, OSError):
+            except (AssertionError, OSError) as err:
+                raised_error = err
                 _logger.warning(
                     msg=(
                         f"Failed to restore dataframe, attempt {nb_retry + 1} of {MAX_NB_RETRIES} with parameters "
@@ -232,7 +233,7 @@ class ParquetSerializer(DataFrameSerializer):
             f"key: {key}, filter_query: {filter_query}, columns: {columns}, "
             f"predicate_pushdown_to_io: {predicate_pushdown_to_io}, categories: {categories}, "
             f"date_as_object: {date_as_object}, predicates: {predicates}."
-        )
+        ) from raised_error
 
     def store(self, store, key_prefix, df):
         key = "{}.parquet".format(key_prefix)
