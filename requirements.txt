@@ -2,9 +2,6 @@ dask[dataframe]
 decorator
 msgpack>=0.5.2
 # Currently dask and numpy==1.16.0 clash
-# Numpy introduced a breaking ABI change for which a lot of wheels are affected
-# and we cannot patch already built wheels, hence the !=1.20.0 pin
-# see https://github.com/numpy/numpy/issues/17913
 numpy!=1.15.0,!=1.16.0
 pandas>=0.23.0, !=1.0.0
 pyarrow>=0.17.1,!=1.0.0, <3
