@@ -213,6 +213,9 @@ class ParquetSerializer(DataFrameSerializer):
         predicates: Optional[PredicatesType] = None,
         date_as_object: bool = False,
     ) -> pd.DataFrame:
+        # XXX: We have been seeing weired `IOError` while reading Parquet files from Azure Blob Store,
+        # thus, we implement retries at this point. This code should not live forever, it should be removed
+        # once the underlying cause has been resolved
         for nb_retry in range(MAX_NB_RETRIES):
             try:
                 return cls._restore_dataframe(
@@ -225,7 +228,9 @@ class ParquetSerializer(DataFrameSerializer):
                     predicates=predicates,
                     date_as_object=date_as_object,
                 )
-            except (AssertionError, OSError) as err:
+            # We only retry OSErrors (note that IOError inherits from OSError), as these kind of errors may benefit
+            # from retries.
+            except OSError as err:
                 raised_error = err
                 _logger.warning(
                     msg=(
