@@ -109,12 +109,6 @@ jobs:
       - name: Pytest
         run: pytest --cov kartothek --cov-report xml
 
-      - name: Sphinx
-        run: |
-          python setup.py build_sphinx
-          touch ./docs/_build/html/.nojekyll
-        if: env.IS_MASTER_BUILD == 'true'
-
       # Builds
       - name: Build Wheel
         run: python setup.py sdist bdist_wheel
