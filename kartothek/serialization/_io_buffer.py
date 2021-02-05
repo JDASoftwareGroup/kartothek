@@ -111,7 +111,7 @@ class BlockBuffer(io.BufferedIOBase):
                 f"Expected raw read to return {size} bytes, but instead got {len(data)}"
             )
             _logger.error(err)
-            raise AssertionError(err)
+            raise IOError(err)
 
         # fill blocks
         for i in range(n):
