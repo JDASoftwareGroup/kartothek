@@ -90,6 +90,7 @@ jobs:
           python -c "import kartothek.api"
           python -c "import kartothek.cli"
           python -c "import kartothek.core"
+          python -c "import not_existing"
           python -c "import kartothek.io"
           python -c "import kartothek.io_components"
           python -c "import kartothek.serialization"
