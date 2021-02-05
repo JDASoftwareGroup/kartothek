@@ -14,3 +14,6 @@ setuptools-scm
 # Formatting / Checking
 pre-commit
 flake8-mutable
+
+# CLI
+ipython

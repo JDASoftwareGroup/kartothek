@@ -13,3 +13,6 @@ setuptools_scm
 
 # GitHub CI
 pandoc
+
+# CLI
+ipython
