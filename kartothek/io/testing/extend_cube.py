@@ -84,7 +84,7 @@ def test_simple(driver, function_store, existing_cube):
     assert set(ds.table_meta) == {SINGLE_TABLE}
 
 
-@pytest.mark.parametrize("chunk_size", [None, 1, 2, 3])
+@pytest.mark.parametrize("chunk_size", [None, 2])
 def test_rowgroups_are_applied_when_df_serializer_is_passed_to_extend_cube(
     driver, function_store, existing_cube, chunk_size
 ):
@@ -128,18 +128,14 @@ def test_single_rowgroup_when_df_serializer_is_not_passed_to_extend_cube(
     assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
 
 
-# Per ARROW-9424, writing files with LZ4 compression has been disabled
-@pytest.mark.parametrize(
-    "compression_build", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
-)
-@pytest.mark.parametrize(
-    "compression_extend", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
-)
-def test_compression_is_compatible_on_extend_cube(
-    driver, function_store, compression_build, compression_extend
-):
+def test_compression_is_compatible_on_extend_cube(driver, function_store):
     """
     Test that partitons written with different compression algorithms are compatible
+
+    The compression algorithms are not parametrized because their availability depends
+    on the arrow build. 'SNAPPY' and 'GZIP' are already assumed to be available in parts
+    of the code. A fully parametrized test would also increase runtime and test complexity
+    unnecessarily.
     """
     # Build cube
     df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
@@ -148,7 +144,7 @@ def test_compression_is_compatible_on_extend_cube(
         data=df,
         cube=cube,
         store=function_store,
-        df_serializer=ParquetSerializer(compression=compression_build),
+        df_serializer=ParquetSerializer(compression="SNAPPY"),
     )
 
     df_extra = pd.DataFrame(
@@ -158,7 +154,7 @@ def test_compression_is_compatible_on_extend_cube(
         data={"extra": df_extra},
         cube=cube,
         store=function_store,
-        df_serializer=ParquetSerializer(compression=compression_extend),
+        df_serializer=ParquetSerializer(compression="GZIP"),
     )
     dataset = result["extra"].load_all_indices(function_store())
 

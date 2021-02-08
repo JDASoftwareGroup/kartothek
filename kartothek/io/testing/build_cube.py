@@ -273,8 +273,7 @@ def test_parquet(driver, function_store):
         pdt.assert_frame_equal(df_actual.reset_index(drop=True), df_expected)
 
 
-@pytest.mark.filterwarnings("ignore::UnicodeWarning")
-@pytest.mark.parametrize("chunk_size", [None, 1, 2, 3])
+@pytest.mark.parametrize("chunk_size", [None, 2])
 def test_rowgroups_are_applied_when_df_serializer_is_passed_to_build_cube(
     driver, function_store, chunk_size
 ):
@@ -299,7 +298,6 @@ def test_rowgroups_are_applied_when_df_serializer_is_passed_to_build_cube(
     assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
 
 
-@pytest.mark.filterwarnings("ignore::UnicodeWarning")
 def test_single_rowgroup_when_df_serializer_is_not_passed_to_build_cube(
     driver, function_store
 ):

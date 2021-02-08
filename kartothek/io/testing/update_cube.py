@@ -120,8 +120,8 @@ def test_update_partitions(driver, function_store, remove_partitions, new_partit
     pd.testing.assert_frame_equal(df_read, df_source_expected_after)
 
 
-@pytest.mark.parametrize("chunk_size_build", [None, 1, 2, 3])
-@pytest.mark.parametrize("chunk_size_update", [None, 1, 2, 3])
+@pytest.mark.parametrize("chunk_size_build", [None, 2])
+@pytest.mark.parametrize("chunk_size_update", [None, 2])
 def test_rowgroups_are_applied_when_df_serializer_is_passed_to_update_cube(
     driver, function_store, chunk_size_build, chunk_size_update
 ):
@@ -198,18 +198,14 @@ def test_single_rowgroup_when_df_serializer_is_not_passed_to_update_cube(
     assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
 
 
-# Per ARROW-9424, writing files with LZ4 compression has been disabled
-@pytest.mark.parametrize(
-    "compression_build", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
-)
-@pytest.mark.parametrize(
-    "compression_update", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
-)
-def test_compression_is_compatible_on_update_cube(
-    driver, function_store, compression_build, compression_update
-):
+def test_compression_is_compatible_on_update_cube(driver, function_store):
     """
     Test that partitons written with different compression algorithms are compatible
+
+    The compression algorithms are not parametrized because their availability depends
+    on the arrow build. 'SNAPPY' and 'GZIP' are already assumed to be available in parts
+    of the code. A fully parametrized test would also increase runtime and test complexity
+    unnecessarily.
     """
     # Build cube
     df = pd.DataFrame(data={"x": [0, 1], "p": [0, 1]}, columns=["x", "p"],)
@@ -218,7 +214,7 @@ def test_compression_is_compatible_on_update_cube(
         data=df,
         cube=cube,
         store=function_store,
-        df_serializer=ParquetSerializer(compression=compression_build),
+        df_serializer=ParquetSerializer(compression="SNAPPY"),
     )
 
     # Update cube - replace p=1 and append p=2 partitions
@@ -230,7 +226,7 @@ def test_compression_is_compatible_on_update_cube(
         remove_conditions=(C("p") == 1),  # Remove p=1 partition
         cube=cube,
         store=function_store,
-        df_serializer=ParquetSerializer(compression=compression_update),
+        df_serializer=ParquetSerializer(compression="GZIP"),
     )
     dataset = result["seed"].load_all_indices(function_store())
 
