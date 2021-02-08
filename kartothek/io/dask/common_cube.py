@@ -3,7 +3,7 @@ Common code for dask backends.
 """
 from collections import defaultdict
 from functools import partial
-from typing import Any, Dict, Iterable, Optional, Set
+from typing import Any, Dict, Iterable, Mapping, Optional, Set
 
 import dask.bag as db
 from simplekv import KeyValueStore
@@ -56,7 +56,7 @@ __all__ = (
 
 
 def ensure_valid_cube_indices(
-    existing_datasets: Dict[str, DatasetMetadataBase], cube: Cube
+    existing_datasets: Mapping[str, DatasetMetadataBase], cube: Cube
 ) -> Cube:
     """
     Parse all existing datasets and infer the required set of indices. We do not
