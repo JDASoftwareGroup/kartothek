@@ -1,6 +1,6 @@
 from collections import defaultdict
 from functools import partial
-from typing import Any, Dict, Optional, Sequence, Union, cast
+from typing import Dict, Optional, Sequence, Union, cast
 
 import pandas as pd
 
@@ -19,10 +19,12 @@ from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import (
     SINGLE_TABLE,
     MetaPartition,
+    MetaPartitionInput,
     parse_input_to_metapartition,
     partition_labels_from_mps,
 )
 from kartothek.io_components.utils import (
+    InferredIndices,
     combine_metadata,
     extract_duplicates,
     sort_values_categorical,
@@ -33,8 +35,8 @@ SINGLE_CATEGORY = SINGLE_TABLE
 
 
 def write_partition(
-    partition_df: Any,  # TODO: Establish typing for parse_input_to_metapartition
-    secondary_indices: Optional[Union[str, Sequence[str]]],
+    partition_df: MetaPartitionInput,
+    secondary_indices: Optional[InferredIndices],
     sort_partitions_by: Optional[Union[str, Sequence[str]]],
     dataset_uuid: str,
     partition_on: Optional[Union[str, Sequence[str]]],
@@ -48,6 +50,7 @@ def write_partition(
     like partitioning, bucketing (NotImplemented), indexing, etc. in the correct order.
     """
     store = ensure_store(store_factory)
+    parse_input: MetaPartitionInput
     if isinstance(partition_df, pd.DataFrame) and dataset_table_name:
         parse_input = [{"data": {dataset_table_name: partition_df}}]
     else:

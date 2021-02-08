@@ -1,4 +1,4 @@
-
+.. _mutating_datasets:
 
 Mutating Datasets
 =================
@@ -286,6 +286,8 @@ consists of two rows corresponding to ``B=2013-01-02`` (from ``df``) and four ro
 Thus, the original partition with the two rows corresponding to ``B=2013-01-03`` from ``df``
 has been completely replaced.
 
+
+
 Garbage collection
 ------------------
 
@@ -324,3 +326,45 @@ When garbage collection is called, the files are removed.
     files_before.difference(store.keys())  # Show files removed
 
 .. _storefact: https://github.com/blue-yonder/storefact
+
+
+Mutating indexed datasets
+-------------------------
+
+The mutating operation will update all indices that currently exist for the dataset. This even holds true in case the update function does not specify any or only partially the indices. Consider the following example
+
+.. ipython:: python
+
+    df = pd.DataFrame({"payload": range(10), "i1": 0, "i2": ["a"] * 5 + ["b"] * 5})
+    dm = store_dataframes_as_dataset(
+        store_url, "indexed_dataset", [df], secondary_indices=["i1", "i2"]
+    )
+    dm = dm.load_all_indices(store_url)
+    dm.indices["i1"].observed_values()
+    dm.indices["i2"].observed_values()
+
+    new_df = pd.DataFrame({"payload": range(10), "i1": 1, "i2": "c"})
+
+If we do not specify anything, kartothek will infer the indices and update them correctly
+
+.. ipython:: python
+
+    dm = update_dataset_from_dataframes([new_df], store=store_url, dataset_uuid=dm.uuid)
+
+    dm = dm.load_all_indices(store_url)
+    dm.indices["i1"].observed_values()
+    dm.indices["i2"].observed_values()
+
+
+This is even true if only a subset is given
+
+.. ipython:: python
+
+    new_df = pd.DataFrame({"payload": range(10), "i1": 2, "i2": "d"})
+    dm = update_dataset_from_dataframes(
+        [new_df], store=store_url, dataset_uuid=dm.uuid, secondary_indices="i1"
+    )
+
+    dm = dm.load_all_indices(store_url)
+    dm.indices["i1"].observed_values()
+    dm.indices["i2"].observed_values()

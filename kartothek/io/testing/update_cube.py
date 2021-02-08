@@ -158,3 +158,95 @@ def test_update_respects_ktk_cube_dataset_ids(
         assert set(df_ex_read["p"]) == {1}
     else:
         assert set(df_ex_read["p"]) == {0, 1}
+
+
+def test_cube_update_secondary_indices_subset(function_store, driver):
+
+    cube1 = Cube(
+        dimension_columns=["A"],
+        partition_columns=["P"],
+        uuid_prefix="cube",
+        seed_dataset="source",
+        index_columns=["indexed"],
+    )
+    df_1 = pd.DataFrame({"A": range(10), "P": 1, "indexed": 1, "not-indexed": 1})
+    build_cube(
+        data={"source": df_1},
+        cube=cube1,
+        store=function_store,
+        metadata={"source": {"meta_at_create": "data"}},
+    )
+
+    cube2 = Cube(
+        dimension_columns=["A"],
+        partition_columns=["P"],
+        uuid_prefix="cube",
+        seed_dataset="source",
+    )
+    df_2 = pd.DataFrame({"A": range(10, 20), "P": 1, "indexed": 2, "not-indexed": 1})
+    driver(
+        data={"source": df_2}, cube=cube2, store=function_store, remove_conditions=None
+    )
+
+    dataset_uuid = cube2.ktk_dataset_uuid(cube2.seed_dataset)
+    dm = DatasetMetadata.load_from_store(
+        dataset_uuid, function_store(), load_all_indices=True
+    )
+    obs_values = dm.indices["indexed"].observed_values()
+
+    assert sorted(obs_values) == [1, 2]
+
+    cube2 = Cube(
+        dimension_columns=["A"],
+        partition_columns=["P"],
+        uuid_prefix="cube",
+        seed_dataset="source",
+        index_columns=["not-indexed"],
+    )
+    with pytest.raises(
+        ValueError,
+        match='ExplicitSecondaryIndex or PartitionIndex "not-indexed" is missing in dataset',
+    ):
+        driver(
+            data={"source": df_2},
+            cube=cube2,
+            store=function_store,
+            remove_conditions=None,
+        )
+
+
+def test_cube_blacklist_dimension_index(function_store, driver):
+
+    cube1 = Cube(
+        dimension_columns=["A", "B"],
+        partition_columns=["P"],
+        uuid_prefix="cube",
+        seed_dataset="source",
+    )
+    df_1 = pd.DataFrame({"A": range(10), "P": 1, "B": 1, "payload": ""})
+    build_cube(
+        data={"source": df_1},
+        cube=cube1,
+        store=function_store,
+        metadata={"source": {"meta_at_create": "data"}},
+    )
+
+    cube2 = Cube(
+        dimension_columns=["A", "B"],
+        partition_columns=["P"],
+        uuid_prefix="cube",
+        seed_dataset="source",
+        suppress_index_on=["B"],
+    )
+    df_2 = pd.DataFrame({"A": range(10), "P": 1, "B": 2, "payload": ""})
+    driver(
+        data={"source": df_2}, cube=cube2, store=function_store, remove_conditions=None
+    )
+
+    dataset_uuid = cube2.ktk_dataset_uuid(cube2.seed_dataset)
+    dm = DatasetMetadata.load_from_store(
+        dataset_uuid, function_store(), load_all_indices=True
+    )
+    obs_values = dm.indices["B"].observed_values()
+
+    assert sorted(obs_values) == [1, 2]

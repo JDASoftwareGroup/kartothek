@@ -442,6 +442,10 @@ def update_cube_from_bag(
     metadata_dict: dask.bag.Bag
         A dask bag object containing the compute graph to append to the cube returning the dict of dataset metadata
         objects. The bag has a single partition with a single element.
+
+    See Also
+    --------
+    :ref:`mutating_datasets`
     """
     return append_to_cube_from_bag_internal(
         data=data,

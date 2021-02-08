@@ -32,6 +32,7 @@ from kartothek.io_components.metapartition import (
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
+    InferredIndices,
     _ensure_compatible_indices,
     check_single_table_dataset,
     normalize_arg,
@@ -321,7 +322,7 @@ def _write_dataframe_partitions(
     store: StoreFactory,
     dataset_uuid: str,
     table: str,
-    secondary_indices: List[str],
+    secondary_indices: Optional[InferredIndices],
     shuffle: bool,
     repartition_ratio: Optional[SupportsFloat],
     num_buckets: int,
@@ -397,6 +398,10 @@ def update_dataset_from_ddf(
 ):
     """
     Update a dataset from a dask.dataframe.
+
+    See Also
+    --------
+    :ref:`mutating_datasets`
     """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
@@ -415,7 +420,8 @@ def update_dataset_from_ddf(
         ds_factory=factory,
     )
 
-    _ensure_compatible_indices(ds_factory, secondary_indices)
+    inferred_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
+    del secondary_indices
 
     if ds_factory is not None:
         check_single_table_dataset(ds_factory, table)
@@ -425,7 +431,7 @@ def update_dataset_from_ddf(
         store=store,
         dataset_uuid=dataset_uuid or ds_factory.dataset_uuid,
         table=table,
-        secondary_indices=secondary_indices,
+        secondary_indices=inferred_indices,
         shuffle=shuffle,
         repartition_ratio=repartition_ratio,
         num_buckets=num_buckets,

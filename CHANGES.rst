@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Version 3.18.1 (2021-02-XY)
+===========================
+
+* Fix an issue where updates on cubes or updates on datatsets using
+  dask.dataframe might not update all secondary indices, resulting in a corrupt
+  state after the update
 
 Version 3.18.0 (2021-01-25)
 ===========================

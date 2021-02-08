@@ -1119,6 +1119,7 @@ def test_overwrite_rollback_ktk(driver, function_store):
         store=function_store,
         dataset_uuid=cube.ktk_dataset_uuid(cube.seed_dataset),
         metadata_version=KTK_CUBE_METADATA_VERSION,
+        secondary_indices=["i1", "i2"],
     )
 
     df_source2 = pd.DataFrame(

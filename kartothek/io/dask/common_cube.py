@@ -3,6 +3,7 @@ Common code for dask backends.
 """
 from collections import defaultdict
 from functools import partial
+from typing import Dict
 
 import dask.bag as db
 
@@ -13,6 +14,8 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_STORAGE_FORMAT,
     KTK_CUBE_METADATA_VERSION,
 )
+from kartothek.core.cube.cube import Cube
+from kartothek.core.dataset import DatasetMetadataBase
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.common import check_blocksize, check_store_factory
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
@@ -34,6 +37,7 @@ from kartothek.io_components.metapartition import (
     parse_input_to_metapartition,
 )
 from kartothek.io_components.update import update_dataset_from_partitions
+from kartothek.io_components.utils import _ensure_compatible_indices
 from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
@@ -46,6 +50,37 @@ __all__ = (
     "extend_cube_from_bag_internal",
     "query_cube_bag_internal",
 )
+
+
+def ensure_valid_cube_indices(
+    existing_datasets: Dict[str, DatasetMetadataBase], cube: Cube
+) -> Cube:
+    """
+    Parse all existing datasets and infer the required set of indices. We do not
+    allow indices to be removed or added in update steps at the momenent and
+    need to make sure that existing ones are updated properly.
+    The returned `Cube` instance will be a copy of the input with
+    `index_columns` and `suppress_index_on` fields adjusted to reflect the
+    existing datasets.
+    """
+    required_indices = set(cube.index_columns)
+    suppress_index_on = set(cube.suppress_index_on)
+    for ds in existing_datasets.values():
+        for internal_table in ds.table_meta:
+            dataset_columns = set(ds.table_meta[internal_table].names)
+            table_indices = required_indices & dataset_columns
+            compatible_indices = _ensure_compatible_indices(ds, table_indices)
+            if compatible_indices:
+                dataset_indices = set(compatible_indices)
+                suppress_index_on -= dataset_indices
+                required_indices |= dataset_indices
+    # Need to remove dimension columns since they *are* technically indices but
+    # the cube interface class declares them as not indexed just to add them
+    # later on, assuming it is not blacklisted
+    return cube.copy(
+        index_columns=required_indices - set(cube.dimension_columns),
+        suppress_index_on=suppress_index_on,
+    )
 
 
 def build_cube_from_bag_internal(
@@ -90,6 +125,7 @@ def build_cube_from_bag_internal(
     existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, store)
     check_datasets_prebuild(ktk_cube_dataset_ids, cube, existing_datasets)
     partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
+    cube = ensure_valid_cube_indices(existing_datasets, cube)
 
     data = (
         data.map(multiplex_user_input, cube=cube)
@@ -167,6 +203,7 @@ def extend_cube_from_bag_internal(
     partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
 
     existing_datasets = discover_datasets(cube, store)
+    cube = ensure_valid_cube_indices(existing_datasets, cube)
     if overwrite:
         existing_datasets_cut = {
             ktk_cube_dataset_id: ds
@@ -337,6 +374,7 @@ def append_to_cube_from_bag_internal(
     metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
 
     existing_datasets = discover_datasets(cube, store)
+    cube = ensure_valid_cube_indices(existing_datasets, cube)
     # existing_payload is set to empty because we're not checking against any existing payload. ktk will account for the
     # compat check within 1 dataset
     existing_payload = set()
