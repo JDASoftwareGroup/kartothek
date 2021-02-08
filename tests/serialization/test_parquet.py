@@ -50,14 +50,6 @@ def chunk_size(request, mocker):
     return chunk_size
 
 
-@pytest.mark.parametrize("compression", ["gzip", "RAAAR"])
-def test_parquet_serializer_raises_on_invalid_compression(compression):
-    with pytest.raises(
-        ValueError, match=f"Unknown compression '{compression}'",
-    ):
-        ParquetSerializer(compression=compression)
-
-
 @pytest.mark.parametrize("chunk_size", ["1", 1.0])
 def test_parquet_serializer_raises_on_invalid_chunk_size_type(chunk_size):
     with pytest.raises(

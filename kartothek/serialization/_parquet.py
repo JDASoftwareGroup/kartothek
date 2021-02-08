@@ -72,8 +72,6 @@ class ParquetSerializer(DataFrameSerializer):
     def __init__(
         self, compression: str = "SNAPPY", chunk_size: Optional[int] = None
     ) -> None:
-        if compression not in ["NONE", "SNAPPY", "GZIP", "BROTLI", "LZ4", "ZSTD"]:
-            raise ValueError(f"Unknown compression '{compression}'")
         self.compression = compression
 
         if chunk_size is not None:
