@@ -2,7 +2,6 @@
 [run]
 branch = True
 source = kartothek
-# omit = bad_file.py
 
 [report]
 # Regexes for lines to exclude from consideration

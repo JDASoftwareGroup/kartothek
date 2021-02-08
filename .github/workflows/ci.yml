@@ -114,7 +114,7 @@ jobs:
 
       # Tests
       - name: Pytest
-        run: pytest --cov kartothek --cov-report xml
+        run: pytest --cov-report xml
 
       - name: Running benchmarks
         run: |
