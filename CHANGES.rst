@@ -9,6 +9,12 @@ Version 3.18.1 (2021-02-XY)
   dask.dataframe might not update all secondary indices, resulting in a corrupt
   state after the update
 
+Version <unreleased>
+===========================
+
+* Expose compression type and row group chunk size in Cube interface via optional
+  parameter of type :class:`~kartothek.serialization.ParquetSerializer`.
+
 Version 3.18.0 (2021-01-25)
 ===========================
 
@@ -17,7 +23,7 @@ Version 3.18.0 (2021-01-25)
 * Fix a bug in :func:`~kartothek.io_components.read.dispatch_metapartitions_from_factory` where
   `dispatch_by=[]` would be treated like `dispatch_by=None`, not merging all dataset partitions into
   a single partitions.
-  
+
 Version 3.17.3 (2020-12-04)
 ===========================
 

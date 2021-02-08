@@ -46,6 +46,7 @@ def build_cube_from_bag(
     metadata=None,
     overwrite=False,
     partition_on=None,
+    df_serializer=None,
 ):
     """
     Create dask computation graph that builds a cube with the data supplied from a dask bag.
@@ -68,6 +69,8 @@ def build_cube_from_bag(
     partition_on: Optional[Dict[str, Iterable[str]]]
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -83,6 +86,7 @@ def build_cube_from_bag(
         metadata=metadata,
         overwrite=overwrite,
         partition_on=partition_on,
+        df_serializer=df_serializer,
     )
 
 
@@ -94,6 +98,7 @@ def extend_cube_from_bag(
     metadata=None,
     overwrite=False,
     partition_on=None,
+    df_serializer=None,
 ):
     """
     Create dask computation graph that extends a cube by the data supplied from a dask bag.
@@ -117,6 +122,8 @@ def extend_cube_from_bag(
     partition_on: Optional[Dict[str, Iterable[str]]]
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -132,6 +139,7 @@ def extend_cube_from_bag(
         metadata=metadata,
         overwrite=overwrite,
         partition_on=partition_on,
+        df_serializer=df_serializer,
     )
 
 
@@ -365,7 +373,9 @@ def cleanup_cube_bag(cube, store, blocksize=100):
     )
 
 
-def append_to_cube_from_bag(data, cube, store, ktk_cube_dataset_ids, metadata=None):
+def append_to_cube_from_bag(
+    data, cube, store, ktk_cube_dataset_ids, metadata=None, df_serializer=None
+):
     """
     Append data to existing cube.
 
@@ -394,6 +404,8 @@ def append_to_cube_from_bag(data, cube, store, ktk_cube_dataset_ids, metadata=No
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -407,11 +419,18 @@ def append_to_cube_from_bag(data, cube, store, ktk_cube_dataset_ids, metadata=No
         store=store,
         ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata=metadata,
+        df_serializer=df_serializer,
     )
 
 
 def update_cube_from_bag(
-    data, cube, store, remove_conditions, ktk_cube_dataset_ids, metadata=None
+    data,
+    cube,
+    store,
+    remove_conditions,
+    ktk_cube_dataset_ids,
+    metadata=None,
+    df_serializer=None,
 ):
     """
     Remove partitions and append data to existing cube.
@@ -436,6 +455,8 @@ def update_cube_from_bag(
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -454,6 +475,7 @@ def update_cube_from_bag(
         remove_conditions=remove_conditions,
         ktk_cube_dataset_ids=ktk_cube_dataset_ids,
         metadata=metadata,
+        df_serializer=df_serializer,
     )
 
 

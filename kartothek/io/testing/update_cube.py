@@ -9,6 +9,8 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.io.eager import read_table
 from kartothek.io.eager_cube import build_cube, extend_cube, query_cube
+from kartothek.io.testing.utils import assert_num_row_groups
+from kartothek.serialization._parquet import ParquetSerializer
 
 
 def _write_cube(function_store) -> Tuple[pd.DataFrame, Cube]:
@@ -116,6 +118,123 @@ def test_update_partitions(driver, function_store, remove_partitions, new_partit
         df.reset_index(drop=True, inplace=True)
 
     pd.testing.assert_frame_equal(df_read, df_source_expected_after)
+
+
+@pytest.mark.parametrize("chunk_size_build", [None, 1, 2, 3])
+@pytest.mark.parametrize("chunk_size_update", [None, 1, 2, 3])
+def test_rowgroups_are_applied_when_df_serializer_is_passed_to_update_cube(
+    driver, function_store, chunk_size_build, chunk_size_update
+):
+    """
+    Test that the dataset is split into row groups depending on the chunk size
+
+    Partitions build with ``chunk_size=None`` should keep a single row group if they
+    are not touched by the update. Partitions that are newly created or replaced with
+    ``chunk_size>0`` should be split into row groups accordingly.
+    """
+    # Build cube
+    df = pd.DataFrame(data={"x": [0, 1], "p": [0, 1]}, columns=["x", "p"],)
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    build_cube(
+        data=df,
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(chunk_size=chunk_size_build),
+    )
+
+    # Update cube - replace p=1 and append p=2 partitions
+    df_update = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]}, columns=["x", "p"],
+    )
+    result = driver(
+        data={"seed": df_update},
+        remove_conditions=(C("p") == 1),  # Remove p=1 partition
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(chunk_size=chunk_size_update),
+    )
+    dataset = result["seed"].load_all_indices(function_store())
+
+    part_num_rows = {0: 1, 1: 2, 2: 2}
+    part_chunk_size = {
+        0: chunk_size_build,
+        1: chunk_size_update,
+        2: chunk_size_update,
+    }
+
+    assert len(dataset.partitions) == 3
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
+
+
+def test_single_rowgroup_when_df_serializer_is_not_passed_to_update_cube(
+    driver, function_store
+):
+    """
+    Test that the dataset has a single row group as default path
+    """
+    # Build cube
+    df = pd.DataFrame(data={"x": [0, 1], "p": [0, 1]}, columns=["x", "p"],)
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    build_cube(
+        data=df, cube=cube, store=function_store,
+    )
+
+    # Update cube - replace p=1 and append p=2 partitions
+    df_update = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]}, columns=["x", "p"],
+    )
+    result = driver(
+        data={"seed": df_update},
+        remove_conditions=(C("p") == 1),  # Remove p=1 partition
+        cube=cube,
+        store=function_store,
+    )
+    dataset = result["seed"].load_all_indices(function_store())
+
+    part_num_rows = {0: 1, 1: 2, 2: 2}
+    part_chunk_size = {0: None, 1: None, 2: None}
+
+    assert len(dataset.partitions) == 3
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
+
+
+# Per ARROW-9424, writing files with LZ4 compression has been disabled
+@pytest.mark.parametrize(
+    "compression_build", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
+)
+@pytest.mark.parametrize(
+    "compression_update", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
+)
+def test_compression_is_compatible_on_update_cube(
+    driver, function_store, compression_build, compression_update
+):
+    """
+    Test that partitons written with different compression algorithms are compatible
+    """
+    # Build cube
+    df = pd.DataFrame(data={"x": [0, 1], "p": [0, 1]}, columns=["x", "p"],)
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    build_cube(
+        data=df,
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(compression=compression_build),
+    )
+
+    # Update cube - replace p=1 and append p=2 partitions
+    df_update = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]}, columns=["x", "p"],
+    )
+    result = driver(
+        data={"seed": df_update},
+        remove_conditions=(C("p") == 1),  # Remove p=1 partition
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(compression=compression_update),
+    )
+    dataset = result["seed"].load_all_indices(function_store())
+
+    assert len(dataset.partitions) == 3
 
 
 @pytest.mark.parametrize(

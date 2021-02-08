@@ -28,6 +28,7 @@ from kartothek.io_components.cube.write import (
     prepare_ktk_metadata,
     prepare_ktk_partition_on,
 )
+from kartothek.serialization._parquet import ParquetSerializer
 
 __all__ = (
     "append_to_cube_from_dataframe",
@@ -48,6 +49,7 @@ def build_cube_from_dataframe(
     shuffle: bool = False,
     num_buckets: int = 1,
     bucket_by: Optional[Iterable[str]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
 ) -> Delayed:
     """
     Create dask computation graph that builds a cube with the data supplied from a dask dataframe.
@@ -68,6 +70,8 @@ def build_cube_from_dataframe(
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer:
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -120,6 +124,7 @@ def build_cube_from_dataframe(
             shuffle=shuffle,
             num_buckets=num_buckets,
             bucket_by=bucket_by,
+            df_serializer=df_serializer,
         )
         dct[table_name] = graph
 
@@ -129,7 +134,13 @@ def build_cube_from_dataframe(
 
 
 def extend_cube_from_dataframe(
-    data, cube, store, metadata=None, overwrite=False, partition_on=None
+    data,
+    cube,
+    store,
+    metadata=None,
+    overwrite=False,
+    partition_on=None,
+    df_serializer=None,
 ):
     """
     Create dask computation graph that extends a cube by the data supplied from a dask dataframe.
@@ -170,6 +181,7 @@ def extend_cube_from_dataframe(
             metadata=metadata,
             overwrite=overwrite,
             partition_on=partition_on,
+            df_serializer=df_serializer,
         )
         .map_partitions(_unpack_list, default=None)
         .to_delayed()[0]
@@ -237,7 +249,7 @@ def query_cube_dataframe(
     )
 
 
-def append_to_cube_from_dataframe(data, cube, store, metadata=None):
+def append_to_cube_from_dataframe(data, cube, store, metadata=None, df_serializer=None):
     """
     Append data to existing cube.
 
@@ -264,6 +276,8 @@ def append_to_cube_from_dataframe(data, cube, store, metadata=None):
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -280,6 +294,7 @@ def append_to_cube_from_dataframe(data, cube, store, metadata=None):
             store=store,
             ktk_cube_dataset_ids=ktk_cube_dataset_ids,
             metadata=metadata,
+            df_serializer=df_serializer,
         )
         .map_partitions(_unpack_list, default=None)
         .to_delayed()[0]

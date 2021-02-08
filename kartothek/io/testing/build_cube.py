@@ -17,8 +17,10 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.io.eager import store_dataframes_as_dataset
+from kartothek.io.testing.utils import assert_num_row_groups
 from kartothek.io_components.cube.write import MultiTableCommitAborted
 from kartothek.io_components.metapartition import SINGLE_TABLE
+from kartothek.serialization._parquet import ParquetSerializer
 
 __all__ = (
     "test_accept_projected_duplicates",
@@ -64,8 +66,10 @@ __all__ = (
     "test_partition_on_index_column",
     "test_projected_data",
     "test_regression_pseudo_duplicates",
+    "test_rowgroups_are_applied_when_df_serializer_is_passed_to_build_cube",
     "test_simple_seed_only",
     "test_simple_two_datasets",
+    "test_single_rowgroup_when_df_serializer_is_not_passed_to_build_cube",
     "test_split",
 )
 
@@ -267,6 +271,52 @@ def test_parquet(driver, function_store):
         )
 
         pdt.assert_frame_equal(df_actual.reset_index(drop=True), df_expected)
+
+
+@pytest.mark.filterwarnings("ignore::UnicodeWarning")
+@pytest.mark.parametrize("chunk_size", [None, 1, 2, 3])
+def test_rowgroups_are_applied_when_df_serializer_is_passed_to_build_cube(
+    driver, function_store, chunk_size
+):
+    """
+    Test that the dataset is split into row groups depending on the chunk size
+    """
+    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],)
+
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    result = driver(
+        data=df,
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(chunk_size=chunk_size),
+    )
+    dataset = result["seed"].load_all_indices(function_store())
+
+    part_num_rows = {0: 1, 1: 3}
+    part_chunk_size = {0: chunk_size, 1: chunk_size}
+
+    assert len(dataset.partitions) == 2
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
+
+
+@pytest.mark.filterwarnings("ignore::UnicodeWarning")
+def test_single_rowgroup_when_df_serializer_is_not_passed_to_build_cube(
+    driver, function_store
+):
+    """
+    Test that the dataset has a single row group as default path
+    """
+    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],)
+
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    result = driver(data=df, cube=cube, store=function_store,)
+    dataset = result["seed"].load_all_indices(function_store())
+
+    part_num_rows = {0: 1, 1: 3}
+    part_chunk_size = {0: None, 1: None}
+
+    assert len(dataset.partitions) == 2
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
 
 
 def test_fail_sparse(driver, driver_name, function_store):

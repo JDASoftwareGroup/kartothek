@@ -58,7 +58,15 @@ __all__ = (
 )
 
 
-def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=None):
+def build_cube(
+    data,
+    cube,
+    store,
+    metadata=None,
+    overwrite=False,
+    partition_on=None,
+    df_serializer=None,
+):
     """
     Store given dataframes as Ktk_cube cube.
 
@@ -168,6 +176,8 @@ def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=N
     partition_on: Optional[Dict[str, Iterable[str]]]
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -197,7 +207,7 @@ def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=N
             partition_on=list(partition_on[ktk_cube_dataset_id]),
             metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
             metadata_version=KTK_CUBE_METADATA_VERSION,
-            df_serializer=KTK_CUBE_DF_SERIALIZER,
+            df_serializer=df_serializer or KTK_CUBE_DF_SERIALIZER,
             overwrite=overwrite,
         )
 
@@ -206,7 +216,15 @@ def build_cube(data, cube, store, metadata=None, overwrite=False, partition_on=N
     )
 
 
-def extend_cube(data, cube, store, metadata=None, overwrite=False, partition_on=None):
+def extend_cube(
+    data,
+    cube,
+    store,
+    metadata=None,
+    overwrite=False,
+    partition_on=None,
+    df_serializer=None,
+):
     """
     Store given dataframes into an existing Kartothek cube.
 
@@ -228,6 +246,8 @@ def extend_cube(data, cube, store, metadata=None, overwrite=False, partition_on=
     partition_on: Optional[Dict[str, Iterable[str]]]
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -270,7 +290,7 @@ def extend_cube(data, cube, store, metadata=None, overwrite=False, partition_on=
             partition_on=list(partition_on[ktk_cube_dataset_id]),
             metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
             metadata_version=KTK_CUBE_METADATA_VERSION,
-            df_serializer=KTK_CUBE_DF_SERIALIZER,
+            df_serializer=df_serializer or KTK_CUBE_DF_SERIALIZER,
             overwrite=overwrite,
         )
 
@@ -551,7 +571,7 @@ def remove_partitions(
     return existing_datasets
 
 
-def append_to_cube(data, cube, store, metadata=None):
+def append_to_cube(data, cube, store, metadata=None, df_serializer=None):
     """
     Append data to existing cube.
 
@@ -579,6 +599,8 @@ def append_to_cube(data, cube, store, metadata=None):
     metadata: Optional[Dict[str, Dict[str, Any]]]
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -618,7 +640,7 @@ def append_to_cube(data, cube, store, metadata=None):
             dataset_uuid=cube.ktk_dataset_uuid(ktk_cube_dataset_id),
             df_list=part,
             partition_on=list(partition_on[ktk_cube_dataset_id]),
-            df_serializer=KTK_CUBE_DF_SERIALIZER,
+            df_serializer=df_serializer or KTK_CUBE_DF_SERIALIZER,
             metadata=prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata),
         )
 

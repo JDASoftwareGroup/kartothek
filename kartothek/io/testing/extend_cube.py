@@ -5,11 +5,14 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
 from kartothek.io.eager_cube import build_cube
+from kartothek.io.testing.utils import assert_num_row_groups
 from kartothek.io_components.cube.write import MultiTableCommitAborted
 from kartothek.io_components.metapartition import SINGLE_TABLE
+from kartothek.serialization._parquet import ParquetSerializer
 
 __all__ = (
     "existing_cube",
+    "test_compression_is_compatible_on_extend_cube",
     "test_fail_all_empty",
     "test_fail_no_store_factory",
     "test_fail_not_a_df",
@@ -25,7 +28,9 @@ __all__ = (
     "test_fails_seed_dataset",
     "test_overwrite_move_columns",
     "test_overwrite_single",
+    "test_rowgroups_are_applied_when_df_serializer_is_passed_to_extend_cube",
     "test_simple",
+    "test_single_rowgroup_when_df_serializer_is_not_passed_to_extend_cube",
 )
 
 
@@ -77,6 +82,87 @@ def test_simple(driver, function_store, existing_cube):
     assert isinstance(ds.indices["i3"], ExplicitSecondaryIndex)
 
     assert set(ds.table_meta) == {SINGLE_TABLE}
+
+
+@pytest.mark.parametrize("chunk_size", [None, 1, 2, 3])
+def test_rowgroups_are_applied_when_df_serializer_is_passed_to_extend_cube(
+    driver, function_store, existing_cube, chunk_size
+):
+    """
+    Test that the dataset is split into row groups depending on the chunk size
+    """
+    df_extra = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],
+    )
+    result = driver(
+        data={"extra": df_extra},
+        cube=existing_cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(chunk_size=chunk_size),
+    )
+    dataset = result["extra"].load_all_indices(function_store())
+
+    part_num_rows = {0: 1, 1: 3}
+    part_chunk_size = {0: chunk_size, 1: chunk_size}
+
+    assert len(dataset.partitions) == 2
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
+
+
+def test_single_rowgroup_when_df_serializer_is_not_passed_to_extend_cube(
+    driver, function_store, existing_cube
+):
+    """
+    Test that the dataset has a single row group as default path
+    """
+    df_extra = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],
+    )
+    result = driver(data={"extra": df_extra}, cube=existing_cube, store=function_store,)
+    dataset = result["extra"].load_all_indices(function_store())
+
+    part_num_rows = {0: 1, 1: 3}
+    part_chunk_size = {0: None, 1: None}
+
+    assert len(dataset.partitions) == 2
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
+
+
+# Per ARROW-9424, writing files with LZ4 compression has been disabled
+@pytest.mark.parametrize(
+    "compression_build", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
+)
+@pytest.mark.parametrize(
+    "compression_extend", ["NONE", "SNAPPY", "GZIP", "BROTLI", "ZSTD"]
+)
+def test_compression_is_compatible_on_extend_cube(
+    driver, function_store, compression_build, compression_extend
+):
+    """
+    Test that partitons written with different compression algorithms are compatible
+    """
+    # Build cube
+    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    build_cube(
+        data=df,
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(compression=compression_build),
+    )
+
+    df_extra = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],
+    )
+    result = driver(
+        data={"extra": df_extra},
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(compression=compression_extend),
+    )
+    dataset = result["extra"].load_all_indices(function_store())
+
+    assert len(dataset.partitions) == 2
 
 
 def test_fails_incompatible_dtypes(driver, function_store, existing_cube):

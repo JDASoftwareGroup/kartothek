@@ -84,7 +84,14 @@ def ensure_valid_cube_indices(
 
 
 def build_cube_from_bag_internal(
-    data, cube, store, ktk_cube_dataset_ids, metadata, overwrite, partition_on
+    data,
+    cube,
+    store,
+    ktk_cube_dataset_ids,
+    metadata,
+    overwrite,
+    partition_on,
+    df_serializer=None,
 ):
     """
     Create dask computation graph that builds a cube with the data supplied from a dask bag.
@@ -107,6 +114,8 @@ def build_cube_from_bag_internal(
     partition_on: Optional[Dict[str, Iterable[str]]]
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -152,6 +161,7 @@ def build_cube_from_bag_internal(
         overwrite=overwrite,
         update=False,
         existing_datasets=existing_datasets,
+        df_serializer=df_serializer,
     )
 
     data = data.map(
@@ -165,7 +175,14 @@ def build_cube_from_bag_internal(
 
 
 def extend_cube_from_bag_internal(
-    data, cube, store, ktk_cube_dataset_ids, metadata, overwrite, partition_on
+    data,
+    cube,
+    store,
+    ktk_cube_dataset_ids,
+    metadata,
+    overwrite,
+    partition_on,
+    df_serializer=None,
 ):
     """
     Create dask computation graph that extends a cube by the data supplied from a dask bag.
@@ -189,6 +206,8 @@ def extend_cube_from_bag_internal(
     partition_on: Optional[Dict[str, Iterable[str]]]
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer: Optional[ParquetSerializer]
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -239,6 +258,7 @@ def extend_cube_from_bag_internal(
         overwrite=overwrite,
         update=False,
         existing_datasets=existing_datasets,
+        df_serializer=df_serializer,
     )
 
     data = data.map(
@@ -334,7 +354,13 @@ def query_cube_bag_internal(
 
 
 def append_to_cube_from_bag_internal(
-    data, cube, store, ktk_cube_dataset_ids, metadata, remove_conditions=None
+    data,
+    cube,
+    store,
+    ktk_cube_dataset_ids,
+    metadata,
+    remove_conditions=None,
+    df_serializer=None,
 ):
     """
     Append data to existing cube.
@@ -362,6 +388,8 @@ def append_to_cube_from_bag_internal(
         metadata keys is not possible.
     remove_conditions
         Conditions that select which partitions to remove.
+    df_serializer
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -421,6 +449,7 @@ def append_to_cube_from_bag_internal(
         update=True,
         existing_datasets=existing_datasets,
         delete_scopes=delete_scopes,
+        df_serializer=df_serializer,
     )
 
     data = data.map(
@@ -491,6 +520,7 @@ def _store_bag_as_dataset_parallel(
     overwrite=False,
     update=False,
     delete_scopes=None,
+    df_serializer=None,
 ):
     """
     Vendored, simplified and modified version of kartotheks ``store_bag_as_dataset`` which cannot be easily used to
@@ -510,7 +540,7 @@ def _store_bag_as_dataset_parallel(
     # prepare_data_for_ktk already runs `MetaPartition.partition_on` and `MetaPartition.build_indices`, so this is not
     # required here anymore
 
-    mps = mps.map(_multiplex_store, store=store, cube=cube)
+    mps = mps.map(_multiplex_store, store=store, cube=cube, df_serializer=df_serializer)
 
     aggregate = partial(
         _multiplex_store_dataset_from_partitions_flat,
@@ -580,14 +610,14 @@ def _multiplex_store_dataset_from_partitions_flat(
     return [result]
 
 
-def _multiplex_store(data, cube, store):
+def _multiplex_store(data, cube, store, df_serializer=None):
     result = {}
     for k in sorted(data.keys()):
         v = data.pop(k)
         result[k] = MetaPartition.store_dataframes(
             v,
             dataset_uuid=cube.ktk_dataset_uuid(k),
-            df_serializer=KTK_CUBE_DF_SERIALIZER,
+            df_serializer=df_serializer or KTK_CUBE_DF_SERIALIZER,
             store=store,
         )
         del v
