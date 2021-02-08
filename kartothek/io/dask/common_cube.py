@@ -3,7 +3,7 @@ Common code for dask backends.
 """
 from collections import defaultdict
 from functools import partial
-from typing import Any, Callable, Dict, Iterable, Optional, Set
+from typing import Any, Dict, Iterable, Optional, Set
 
 import dask.bag as db
 from simplekv import KeyValueStore
@@ -17,6 +17,7 @@ from kartothek.core.cube.constants import (
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadataBase
+from kartothek.core.typing import StoreFactory
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.common import check_blocksize, check_store_factory
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
@@ -88,7 +89,7 @@ def ensure_valid_cube_indices(
 def build_cube_from_bag_internal(
     data: db.Bag,
     cube: Cube,
-    store: Callable[[], KeyValueStore],
+    store: StoreFactory,
     ktk_cube_dataset_ids: Optional[Iterable[str]],
     metadata: Optional[Dict[str, Dict[str, Any]]],
     overwrite: bool,
@@ -365,7 +366,7 @@ def query_cube_bag_internal(
 def append_to_cube_from_bag_internal(
     data: db.Bag,
     cube: Cube,
-    store: Callable[[], KeyValueStore],
+    store: StoreFactory,
     ktk_cube_dataset_ids: Optional[Iterable[str]],
     metadata: Optional[Dict[str, Dict[str, Any]]],
     remove_conditions=None,
@@ -625,7 +626,7 @@ def _multiplex_store_dataset_from_partitions_flat(
 def _multiplex_store(
     data: db.Bag,
     cube: Cube,
-    store: Callable[[], KeyValueStore],
+    store: StoreFactory,
     df_serializer: Optional[ParquetSerializer] = None,
 ) -> db.Bag:
     result = {}

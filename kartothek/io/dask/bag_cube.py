@@ -1,13 +1,14 @@
 """
 Dask.Bag IO.
 """
-from typing import Any, Callable, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional
 
 import dask.bag as db
 from simplekv import KeyValueStore
 
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
+from kartothek.core.typing import StoreFactory
 from kartothek.io.dask.common_cube import (
     append_to_cube_from_bag_internal,
     build_cube_from_bag_internal,
@@ -46,7 +47,7 @@ __all__ = (
 def build_cube_from_bag(
     data: db.Bag,
     cube: Cube,
-    store: Callable[[], KeyValueStore],
+    store: StoreFactory,
     ktk_cube_dataset_ids: Optional[Iterable[str]] = None,
     metadata: Optional[Dict[str, Dict[str, Any]]] = None,
     overwrite: bool = False,
@@ -216,7 +217,7 @@ def delete_cube_bag(cube, store, blocksize=100, datasets=None):
     ----------
     cube: Cube
         Cube specification.
-    store: Callable[[], simplekv.KeyValueStore]
+    store: StoreFactory
         KV store.
     blocksize: int
         Number of keys to delete at once.
@@ -259,9 +260,9 @@ def copy_cube_bag(
     ----------
     cube: Cube
         Cube specification.
-    src_store: Callable[[], simplekv.KeyValueStore]
+    src_store: StoreFactory
         Source KV store.
-    tgt_store: Callable[[], simplekv.KeyValueStore]
+    tgt_store: StoreFactory
         Target KV store.
     overwrite: bool
         If possibly existing datasets in the target store should be overwritten.
@@ -355,7 +356,7 @@ def cleanup_cube_bag(cube, store, blocksize=100):
     ----------
     cube: Cube
         Cube specification.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store: Union[simplekv.KeyValueStore, StoreFactory]
         KV store.
     blocksize: int
         Number of keys to delete at once.
@@ -381,7 +382,7 @@ def cleanup_cube_bag(cube, store, blocksize=100):
 def append_to_cube_from_bag(
     data: db.Bag,
     cube: Cube,
-    store: Callable[[], KeyValueStore],
+    store: StoreFactory,
     ktk_cube_dataset_ids: Optional[Iterable[str]],
     metadata: Optional[Dict[str, Dict[str, Any]]] = None,
     df_serializer: Optional[ParquetSerializer] = None,
@@ -436,7 +437,7 @@ def append_to_cube_from_bag(
 def update_cube_from_bag(
     data: db.Bag,
     cube: Cube,
-    store: Callable[[], KeyValueStore],
+    store: StoreFactory,
     remove_conditions,
     ktk_cube_dataset_ids: Optional[Iterable[str]],
     metadata: Optional[Dict[str, Dict[str, Any]]] = None,

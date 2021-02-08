@@ -1,7 +1,7 @@
 """
 Dask.DataFrame IO.
 """
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, Optional, Union
 
 import dask
 import dask.bag as db
@@ -12,6 +12,7 @@ from simplekv import KeyValueStore
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
 from kartothek.core.docs import default_docs
+from kartothek.core.typing import StoreFactory
 from kartothek.io.dask.common_cube import (
     append_to_cube_from_bag_internal,
     extend_cube_from_bag_internal,
@@ -42,7 +43,7 @@ __all__ = (
 def build_cube_from_dataframe(
     data: Union[dd.DataFrame, Dict[str, dd.DataFrame]],
     cube: Cube,
-    store: Callable[[], KeyValueStore],
+    store: StoreFactory,
     metadata: Optional[Dict[str, Dict[str, Any]]] = None,
     overwrite: bool = False,
     partition_on: Optional[Dict[str, Iterable[str]]] = None,
