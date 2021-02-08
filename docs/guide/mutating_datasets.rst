@@ -331,7 +331,7 @@ When garbage collection is called, the files are removed.
 Mutating indexed datasets
 -------------------------
 
-If the to-be-updated dataset was created with an index, every update on this dataset will update the index automatically and ensure the dataset will never end up in an inconsistent state. This even holds true in case the update function does not specify any or only partially the indices. Consider the following example
+The mutating operation will update all indices that currently exist for the dataset. This even holds true in case the update function does not specify any or only partially the indices. Consider the following example
 
 .. ipython:: python
 
@@ -368,4 +368,3 @@ This is even true if only a subset is given
     dm = dm.load_all_indices(store_url)
     dm.indices["i1"].observed_values()
     dm.indices["i2"].observed_values()
-
