@@ -220,6 +220,10 @@ def update_dataset_from_dataframes__iter(
     Returns
     -------
     The dataset metadata object (:class:`~kartothek.core.dataset.DatasetMetadata`).
+
+    See Also
+    --------
+    :ref:`mutating_datasets`
     """
     if load_dynamic_metadata is not True:
         warnings.warn(

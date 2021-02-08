@@ -464,6 +464,10 @@ def update_dataset_from_delayed(
 
     Parameters
     ----------
+
+    See Also
+    --------
+    :ref:`mutating_datasets`
     """
     partition_on = normalize_arg("partition_on", partition_on)
     store = normalize_arg("store", store)

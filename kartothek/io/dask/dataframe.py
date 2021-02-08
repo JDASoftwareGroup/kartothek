@@ -398,6 +398,10 @@ def update_dataset_from_ddf(
 ):
     """
     Update a dataset from a dask.dataframe.
+
+    See Also
+    --------
+    :ref:`mutating_datasets`
     """
     partition_on = normalize_arg("partition_on", partition_on)
     secondary_indices = normalize_arg("secondary_indices", secondary_indices)
