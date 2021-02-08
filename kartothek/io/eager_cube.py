@@ -2,8 +2,10 @@
 Eager IO aka "everything is done locally and immediately".
 """
 from collections import defaultdict
+from typing import Any, Dict, Iterable, List, Optional, Union
 
 import pandas as pd
+from simplekv import KeyValueStore
 
 from kartothek.api.consistency import get_cube_payload
 from kartothek.api.discover import discover_datasets, discover_datasets_unchecked
@@ -12,6 +14,8 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_STORAGE_FORMAT,
     KTK_CUBE_METADATA_VERSION,
 )
+from kartothek.core.cube.cube import Cube
+from kartothek.core.dataset import DatasetMetadata
 from kartothek.io.eager import (
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
@@ -41,6 +45,7 @@ from kartothek.io_components.cube.write import (
     prepare_ktk_partition_on,
 )
 from kartothek.io_components.update import update_dataset_from_partitions
+from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import get_dataset_keys, metadata_factory_from_dataset
 from kartothek.utils.pandas import concat_dataframes
 from kartothek.utils.store import copy_keys
@@ -59,14 +64,18 @@ __all__ = (
 
 
 def build_cube(
-    data,
-    cube,
-    store,
-    metadata=None,
-    overwrite=False,
-    partition_on=None,
-    df_serializer=None,
-):
+    data: Union[
+        pd.DataFrame,
+        Dict[str, pd.DataFrame],
+        List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
+    ],
+    cube: Cube,
+    store: KeyValueStore,
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    overwrite: bool = False,
+    partition_on: Optional[Dict[str, Iterable[str]]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> Dict[str, DatasetMetadata]:
     """
     Store given dataframes as Ktk_cube cube.
 
@@ -162,21 +171,21 @@ def build_cube(
 
     Parameters
     ----------
-    data: Union[pd.DataFrame, Dict[str, pd.DataFrame], List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]]
+    data:
         Data that should be written to the cube. If only a single dataframe is given, it is assumed to be the seed
         dataset.
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: simplekv.KeyValueStore
+    store:
         Store to which the data should be written to.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset.
-    overwrite: bool
+    overwrite:
         If possibly existing datasets should be overwritten.
-    partition_on: Optional[Dict[str, Iterable[str]]]
+    partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
-    df_serializer: Optional[ParquetSerializer]
+    df_serializer:
         Optional Dataframe to Parquet serializer
 
     Returns
@@ -186,7 +195,9 @@ def build_cube(
     """
     data = _normalize_user_input(data, cube)
     ktk_cube_dataset_ids = set(data.keys())
-    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
+    prep_partition_on = prepare_ktk_partition_on(
+        cube, ktk_cube_dataset_ids, partition_on
+    )
     metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
 
     existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, store)
@@ -194,7 +205,7 @@ def build_cube(
 
     # do all data preparation before writing anything
     data = _prepare_data_for_ktk_all(
-        data=data, cube=cube, existing_payload=set(), partition_on=partition_on
+        data=data, cube=cube, existing_payload=set(), partition_on=prep_partition_on
     )
 
     datasets = {}
@@ -204,7 +215,7 @@ def build_cube(
             dataset_uuid=cube.ktk_dataset_uuid(ktk_cube_dataset_id),
             dfs=part,
             metadata=prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata),
-            partition_on=list(partition_on[ktk_cube_dataset_id]),
+            partition_on=list(prep_partition_on[ktk_cube_dataset_id]),
             metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
             metadata_version=KTK_CUBE_METADATA_VERSION,
             df_serializer=df_serializer or KTK_CUBE_DF_SERIALIZER,
@@ -217,14 +228,18 @@ def build_cube(
 
 
 def extend_cube(
-    data,
-    cube,
-    store,
-    metadata=None,
-    overwrite=False,
-    partition_on=None,
-    df_serializer=None,
-):
+    data: Union[
+        pd.DataFrame,
+        Dict[str, pd.DataFrame],
+        List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
+    ],
+    cube: Cube,
+    store: KeyValueStore,
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    overwrite: bool = False,
+    partition_on: Optional[Dict[str, Iterable[str]]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> Dict[str, DatasetMetadata]:
     """
     Store given dataframes into an existing Kartothek cube.
 
@@ -232,21 +247,21 @@ def extend_cube(
 
     Parameters
     ----------
-    data: Union[pd.DataFrame, Dict[str, pd.DataFrame], List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]]
+    data:
         Data that should be written to the cube. If only a single dataframe is given, it is assumed to be the seed
         dataset.
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: simplekv.KeyValueStore
+    store:
         Store to which the data should be written to.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset.
-    overwrite: bool
+    overwrite:
         If possibly existing datasets should be overwritten.
-    partition_on: Optional[Dict[str, Iterable[str]]]
+    partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
-    df_serializer: Optional[ParquetSerializer]
+    df_serializer:
         Optional Dataframe to Parquet serializer
 
     Returns
@@ -256,7 +271,9 @@ def extend_cube(
     """
     data = _normalize_user_input(data, cube)
     ktk_cube_dataset_ids = set(data.keys())
-    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
+    prep_partition_on = prepare_ktk_partition_on(
+        cube, ktk_cube_dataset_ids, partition_on
+    )
     metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
 
     check_datasets_preextend(data, cube)
@@ -277,7 +294,7 @@ def extend_cube(
         data=data,
         cube=cube,
         existing_payload=existing_payload,
-        partition_on=partition_on,
+        partition_on=prep_partition_on,
     )
 
     datasets = {}
@@ -287,7 +304,7 @@ def extend_cube(
             dataset_uuid=cube.ktk_dataset_uuid(ktk_cube_dataset_id),
             dfs=part,
             metadata=prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata),
-            partition_on=list(partition_on[ktk_cube_dataset_id]),
+            partition_on=list(prep_partition_on[ktk_cube_dataset_id]),
             metadata_storage_format=KTK_CUBE_METADATA_STORAGE_FORMAT,
             metadata_version=KTK_CUBE_METADATA_VERSION,
             df_serializer=df_serializer or KTK_CUBE_DF_SERIALIZER,
@@ -571,7 +588,17 @@ def remove_partitions(
     return existing_datasets
 
 
-def append_to_cube(data, cube, store, metadata=None, df_serializer=None):
+def append_to_cube(
+    data: Union[
+        pd.DataFrame,
+        Dict[str, pd.DataFrame],
+        List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
+    ],
+    cube: Cube,
+    store: KeyValueStore,
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> Dict[str, DatasetMetadata]:
     """
     Append data to existing cube.
 
@@ -589,17 +616,17 @@ def append_to_cube(data, cube, store, metadata=None, df_serializer=None):
 
     Parameters
     ----------
-    data: Union[pd.DataFrame, Dict[str, pd.DataFrame], List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]]
+    data:
         Data that should be written to the cube. If only a single dataframe is given, it is assumed to be the seed
         dataset.
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: simplekv.KeyValueStore
+    store:
         Store to which the data should be written to.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
-    df_serializer: Optional[ParquetSerializer]
+    df_serializer:
         Optional Dataframe to Parquet serializer
 
     Returns
