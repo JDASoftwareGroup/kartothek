@@ -17,3 +17,6 @@ flake8-mutable
 
 # CLI
 ipython
+
+# ASV // Benchmark
+asv

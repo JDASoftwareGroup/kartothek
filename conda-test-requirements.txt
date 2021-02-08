@@ -16,3 +16,6 @@ pandoc
 
 # CLI
 ipython
+
+# ASV // Benchmark
+asv

@@ -116,6 +116,15 @@ jobs:
       - name: Pytest
         run: pytest --cov kartothek --cov-report xml
 
+      - name: Running benchmarks
+        run: |
+          asv --config ./asv_bench/asv.conf.json machine --machine github --os unknown --arch unknown --cpu unknown --ram unknown
+          asv --config ./asv_bench/asv.conf.json dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+          if grep "failed" benchmarks.log > /dev/null ; then
+              exit 1
+          fi
+        if: env.IS_MASTER_BUILD == 'true'
+
       # Builds
       - name: Build Wheel
         run: python setup.py sdist bdist_wheel
