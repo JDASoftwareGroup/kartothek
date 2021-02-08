@@ -8,12 +8,20 @@ import pandas as pd
 _logger = logging.getLogger()
 _PAYLOAD_COL = "__ktk_shuffle_payload"
 
+try:
+    # Technically distributed is an optional dependency
+    from distributed.protocol import serialize_bytes
+    from distributed.protocol import deserialize_bytes
+
+    HAS_DISTRIBUTED = True
+except ImportError:
+    HAS_DISTRIBUTED = False
+    serialize_bytes = None
+    deserialize_bytes = None
+
 
 def pack_payload_pandas(partition: pd.DataFrame, group_key: List[str]) -> pd.DataFrame:
-    try:
-        # Technically distributed is an optional dependency
-        from distributed.protocol import serialize_bytes
-    except ImportError:
+    if not HAS_DISTRIBUTED:
         _logger.warning(
             "Shuffle payload columns cannot be compressed since distributed is not installed."
         )
@@ -83,6 +91,11 @@ def pack_payload(df: dd.DataFrame, group_key: Union[List[str], str]) -> dd.DataF
         or isinstance(df._meta.index, pd.DatetimeIndex)
     ):
         return df
+    if not HAS_DISTRIBUTED:
+        _logger.warning(
+            "Shuffle payload columns cannot be compressed since distributed is not installed."
+        )
+        return df
 
     if not isinstance(group_key, list):
         group_key = [group_key]
@@ -104,10 +117,7 @@ def unpack_payload_pandas(
     unpack_meta:
         A dataframe indicating the schema of the unpacked data. This will be returned in case the input is empty
     """
-    try:
-        # Technically distributed is an optional dependency
-        from distributed.protocol import deserialize_bytes
-    except ImportError:
+    if not HAS_DISTRIBUTED:
         _logger.warning(
             "Shuffle payload columns cannot be compressed since distributed is not installed."
         )
@@ -132,6 +142,12 @@ def unpack_payload(df: dd.DataFrame, unpack_meta: pd.DataFrame) -> dd.DataFrame:
         # s.t. apply(lambda x:x) returns different values
         or isinstance(df._meta.index, pd.DatetimeIndex)
     ):
+        return df
+
+    if not HAS_DISTRIBUTED:
+        _logger.warning(
+            "Shuffle payload columns cannot be compressed since distributed is not installed."
+        )
         return df
 
     return df.map_partitions(

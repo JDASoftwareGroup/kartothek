@@ -95,7 +95,9 @@ jobs:
           python -c "import kartothek.serialization"
           python -c "import kartothek.utils"
       - name: Conda install test requirements
-        run: conda install --file=conda-test-requirements.txt
+        run: conda install
+              --file=conda-test-requirements.txt
+              --freeze-installed
       - name: Pip Instal NumFOCUS nightly
         # NumFOCUS nightly wheels, contains numpy and pandas
         run: pip install --pre --upgrade --timeout=60 --extra-index-url https://pypi.anaconda.org/scipy-wheels-nightly/simple pandas numpy
@@ -103,49 +105,14 @@ jobs:
       - name: Conda Export
         run: conda list --export
 
-      # Linters
-      - name: Flake8
-        run: flake8
-      - name: Mypy
-        run: mypy .
-        if: ${{ !matrix.numfocus_nightly }}
-      - name: Black
-        run: black --check .
-      - name: blacken-docs
-        run: blacken-docs
-      - name: Isort
-        run: isort --recursive --check-only
-
       # Tests
       - name: Pytest
         run: pytest --cov kartothek --cov-report xml
-      - name: ASV
-        run: |
-          asv --config ./asv_bench/asv.conf.json machine --machine github --os unknown --arch unknown --cpu unknown --ram unknown
-          asv --config ./asv_bench/asv.conf.json run --show-stderr --environment existing --quick
-        if: env.IS_MASTER_BUILD == 'true'
-      - name: Sphinx
-        run: |
-          python setup.py build_sphinx
-          touch ./docs/_build/html/.nojekyll
-        if: env.IS_MASTER_BUILD == 'true'
 
       # Builds
       - name: Build Wheel
         run: python setup.py sdist bdist_wheel
 
-      # Artifacts
-      - name: Preserve Dist
-        uses: actions/upload-artifact@v2.1.3
-        with:
-          name: dist
-          path: dist
-      - name: Preserve Docs
-        uses: actions/upload-artifact@v2.1.3
-        with:
-          name: docs
-          path: docs/_build/html
-        if: env.IS_MASTER_BUILD == 'true'
       - name: Codecov
         uses: codecov/codecov-action@v1.2.1
         with:

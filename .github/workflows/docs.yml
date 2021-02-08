@@ -1,0 +1,25 @@
+name: Documentation CI
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v2
+
+      - name: Setup Conda Environment
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+          environment-file: docs/environment-docs.yml
+          activate-environment: kartothek-docs
+
+      - name: List conda
+        shell: bash -l {0}
+        run: conda list
+
+      - name: Build docs
+        shell: bash -l {0}
+        run: |
+            python setup.py docs
