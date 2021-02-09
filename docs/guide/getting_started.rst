@@ -131,9 +131,9 @@ This class holds information about the structure and schema of the dataset.
 
 .. ipython:: python
 
-    dm.tables
+    dm.table_name
     sorted(dm.partitions.keys())
-    dm.table_meta["table"].remove_metadata()  # Arrow schema
+    dm.schema.remove_metadata()
 
 
 For this guide, two attributes that are noteworthy are ``tables`` and ``partitions``:
@@ -195,36 +195,8 @@ For example,
 
 
 When we do not explicitly define the name of the table and partition, Kartothek uses the
-default table name ``table`` and generates a UUID for the partition name.
+default table name ``table`` and generates a UUID for the partition name. This is the recommended way.
 
-.. admonition:: A more complex example: multiple named tables
-
-    Sometimes it may be useful to write multiple dataframes with different schemas into
-    a single dataset. This can be achieved by creating a dataset with multiple tables.
-
-    In this example, we create a dataset with two tables: ``core-table`` and ``aux-table``.
-    The schemas of the tables are identical across partitions (each dictionary in the
-    ``dfs`` list argument represents a partition).
-
-    .. ipython:: python
-
-        dfs = [
-            {
-                "data": {
-                    "core-table": pd.DataFrame({"id": [22, 23], "f": [1.1, 2.4]}),
-                    "aux-table": pd.DataFrame({"id": [22], "col1": ["x"]}),
-                }
-            },
-            {
-                "data": {
-                    "core-table": pd.DataFrame({"id": [29, 31], "f": [3.2, 0.6]}),
-                    "aux-table": pd.DataFrame({"id": [31], "col1": ["y"]}),
-                }
-            },
-        ]
-
-        dm = store_dataframes_as_dataset(store_url, dataset_uuid="two-tables", dfs=dfs)
-        dm.tables
 
 
 Reading data from storage
@@ -238,24 +210,24 @@ table of the dataset as a pandas DataFrame.
 
     from kartothek.api.dataset import read_table
 
-    read_table("a_unique_dataset_identifier", store_url, table="table")
+    read_table("a_unique_dataset_identifier", store_url)
 
 
 We can also read a dataframe iteratively, using
-:func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`. This will return a generator
-of dictionaries (one dictionary for each `partition`), where the keys of each dictionary
-represent the `tables` of the dataset. For example,
+:func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`. This will return a generator of :class:`pandas.DataFrame` where every element represents one file. For example,
 
 .. ipython:: python
 
     from kartothek.api.dataset import read_dataset_as_dataframes__iterator
 
-    for partition_index, df_dict in enumerate(
-        read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_url)
+    for partition_index, df in enumerate(
+        read_dataset_as_dataframes__iterator(
+            dataset_uuid="a_unique_dataset_identifier", store=store_url
+        )
     ):
+        # Note: There is no guarantee on the ordering
         print(f"Partition #{partition_index}")
-        for table_name, table_df in df_dict.items():
-            print(f"Table: {table_name}. Data: \n{table_df}")
+        print(f"Data: \n{df}")
 
 Respectively, the ``dask.delayed`` back-end provides the function
 :func:`~kartothek.io.dask.delayed.read_dataset_as_delayed`, which has a very similar
@@ -275,8 +247,7 @@ function but returns a collection of ``dask.delayed`` objects.
 
     .. ipython:: python
 
-        # Read only values table `core-table` where `f` < 2.5
-        read_table("two-tables", store_url, table="core-table", predicates=[[("f", "<", 2.5)]])
+        read_table("a_unique_dataset_identifier", store_url, predicates=[[("A", "<", 2.5)]])
 
 .. _storefact: https://github.com/blue-yonder/storefact
 .. _dask: https://docs.dask.org/en/latest/

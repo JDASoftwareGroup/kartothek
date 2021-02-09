@@ -17,12 +17,11 @@ from kartothek.io_components.write import (
 from .config import AsvBenchmarkConfig
 
 
-def generate_mp(dataset_metadata=None):
+def generate_mp():
     return MetaPartition(
         label=uuid.uuid4().hex,
-        table_meta={"table": make_meta(get_dataframe_alltypes(), origin="alltypes")},
-        files={"table": "fakefile"},
-        dataset_metadata=dataset_metadata,
+        schema=make_meta(get_dataframe_alltypes(), origin="alltypes"),
+        file="fakefile",
     )
 
 
@@ -50,8 +49,7 @@ class TimeStoreDataset(AsvBenchmarkConfig):
 
     def setup(self, num_partitions, max_depth, num_leafs):
         self.store = get_store_from_url("hfs://{}".format(tempfile.mkdtemp()))
-        dataset_metadata = generate_metadata(max_depth, num_leafs)
-        self.partitions = [generate_mp(dataset_metadata) for _ in range(num_partitions)]
+        self.partitions = [generate_mp() for _ in range(num_partitions)]
         self.dataset_uuid = "dataset_uuid"
         self.user_dataset_metadata = {}
 
@@ -70,8 +68,10 @@ class TimePersistMetadata(AsvBenchmarkConfig):
 
     def setup(self, num_partitions):
         self.store = get_store_from_url("hfs://{}".format(tempfile.mkdtemp()))
-        self.partitions = [generate_mp() for _ in range(num_partitions)]
+        self.schemas = [generate_mp().schema for _ in range(num_partitions)]
         self.dataset_uuid = "dataset_uuid"
 
     def time_persist_common_metadata(self, num_partitions):
-        persist_common_metadata(self.partitions, None, self.store, self.dataset_uuid)
+        persist_common_metadata(
+            self.schemas, None, self.store, self.dataset_uuid, "name"
+        )

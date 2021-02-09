@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 from urlquote import quote as urlquote_quote
 from urlquote import unquote as urlquote_unquote
@@ -22,7 +22,9 @@ def unquote(value):
     return urlquote_unquote(value).decode("utf-8")
 
 
-def decode_key(key):
+def decode_key(
+    key: str,
+) -> Union[Tuple[str, str, List, str], Tuple[str, None, List, None]]:
     """
     Split a given key into its kartothek components `{dataset_uuid}/{table}/{key_indices}/{filename}`
 

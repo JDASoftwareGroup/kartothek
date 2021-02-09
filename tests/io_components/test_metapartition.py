@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
-import string
 from collections import OrderedDict
 from datetime import date, datetime
 
@@ -24,29 +20,21 @@ from kartothek.io_components.metapartition import (
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 
 
-def test_store_single_dataframe_as_partition(
-    store, metadata_storage_format, metadata_version
-):
+def test_store_single_dataframe_as_partition(store, metadata_version):
     df = pd.DataFrame(
         {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
     )
-    mp = MetaPartition(
-        label="test_label", data={"core": df}, metadata_version=metadata_version
-    )
+    mp = MetaPartition(label="test_label", data=df, metadata_version=metadata_version)
 
     meta_partition = mp.store_dataframes(
-        store=store,
-        df_serializer=ParquetSerializer(),
-        dataset_uuid="dataset_uuid",
-        store_metadata=True,
-        metadata_storage_format=metadata_storage_format,
+        store=store, df_serializer=ParquetSerializer(), dataset_uuid="dataset_uuid",
     )
 
-    assert len(meta_partition.data) == 0
+    assert meta_partition.data is None
 
-    expected_key = "dataset_uuid/core/test_label.parquet"
+    expected_key = "dataset_uuid/table/test_label.parquet"
 
-    assert meta_partition.files == {"core": expected_key}
+    assert meta_partition.file == expected_key
     assert meta_partition.label == "test_label"
 
     files_in_store = list(store.keys())
@@ -59,123 +47,37 @@ def test_store_single_dataframe_as_partition(
     assert len(files_in_store) == expected_num_files - 1
 
 
-def test_store_single_dataframe_as_partition_no_metadata(store, metadata_version):
-    df = pd.DataFrame(
-        {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
-    )
-    mp = MetaPartition(
-        label="test_label", data={"core": df}, metadata_version=metadata_version
-    )
-    partition = mp.store_dataframes(
-        store=store,
-        df_serializer=ParquetSerializer(),
-        dataset_uuid="dataset_uuid",
-        store_metadata=False,
-    )
-
-    assert len(partition.data) == 0
-
-    expected_file = "dataset_uuid/core/test_label.parquet"
-
-    assert partition.files == {"core": expected_file}
-    assert partition.label == "test_label"
-
-    # One meta one actual file
-    files_in_store = list(store.keys())
-    assert len(files_in_store) == 1
-
-    stored_df = DataFrameSerializer.restore_dataframe(store=store, key=expected_file)
-    pdt.assert_frame_equal(df, stored_df)
-
-
-def test_load_dataframe_logical_conjunction(
-    store, meta_partitions_files_only, metadata_version, metadata_storage_format
-):
+def test_load_dataframe_logical_conjunction(store, metadata_version):
     df = pd.DataFrame(
         {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
     )
     mp = MetaPartition(
         label="cluster_1",
-        data={"core": df},
+        data=df,
         metadata_version=metadata_version,
         logical_conjunction=[("P", ">", 4)],
     )
     meta_partition = mp.store_dataframes(
-        store=store,
-        df_serializer=None,
-        dataset_uuid="dataset_uuid",
-        store_metadata=True,
-        metadata_storage_format=metadata_storage_format,
+        store=store, df_serializer=None, dataset_uuid="dataset_uuid",
     )
     predicates = None
     loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
-    data = {
-        "core": pd.DataFrame(
-            {"P": [5, 6, 7, 8, 9], "L": [5, 6, 7, 8, 9], "TARGET": [15, 16, 17, 18, 19]}
-        ).set_index(np.arange(5, 10))
-    }
-    pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
+    data = pd.DataFrame(
+        {"P": [5, 6, 7, 8, 9], "L": [5, 6, 7, 8, 9], "TARGET": [15, 16, 17, 18, 19]}
+    ).set_index(np.arange(5, 10))
+    pdt.assert_frame_equal(loaded_mp.data, data)
 
     predicates = [[("L", ">", 6), ("TARGET", "<", 18)]]
     loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
-    data = {
-        "core": pd.DataFrame({"P": [7], "L": [7], "TARGET": [17]}).set_index(
-            np.array([7])
-        )
-    }
-    pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
+    data = pd.DataFrame({"P": [7], "L": [7], "TARGET": [17]}).set_index(np.array([7]))
+    pdt.assert_frame_equal(loaded_mp.data, data)
 
     predicates = [[("L", ">", 2), ("TARGET", "<", 17)], [("TARGET", "==", 19)]]
     loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
-    data = {
-        "core": pd.DataFrame(
-            {"P": [5, 6, 9], "L": [5, 6, 9], "TARGET": [15, 16, 19]}
-        ).set_index(np.array([5, 6, 9]))
-    }
-    pdt.assert_frame_equal(loaded_mp.data["core"], data["core"])
-
-
-def test_store_multiple_dataframes_as_partition(
-    store, metadata_storage_format, metadata_version
-):
-    df = pd.DataFrame(
-        {"P": np.arange(0, 10), "L": np.arange(0, 10), "TARGET": np.arange(10, 20)}
-    )
-    df_2 = pd.DataFrame({"P": np.arange(0, 10), "info": string.ascii_lowercase[:10]})
-    mp = MetaPartition(
-        label="cluster_1",
-        data={"core": df, "helper": df_2},
-        metadata_version=metadata_version,
-    )
-    meta_partition = mp.store_dataframes(
-        store=store,
-        df_serializer=None,
-        dataset_uuid="dataset_uuid",
-        store_metadata=True,
-        metadata_storage_format=metadata_storage_format,
-    )
-
-    expected_file = "dataset_uuid/core/cluster_1.parquet"
-    expected_file_helper = "dataset_uuid/helper/cluster_1.parquet"
-
-    assert meta_partition.files == {
-        "core": expected_file,
-        "helper": expected_file_helper,
-    }
-    assert meta_partition.label == "cluster_1"
-
-    files_in_store = list(store.keys())
-    assert len(files_in_store) == 2
-
-    stored_df = DataFrameSerializer.restore_dataframe(store=store, key=expected_file)
-    pdt.assert_frame_equal(df, stored_df)
-    files_in_store.remove(expected_file)
-
-    stored_df = DataFrameSerializer.restore_dataframe(
-        store=store, key=expected_file_helper
-    )
-    pdt.assert_frame_equal(df_2, stored_df)
-    files_in_store.remove(expected_file_helper)
+    data = pd.DataFrame(
+        {"P": [5, 6, 9], "L": [5, 6, 9], "TARGET": [15, 16, 19]}
+    ).set_index(np.array([5, 6, 9]))
+    pdt.assert_frame_equal(loaded_mp.data, data)
 
 
 @pytest.mark.parametrize("predicate_pushdown_to_io", [True, False])
@@ -192,31 +94,29 @@ def test_load_dataframes(
             ]
         )
     )
-    expected_df_2 = pd.DataFrame(OrderedDict([("P", [1]), ("info", ["a"])]))
     mp = meta_partitions_files_only[0]
-    assert len(mp.files) > 0
-    assert len(mp.data) == 0
+    assert mp.file
+    assert mp.data is not None
     mp = meta_partitions_files_only[0].load_dataframes(
         store=store_session, predicate_pushdown_to_io=predicate_pushdown_to_io
     )
-    assert len(mp.data) == 2
+    assert mp.data is not None
     data = mp.data
 
-    pdt.assert_frame_equal(data[SINGLE_TABLE], expected_df, check_dtype=False)
-    pdt.assert_frame_equal(data["helper"], expected_df_2, check_dtype=False)
+    pdt.assert_frame_equal(data, expected_df, check_dtype=False)
 
     empty_mp = MetaPartition("empty_mp", metadata_version=mp.metadata_version)
     empty_mp.load_dataframes(
         store_session, predicate_pushdown_to_io=predicate_pushdown_to_io
     )
-    assert empty_mp.data == {}
+    assert empty_mp.data is None
 
 
 def test_remove_dataframes(meta_partitions_files_only, store_session):
     mp = meta_partitions_files_only[0].load_dataframes(store=store_session)
-    assert len(mp.data) == 2
+    assert mp.data is not None
     mp = mp.remove_dataframes()
-    assert mp.data == {}
+    assert mp.data is None
 
 
 def test_load_dataframes_selective(meta_partitions_files_only, store_session):
@@ -231,15 +131,13 @@ def test_load_dataframes_selective(meta_partitions_files_only, store_session):
         )
     )
     mp = meta_partitions_files_only[0]
-    assert len(mp.files) > 0
-    assert len(mp.data) == 0
-    mp = meta_partitions_files_only[0].load_dataframes(
-        store=store_session, tables=[SINGLE_TABLE]
-    )
-    assert len(mp.data) == 1
+    assert mp.file is not None
+    assert mp.data is not None
+    mp = meta_partitions_files_only[0].load_dataframes(store=store_session)
+
     data = mp.data
 
-    pdt.assert_frame_equal(data[SINGLE_TABLE], expected_df, check_dtype=False)
+    pdt.assert_frame_equal(data, expected_df, check_dtype=False)
 
 
 def test_load_dataframes_columns_projection(
@@ -247,60 +145,36 @@ def test_load_dataframes_columns_projection(
 ):
     expected_df = pd.DataFrame(OrderedDict([("P", [1]), ("L", [1]), ("HORIZON", [1])]))
     mp = meta_partitions_evaluation_files_only[0]
-    assert len(mp.files) > 0
-    assert len(mp.data) == 0
+    assert mp.file is not None
+    assert mp.data is not None
     mp = meta_partitions_evaluation_files_only[0].load_dataframes(
-        store=store_session, tables=["PRED"], columns={"PRED": ["P", "L", "HORIZON"]}
+        store=store_session, columns=["P", "L", "HORIZON"]
     )
-    assert len(mp.data) == 1
+
     data = mp.data
 
-    pdt.assert_frame_equal(data["PRED"], expected_df, check_dtype=False)
+    pdt.assert_frame_equal(data, expected_df, check_dtype=False)
 
 
 def test_load_dataframes_columns_raises_missing(
     meta_partitions_evaluation_files_only, store_session
 ):
     mp = meta_partitions_evaluation_files_only[0]
-    assert len(mp.files) > 0
-    assert len(mp.data) == 0
+    assert mp.file is not None
+    assert mp.data is not None
     with pytest.raises(ValueError) as e:
         meta_partitions_evaluation_files_only[0].load_dataframes(
-            store=store_session,
-            tables=["PRED"],
-            columns={"PRED": ["P", "L", "HORIZON", "foo", "bar"]},
+            store=store_session, columns=["P", "L", "HORIZON", "foo", "bar"]
         )
     assert str(e.value) == "Columns cannot be found in stored dataframe: bar, foo"
 
 
-def test_load_dataframes_columns_table_missing(
-    meta_partitions_evaluation_files_only, store_session
-):
-    # test behavior of load_dataframes for columns argument given
-    # specifying table that doesn't exist
-    mp = meta_partitions_evaluation_files_only[0]
-    assert len(mp.files) > 0
-    assert len(mp.data) == 0
-    with pytest.raises(
-        ValueError,
-        match=r"You are trying to read columns from invalid table\(s\). .*PRED_typo.*",
-    ):
-        mp.load_dataframes(
-            store=store_session,
-            columns={"PRED_typo": ["P", "L", "HORIZON", "foo", "bar"]},
-        )
-
-    # ensure typo in tables argument doesn't raise, as specified in docstring
-    dfs = mp.load_dataframes(store=store_session, tables=["PRED_typo"])
-    assert len(dfs) > 0
-
-
 def test_from_dict():
     df = pd.DataFrame({"a": [1]})
-    dct = {"data": {"core": df}, "label": "test_label"}
+    dct = {"data": df, "label": "test_label"}
     meta_partition = MetaPartition.from_dict(dct)
 
-    pdt.assert_frame_equal(meta_partition.data["core"], df)
+    pdt.assert_frame_equal(meta_partition.data, df)
     assert meta_partition.metadata_version == DEFAULT_METADATA_VERSION
 
 
@@ -311,69 +185,53 @@ def test_eq():
     df_diff_col = pd.DataFrame({"b": [1]})
     df_diff_type = pd.DataFrame({"b": [1.0]})
 
-    meta_partition = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df}}
-    )
+    meta_partition = MetaPartition.from_dict({"label": "test_label", "data": df})
     assert meta_partition == meta_partition
 
     meta_partition_same = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df_same}}
+        {"label": "test_label", "data": df_same}
     )
     assert meta_partition == meta_partition_same
 
     meta_partition_diff_label = MetaPartition.from_dict(
-        {"label": "another_label", "data": {"core": df}}
+        {"label": "another_label", "data": df}
     )
     assert meta_partition != meta_partition_diff_label
     assert meta_partition_diff_label != meta_partition
 
     meta_partition_diff_files = MetaPartition.from_dict(
-        {"label": "another_label", "data": {"core": df}, "files": {"core": "something"}}
+        {"label": "another_label", "data": df, "file": "something"}
     )
     assert meta_partition != meta_partition_diff_files
     assert meta_partition_diff_files != meta_partition
 
     meta_partition_diff_col = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df_diff_col}}
+        {"label": "test_label", "data": df_diff_col}
     )
     assert meta_partition != meta_partition_diff_col
     assert meta_partition_diff_col != meta_partition
 
     meta_partition_diff_type = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df_diff_type}}
+        {"label": "test_label", "data": df_diff_type}
     )
     assert meta_partition != meta_partition_diff_type
     assert meta_partition_diff_type != meta_partition
 
     meta_partition_diff_metadata = MetaPartition.from_dict(
-        {
-            "label": "test_label",
-            "data": {"core": df_diff_type},
-            "dataset_metadata": {"some": "metadata"},
-        }
+        {"label": "test_label", "data": df_diff_type}
     )
     assert meta_partition != meta_partition_diff_metadata
     assert meta_partition_diff_metadata != meta_partition
 
     meta_partition_different_df = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df_other}}
+        {"label": "test_label", "data": df_other}
     )
     assert not meta_partition == meta_partition_different_df
 
-    meta_partition_different_label = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"not_core": df_same}}
-    )
-    assert not meta_partition == meta_partition_different_label
-
     meta_partition_empty_data = MetaPartition.from_dict(
-        {"label": "test_label", "data": {}}
+        {"label": "test_label", "data": None}
     )
     assert meta_partition_empty_data == meta_partition_empty_data
-
-    meta_partition_more_data = MetaPartition.from_dict(
-        {"label": "test_label", "data": {"core": df, "not_core": df}}
-    )
-    assert not (meta_partition == meta_partition_more_data)
 
     assert not meta_partition == "abc"
 
@@ -381,21 +239,20 @@ def test_eq():
 def test_add_nested_to_plain():
     mp = MetaPartition(
         label="label_1",
-        files={"core": "file"},
-        data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+        file="file",
+        data=pd.DataFrame({"test": [1, 2, 3]}),
         indices={"test": [1, 2, 3]},
-        dataset_metadata={"dataset": "metadata"},
     )
 
     to_nest = [
         MetaPartition(
             label="label_2",
-            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            data=pd.DataFrame({"test": [4, 5, 6]}),
             indices={"test": [4, 5, 6]},
         ),
         MetaPartition(
             label="label_22",
-            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            data=pd.DataFrame({"test": [4, 5, 6]}),
             indices={"test": [4, 5, 6]},
         ),
     ]
@@ -411,17 +268,15 @@ def test_add_nested_to_nested():
     mps1 = [
         MetaPartition(
             label="label_1",
-            files={"core": "file"},
-            data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+            file="file",
+            data=pd.DataFrame({"test": [1, 2, 3]}),
             indices={"test": [1, 2, 3]},
-            dataset_metadata={"dataset": "metadata"},
         ),
         MetaPartition(
             label="label_33",
-            files={"core": "file"},
-            data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+            file="file",
+            data=pd.DataFrame({"test": [1, 2, 3]}),
             indices={"test": [1, 2, 3]},
-            dataset_metadata={"dataset": "metadata"},
         ),
     ]
 
@@ -430,12 +285,12 @@ def test_add_nested_to_nested():
     mps2 = [
         MetaPartition(
             label="label_2",
-            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            data=pd.DataFrame({"test": [4, 5, 6]}),
             indices={"test": [4, 5, 6]},
         ),
         MetaPartition(
             label="label_22",
-            data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+            data=pd.DataFrame({"test": [4, 5, 6]}),
             indices={"test": [4, 5, 6]},
         ),
     ]
@@ -453,15 +308,14 @@ def test_add_nested_to_nested():
 def test_eq_nested():
     mp_1 = MetaPartition(
         label="label_1",
-        files={"core": "file"},
-        data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+        file="file",
+        data=pd.DataFrame({"test": [1, 2, 3]}),
         indices={"test": [1, 2, 3]},
-        dataset_metadata={"dataset": "metadata"},
     )
 
     mp_2 = MetaPartition(
         label="label_2",
-        data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+        data=pd.DataFrame({"test": [4, 5, 6]}),
         indices={"test": [4, 5, 6]},
     )
 
@@ -471,9 +325,7 @@ def test_eq_nested():
     assert mp != mp_2
     assert mp_2 != mp
 
-    mp_other = MetaPartition(
-        label="label_3", data={"core": pd.DataFrame({"test": [4, 5, 6]})}
-    )
+    mp_other = MetaPartition(label="label_3", data=pd.DataFrame({"test": [4, 5, 6]}))
     mp_other = mp_1.add_metapartition(mp_other)
     assert mp != mp_other
     assert mp_other != mp
@@ -482,66 +334,17 @@ def test_eq_nested():
 def test_nested_incompatible_meta():
     mp = MetaPartition(
         label="label_1",
-        data={"core": pd.DataFrame({"test": np.array([1, 2, 3], dtype=np.int8)})},
+        data=pd.DataFrame({"test": np.array([1, 2, 3], dtype=np.int8)}),
         metadata_version=4,
     )
 
     mp_2 = MetaPartition(
         label="label_2",
-        data={"core": pd.DataFrame({"test": np.array([4, 5, 6], dtype=np.float64)})},
+        data=pd.DataFrame({"test": np.array([4, 5, 6], dtype=np.float64)}),
         metadata_version=4,
     )
     with pytest.raises(ValueError):
         mp.add_metapartition(mp_2)
-
-
-def test_concatenate_no_change():
-    input_dct = {
-        "first_0": pd.DataFrame({"A": [1], "B": [1]}),
-        "second": pd.DataFrame({"A": [3], "B": [3], "C": [3]}),
-    }
-    dct = {"label": "test_label", "data": input_dct}
-    meta_partition = MetaPartition.from_dict(dct)
-    result = meta_partition.concat_dataframes()
-    assert result == meta_partition
-
-
-def test_concatenate_identical_col_df():
-    input_dct = {
-        "first_0": pd.DataFrame({"A": [1], "B": [1]}),
-        "first_1": pd.DataFrame({"A": [2], "B": [2]}),
-        "second": pd.DataFrame({"A": [3], "B": [3], "C": [3]}),
-    }
-    dct = {"label": "test_label", "data": input_dct}
-    meta_partition = MetaPartition.from_dict(dct)
-    result = meta_partition.concat_dataframes().data
-
-    assert len(result) == 2
-    assert "first" in result
-    first_expected = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
-    pdt.assert_frame_equal(result["first"], first_expected)
-    assert "second" in result
-    first_expected = pd.DataFrame({"A": [3], "B": [3], "C": [3]})
-    pdt.assert_frame_equal(result["second"], first_expected)
-
-
-def test_concatenate_identical_col_df_naming():
-    input_dct = {
-        "some": pd.DataFrame({"A": [1], "B": [1]}),
-        "name": pd.DataFrame({"A": [2], "B": [2]}),
-        "second": pd.DataFrame({"A": [3], "B": [3], "C": [3]}),
-    }
-    dct = {"label": "test_label", "data": input_dct}
-    meta_partition = MetaPartition.from_dict(dct)
-    result = meta_partition.concat_dataframes().data
-
-    assert len(result) == 2
-    assert "some_name" in result
-    first_expected = pd.DataFrame({"A": [1, 2], "B": [1, 2]})
-    pdt.assert_frame_equal(result["some_name"], first_expected)
-    assert "second" in result
-    first_expected = pd.DataFrame({"A": [3], "B": [3], "C": [3]})
-    pdt.assert_frame_equal(result["second"], first_expected)
 
 
 def test_unique_label():
@@ -560,88 +363,6 @@ def test_unique_label():
     label_list = ["something", "else"]
 
     assert _unique_label(label_list) == "something_else"
-
-
-def test_merge_dataframes():
-    df_core = pd.DataFrame(
-        {
-            "P": [1, 1, 1, 1, 3],
-            "L": [1, 2, 1, 2, 3],
-            "C": [1, 1, 2, 2, 3],
-            "TARGET": [1, 2, 3, 4, -1],
-            "info": ["a", "b", "c", "d", "e"],
-        }
-    )
-    df_preds = pd.DataFrame(
-        {
-            "P": [1, 1, 1, 1],
-            "L": [1, 2, 1, 2],
-            "C": [1, 1, 2, 2],
-            "PRED": [11, 22, 33, 44],
-            "HORIZONS": [1, 1, 2, 2],
-        }
-    )
-    mp = MetaPartition(label="part_label", data={"core": df_core, "pred": df_preds})
-
-    mp = mp.merge_dataframes(left="core", right="pred", output_label="merged")
-
-    assert len(mp.data) == 1
-    df_result = mp.data["merged"]
-
-    df_expected = pd.DataFrame(
-        {
-            "P": [1, 1, 1, 1],
-            "L": [1, 2, 1, 2],
-            "C": [1, 1, 2, 2],
-            "PRED": [11, 22, 33, 44],
-            "TARGET": [1, 2, 3, 4],
-            "info": ["a", "b", "c", "d"],
-            "HORIZONS": [1, 1, 2, 2],
-        }
-    )
-    pdt.assert_frame_equal(df_expected, df_result, check_like=True)
-
-
-def test_merge_dataframes_kwargs():
-    df_core = pd.DataFrame(
-        {
-            "P": [1, 1, 1, 1, 3],
-            "L": [1, 2, 1, 2, 3],
-            "C": [1, 1, 2, 2, 3],
-            "TARGET": [1, 2, 3, 4, -1],
-            "info": ["a", "b", "c", "d", "e"],
-        }
-    )
-    df_preds = pd.DataFrame(
-        {
-            "P": [1, 1, 1, 1],
-            "L": [1, 2, 1, 2],
-            "C": [1, 1, 2, 2],
-            "PRED": [11, 22, 33, 44],
-            "HORIZONS": [1, 1, 2, 2],
-        }
-    )
-    mp = MetaPartition(label="part_label", data={"core": df_core, "pred": df_preds})
-
-    mp = mp.merge_dataframes(
-        left="core", right="pred", output_label="merged", merge_kwargs={"how": "left"}
-    )
-
-    assert len(mp.data) == 1
-    df_result = mp.data["merged"]
-
-    df_expected = pd.DataFrame(
-        {
-            "P": [1, 1, 1, 1, 3],
-            "L": [1, 2, 1, 2, 3],
-            "C": [1, 1, 2, 2, 3],
-            "TARGET": [1, 2, 3, 4, -1],
-            "info": ["a", "b", "c", "d", "e"],
-            "PRED": [11, 22, 33, 44, np.NaN],
-            "HORIZONS": [1, 1, 2, 2, np.NaN],
-        }
-    )
-    pdt.assert_frame_equal(df_expected, df_result, check_like=True)
 
 
 def test_merge_indices():
@@ -678,7 +399,7 @@ def test_build_indices():
             [("location", ["Loc1", "Loc2"]), ("product", ["Product1", "Product2"])]
         )
     )
-    mp = MetaPartition(label="partition_label", data={"core": df})
+    mp = MetaPartition(label="partition_label", data=df)
     result_mp = mp.build_indices(columns)
     result = result_mp.indices
     loc_index = ExplicitSecondaryIndex(
@@ -695,13 +416,13 @@ def test_build_indices():
 def test_add_metapartition():
     mp = MetaPartition(
         label="label_1",
-        data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+        data=pd.DataFrame({"test": [1, 2, 3]}),
         indices={"test": [1, 2, 3]},
     )
 
     mp_2 = MetaPartition(
         label="label_2",
-        data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+        data=pd.DataFrame({"test": [4, 5, 6]}),
         indices={"test": [4, 5, 6]},
     )
 
@@ -715,7 +436,7 @@ def test_add_metapartition():
     with pytest.raises(AttributeError):
         new_mp.data
     with pytest.raises(AttributeError):
-        new_mp.files
+        new_mp.file
     with pytest.raises(AttributeError):
         new_mp.indices
     with pytest.raises(AttributeError):
@@ -736,7 +457,7 @@ def test_add_metapartition():
     # This tests whether it is possible to add to an already nested MetaPartition
     mp_3 = MetaPartition(
         label="label_3",
-        data={"core": pd.DataFrame({"test": [7, 8, 9]})},
+        data=pd.DataFrame({"test": [7, 8, 9]}),
         indices={"test": [7, 8, 9]},
     )
     new_mp = new_mp.add_metapartition(mp_3)
@@ -759,25 +480,27 @@ def test_add_metapartition():
 
 
 def test_to_dict(metadata_version):
+    df = pd.DataFrame({"A": [1]})
+    schema = make_meta(df, origin="test")
     mp = MetaPartition(
         label="label_1",
-        files={"core": "file"},
-        data={"core": "placeholder"},
+        file="file",
+        data=df,
         indices={"test": [1, 2, 3]},
         metadata_version=metadata_version,
-        table_meta={"core": {"test": "int8"}},
+        schema=schema,
     )
     mp_dct = mp.to_dict()
     assert mp_dct == {
         "label": "label_1",
-        "data": {"core": "placeholder"},
-        "files": {"core": "file"},
+        "data": df,
+        "file": "file",
         "indices": {"test": [1, 2, 3]},
-        "dataset_metadata": {},
         "metadata_version": metadata_version,
-        "table_meta": {"core": {"test": "int8"}},
+        "schema": schema,
         "partition_keys": [],
         "logical_conjunction": None,
+        "table_name": SINGLE_TABLE,
     }
 
 
@@ -791,11 +514,7 @@ def test_add_metapartition_duplicate_labels():
 
 def test_copy():
     mp = MetaPartition(
-        label="label_1",
-        files={"core": "file"},
-        data={"core": pd.DataFrame()},
-        indices={"test": [1, 2, 3]},
-        dataset_metadata={"dataset": "metadata"},
+        label="label_1", file="file", data=pd.DataFrame(), indices={"test": [1, 2, 3]}
     )
     new_mp = mp.copy()
 
@@ -804,38 +523,32 @@ def test_copy():
     # ... but not the same object
     assert id(new_mp) != id(mp)
 
-    new_mp = mp.copy(files={"new": "file"})
+    new_mp = mp.copy(file="new_file")
     assert id(new_mp) != id(mp)
-    assert new_mp.files == {"new": "file"}
+    assert new_mp.file == "new_file"
 
     new_mp = mp.copy(indices={"new": [1, 2, 3]})
     assert id(new_mp) != id(mp)
     assert new_mp.indices == {"new": [1, 2, 3]}
 
-    new_mp = mp.copy(dataset_metadata={"new": "metadata"})
-    assert id(new_mp) != id(mp)
-    assert new_mp.dataset_metadata == {"new": "metadata"}
-
 
 def test_nested_copy():
     mp = MetaPartition(
         label="label_1",
-        files={"core": "file"},
-        data={"core": pd.DataFrame({"test": [1, 2, 3]})},
+        file="file",
+        data=pd.DataFrame({"test": [1, 2, 3]}),
         indices={"test": {1: "label_1", 2: "label_2", 3: "label_3"}},
-        dataset_metadata={"dataset": "metadata"},
     )
 
     mp_2 = MetaPartition(
         label="label_2",
-        data={"core": pd.DataFrame({"test": [4, 5, 6]})},
+        data=pd.DataFrame({"test": [4, 5, 6]}),
         indices={"test": [4, 5, 6]},
     )
     mp = mp.add_metapartition(mp_2)
     assert len(mp.metapartitions) == 2
     new_mp = mp.copy()
 
-    assert new_mp.dataset_metadata == mp.dataset_metadata
     # Check if the copy is identical
     assert len(new_mp.metapartitions) == len(mp.metapartitions)
     assert new_mp == mp
@@ -846,11 +559,7 @@ def test_nested_copy():
 def test_partition_on_one_level():
     original_df = pd.DataFrame({"test": [1, 2, 3], "some_values": [1, 2, 3]})
     mp = MetaPartition(
-        label="label_1",
-        files={"core": "file"},
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
+        label="label_1", file="file", data=original_df, metadata_version=4
     )
 
     new_mp = mp.partition_on(["test"])
@@ -861,8 +570,8 @@ def test_partition_on_one_level():
     for mp in new_mp:
         labels.add(mp.label)
         assert len(mp.data) == 1
-        assert "core" in mp.data
-        df = mp.data["core"]
+        assert mp.data is not None
+        df = mp.data
         assert df._is_view
 
         # try to be agnostic about the order
@@ -884,11 +593,7 @@ def test_partition_on_one_level_ts():
         }
     )
     mp = MetaPartition(
-        label="label_1",
-        files={"core": "file"},
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
+        label="label_1", file="file", data=original_df, metadata_version=4
     )
 
     new_mp = mp.partition_on(["test"])
@@ -899,8 +604,8 @@ def test_partition_on_one_level_ts():
     for mp in new_mp:
         labels.add(mp.label)
         assert len(mp.data) == 1
-        assert "core" in mp.data
-        df = mp.data["core"]
+        assert mp.data is not None
+        df = mp.data
         assert df._is_view
 
         # try to be agnostic about the order
@@ -920,35 +625,30 @@ def test_partition_on_roundtrip(store):
     original_df = pd.DataFrame(
         OrderedDict([("test", [1, 2, 3]), ("some_values", [1, 2, 3])])
     )
-    mp = MetaPartition(
-        label="label_1",
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
-    )
+    mp = MetaPartition(label="label_1", data=original_df, metadata_version=4)
 
     new_mp = mp.partition_on(["test"])
     new_mp = new_mp.store_dataframes(store=store, dataset_uuid="some_uuid")
-    store_schema_metadata(new_mp.table_meta["core"], "some_uuid", store, "core")
+    store_schema_metadata(new_mp.schema, "some_uuid", store)
     # Test immediately after dropping and later once with new metapartition to check table meta reloading
     new_mp = new_mp.load_dataframes(store=store)
     assert len(new_mp.metapartitions) == 3
     dfs = []
     for internal_mp in new_mp:
-        dfs.append(internal_mp.data["core"])
+        dfs.append(internal_mp.data)
     actual_df = pd.concat(dfs).sort_values(by="test").reset_index(drop=True)
     pdt.assert_frame_equal(original_df, actual_df)
 
     for i in range(1, 4):
         # Check with fresh metapartitions
         new_mp = MetaPartition(
-            label="test={}/label_1".format(i),
-            files={"core": "some_uuid/core/test={}/label_1.parquet".format(i)},
+            label=f"test={i}/label_1",
+            file=f"some_uuid/table/test={i}/label_1.parquet",
             metadata_version=4,
         )
         new_mp = new_mp.load_dataframes(store=store)
 
-        actual_df = new_mp.data["core"]
+        actual_df = new_mp.data
 
         expected_df = pd.DataFrame(OrderedDict([("test", [i]), ("some_values", [i])]))
         pdt.assert_frame_equal(expected_df, actual_df)
@@ -960,11 +660,7 @@ def test_partition_on_raises_no_cols_left(empty):
     if empty:
         original_df = original_df.loc[[]]
     mp = MetaPartition(
-        label="label_1",
-        files={"core": "file"},
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
+        label="label_1", file="file", data=original_df, metadata_version=4
     )
     with pytest.raises(ValueError) as e:
         mp.partition_on(["test"])
@@ -977,11 +673,7 @@ def test_partition_on_raises_pocols_missing(empty):
     if empty:
         original_df = original_df.loc[[]]
     mp = MetaPartition(
-        label="label_1",
-        files={"core": "file"},
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
+        label="label_1", file="file", data=original_df, metadata_version=4
     )
     with pytest.raises(ValueError) as e:
         mp.partition_on(["test", "foo", "bar"])
@@ -990,7 +682,7 @@ def test_partition_on_raises_pocols_missing(empty):
 
 def test_partition_urlencode():
     original_df = pd.DataFrame({"ÖŒå": [1, 2, 3], "some_values": [1, 2, 3]})
-    mp = MetaPartition(label="label_1", data={"core": original_df}, metadata_version=4)
+    mp = MetaPartition(label="label_1", data=original_df, metadata_version=4)
 
     new_mp = mp.partition_on(["ÖŒå"])
 
@@ -1000,8 +692,8 @@ def test_partition_urlencode():
     for mp in new_mp:
         labels.add(mp.label)
         assert len(mp.data) == 1
-        assert "core" in mp.data
-        df = mp.data["core"]
+        assert mp.data is not None
+        df = mp.data
         assert df._is_view
 
         # try to be agnostic about the order
@@ -1026,11 +718,7 @@ def test_partition_two_level():
         }
     )
     mp = MetaPartition(
-        label="label_1",
-        files={"core": "file"},
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
+        label="label_1", file="file", data=original_df, metadata_version=4
     )
 
     new_mp = mp.partition_on(["level1", "level2"])
@@ -1040,8 +728,8 @@ def test_partition_two_level():
     for mp in new_mp:
         labels.append(mp.label)
         assert len(mp.data) == 1
-        assert "core" in mp.data
-        df = mp.data["core"]
+        assert mp.data is not None
+        df = mp.data
         assert df._is_view
 
         # try to be agnostic about the order
@@ -1069,18 +757,10 @@ def test_partition_on_nested():
         }
     )
     mp = MetaPartition(
-        label="label_1",
-        files={"core": "file"},
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
+        label="label_1", file="file", data=original_df, metadata_version=4
     )
     mp2 = MetaPartition(
-        label="label_2",
-        files={"core": "file"},
-        data={"core": original_df},
-        dataset_metadata={"dataset": "metadata"},
-        metadata_version=4,
+        label="label_2", file="file", data=original_df, metadata_version=4
     )
     mp = mp.add_metapartition(mp2)
     new_mp = mp.partition_on(["level1", "level2"])
@@ -1090,8 +770,8 @@ def test_partition_on_nested():
     for mp in new_mp:
         labels.append(mp.label)
         assert len(mp.data) == 1
-        assert "core" in mp.data
-        df = mp.data["core"]
+        assert mp.data is not None
+        df = mp.data
         assert df._is_view
 
         # try to be agnostic about the order
@@ -1116,28 +796,6 @@ def test_partition_on_nested():
     assert sorted(labels) == sorted(expected_labels)
 
 
-def test_partition_on_multiple_tables_empty_table():
-    original_df = pd.DataFrame({"level1": [1, 2, 3], "no_index_col": np.arange(0, 3)})
-    mp = MetaPartition(
-        label="label_1",
-        data=OrderedDict(
-            [
-                ("core", original_df),
-                ("empty_table", pd.DataFrame(columns=["level1", "another_col"])),
-            ]
-        ),
-        metadata_version=4,
-    )
-    new_mp = mp.partition_on("level1")
-
-    labels = []
-    for mp in new_mp:
-        labels.append(mp.label)
-        assert "empty_table" in mp.data
-        assert mp.data["empty_table"].empty
-        assert set(mp.data["empty_table"].columns) == {"another_col"}
-
-
 def test_partition_on_stable_order():
     """
     Assert that the partition_on algo is stable wrt to row ordering
@@ -1151,43 +809,38 @@ def test_partition_on_stable_order():
     df = pd.DataFrame(
         {"partition_key": random_index, "sorted_col": range(total_values)}
     )
-    mp = MetaPartition(
-        label="label_1", data=OrderedDict([("table", df)]), metadata_version=4
-    )
+    mp = MetaPartition(label="label_1", data=df, metadata_version=4)
     new_mp = mp.partition_on("partition_key")
     for sub_mp in new_mp:
-        sub_df = sub_mp.data["table"]
+        sub_df = sub_mp.data
         assert sub_df.sorted_col.is_monotonic
 
 
 def test_table_meta(store):
     mp = MetaPartition(
         label="label_1",
-        data={
-            "core": pd.DataFrame(
-                {
-                    "i32": np.array([1, 2, 3, 1, 2, 3], dtype="int32"),
-                    "float": np.array([1, 1, 1, 2, 2, 2], dtype="float64"),
-                }
-            )
-        },
+        data=pd.DataFrame(
+            {
+                "i32": np.array([1, 2, 3, 1, 2, 3], dtype="int32"),
+                "float": np.array([1, 1, 1, 2, 2, 2], dtype="float64"),
+            }
+        ),
         metadata_version=4,
     )
 
-    assert len(mp.table_meta) == 1
-    assert "core" in mp.table_meta
+    assert mp.schema is not None
     expected_meta = make_meta(
         pd.DataFrame(
             {"i32": np.array([], dtype="int32"), "float": np.array([], dtype="float64")}
         ),
         origin="1",
     )
-    actual_meta = mp.table_meta["core"]
+    actual_meta = mp.schema
     assert actual_meta == expected_meta
 
     mp = mp.store_dataframes(store, "dataset_uuid")
 
-    actual_meta = mp.table_meta["core"]
+    actual_meta = mp.schema
     assert actual_meta == expected_meta
 
 
@@ -1201,8 +854,8 @@ def test_partition_on_explicit_index():
     )
     mp = MetaPartition(
         label="label_1",
-        files={"core": "file"},
-        data={"core": original_df},
+        file="file",
+        data=original_df,
         indices={
             "explicit_index_col": {value: ["label_1"] for value in np.arange(0, 6)}
         },
@@ -1251,17 +904,17 @@ def test_reconstruct_index_duplicates(store):
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")
-    store_schema_metadata(schema, "uuid", store, "table")
+    store_schema_metadata(schema, "uuid", store)
 
     mp = MetaPartition(
         label="dontcare",
-        files={"table": key},
+        file=key,
         metadata_version=4,
-        table_meta={"table": schema},
+        schema=schema,
         partition_keys=["index_col"],
     )
     mp = mp.load_dataframes(store)
-    df_actual = mp.data["table"]
+    df_actual = mp.data
     df_expected = pd.DataFrame(
         OrderedDict([("index_col", [2, 2]), ("column", list("ab"))])
     )
@@ -1279,18 +932,18 @@ def test_reconstruct_index_categories(store):
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")
-    store_schema_metadata(schema, "uuid", store, "table")
+    store_schema_metadata(schema, "uuid", store)
 
     mp = MetaPartition(
         label="index_col=2/dontcare",
-        files={"table": key},
+        file=key,
         metadata_version=4,
-        table_meta={"table": schema},
+        schema=schema,
         partition_keys=["index_col", "second_index_col"],
     )
     categories = ["second_index_col", "index_col"]
-    mp = mp.load_dataframes(store, categoricals={"table": categories})
-    df_actual = mp.data["table"]
+    mp = mp.load_dataframes(store, categoricals=categories)
+    df_actual = mp.data
     df_expected = pd.DataFrame(
         OrderedDict(
             [
@@ -1315,20 +968,20 @@ def test_reconstruct_index_empty_df(store, categoricals):
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")
-    store_schema_metadata(schema, "uuid", store, "table")
+    store_schema_metadata(schema, "uuid", store)
 
     mp = MetaPartition(
         label="index_col=2/dontcare",
-        files={"table": key},
+        file=key,
         metadata_version=4,
-        table_meta={"table": schema},
+        schema=schema,
         partition_keys=["index_col"],
     )
     categoricals = None
     if categoricals:
-        categoricals = {"table": ["index_col"]}
+        categoricals = ["index_col"]
     mp = mp.load_dataframes(store, categoricals=categoricals)
-    df_actual = mp.data["table"]
+    df_actual = mp.data
     df_expected = pd.DataFrame(
         OrderedDict([("index_col", [2, 2]), ("column", list("ab"))])
     )
@@ -1351,18 +1004,18 @@ def test_reconstruct_date_index(store, metadata_version, dates_as_object):
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")
-    store_schema_metadata(schema, "uuid", store, "table")
+    store_schema_metadata(schema, "uuid", store)
 
     mp = MetaPartition(
         label="dontcare",
-        files={"table": key},
+        file=key,
         metadata_version=metadata_version,
-        table_meta={"table": schema},
+        schema=schema,
         partition_keys=["index_col"],
     )
 
     mp = mp.load_dataframes(store, dates_as_object=dates_as_object)
-    df_actual = mp.data["table"]
+    df_actual = mp.data
     if dates_as_object:
         dt_constructor = date
     else:
@@ -1386,26 +1039,23 @@ def test_iter_empty_metapartition():
 
 
 def test_concat_metapartition(df_all_types):
-    mp1 = MetaPartition(label="first", data={"table": df_all_types}, metadata_version=4)
-    mp2 = MetaPartition(
-        label="second", data={"table": df_all_types}, metadata_version=4
-    )
+    mp1 = MetaPartition(label="first", data=df_all_types, metadata_version=4)
+    mp2 = MetaPartition(label="second", data=df_all_types, metadata_version=4)
 
     new_mp = MetaPartition.concat_metapartitions([mp1, mp2])
 
     # what the label actually is, doesn't matter so much
     assert new_mp.label is not None
-    assert new_mp.tables == ["table"]
     df_expected = pd.concat([df_all_types, df_all_types])
-    df_actual = new_mp.data["table"]
+    df_actual = new_mp.data
     pdt.assert_frame_equal(df_actual, df_expected)
 
 
 def test_concat_metapartition_wrong_types(df_all_types):
-    mp1 = MetaPartition(label="first", data={"table": df_all_types}, metadata_version=4)
+    mp1 = MetaPartition(label="first", data=df_all_types, metadata_version=4)
     df_corrupt = df_all_types.copy()
     df_corrupt["int8"] = "NoInteger"
-    mp2 = MetaPartition(label="second", data={"table": df_corrupt}, metadata_version=4)
+    mp2 = MetaPartition(label="second", data=df_corrupt, metadata_version=4)
 
     with pytest.raises(ValueError, match="Schema violation"):
         MetaPartition.concat_metapartitions([mp1, mp2])
@@ -1414,22 +1064,21 @@ def test_concat_metapartition_wrong_types(df_all_types):
 def test_concat_metapartition_partitioned(df_all_types):
     mp1 = MetaPartition(
         label="int8=1/1234",
-        data={"table": df_all_types},
+        data=df_all_types,
         metadata_version=4,
         partition_keys=["int8"],
     )
     mp2 = MetaPartition(
         label="int8=1/4321",
-        data={"table": df_all_types},
+        data=df_all_types,
         metadata_version=4,
         partition_keys=["int8"],
     )
 
     new_mp = MetaPartition.concat_metapartitions([mp1, mp2])
 
-    assert new_mp.tables == ["table"]
     df_expected = pd.concat([df_all_types, df_all_types])
-    df_actual = new_mp.data["table"]
+    df_actual = new_mp.data
     pdt.assert_frame_equal(df_actual, df_expected)
 
     assert new_mp.partition_keys == ["int8"]
@@ -1438,13 +1087,13 @@ def test_concat_metapartition_partitioned(df_all_types):
 def test_concat_metapartition_different_partitioning(df_all_types):
     mp1 = MetaPartition(
         label="int8=1/1234",
-        data={"table": df_all_types},
+        data=df_all_types,
         metadata_version=4,
         partition_keys=["int8"],
     )
     mp2 = MetaPartition(
         label="float8=1.0/4321",
-        data={"table": df_all_types},
+        data=df_all_types,
         metadata_version=4,
         partition_keys=["float8"],
     )
@@ -1482,9 +1131,7 @@ def test_partition_on_scalar_intermediate(df_not_nested, col):
     Test against a bug where grouping leaves a scalar value
     """
     assert len(df_not_nested) == 1
-    mp = MetaPartition(
-        label="somelabel", data={"table": df_not_nested}, metadata_version=4
-    )
+    mp = MetaPartition(label="somelabel", data=df_not_nested, metadata_version=4)
     new_mp = mp.partition_on(col)
     assert len(new_mp) == 1
 
@@ -1492,7 +1139,7 @@ def test_partition_on_scalar_intermediate(df_not_nested, col):
 def test_partition_on_with_primary_index_invalid(df_not_nested):
     mp = MetaPartition(
         label="pkey=1/pkey2=2/base_label",
-        data={"table": df_not_nested},
+        data=df_not_nested,
         partition_keys=["pkey", "pkey2"],
         metadata_version=4,
     )
@@ -1515,7 +1162,7 @@ def test_partition_on_with_primary_index_invalid(df_not_nested):
 def test_partition_on_with_primary_index(df_not_nested):
     mp = MetaPartition(
         label="pkey=1/base_label",
-        data={"table": df_not_nested},
+        data=df_not_nested,
         partition_keys=["pkey"],
         metadata_version=4,
     )
@@ -1563,12 +1210,12 @@ def test_column_string_cast(df_all_types, store, metadata_version):
     key = ser.store(store, "uuid/table/something", df_all_types)
     mp = MetaPartition(
         label="something",
-        files={"table": key},
-        table_meta={"table": make_meta(df_all_types, origin="table")},
+        file=key,
+        schema=make_meta(df_all_types, origin="table"),
         metadata_version=metadata_version,
     )
     mp = mp.load_dataframes(store)
-    df = mp.data["table"]
+    df = mp.data
     assert all(original_columns == df.columns)
 
 
@@ -1578,18 +1225,11 @@ def test_partition_on_valid_schemas():
     sub partitions may be different
     """
     df = pd.DataFrame({"partition_col": [0, 1], "values": [None, "str"]})
-    mp = MetaPartition(label="base_label", data={"table": df}, metadata_version=4)
+    mp = MetaPartition(label="base_label", data=df, metadata_version=4)
     mp = mp.partition_on(["partition_col"])
     assert len(mp) == 2
     expected_meta = make_meta(df, origin="1", partition_keys="partition_col")
-    assert mp.table_meta["table"] == expected_meta
-
-
-def test_dataframe_input_to_metapartition():
-    with pytest.raises(ValueError):
-        parse_input_to_metapartition(tuple([1]))
-    with pytest.raises(ValueError):
-        parse_input_to_metapartition("abc")
+    assert mp.schema == expected_meta
 
 
 def test_input_to_metaframes_empty():
@@ -1605,74 +1245,28 @@ def test_input_to_metaframes_simple():
 
     assert isinstance(mp, MetaPartition)
     assert len(mp.data) == 1
-    assert len(mp.files) == 0
+    assert mp.file is None
 
-    df = list(mp.data.values())[0]
+    df = mp.data
     pdt.assert_frame_equal(df, df_input)
 
     assert isinstance(mp.label, str)
 
 
-def test_input_to_metaframes_dict():
-    df_input = {
-        "label": "cluster_1",
-        "data": [
-            ("some_file", pd.DataFrame({"A": [1]})),
-            ("some_other_file", pd.DataFrame({"B": [2]})),
-        ],
-    }
-    mp = parse_input_to_metapartition(obj=df_input)
-    assert isinstance(mp, MetaPartition)
-    assert len(mp.data) == 2
-    assert len(mp.files) == 0
-
-    assert mp.label == "cluster_1"
-
-    data = mp.data
-
-    df = data["some_file"]
-    pdt.assert_frame_equal(
-        df, pd.DataFrame({"A": [1]}), check_dtype=False, check_like=True
-    )
-
-    df2 = data["some_other_file"]
-    pdt.assert_frame_equal(
-        df2, pd.DataFrame({"B": [2]}), check_dtype=False, check_like=True
-    )
-
-
 def test_parse_nested_input_schema_compatible_but_different():
     # Ensure that input can be parsed even though the schemas are not identical but compatible
-    df_input = [
-        [
-            {"data": {"table": pd.DataFrame({"A": [None]})}},
-            {"data": {"table": pd.DataFrame({"A": ["str"]})}},
-        ]
-    ]
+    df_input = [[pd.DataFrame({"A": [None]}), pd.DataFrame({"A": ["str"]})]]
     mp = parse_input_to_metapartition(df_input, metadata_version=4)
     expected_schema = make_meta(pd.DataFrame({"A": ["str"]}), origin="expected")
-    assert mp.table_meta["table"] == expected_schema
-
-
-def test_parse_input_schema_formats():
-    df = pd.DataFrame({"B": [pd.Timestamp("2019")]})
-    formats_obj = [
-        {"data": {"table1": df}},
-        {"table1": df},
-        {"data": [("table1", df)]},
-        [("table1", df)],
-    ]
-    for obj in formats_obj:
-        mp = parse_input_to_metapartition(obj=obj, metadata_version=4)
-        assert mp.data == {"table1": df}
+    assert mp.schema == expected_schema
 
 
 def test_get_parquet_metadata(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(label="test_label", data=df)
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid")
 
-    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual = meta_partition.get_parquet_metadata(store=store)
     actual.drop(labels="serialized_size", axis=1, inplace=True)
     actual.drop(labels="row_group_compressed_size", axis=1, inplace=True)
     actual.drop(labels="row_group_uncompressed_size", axis=1, inplace=True)
@@ -1691,10 +1285,10 @@ def test_get_parquet_metadata(store):
 
 def test_get_parquet_metadata_empty_df(store):
     df = pd.DataFrame()
-    mp = MetaPartition(label="test_label", data={"core": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(label="test_label", data=df)
+    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid")
 
-    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual = meta_partition.get_parquet_metadata(store=store)
     actual.drop(
         columns=[
             "serialized_size",
@@ -1720,13 +1314,13 @@ def test_get_parquet_metadata_empty_df(store):
 
 def test_get_parquet_metadata_row_group_size(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df},)
+    mp = MetaPartition(label="test_label", data=df)
     ps = ParquetSerializer(chunk_size=5)
 
     meta_partition = mp.store_dataframes(
         store=store, dataset_uuid="dataset_uuid", df_serializer=ps
     )
-    actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
+    actual = meta_partition.get_parquet_metadata(store=store)
     actual.drop(
         columns=[
             "serialized_size",
@@ -1747,14 +1341,3 @@ def test_get_parquet_metadata_row_group_size(store):
         }
     )
     pd.testing.assert_frame_equal(actual, expected)
-
-
-def test_get_parquet_metadata_table_name_not_str(store):
-    df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df, "another_table": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
-
-    with pytest.raises(TypeError):
-        meta_partition.get_parquet_metadata(
-            store=store, table_name=["core", "another_table"]
-        )

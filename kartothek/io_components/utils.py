@@ -406,32 +406,6 @@ def sort_values_categorical(
     return df.sort_values(by=columns).reset_index(drop=True)
 
 
-def check_single_table_dataset(dataset, expected_table=None):
-    """
-    Raise if the given dataset is not a single-table dataset.
-
-    Parameters
-    ----------
-    dataset: kartothek.core.dataset.DatasetMetadata
-        The dataset to be validated
-    expected_table: Optional[str]
-        Ensure that the table in the dataset is the same as the given one.
-    """
-
-    if len(dataset.tables) > 1:
-        raise TypeError(
-            "Expected single table dataset but found dataset with tables: `{}`".format(
-                dataset.tables
-            )
-        )
-    if expected_table and dataset.tables != [expected_table]:
-        raise TypeError(
-            "Unexpected table in dataset:\nFound:\t{}\nExpected:\t{}".format(
-                dataset.tables, expected_table
-            )
-        )
-
-
 def raise_if_indices_overlap(partition_on, secondary_indices):
     partition_secondary_overlap = set(partition_on) & set(secondary_indices)
     if partition_secondary_overlap:

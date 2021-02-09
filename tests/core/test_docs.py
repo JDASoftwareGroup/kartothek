@@ -20,7 +20,6 @@ from kartothek.io.dask.delayed import (
     merge_datasets_as_delayed,
     read_dataset_as_delayed,
     read_dataset_as_delayed_metapartitions,
-    read_table_as_delayed,
     store_delayed_as_dataset,
     update_dataset_from_delayed,
 )
@@ -59,7 +58,6 @@ from kartothek.io.iter import (
         merge_datasets_as_delayed,
         read_dataset_as_delayed_metapartitions,
         read_dataset_as_delayed,
-        read_table_as_delayed,
         update_dataset_from_delayed,
         store_delayed_as_dataset,
         delete_dataset,
@@ -93,7 +91,12 @@ def test_docs(function):
             f"Wrong or missing docstrings for parameters {valid_docs[False]}.\n\n{docstrings}"
         )
 
-    assert all([argument in docstrings for argument in arguments])
+    sorted_arguments = sorted(arguments)
+    args_in_docs = [argument in docstrings for argument in sorted_arguments]
+
+    assert all(args_in_docs), [
+        sorted_arguments[ix] for ix, val in enumerate(args_in_docs) if val is False
+    ]
 
 
 def test_docs_duplicity():

@@ -6,6 +6,8 @@ import pytest
 from kartothek.io.dask.delayed import merge_datasets_as_delayed
 from kartothek.io.testing.merge import *  # noqa
 
+pytestmark = pytest.mark.skip()
+
 
 def _merge_datasets(*args, **kwargs):
     df_list = merge_datasets_as_delayed(*args, **kwargs)

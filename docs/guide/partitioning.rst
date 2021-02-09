@@ -100,31 +100,7 @@ Note that, since 2 dataframes have been provided as input to the function, there
 4 different files created, even though only 2 different combinations of values of E and
 F are found, ``E=test/F=foo`` and ``E=train/F=foo`` (However, these 4 physical partitions
 can be read as just the 2 logical partitions by using the argument
-``concat_partitions_on_primary_index=True`` at reading time).
-
-For datasets consisting of multiple tables, explicit partitioning on columns can only be
-performed if the column exists in both tables and is of the same data type: guaranteeing
-that their types are the same is part of schema validation in Kartothek.
-
-For example:
-
-.. ipython:: python
-    :okwarning:
-
-    df.dtypes
-    different_df = pd.DataFrame(
-        {"B": pd.to_datetime(["20130102", "20190101"]), "L": [1, 4], "Q": [True, False]}
-    )
-    different_df.dtypes
-
-    dm = store_dataframes_as_dataset(
-        store_url,
-        "multiple_partitioned_tables",
-        [{"data": {"table1": df, "table2": different_df}}],
-        partition_on="B",
-    )
-
-    sorted(dm.partitions.keys())
+``dispatch_by=["E", "F"]`` at reading time).
 
 
 As noted above, when data is appended to a dataset, Kartothek guarantees it has
@@ -132,9 +108,6 @@ the proper schema and partitioning.
 
 The order of columns provided in ``partition_on`` is important, as the partition
 structure would be different if the columns are in a different order.
-
-.. note:: Every partition must have data for every table. An empty dataframe in this
-          context is also considered as data.
 
 .. _partitioning_dask:
 
@@ -166,7 +139,7 @@ number of physical input partitions.
     ddf = dd.from_pandas(df, npartitions=10)
 
     dm = update_dataset_from_ddf(
-        ddf, dataset_uuid="no_shuffle", store=store_url, partition_on="A", table="table"
+        ddf, dataset_uuid="no_shuffle", store=store_url, partition_on="A"
     ).compute()
     sorted(dm.partitions.keys())
 
@@ -183,12 +156,7 @@ partitioning values of A to be fused into a single file.
     :okwarning:
 
     dm = update_dataset_from_ddf(
-        ddf,
-        dataset_uuid="with_shuffle",
-        store=store_url,
-        partition_on="A",
-        shuffle=True,
-        table="table",
+        ddf, dataset_uuid="with_shuffle", store=store_url, partition_on="A", shuffle=True,
     ).compute()
     sorted(dm.partitions.keys())
 
@@ -236,7 +204,6 @@ When investigating the index, we can also see that a query for a given value in 
         store=store_url,
         partition_on="A",
         shuffle=True,
-        table="table",
         bucket_by="B",
         num_buckets=4,
         secondary_indices="B",

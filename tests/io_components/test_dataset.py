@@ -16,7 +16,7 @@ def test_dataset_get_indices_as_dataframe_partition_keys_only(
     dataset_with_index, store_session
 ):
     expected = pd.DataFrame(
-        OrderedDict([("P", [1, 2])]),
+        {"P": [1, 2]},
         index=pd.Index(["P=1/cluster_1", "P=2/cluster_2"], name="partition"),
     )
     ds = dataset_with_index.load_partition_indices()

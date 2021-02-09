@@ -29,18 +29,20 @@ _PARAMETER_MAPPING = {
     "table": """
     table: Optional[str]
         The table to be loaded. If none is specified, the default 'table' is used.""",
-    "tables": """
-    tables : List[str]
-        A list of tables to be loaded. If None is given, all tables of
-        a partition are loaded""",
-    "table_meta": """
-    table_meta: Dict[str, SchemaWrapper]
-        The dataset table schemas""",
+    "table_name": """
+    table_name:
+        The table name of the dataset to be loaded. This creates a namespace for
+        the partitioning like
+
+        `dataset_uuid/table_name/*`
+
+        This is to support legacy workflows. We recommend not to use this and use the default wherever possible.""",
+    "schema": """
+    schema: SchemaWrapper
+        The dataset table schema""",
     "columns": """
-    columns : Optional[List[Dict[str]]]
-        A dictionary mapping tables to list of columns. Only the specified
-        columns are loaded for the corresponding table. If a specfied table or column is
-        not present in the dataset, a ValueError is raised.""",
+    columns
+        A subset of columns to be loaded.""",
     "dispatch_by": """
     dispatch_by: Optional[List[str]]
         List of index columns to group and partition the jobs by.
@@ -106,9 +108,8 @@ _PARAMETER_MAPPING = {
         For `kartothek.io.dask.update.update_dataset.*` a delayed object resolving to
         a list of dicts is also accepted.""",
     "categoricals": """
-    categoricals : Dict[str, List[str]]
-        A dictionary mapping tables to list of columns that should be
-        loaded as `category` dtype instead of the inferred one.""",
+    categoricals
+        Load the provided subset of columns as a :class:`pandas.Categorical`.""",
     "label_filter": """
     label_filter: Callable
         A callable taking a partition label as a parameter and returns a boolean. The callable will be applied

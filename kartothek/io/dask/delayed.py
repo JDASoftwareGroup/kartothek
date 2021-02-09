@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 import warnings
-from collections import defaultdict
 from functools import partial
-from typing import List, Optional
+from typing import List, Optional, Sequence
 
 import dask
 from dask import delayed
@@ -45,7 +44,6 @@ from kartothek.io_components.write import (
 from ._utils import (
     _cast_categorical_to_index_cat,
     _get_data,
-    _identity,
     _maybe_get_categoricals_from_index,
     map_delayed,
 )
@@ -255,16 +253,16 @@ def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
     )
 
 
+# FIXME: remove
 @default_docs
 @normalize_args
 def read_dataset_as_delayed_metapartitions(
     dataset_uuid=None,
     store=None,
-    tables=None,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
-    categoricals=None,
+    categoricals: Optional[Sequence[str]] = None,
     label_filter=None,
     dates_as_object=False,
     load_dataset_metadata=False,
@@ -315,7 +313,6 @@ def read_dataset_as_delayed_metapartitions(
         mps = _load_and_concat_metapartitions(
             mps,
             store=store,
-            tables=tables,
             columns=columns,
             categoricals=categoricals,
             predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -327,7 +324,6 @@ def read_dataset_as_delayed_metapartitions(
             MetaPartition.load_dataframes,
             mps,
             store=store,
-            tables=tables,
             columns=columns,
             categoricals=categoricals,
             predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -340,15 +336,16 @@ def read_dataset_as_delayed_metapartitions(
     )
 
     if categoricals_from_index:
-        func_dict = defaultdict(_identity)
-        func_dict.update(
-            {
-                table: partial(_cast_categorical_to_index_cat, categories=cats)
-                for table, cats in categoricals_from_index.items()
-            }
-        )
+
         mps = map_delayed(
-            partial(MetaPartition.apply, func=func_dict, type_safe=True), mps
+            partial(  # type: ignore
+                MetaPartition.apply,
+                func=partial(  # type: ignore
+                    _cast_categorical_to_index_cat, categories=categoricals_from_index
+                ),
+                type_safe=True,
+            ),
+            mps,
         )
 
     return list(mps)
@@ -358,7 +355,6 @@ def read_dataset_as_delayed_metapartitions(
 def read_dataset_as_delayed(
     dataset_uuid=None,
     store=None,
-    tables=None,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -380,7 +376,6 @@ def read_dataset_as_delayed(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        tables=tables,
         columns=columns,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -392,62 +387,6 @@ def read_dataset_as_delayed(
         dispatch_by=dispatch_by,
     )
     return list(map_delayed(_get_data, mps))
-
-
-@default_docs
-@normalize_args
-def read_table_as_delayed(
-    dataset_uuid=None,
-    store=None,
-    table=SINGLE_TABLE,
-    columns=None,
-    concat_partitions_on_primary_index=False,
-    predicate_pushdown_to_io=True,
-    categoricals=None,
-    label_filter=None,
-    dates_as_object=False,
-    predicates=None,
-    factory=None,
-    dispatch_by=None,
-):
-    """
-    A collection of dask.delayed objects to retrieve a single table from
-    a dataset as partition-individual :class:`~pandas.DataFrame` instances.
-
-    You can transform the collection of ``dask.delayed`` objects into
-    a ``dask.dataframe`` using the following code snippet. As older kartothek
-    specifications don't store schema information, this must be provided by
-    a separate code path.
-
-    .. code ::
-
-        >>> import dask.dataframe as dd
-        >>> ddf_tasks = read_table_as_delayed(…)
-        >>> meta = …
-        >>> ddf = dd.from_delayed(ddf_tasks, meta=meta)
-
-    Parameters
-    ----------
-    """
-    if not isinstance(columns, dict):
-        columns = {table: columns}
-    mps = read_dataset_as_delayed_metapartitions(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        tables=[table],
-        columns=columns,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
-        predicate_pushdown_to_io=predicate_pushdown_to_io,
-        categoricals=categoricals,
-        label_filter=label_filter,
-        dates_as_object=dates_as_object,
-        load_dataset_metadata=False,
-        predicates=predicates,
-        factory=factory,
-        dispatch_by=dispatch_by,
-        dispatch_metadata=False,
-    )
-    return list(map_delayed(partial(_get_data, table=table), mps))
 
 
 @default_docs
@@ -530,6 +469,7 @@ def store_delayed_as_dataset(
     metadata_version=naming.DEFAULT_METADATA_VERSION,
     partition_on=None,
     metadata_storage_format=naming.DEFAULT_METADATA_STORAGE_FORMAT,
+    table_name: str = SINGLE_TABLE,
     secondary_indices=None,
 ) -> Delayed:
     """
@@ -549,7 +489,9 @@ def store_delayed_as_dataset(
     raise_if_indices_overlap(partition_on, secondary_indices)
 
     input_to_mps = partial(
-        parse_input_to_metapartition, metadata_version=metadata_version
+        parse_input_to_metapartition,
+        metadata_version=metadata_version,
+        table_name=table_name,
     )
     mps = map_delayed(input_to_mps, delayed_tasks)
 

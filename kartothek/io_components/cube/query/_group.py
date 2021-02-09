@@ -6,7 +6,7 @@ import typing
 import attr
 import pandas as pd
 
-from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
+from kartothek.io_components.metapartition import MetaPartition
 from kartothek.utils.converters import converter_str
 from kartothek.utils.pandas import (
     concat_dataframes,
@@ -85,11 +85,10 @@ def _load_all_mps(mps, store, load_columns, predicates, empty):
         mp = mp.load_dataframes(
             store=store,
             predicate_pushdown_to_io=True,
-            tables=[SINGLE_TABLE],
-            columns={SINGLE_TABLE: sorted(load_columns)},
+            columns=sorted(load_columns),
             predicates=predicates,
         )
-        df = mp.data[SINGLE_TABLE]
+        df = mp.data
         df.columns = df.columns.map(converter_str)
         dfs_mp.append(df)
     return concat_dataframes(dfs_mp, empty)

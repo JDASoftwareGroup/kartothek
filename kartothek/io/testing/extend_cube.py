@@ -81,7 +81,7 @@ def test_simple(driver, function_store, existing_cube):
     assert isinstance(ds.indices["p"], PartitionIndex)
     assert isinstance(ds.indices["i3"], ExplicitSecondaryIndex)
 
-    assert set(ds.table_meta) == {SINGLE_TABLE}
+    assert ds.table_name == SINGLE_TABLE
 
 
 @pytest.mark.parametrize("chunk_size", [None, 2])

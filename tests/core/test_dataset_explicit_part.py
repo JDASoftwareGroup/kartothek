@@ -136,29 +136,19 @@ def test_read_table_meta(store):
         "dataset_uuid": "dataset_uuid",
         "partitions": {
             "location_id=1/part_1": {
-                "files": {
-                    "table1": "dataset_uuid/table1/location_id=1/part_1.parquet",
-                    "table2": "dataset_uuid/table2/location_id=1/part_1.parquet",
-                }
+                "files": {"table1": "dataset_uuid/table1/location_id=1/part_1.parquet"}
             }
         },
     }
     df1 = pd.DataFrame(
         {"location_id": pd.Series([1], dtype=int), "x": pd.Series([True], dtype=bool)}
     )
-    df2 = pd.DataFrame(
-        {"location_id": pd.Series([1], dtype=int), "y": pd.Series([1.0], dtype=float)}
-    )
     schema1 = make_meta(df1, origin="1")
-    schema2 = make_meta(df2, origin="2")
     store_schema_metadata(schema1, "dataset_uuid", store, "table1")
-    store_schema_metadata(schema2, "dataset_uuid", store, "table2")
 
     dmd = DatasetMetadata.load_from_dict(meta_dct, store)
 
-    actual = dmd.table_meta
-    expected = {"table1": schema1, "table2": schema2}
-    assert actual == expected
+    assert dmd.schema == schema1
 
 
 def test_load_indices_embedded(metadata_version):
@@ -206,7 +196,7 @@ def test_load_all_indices(store, metadata_version):
         },
     }
     dmd = DatasetMetadata.from_dict(meta_dct)
-    dmd.table_meta["core_data"] = make_meta(
+    dmd.schema = make_meta(
         pd.DataFrame({"location_id": pd.Series([1], dtype=int)}), origin="core"
     )
 

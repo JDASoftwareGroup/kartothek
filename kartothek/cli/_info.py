@@ -4,7 +4,6 @@ import click
 
 from kartothek.cli._utils import to_bold as b
 from kartothek.cli._utils import to_header as h
-from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.utils.ktk_adapters import get_dataset_columns
 
 __all__ = ("info",)
@@ -19,7 +18,7 @@ def info(ctx):
     datasets = ctx.obj["datasets"]
 
     seed_ds = datasets[cube.seed_dataset]
-    seed_schema = seed_ds.table_meta[SINGLE_TABLE]
+    seed_schema = seed_ds.schema
 
     click.echo(h("Infos"))
     click.echo(b("UUID Prefix:") + "        {}".format(cube.uuid_prefix))
@@ -41,7 +40,7 @@ def _info_dataset(ktk_cube_dataset_id, ds, cube):
     click.echo(h("Dataset: {}".format(ktk_cube_dataset_id)))
 
     ds = ds.load_partition_indices()
-    schema = ds.table_meta[SINGLE_TABLE]
+    schema = ds.schema
     all_cols = get_dataset_columns(ds)
     payload_cols = sorted(
         all_cols - (set(cube.dimension_columns) | set(cube.partition_columns))
@@ -83,7 +82,7 @@ def _collist_string_index(cube, datasets):
     for col in sorted(cube.index_columns):
         for ktk_cube_dataset_id in sorted(datasets.keys()):
             ds = datasets[ktk_cube_dataset_id]
-            schema = ds.table_meta[SINGLE_TABLE]
+            schema = ds.schema
             if col in schema.names:
                 lines.append("  - {c}: {t}".format(c=col, t=schema.field(col).type))
                 break

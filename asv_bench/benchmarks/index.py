@@ -131,9 +131,7 @@ class BuildIndex(AsvBenchmarkConfig):
                 unique_vals = ["{:010d}".format(n) for n in range(cardinality)]
                 array = [unique_vals[x % len(unique_vals)] for x in range(num_values)]
             self.df = pd.DataFrame({self.column: array})
-            self.mp = MetaPartition(
-                label=self.table, data={"core": self.df}, metadata_version=4
-            )
+            self.mp = MetaPartition(label=self.table, data=self.df, metadata_version=4)
             self.mp_indices = self.mp.build_indices([self.column])
             self.merge_indices.append(self.mp_indices)
 

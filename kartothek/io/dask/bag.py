@@ -21,6 +21,7 @@ from kartothek.io.dask._utils import (
 )
 from kartothek.io_components.index import update_indices_from_partitions
 from kartothek.io_components.metapartition import (
+    SINGLE_TABLE,
     MetaPartition,
     parse_input_to_metapartition,
 )
@@ -54,7 +55,6 @@ def _load_and_concat_metapartitions_inner(mps, *args, **kwargs):
 def read_dataset_as_metapartitions_bag(
     dataset_uuid=None,
     store=None,
-    tables=None,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -110,7 +110,6 @@ def read_dataset_as_metapartitions_bag(
         mps = mps.map(
             _load_and_concat_metapartitions_inner,
             store=store,
-            tables=tables,
             columns=columns,
             categoricals=categoricals,
             predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -121,7 +120,6 @@ def read_dataset_as_metapartitions_bag(
         mps = mps.map(
             MetaPartition.load_dataframes,
             store=store,
-            tables=tables,
             columns=columns,
             categoricals=categoricals,
             predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -149,7 +147,6 @@ def read_dataset_as_metapartitions_bag(
 def read_dataset_as_dataframe_bag(
     dataset_uuid=None,
     store=None,
-    tables=None,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -176,7 +173,6 @@ def read_dataset_as_dataframe_bag(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        tables=tables,
         columns=columns,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -206,6 +202,7 @@ def store_bag_as_dataset(
     partition_on=None,
     metadata_storage_format=naming.DEFAULT_METADATA_STORAGE_FORMAT,
     secondary_indices=None,
+    table_name: str = SINGLE_TABLE,
 ):
     """
     Transform and store a dask.bag of dictionaries containing
@@ -231,7 +228,9 @@ def store_bag_as_dataset(
     raise_if_indices_overlap(partition_on, secondary_indices)
 
     input_to_mps = partial(
-        parse_input_to_metapartition, metadata_version=metadata_version
+        parse_input_to_metapartition,
+        metadata_version=metadata_version,
+        table_name=table_name,
     )
     mps = bag.map(input_to_mps)
 
@@ -285,11 +284,7 @@ def build_dataset_indices__bag(
         load_dataset_metadata=False,
     )
 
-    cols_to_load = {
-        table: set(columns) & set(meta.names)
-        for table, meta in ds_factory.table_meta.items()
-    }
-    cols_to_load = {table: cols for table, cols in cols_to_load.items() if cols}
+    cols_to_load = set(columns) & set(ds_factory.schema.names)
 
     mps = dispatch_metapartitions_from_factory(ds_factory)
 
@@ -298,7 +293,6 @@ def build_dataset_indices__bag(
         .map(
             MetaPartition.load_dataframes,
             store=ds_factory.store_factory,
-            tables=list(cols_to_load.keys()),
             columns=cols_to_load,
         )
         .map(MetaPartition.build_indices, columns=columns)

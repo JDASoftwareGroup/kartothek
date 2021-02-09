@@ -25,7 +25,7 @@ from kartothek.io.eager import (
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
 )
-from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
+from kartothek.io_components.metapartition import MetaPartition
 
 
 @pytest.fixture
@@ -56,9 +56,7 @@ def store_data(
         partition_on = cube.partition_columns
 
     if isinstance(df, pd.DataFrame):
-        mp = MetaPartition(
-            label=gen_uuid(), data={SINGLE_TABLE: df}, metadata_version=metadata_version
-        )
+        mp = MetaPartition(label=gen_uuid(), data=df, metadata_version=metadata_version)
 
         indices_to_build = set(cube.index_columns) & set(df.columns)
         if name == cube.seed_dataset:
@@ -442,47 +440,6 @@ class TestDiscoverDatasets:
                 partition_on=None,
             )
 
-    def test_raises_wrong_table(self, cube, function_store):
-        store_data(
-            cube=cube,
-            function_store=function_store,
-            df=MetaPartition(
-                label=gen_uuid(),
-                data={"foo": pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]})},
-                metadata_version=KTK_CUBE_METADATA_VERSION,
-            ),
-            name=cube.seed_dataset,
-        )
-        with pytest.raises(ValueError) as exc:
-            discover_datasets(cube, function_store)
-        assert (
-            str(exc.value)
-            == "Invalid datasets because table is wrong. Expected table: myseed (foo)"
-        )
-
-    def test_raises_extra_table(self, cube, function_store):
-        store_data(
-            cube=cube,
-            function_store=function_store,
-            df=MetaPartition(
-                label=gen_uuid(),
-                data={
-                    SINGLE_TABLE: pd.DataFrame(
-                        {"x": [0], "y": [0], "p": [0], "q": [0]}
-                    ),
-                    "foo": pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
-                },
-                metadata_version=KTK_CUBE_METADATA_VERSION,
-            ).build_indices(["x", "y"]),
-            name=cube.seed_dataset,
-        )
-        with pytest.raises(ValueError) as exc:
-            discover_datasets(cube, function_store)
-        assert (
-            str(exc.value)
-            == "Invalid datasets because table is wrong. Expected table: myseed (foo, table)"
-        )
-
     def test_raises_dtypes(self, cube, function_store):
         store_data(
             cube=cube,
@@ -541,7 +498,7 @@ class TestDiscoverDatasets:
             function_store=function_store,
             df=MetaPartition(
                 label=gen_uuid(),
-                data={SINGLE_TABLE: pd.DataFrame({"x": [0], "p": [0], "q": [0]})},
+                data=pd.DataFrame({"x": [0], "p": [0], "q": [0]}),
                 metadata_version=KTK_CUBE_METADATA_VERSION,
             ).build_indices(["x"]),
             name=cube.seed_dataset,
@@ -578,9 +535,7 @@ class TestDiscoverDatasets:
             function_store=function_store,
             df=MetaPartition(
                 label=gen_uuid(),
-                data={
-                    SINGLE_TABLE: pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]})
-                },
+                data=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
                 metadata_version=KTK_CUBE_METADATA_VERSION,
             ),
             name=cube.seed_dataset,
@@ -598,9 +553,7 @@ class TestDiscoverDatasets:
             function_store=function_store,
             df=MetaPartition(
                 label=gen_uuid(),
-                data={
-                    SINGLE_TABLE: pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]})
-                },
+                data=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
                 metadata_version=KTK_CUBE_METADATA_VERSION,
             ).build_indices(["x", "y"]),
             name=cube.seed_dataset,
@@ -610,11 +563,9 @@ class TestDiscoverDatasets:
             function_store=function_store,
             df=MetaPartition(
                 label=gen_uuid(),
-                data={
-                    SINGLE_TABLE: pd.DataFrame(
-                        {"x": [0], "y": [0], "p": [0], "q": [0], "i1": [1337]}
-                    )
-                },
+                data=pd.DataFrame(
+                    {"x": [0], "y": [0], "p": [0], "q": [0], "i1": [1337]}
+                ),
                 metadata_version=KTK_CUBE_METADATA_VERSION,
             ),
             name="enrich",
@@ -633,11 +584,9 @@ class TestDiscoverDatasets:
                 function_store=function_store,
                 df=MetaPartition(
                     label=gen_uuid(),
-                    data={
-                        SINGLE_TABLE: pd.DataFrame(
-                            {"x": [0], "y": [0], "p": [0], "q": [0], "v1": [0]}
-                        )
-                    },
+                    data=pd.DataFrame(
+                        {"x": [0], "y": [0], "p": [0], "q": [0], "v1": [0]}
+                    ),
                     metadata_version=KTK_CUBE_METADATA_VERSION,
                 ).build_indices(["x", "y", "v1"]),
                 name=cube.seed_dataset,
@@ -647,18 +596,16 @@ class TestDiscoverDatasets:
                 function_store=function_store,
                 df=MetaPartition(
                     label=gen_uuid(),
-                    data={
-                        SINGLE_TABLE: pd.DataFrame(
-                            {
-                                "x": [0],
-                                "y": [0],
-                                "p": [0],
-                                "q": [0],
-                                "i1": [1337],
-                                "v2": [42],
-                            }
-                        )
-                    },
+                    data=pd.DataFrame(
+                        {
+                            "x": [0],
+                            "y": [0],
+                            "p": [0],
+                            "q": [0],
+                            "i1": [1337],
+                            "v2": [42],
+                        }
+                    ),
                     metadata_version=KTK_CUBE_METADATA_VERSION,
                 ).build_indices(["i1", "x", "v2"]),
                 name="enrich",
@@ -680,11 +627,7 @@ class TestDiscoverDatasets:
                 function_store=function_store,
                 df=MetaPartition(
                     label=gen_uuid(),
-                    data={
-                        SINGLE_TABLE: pd.DataFrame(
-                            {"x": [0], "y": [0], "i1": [1337], "v2": [42]}
-                        )
-                    },
+                    data=pd.DataFrame({"x": [0], "y": [0], "i1": [1337], "v2": [42]}),
                     metadata_version=KTK_CUBE_METADATA_VERSION,
                 ),
                 name="enrich",
@@ -722,11 +665,7 @@ class TestDiscoverDatasets:
                 function_store=function_store,
                 df=MetaPartition(
                     label=gen_uuid(),
-                    data={
-                        SINGLE_TABLE: pd.DataFrame(
-                            {"x": [0], "y": [0], "p": [0], "q": [0]}
-                        )
-                    },
+                    data=pd.DataFrame({"x": [0], "y": [0], "p": [0], "q": [0]}),
                     metadata_version=KTK_CUBE_METADATA_VERSION,
                 ).build_indices(["x", "y"]),
                 name=cube.seed_dataset,
@@ -736,11 +675,7 @@ class TestDiscoverDatasets:
                 function_store=function_store,
                 df=MetaPartition(
                     label=gen_uuid(),
-                    data={
-                        SINGLE_TABLE: pd.DataFrame(
-                            {"x": [0], "p": [0], "q": [0], "v1": [42]}
-                        )
-                    },
+                    data=pd.DataFrame({"x": [0], "p": [0], "q": [0], "v1": [42]}),
                     metadata_version=KTK_CUBE_METADATA_VERSION,
                 ),
                 name="x",
@@ -750,11 +685,7 @@ class TestDiscoverDatasets:
                 function_store=function_store,
                 df=MetaPartition(
                     label=gen_uuid(),
-                    data={
-                        SINGLE_TABLE: pd.DataFrame(
-                            {"y": [0], "p": [0], "q": [0], "v2": [42]}
-                        )
-                    },
+                    data=pd.DataFrame({"y": [0], "p": [0], "q": [0], "v2": [42]}),
                     metadata_version=KTK_CUBE_METADATA_VERSION,
                 ),
                 name="y",

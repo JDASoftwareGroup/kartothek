@@ -100,11 +100,10 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
 def read_dataset_as_dataframes(
     dataset_uuid: Optional[str] = None,
     store=None,
-    tables: Optional[List[str]] = None,
     columns: Dict[str, List[str]] = None,
     concat_partitions_on_primary_index: bool = False,
     predicate_pushdown_to_io: bool = True,
-    categoricals: Dict[str, List[str]] = None,
+    categoricals: List[str] = None,
     label_filter: Callable = None,
     dates_as_object: bool = False,
     predicates: Optional[List[List[Tuple[str, str, Any]]]] = None,
@@ -147,7 +146,6 @@ def read_dataset_as_dataframes(
     )
 
     mps = read_dataset_as_metapartitions(
-        tables=tables,
         columns=columns,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -166,7 +164,6 @@ def read_dataset_as_dataframes(
 def read_dataset_as_metapartitions(
     dataset_uuid=None,
     store=None,
-    tables=None,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -213,19 +210,9 @@ def read_dataset_as_metapartitions(
         load_dataset_metadata=False,
     )
 
-    if len(ds_factory.tables) > 1:
-        warnings.warn(
-            "Trying to read a dataset with multiple internal tables. This functionality will be removed in the next "
-            "major release. If you require a multi tabled data format, we recommend to switch to the kartothek Cube "
-            "functionality. "
-            "https://kartothek.readthedocs.io/en/stable/guide/cube/kartothek_cubes.html",
-            DeprecationWarning,
-        )
-
     from .iter import read_dataset_as_metapartitions__iterator
 
     ds_iter = read_dataset_as_metapartitions__iterator(
-        tables=tables,
         columns=columns,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -265,11 +252,10 @@ def _check_compatible_list(table, obj, argument_name=""):
 def read_table(
     dataset_uuid: Optional[str] = None,
     store=None,
-    table: Optional[str] = SINGLE_TABLE,
     columns: Dict[str, List[str]] = None,
     concat_partitions_on_primary_index: bool = False,
     predicate_pushdown_to_io: bool = True,
-    categoricals: Dict[str, List[str]] = None,
+    categoricals: List[str] = None,
     label_filter: Callable = None,
     dates_as_object: bool = False,
     predicates: Optional[List[List[Tuple[str, str, Any]]]] = None,
@@ -309,12 +295,6 @@ def read_table(
             DeprecationWarning,
         )
 
-    if not isinstance(table, str):
-        raise TypeError("Argument `table` needs to be a string")
-
-    columns = _check_compatible_list(table, columns, "columns")
-    categoricals = _check_compatible_list(table, categoricals, "categoricals")
-
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -322,7 +302,6 @@ def read_table(
         load_dataset_metadata=False,
     )
     partitions = read_dataset_as_dataframes(
-        tables=[table],
         columns=columns,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -333,16 +312,13 @@ def read_table(
         factory=ds_factory,
     )
 
-    empty_df = empty_dataframe_from_schema(
-        schema=ds_factory.table_meta[table],
-        columns=columns[table] if columns is not None else None,
-    )
+    empty_df = empty_dataframe_from_schema(schema=ds_factory.schema, columns=columns,)
     if categoricals:
-        empty_df = empty_df.astype({col: "category" for col in categoricals[table]})
-    dfs = [partition_data[table] for partition_data in partitions] + [empty_df]
+        empty_df = empty_df.astype({col: "category" for col in categoricals})
+    dfs = [partition_data for partition_data in partitions] + [empty_df]
     # require meta 4 otherwise, can't construct types/columns
     if categoricals:
-        dfs = align_categories(dfs, categoricals[table])
+        dfs = align_categories(dfs, categoricals)
     df = pd.concat(dfs, ignore_index=True, sort=False)
 
     # ensure column order
@@ -350,6 +326,9 @@ def read_table(
         df = df.reindex(empty_df.columns, copy=False, axis=1)
 
     return df
+
+
+# TODO: fix docs
 
 
 @default_docs
@@ -455,6 +434,12 @@ def commit_dataset(
         raise ValueError(
             "Need to provide either new data, new metadata or a delete scope. None of it was provided."
         )
+    if new_partitions:
+        tables_in_partitions = {mp.table_name for mp in new_partitions}
+        if len(tables_in_partitions) > 1:
+            raise RuntimeError(
+                f"Cannot commit more than one table to a dataset but got tables {sorted(tables_in_partitions)}"
+            )
     store = lazy_store(store)
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
@@ -465,7 +450,9 @@ def commit_dataset(
     )
 
     mps = parse_input_to_metapartition(
-        new_partitions, metadata_version=metadata_version
+        new_partitions,
+        metadata_version=metadata_version,
+        table_name=ds_factory.table_name,
     )
 
     if secondary_indices:
@@ -488,7 +475,7 @@ def commit_dataset(
 def _maybe_infer_files_attribute(metapartition, dataset_uuid):
     new_mp = metapartition.as_sentinel()
     for mp in metapartition:
-        if len(mp.files) == 0:
+        if mp.file is None:
             if mp.data is None or len(mp.data) == 0:
                 raise ValueError(
                     "Trying to commit partitions without `data` or `files` information."
@@ -522,8 +509,9 @@ def store_dataframes_as_dataset(
     df_serializer: Optional[ParquetSerializer] = None,
     overwrite: bool = False,
     secondary_indices=None,
-    metadata_storage_format: str = DEFAULT_METADATA_STORAGE_FORMAT,
-    metadata_version: int = DEFAULT_METADATA_VERSION,
+    metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
+    metadata_version=DEFAULT_METADATA_VERSION,
+    table_name: str = SINGLE_TABLE,
 ):
     """
     Utility function to store a list of dataframes as a partitioned dataset with multiple tables (files).
@@ -555,6 +543,7 @@ def store_dataframes_as_dataset(
         secondary_indices=secondary_indices,
         metadata_storage_format=metadata_storage_format,
         metadata_version=metadata_version,
+        table_name=table_name,
     )
 
 
@@ -563,12 +552,13 @@ def store_dataframes_as_dataset(
 def create_empty_dataset_header(
     store,
     dataset_uuid,
-    table_meta,
+    schema,
     partition_on=None,
     metadata=None,
     overwrite=False,
     metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
     metadata_version=DEFAULT_METADATA_VERSION,
+    table_name: str = SINGLE_TABLE,
 ):
     """
     Create an dataset header without any partitions. This may be used in combination
@@ -590,20 +580,16 @@ def create_empty_dataset_header(
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
 
-    for table, schema in table_meta.items():
-        table_meta[table] = make_meta(schema, origin=table, partition_keys=partition_on)
-        store_schema_metadata(
-            schema=table_meta[table],
-            dataset_uuid=dataset_uuid,
-            store=store,
-            table=table,
-        )
+    schema = make_meta(schema, origin=table_name, partition_keys=partition_on)
+    store_schema_metadata(
+        schema=schema, dataset_uuid=dataset_uuid, store=store, table=table_name,
+    )
     dataset_builder = DatasetMetadataBuilder(
         uuid=dataset_uuid,
         metadata_version=metadata_version,
         partition_keys=partition_on,
         explicit_partitions=False,
-        table_meta=table_meta,
+        schema=schema,
     )
     if metadata:
         for key, value in metadata.items():
@@ -635,6 +621,7 @@ def write_single_partition(
     partition_on: Optional[List[str]] = None,
     factory=None,
     secondary_indices=None,
+    table_name: str = SINGLE_TABLE,
 ):
     """
     Write the parquet file(s) for a single partition. This will **not** update the dataset header and can therefore
@@ -685,15 +672,22 @@ def write_single_partition(
 
     if data is None:
         raise TypeError("The parameter `data` is not optional")
-    _, ds_metadata_version, partition_on = validate_partition_keys(
+    dataset_factory, ds_metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=lazy_store(store),
         ds_factory=factory,
         default_metadata_version=metadata_version,
         partition_on=partition_on,
     )
+    if dataset_factory.table_name:
+        if dataset_factory.table_name != table_name:
+            raise RuntimeError(
+                f"Trying to write a partition with table name {table_name} but dataset {dataset_factory.dataset_uuid} has already table {dataset_factory.table_name}."
+            )
+    mp = parse_input_to_metapartition(
+        obj=data, metadata_version=ds_metadata_version, table_name=table_name
+    )
 
-    mp = parse_input_to_metapartition(obj=data, metadata_version=ds_metadata_version)
     if partition_on:
         mp = mp.partition_on(partition_on)
 
@@ -724,6 +718,7 @@ def update_dataset_from_dataframes(
     load_dynamic_metadata: bool = True,
     sort_partitions_by: Optional[str] = None,
     secondary_indices: Optional[List[str]] = None,
+    table_name: str = SINGLE_TABLE,
     factory: Optional[DatasetFactory] = None,
 ) -> DatasetMetadata:
     """
@@ -768,9 +763,7 @@ def update_dataset_from_dataframes(
     del secondary_indices
 
     mp = parse_input_to_metapartition(
-        df_list,
-        metadata_version=metadata_version,
-        expected_secondary_indices=inferred_indices,
+        df_list, metadata_version=metadata_version, table_name=table_name,
     )
 
     if sort_partitions_by:
@@ -816,19 +809,11 @@ def build_dataset_indices(store, dataset_uuid, columns, factory=None):
         load_dataset_metadata=False,
     )
 
-    cols_to_load = {
-        table: set(columns) & set(meta.names)
-        for table, meta in ds_factory.table_meta.items()
-    }
-    cols_to_load = {table: cols for table, cols in cols_to_load.items() if cols}
+    cols_to_load = set(columns) & set(ds_factory.schema.names)
 
     new_partitions = []
     for mp in dispatch_metapartitions_from_factory(ds_factory):
-        mp = mp.load_dataframes(
-            store=ds_factory.store,
-            tables=list(cols_to_load.keys()),
-            columns=cols_to_load,
-        )
+        mp = mp.load_dataframes(store=ds_factory.store, columns=cols_to_load,)
         mp = mp.build_indices(columns=columns)
         mp = mp.remove_dataframes()  # Remove dataframe from memory
         new_partitions.append(mp)

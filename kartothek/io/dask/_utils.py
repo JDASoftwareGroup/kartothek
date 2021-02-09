@@ -26,10 +26,7 @@ def _get_data(mp, table=None):
     """
     Task to avoid serialization of lambdas
     """
-    if table:
-        return mp.data[table]
-    else:
-        return mp.data
+    return mp.data
 
 
 def _cast_categorical_to_index_cat(df, categories):
@@ -65,14 +62,10 @@ def _maybe_get_categoricals_from_index(dataset_metadata_factory, categoricals):
     """
     categoricals_from_index = {}
     if categoricals:
-        for table, table_cat in categoricals.items():
-            if not table_cat:
-                continue
-            categoricals_from_index[table] = {}
-            for cat in table_cat:
-                if cat in dataset_metadata_factory.indices:
-                    cat_dtype = _construct_categorical(cat, dataset_metadata_factory)
-                    categoricals_from_index[table][cat] = cat_dtype
+        for column in categoricals:
+            if column in dataset_metadata_factory.indices:
+                cat_dtype = _construct_categorical(column, dataset_metadata_factory)
+                categoricals_from_index[column] = cat_dtype
     return categoricals_from_index
 
 
