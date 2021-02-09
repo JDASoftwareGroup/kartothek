@@ -3,6 +3,7 @@ from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
 
 import pandas as pd
+from simplekv import KeyValueStore
 
 from kartothek.core.common_metadata import (
     empty_dataframe_from_schema,
@@ -44,6 +45,7 @@ from kartothek.io_components.utils import (
 )
 from kartothek.io_components.write import raise_if_dataset_exists
 from kartothek.serialization import DataFrameSerializer
+from kartothek.serialization._parquet import ParquetSerializer
 
 
 @default_docs
@@ -499,16 +501,16 @@ def _maybe_infer_files_attribute(metapartition, dataset_uuid):
 @default_docs
 @normalize_args
 def store_dataframes_as_dataset(
-    store,
-    dataset_uuid,
-    dfs,
-    metadata=None,
-    partition_on=None,
-    df_serializer=None,
-    overwrite=False,
+    store: KeyValueStore,
+    dataset_uuid: str,
+    dfs: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    partition_on: Optional[List[str]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
+    overwrite: bool = False,
     secondary_indices=None,
-    metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
-    metadata_version=DEFAULT_METADATA_VERSION,
+    metadata_storage_format: str = DEFAULT_METADATA_STORAGE_FORMAT,
+    metadata_version: int = DEFAULT_METADATA_VERSION,
 ):
     """
     Utility function to store a list of dataframes as a partitioned dataset with multiple tables (files).
@@ -517,7 +519,7 @@ def store_dataframes_as_dataset(
 
     Parameters
     ----------
-    dfs: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]
+    dfs:
         The dataframe(s) to be stored.
 
     Returns
@@ -613,15 +615,15 @@ def create_empty_dataset_header(
 @default_docs
 @normalize_args
 def write_single_partition(
-    store=None,
-    dataset_uuid=None,
+    store: Optional[KeyValueStore] = None,
+    dataset_uuid: Optional[str] = None,
     data=None,
-    metadata=None,
-    df_serializer=None,
-    overwrite=False,
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
+    overwrite: bool = False,
     metadata_merger=None,
-    metadata_version=DEFAULT_METADATA_VERSION,
-    partition_on=None,
+    metadata_version: int = DEFAULT_METADATA_VERSION,
+    partition_on: Optional[List[str]] = None,
     factory=None,
     secondary_indices=None,
 ):
@@ -701,14 +703,14 @@ def write_single_partition(
 @normalize_args
 def update_dataset_from_dataframes(
     df_list: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
-    store=None,
+    store: Optional[KeyValueStore] = None,
     dataset_uuid: Optional[str] = None,
     delete_scope=None,
     metadata=None,
-    df_serializer=None,
+    df_serializer: Optional[ParquetSerializer] = None,
     metadata_merger: Callable = None,
     central_partition_metadata: bool = True,
-    default_metadata_version=DEFAULT_METADATA_VERSION,
+    default_metadata_version: int = DEFAULT_METADATA_VERSION,
     partition_on: Optional[List[str]] = None,
     load_dynamic_metadata: bool = True,
     sort_partitions_by: Optional[str] = None,
@@ -722,7 +724,7 @@ def update_dataset_from_dataframes(
 
     Parameters
     ----------
-    df_list: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]
+    df_list:
         The dataframe(s) to be stored.
 
     Returns

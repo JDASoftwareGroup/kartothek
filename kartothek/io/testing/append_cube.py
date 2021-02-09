@@ -10,16 +10,21 @@ from kartothek.core.cube.constants import (
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.io.eager_cube import build_cube
+from kartothek.io.testing.utils import assert_num_row_groups
+from kartothek.serialization._parquet import ParquetSerializer
 
 __all__ = (
     "existing_cube",
     "test_append_partitions",
     "test_append_partitions_no_ts",
+    "test_compression_is_compatible_on_append_cube",
     "test_fails_incompatible_dtypes",
     "test_fails_missing_column",
     "test_fails_unknown_dataset",
     "test_indices",
     "test_metadata",
+    "test_rowgroups_are_applied_when_df_serializer_is_passed_to_append_cube",
+    "test_single_rowgroup_when_df_serializer_is_not_passed_to_append_cube",
 )
 
 
@@ -96,6 +101,114 @@ def test_append_partitions(driver, function_store, existing_cube):
     assert partitions_source_1.issubset(partitions_source_2)
 
     assert partitions_enrich_2 == partitions_enrich_1
+
+
+@pytest.mark.parametrize("chunk_size_build", [None, 2])
+@pytest.mark.parametrize("chunk_size_append", [None, 2])
+def test_rowgroups_are_applied_when_df_serializer_is_passed_to_append_cube(
+    driver, function_store, chunk_size_build, chunk_size_append
+):
+    """
+    Test that the dataset is split into row groups depending on the chunk size
+
+    Partitions build with ``chunk_size=None`` should keep a single row group after the append. Partitions that are newly created with
+    ``chunk_size>0`` should be split into row groups accordingly.
+    """
+
+    # Build cube
+    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    build_cube(
+        data=df,
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(chunk_size=chunk_size_build),
+    )
+
+    # Append to cube
+    df_append = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]}, columns=["x", "p"],
+    )
+    result = driver(
+        data={"seed": df_append},
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(chunk_size=chunk_size_append),
+    )
+    dataset = result["seed"].load_all_indices(function_store())
+
+    part_num_rows = {0: 2, 1: 2, 2: 1, 3: 3}
+    part_chunk_size = {
+        0: chunk_size_build,
+        1: chunk_size_build,
+        2: chunk_size_append,
+        3: chunk_size_append,
+    }
+
+    assert len(dataset.partitions) == 4
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
+
+
+def test_single_rowgroup_when_df_serializer_is_not_passed_to_append_cube(
+    driver, function_store
+):
+    """
+    Test that the dataset has a single row group as default path
+    """
+
+    # Build cube
+    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    build_cube(
+        data=df, cube=cube, store=function_store,
+    )
+
+    # Append to cube
+    df_append = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]}, columns=["x", "p"],
+    )
+    result = driver(data={"seed": df_append}, cube=cube, store=function_store,)
+    dataset = result["seed"].load_all_indices(function_store())
+
+    part_num_rows = {0: 2, 1: 2, 2: 1, 3: 3}
+    part_chunk_size = {0: None, 1: None, 2: None, 3: None}
+
+    assert len(dataset.partitions) == 4
+    assert_num_row_groups(function_store(), dataset, part_num_rows, part_chunk_size)
+
+
+def test_compression_is_compatible_on_append_cube(driver, function_store):
+    """
+    Test that partitons written with different compression algorithms are compatible
+
+    The compression algorithms are not parametrized because their availability depends
+    on the arrow build. 'SNAPPY' and 'GZIP' are already assumed to be available in parts
+    of the code. A fully parametrized test would also increase runtime and test complexity
+    unnecessarily.
+    """
+    # Build cube
+    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
+    build_cube(
+        data=df,
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(compression="SNAPPY"),
+    )
+
+    # Append to cube
+    df_append = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]}, columns=["x", "p"],
+    )
+    result = driver(
+        data={"seed": df_append},
+        cube=cube,
+        store=function_store,
+        df_serializer=ParquetSerializer(compression="GZIP"),
+    )
+    dataset = result["seed"].load_all_indices(function_store())
+
+    assert len(dataset.partitions) == 4
 
 
 def test_append_partitions_no_ts(driver, function_store):

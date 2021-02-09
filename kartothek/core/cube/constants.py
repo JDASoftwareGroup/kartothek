@@ -23,7 +23,7 @@ __all__ = (
 #
 
 
-#: DataFrame serializer that is be used to write data.
+#: Default DataFrame serializer that is be used to write data if not specified otherwise.
 KTK_CUBE_DF_SERIALIZER = ParquetSerializer(compression="ZSTD")
 
 #: Storage format for kartothek metadata that is be used by default.

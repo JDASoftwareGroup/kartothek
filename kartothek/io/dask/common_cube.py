@@ -3,9 +3,10 @@ Common code for dask backends.
 """
 from collections import defaultdict
 from functools import partial
-from typing import Dict
+from typing import Any, Dict, Iterable, Mapping, Optional, Set
 
 import dask.bag as db
+from simplekv import KeyValueStore
 
 from kartothek.api.consistency import get_cube_payload
 from kartothek.api.discover import discover_datasets, discover_datasets_unchecked
@@ -16,6 +17,7 @@ from kartothek.core.cube.constants import (
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadataBase
+from kartothek.core.typing import StoreFactory
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.common import check_blocksize, check_store_factory
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
@@ -42,6 +44,7 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import metadata_factory_from_dataset
 
 __all__ = (
@@ -53,7 +56,7 @@ __all__ = (
 
 
 def ensure_valid_cube_indices(
-    existing_datasets: Dict[str, DatasetMetadataBase], cube: Cube
+    existing_datasets: Mapping[str, DatasetMetadataBase], cube: Cube
 ) -> Cube:
     """
     Parse all existing datasets and infer the required set of indices. We do not
@@ -84,29 +87,38 @@ def ensure_valid_cube_indices(
 
 
 def build_cube_from_bag_internal(
-    data, cube, store, ktk_cube_dataset_ids, metadata, overwrite, partition_on
-):
+    data: db.Bag,
+    cube: Cube,
+    store: StoreFactory,
+    ktk_cube_dataset_ids: Optional[Iterable[str]],
+    metadata: Optional[Dict[str, Dict[str, Any]]],
+    overwrite: bool,
+    partition_on: Optional[Dict[str, Iterable[str]]],
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> db.Bag:
     """
     Create dask computation graph that builds a cube with the data supplied from a dask bag.
 
     Parameters
     ----------
-    data: dask.Bag
+    data:
         Bag containing dataframes
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: Callable[[], simplekv.KeyValueStore]
+    store:
         Store to which the data should be written to.
-    ktk_cube_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids:
         Datasets that will be written, must be specified in advance. If left unprovided, it is assumed that only the
         seed dataset will be written.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset.
-    overwrite: bool
+    overwrite:
         If possibly existing datasets should be overwritten.
-    partition_on: Optional[Dict[str, Iterable[str]]]
+    partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer:
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -124,7 +136,9 @@ def build_cube_from_bag_internal(
     metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
     existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, store)
     check_datasets_prebuild(ktk_cube_dataset_ids, cube, existing_datasets)
-    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
+    prep_partition_on = prepare_ktk_partition_on(
+        cube, ktk_cube_dataset_ids, partition_on
+    )
     cube = ensure_valid_cube_indices(existing_datasets, cube)
 
     data = (
@@ -134,7 +148,7 @@ def build_cube_from_bag_internal(
             _multiplex_prepare_data_for_ktk,
             cube=cube,
             existing_payload=set(),
-            partition_on=partition_on,
+            partition_on=prep_partition_on,
         )
     )
 
@@ -152,6 +166,7 @@ def build_cube_from_bag_internal(
         overwrite=overwrite,
         update=False,
         existing_datasets=existing_datasets,
+        df_serializer=df_serializer,
     )
 
     data = data.map(
@@ -165,8 +180,15 @@ def build_cube_from_bag_internal(
 
 
 def extend_cube_from_bag_internal(
-    data, cube, store, ktk_cube_dataset_ids, metadata, overwrite, partition_on
-):
+    data: db.Bag,
+    cube: Cube,
+    store: KeyValueStore,
+    ktk_cube_dataset_ids: Optional[Iterable[str]],
+    metadata: Optional[Dict[str, Dict[str, Any]]],
+    overwrite: bool,
+    partition_on: Optional[Dict[str, Iterable[str]]],
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> db.Bag:
     """
     Create dask computation graph that extends a cube by the data supplied from a dask bag.
 
@@ -174,21 +196,23 @@ def extend_cube_from_bag_internal(
 
     Parameters
     ----------
-    data: dask.Bag
+    data:
         Bag containing dataframes (see :meth:`build_cube` for possible format and types).
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: simplekv.KeyValueStore
+    store:
         Store to which the data should be written to.
-    ktk_cube_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids:
         Datasets that will be written, must be specified in advance.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset.
-    overwrite: bool
+    overwrite:
         If possibly existing datasets should be overwritten.
-    partition_on: Optional[Dict[str, Iterable[str]]]
+    partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer:
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -198,9 +222,14 @@ def extend_cube_from_bag_internal(
     """
     check_store_factory(store)
     check_datasets_preextend(ktk_cube_dataset_ids, cube)
-    ktk_cube_dataset_ids = sorted(ktk_cube_dataset_ids)
+    if ktk_cube_dataset_ids:
+        ktk_cube_dataset_ids = sorted(ktk_cube_dataset_ids)
+    else:
+        ktk_cube_dataset_ids = []
     metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
-    partition_on = prepare_ktk_partition_on(cube, ktk_cube_dataset_ids, partition_on)
+    prep_partition_on = prepare_ktk_partition_on(
+        cube, ktk_cube_dataset_ids, partition_on
+    )
 
     existing_datasets = discover_datasets(cube, store)
     cube = ensure_valid_cube_indices(existing_datasets, cube)
@@ -221,7 +250,7 @@ def extend_cube_from_bag_internal(
             _multiplex_prepare_data_for_ktk,
             cube=cube,
             existing_payload=existing_payload,
-            partition_on=partition_on,
+            partition_on=prep_partition_on,
         )
     )
 
@@ -239,6 +268,7 @@ def extend_cube_from_bag_internal(
         overwrite=overwrite,
         update=False,
         existing_datasets=existing_datasets,
+        df_serializer=df_serializer,
     )
 
     data = data.map(
@@ -334,8 +364,14 @@ def query_cube_bag_internal(
 
 
 def append_to_cube_from_bag_internal(
-    data, cube, store, ktk_cube_dataset_ids, metadata, remove_conditions=None
-):
+    data: db.Bag,
+    cube: Cube,
+    store: StoreFactory,
+    ktk_cube_dataset_ids: Optional[Iterable[str]],
+    metadata: Optional[Dict[str, Dict[str, Any]]],
+    remove_conditions=None,
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> db.Bag:
     """
     Append data to existing cube.
 
@@ -349,19 +385,21 @@ def append_to_cube_from_bag_internal(
 
     Parameters
     ----------
-    data: dask.Bag
+    data:
         Bag containing dataframes
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: Callable[[], simplekv.KeyValueStore]
+    store:
         Store to which the data should be written to.
-    ktk_cube_dataset_ids: Optional[Iterable[str]]
+    ktk_cube_dataset_ids:
         Datasets that will be written, must be specified in advance.
-    metadata: Dict[str, Dict[str, Any]]
+    metadata:
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
-    remove_conditions
+    remove_conditions:
         Conditions that select which partitions to remove.
+    df_serializer:
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -370,14 +408,17 @@ def append_to_cube_from_bag_internal(
         objects. The bag has a single partition with a single element.
     """
     check_store_factory(store)
-    ktk_cube_dataset_ids = sorted(ktk_cube_dataset_ids)
+    if ktk_cube_dataset_ids:
+        ktk_cube_dataset_ids = sorted(ktk_cube_dataset_ids)
+    else:
+        ktk_cube_dataset_ids = []
     metadata = check_provided_metadata_dict(metadata, ktk_cube_dataset_ids)
 
     existing_datasets = discover_datasets(cube, store)
     cube = ensure_valid_cube_indices(existing_datasets, cube)
     # existing_payload is set to empty because we're not checking against any existing payload. ktk will account for the
     # compat check within 1 dataset
-    existing_payload = set()
+    existing_payload: Set[str] = set()
 
     partition_on = {k: v.partition_keys for k, v in existing_datasets.items()}
 
@@ -421,6 +462,7 @@ def append_to_cube_from_bag_internal(
         update=True,
         existing_datasets=existing_datasets,
         delete_scopes=delete_scopes,
+        df_serializer=df_serializer,
     )
 
     data = data.map(
@@ -482,16 +524,17 @@ def _fill_dataset_ids(dct, ktk_cube_dataset_ids):
 
 
 def _store_bag_as_dataset_parallel(
-    bag,
-    store,
-    cube,
-    ktk_cube_dataset_ids,
-    metadata,
+    bag: db.Bag,
+    store: KeyValueStore,
+    cube: Cube,
+    ktk_cube_dataset_ids: Iterable[str],
+    metadata: Optional[Dict[str, Dict[str, Any]]],
     existing_datasets,
-    overwrite=False,
-    update=False,
+    overwrite: bool = False,
+    update: bool = False,
     delete_scopes=None,
-):
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> db.Bag:
     """
     Vendored, simplified and modified version of kartotheks ``store_bag_as_dataset`` which cannot be easily used to
     store datasets in parallel (e.g. from a dict).
@@ -510,7 +553,7 @@ def _store_bag_as_dataset_parallel(
     # prepare_data_for_ktk already runs `MetaPartition.partition_on` and `MetaPartition.build_indices`, so this is not
     # required here anymore
 
-    mps = mps.map(_multiplex_store, store=store, cube=cube)
+    mps = mps.map(_multiplex_store, store=store, cube=cube, df_serializer=df_serializer)
 
     aggregate = partial(
         _multiplex_store_dataset_from_partitions_flat,
@@ -580,14 +623,19 @@ def _multiplex_store_dataset_from_partitions_flat(
     return [result]
 
 
-def _multiplex_store(data, cube, store):
+def _multiplex_store(
+    data: db.Bag,
+    cube: Cube,
+    store: StoreFactory,
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> db.Bag:
     result = {}
     for k in sorted(data.keys()):
         v = data.pop(k)
         result[k] = MetaPartition.store_dataframes(
             v,
             dataset_uuid=cube.ktk_dataset_uuid(k),
-            df_serializer=KTK_CUBE_DF_SERIALIZER,
+            df_serializer=df_serializer or KTK_CUBE_DF_SERIALIZER,
             store=store,
         )
         del v

@@ -69,8 +69,20 @@ class ParquetSerializer(DataFrameSerializer):
     _PARQUET_VERSION = "2.0"
     type_stable = True
 
-    def __init__(self, compression="SNAPPY", chunk_size=None):
+    def __init__(
+        self, compression: str = "SNAPPY", chunk_size: Optional[int] = None
+    ) -> None:
         self.compression = compression
+
+        if chunk_size is not None:
+            if not isinstance(chunk_size, int):
+                raise TypeError(
+                    "Cannot initialize ParquetSerializer because chunk size is not integer type"
+                )
+            if chunk_size < 1:
+                raise ValueError(
+                    "Cannot initialize ParquetSerializer because chunk size < 1"
+                )
         self.chunk_size = chunk_size
 
     def __eq__(self, other):

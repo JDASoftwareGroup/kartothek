@@ -15,7 +15,6 @@ import dask
 import dask.dataframe as dd
 import numpy as np
 import pandas as pd
-from simplekv import KeyValueStore
 
 from kartothek.core.common_metadata import empty_dataframe_from_schema
 from kartothek.core.docs import default_docs
@@ -455,7 +454,7 @@ def update_dataset_from_ddf(
 @default_docs
 @normalize_args
 def collect_dataset_metadata(
-    store: Optional[Callable[[], KeyValueStore]] = None,
+    store: Optional[StoreFactory] = None,
     dataset_uuid: Optional[str] = None,
     table_name: str = SINGLE_TABLE,
     predicates: Optional[PredicatesType] = None,

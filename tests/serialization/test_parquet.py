@@ -50,10 +50,27 @@ def chunk_size(request, mocker):
     return chunk_size
 
 
+@pytest.mark.parametrize("chunk_size", ["1", 1.0])
+def test_parquet_serializer_raises_on_invalid_chunk_size_type(chunk_size):
+    with pytest.raises(
+        TypeError,
+        match="Cannot initialize ParquetSerializer because chunk size is not integer type",
+    ):
+        ParquetSerializer(chunk_size=chunk_size)
+
+
+@pytest.mark.parametrize("chunk_size", [-5, 0])
+def test_parquet_serializer_raises_when_chunk_size_smaller_one(chunk_size):
+    with pytest.raises(
+        ValueError, match="Cannot initialize ParquetSerializer because chunk size < 1"
+    ):
+        ParquetSerializer(chunk_size=chunk_size)
+
+
 @pytest.mark.parametrize("use_categorical", [True, False])
 def test_rowgroup_writing(store, use_categorical, chunk_size):
-    df = pd.DataFrame({"string": ["abc", "affe", "banane", "buchstabe"]})
-    serialiser = ParquetSerializer(chunk_size=2)
+    df = pd.DataFrame({"string": ["abc", "affe", "banane", "buchstabe"] * 5})
+    serialiser = ParquetSerializer(chunk_size=chunk_size)
     # Arrow 0.9.0 has a bug in writing categorical columns to more than a single
     # RowGroup: "ArrowIOError: Column 2 had 2 while previous column had 4".
     # We have special handling for that in pandas-serialiser that should be
@@ -65,7 +82,10 @@ def test_rowgroup_writing(store, use_categorical, chunk_size):
     key = serialiser.store(store, "prefix", df_write)
 
     parquet_file = ParquetFile(store.open(key))
-    assert parquet_file.num_row_groups == 2
+    if chunk_size is None:
+        assert parquet_file.num_row_groups == 1
+    else:
+        assert parquet_file.num_row_groups == 20 / chunk_size
 
 
 _INT_TYPES = ["int8", "int16", "int32", "int64"]

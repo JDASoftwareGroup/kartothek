@@ -1,17 +1,18 @@
 """
 Dask.DataFrame IO.
 """
-from typing import Any, Callable, Dict, Iterable, Optional, Union
+from typing import Any, Dict, Iterable, Optional, Union
 
 import dask
 import dask.bag as db
 import dask.dataframe as dd
-import simplekv
 from dask.delayed import Delayed
+from simplekv import KeyValueStore
 
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
 from kartothek.core.docs import default_docs
+from kartothek.core.typing import StoreFactory
 from kartothek.io.dask.common_cube import (
     append_to_cube_from_bag_internal,
     extend_cube_from_bag_internal,
@@ -28,6 +29,7 @@ from kartothek.io_components.cube.write import (
     prepare_ktk_metadata,
     prepare_ktk_partition_on,
 )
+from kartothek.serialization._parquet import ParquetSerializer
 
 __all__ = (
     "append_to_cube_from_dataframe",
@@ -41,13 +43,14 @@ __all__ = (
 def build_cube_from_dataframe(
     data: Union[dd.DataFrame, Dict[str, dd.DataFrame]],
     cube: Cube,
-    store: Callable[[], simplekv.KeyValueStore],
+    store: StoreFactory,
     metadata: Optional[Dict[str, Dict[str, Any]]] = None,
     overwrite: bool = False,
     partition_on: Optional[Dict[str, Iterable[str]]] = None,
     shuffle: bool = False,
     num_buckets: int = 1,
     bucket_by: Optional[Iterable[str]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
 ) -> Delayed:
     """
     Create dask computation graph that builds a cube with the data supplied from a dask dataframe.
@@ -68,6 +71,8 @@ def build_cube_from_dataframe(
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer:
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -120,6 +125,7 @@ def build_cube_from_dataframe(
             shuffle=shuffle,
             num_buckets=num_buckets,
             bucket_by=bucket_by,
+            df_serializer=df_serializer,
         )
         dct[table_name] = graph
 
@@ -129,7 +135,13 @@ def build_cube_from_dataframe(
 
 
 def extend_cube_from_dataframe(
-    data, cube, store, metadata=None, overwrite=False, partition_on=None
+    data: Union[dd.DataFrame, Dict[str, dd.DataFrame]],
+    cube: Cube,
+    store: KeyValueStore,
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    overwrite: bool = False,
+    partition_on: Optional[Dict[str, Iterable[str]]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
 ):
     """
     Create dask computation graph that extends a cube by the data supplied from a dask dataframe.
@@ -138,20 +150,22 @@ def extend_cube_from_dataframe(
 
     Parameters
     ----------
-    data: Union[dask.DataFrame, Dict[str, dask.DataFrame]
+    data:
         Data that should be written to the cube. If only a single dataframe is given, it is assumed to be the seed
         dataset.
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: simplekv.KeyValueStore
+    store:
         Store to which the data should be written to.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset.
-    overwrite: bool
+    overwrite:
         If possibly existing datasets should be overwritten.
-    partition_on: Optional[Dict[str, Iterable[str]]]
+    partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
         See :ref:`Dimensionality and Partitioning Details` for details.
+    df_serializer:
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -170,6 +184,7 @@ def extend_cube_from_dataframe(
             metadata=metadata,
             overwrite=overwrite,
             partition_on=partition_on,
+            df_serializer=df_serializer,
         )
         .map_partitions(_unpack_list, default=None)
         .to_delayed()[0]
@@ -237,7 +252,13 @@ def query_cube_dataframe(
     )
 
 
-def append_to_cube_from_dataframe(data, cube, store, metadata=None):
+def append_to_cube_from_dataframe(
+    data: db.Bag,
+    cube: Cube,
+    store: KeyValueStore,
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
+    df_serializer: Optional[ParquetSerializer] = None,
+) -> db.Bag:
     """
     Append data to existing cube.
 
@@ -255,15 +276,17 @@ def append_to_cube_from_dataframe(data, cube, store, metadata=None):
 
     Parameters
     ----------
-    data: dask.Bag
+    data:
         Bag containing dataframes
-    cube: kartothek.core.cube.cube.Cube
+    cube:
         Cube specification.
-    store: simplekv.KeyValueStore
+    store:
         Store to which the data should be written to.
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata:
         Metadata for every dataset, optional. For every dataset, only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
+    df_serializer:
+        Optional Dataframe to Parquet serializer
 
     Returns
     -------
@@ -280,6 +303,7 @@ def append_to_cube_from_dataframe(data, cube, store, metadata=None):
             store=store,
             ktk_cube_dataset_ids=ktk_cube_dataset_ids,
             metadata=metadata,
+            df_serializer=df_serializer,
         )
         .map_partitions(_unpack_list, default=None)
         .to_delayed()[0]
