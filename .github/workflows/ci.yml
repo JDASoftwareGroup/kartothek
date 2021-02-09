@@ -53,6 +53,13 @@ jobs:
         run: echo $IS_MASTER_BUILD
       - name: Checkout
         uses: actions/checkout@v2
+
+      - name: Cache conda
+        uses: actions/cache@v2
+        with:
+          path: ~/conda_pkgs_dir
+          key: ${{ runner.os }}-${{ matrix.python }}-${{ matrix.pyarrow }}-${{ hashFiles('conda-requirements.txt', 'conda-test-requirements.txt')}}
+
       - name: Conda Bootstrap
         uses: conda-incubator/setup-miniconda@v2
         with:
@@ -107,7 +114,16 @@ jobs:
 
       # Tests
       - name: Pytest
-        run: pytest --cov kartothek --cov-report xml
+        run: pytest --cov-report xml
+
+      - name: Running benchmarks
+        run: |
+          asv --config ./asv_bench/asv.conf.json machine --machine github --os unknown --arch unknown --cpu unknown --ram unknown
+          asv --config ./asv_bench/asv.conf.json dev | sed "/failed$/ s/^/##[error]/" | tee benchmarks.log
+          if grep "failed" benchmarks.log > /dev/null ; then
+              exit 1
+          fi
+        if: env.IS_MASTER_BUILD == 'true'
 
       # Builds
       - name: Build Wheel
