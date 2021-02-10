@@ -11,6 +11,8 @@ from pyarrow.parquet import ParquetFile
 
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
 from kartothek.serialization._parquet import (
+    MAX_NB_RETRIES,
+    ParquetReadError,
     _predicate_accepts,
     _reset_dictionary_columns,
 )
@@ -459,3 +461,55 @@ def test_reset_dict_cols(store):
     only_a_reset = _reset_dictionary_columns(table, exclude=["colB"]).schema
     assert not pa.types.is_dictionary(only_a_reset.field("col").type)
     assert pa.types.is_dictionary(only_a_reset.field("colB").type)
+
+
+def test_retry_on_IOError(monkeypatch, caplog, store):
+    """
+    See https://github.com/JDASoftwareGroup/kartothek/issues/407 :
+    We are testing a retry-workaround for the above issue here. Once the issue is resolved,
+    this test and the workaround can be removed.
+    """
+
+    def patched__restore_dataframe(**kwargs):
+        # This kind of exception should be captured by the retry mechanism.
+        raise IOError()
+
+    df = pd.DataFrame({"A": [0, 1, 2, 3]})
+    monkeypatch.setattr(
+        ParquetSerializer, "_restore_dataframe", patched__restore_dataframe
+    )
+    serializer = ParquetSerializer()
+    key = serializer.store(store, "key", df)
+
+    with pytest.raises(ParquetReadError):
+        serializer.restore_dataframe(store=store, key=key)
+
+    assert len(caplog.records) == MAX_NB_RETRIES
+    for log_record in caplog.records:
+        assert "Failed to restore dataframe" in log_record.message
+
+
+def test_retry_fail_on_other_error(monkeypatch, caplog, store):
+    """
+    See https://github.com/JDASoftwareGroup/kartothek/issues/407 :
+    We are testing a retry-workaround for the above issue here. Once the issue is resolved,
+    this test and the workaround can be removed.
+
+    We only want to retry on OSErrors (and inherited exceptions) -- all other exceptions should be raised.
+    """
+
+    def patched__restore_dataframe(**kwargs):
+        # This should not be retried but raised immediately.
+        raise ValueError()
+
+    df = pd.DataFrame({"A": [0, 1, 2, 3]})
+    monkeypatch.setattr(
+        ParquetSerializer, "_restore_dataframe", patched__restore_dataframe
+    )
+    serializer = ParquetSerializer()
+    key = serializer.store(store, "key", df)
+
+    with pytest.raises(ValueError):
+        serializer.restore_dataframe(store=store, key=key)
+
+    assert len(caplog.records) == 0

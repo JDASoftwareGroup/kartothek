@@ -213,9 +213,10 @@ class ParquetSerializer(DataFrameSerializer):
         predicates: Optional[PredicatesType] = None,
         date_as_object: bool = False,
     ) -> pd.DataFrame:
-        # XXX: We have been seeing weired `IOError` while reading Parquet files from Azure Blob Store,
-        # thus, we implement retries at this point. This code should not live forever, it should be removed
-        # once the underlying cause has been resolved
+        # https://github.com/JDASoftwareGroup/kartothek/issues/407  We have been seeing weird `IOError`s while reading
+        # Parquet files from Azure Blob Store. These errors have caused long running computations to fail.
+        # The workaround is to retry the serialization here and gain more stability for long running tasks.
+        # This code should not live forever, it should be removed once the underlying cause has been resolved.
         for nb_retry in range(MAX_NB_RETRIES):
             try:
                 return cls._restore_dataframe(
