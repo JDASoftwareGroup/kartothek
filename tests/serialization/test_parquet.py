@@ -470,6 +470,37 @@ def test_retry_on_IOError(monkeypatch, caplog, store):
     this test and the workaround can be removed.
     """
 
+    df = pd.DataFrame({"A": [0, 1, 2, 3]})
+
+    retry_count = 0
+
+    def patched__restore_dataframe(**kwargs):
+        nonlocal retry_count
+        retry_count += 1
+
+        if not retry_count > 1:
+            # fail for the first try
+            raise IOError()
+        elif retry_count > 1:
+            # simulate a successful retry
+            return df
+
+    monkeypatch.setattr(
+        ParquetSerializer, "_restore_dataframe", patched__restore_dataframe
+    )
+    serializer = ParquetSerializer()
+    key = serializer.store(store, "key", df)
+    df_result = serializer.restore_dataframe(store=store, key=key)
+    pdt.assert_frame_equal(df, df_result)
+
+
+def test_retries_on_IOError_logs(monkeypatch, caplog, store):
+    """
+    See https://github.com/JDASoftwareGroup/kartothek/issues/407 :
+    We are testing a retry-workaround for the above issue here. Once the issue is resolved,
+    this test and the workaround can be removed.
+    """
+
     def patched__restore_dataframe(**kwargs):
         # This kind of exception should be captured by the retry mechanism.
         raise IOError()
@@ -498,11 +529,12 @@ def test_retry_fail_on_other_error(monkeypatch, caplog, store):
     We only want to retry on OSErrors (and inherited exceptions) -- all other exceptions should be raised.
     """
 
+    df = pd.DataFrame({"A": [0, 1, 2, 3]})
+
     def patched__restore_dataframe(**kwargs):
         # This should not be retried but raised immediately.
         raise ValueError()
 
-    df = pd.DataFrame({"A": [0, 1, 2, 3]})
     monkeypatch.setattr(
         ParquetSerializer, "_restore_dataframe", patched__restore_dataframe
     )
