@@ -10,7 +10,9 @@ Version 3.19.0 (2021-02-XY)
   state after the update
 * Expose compression type and row group chunk size in Cube interface via optional
   parameter of type :class:`~kartothek.serialization.ParquetSerializer`.
-* Add retries to  :func:`~kartothek.serialization.parquet.ParquetSerializer.restore_dataframe`
+* Add retries to  :func:`~kartothek.serialization._parquet.ParquetSerializer.restore_dataframe`
+  IOErrors on long running ktk + dask tasks have been observed. Until the root cause is fixed,
+  the serialization is retried to gain more stability.
 
 Version 3.18.0 (2021-01-25)
 ===========================
