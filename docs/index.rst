@@ -28,7 +28,7 @@ these datasets in data pipelines. Kartothek handles I/O, tracks dataset
 partitions and selects subsets of data transparently.
 
 To get started, have a look at our :doc:`guide/getting_started` guide,
-head to the description of the :doc:`spec/index` or head straight to the API documentation :doc:`api`.
+head to the description of the :doc:`spec/format_specification` or head straight to the API documentation :doc:`api`.
 
 What is a (real) Kartothek?
 ---------------------------
@@ -73,12 +73,12 @@ A Kartothek (or more modern: Zettelkasten/Katalogkasten) is a tool to organize
    :caption: Background
    :hidden:
 
-   Specification <spec/index>
+   Specification <spec/format_specification>
    Type System <spec/type_system>
    DataFrame Serialization <spec/serialization>
    KeyValueStore Interface <spec/store_interface>
    Storage Layout <spec/storage_layout>
-   Partition Indices <spec/partition_indices>
+   Indexing <spec/indexing>
    Efficient Querying <spec/efficient_querying>
    Parallel Execution with Dask <spec/parallel_dask>
 

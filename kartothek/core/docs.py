@@ -144,7 +144,9 @@ _PARAMETER_MAPPING = {
             When using order sensitive operators on categorical data we will
             assume that the categories obey a lexicographical ordering.
             This filtering may result in less than optimal performance and may
-            be slower than the evaluation on non-categorical data.""",
+            be slower than the evaluation on non-categorical data.
+
+        See also :ref:`predicate_pushdown` and :ref:`efficient_querying`""",
     "secondary_indices": """
     secondary_indices: List[str]
         A list of columns for which a secondary index should be calculated.""",

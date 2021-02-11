@@ -35,6 +35,24 @@ _PARTITION_COLUMN_NAME = "partition"
 
 
 class IndexBase(CopyMixin):
+    """
+    Initialize an IndexBase.
+
+    Parameters
+    ----------
+    column
+        Name of the column this index is for.
+    index_dct
+        Mapping from index values to partition labels
+    dtype
+        Type of index. If left out and ``index_dct`` is present, this will be inferred.
+    normalize_dtype
+        Normalize type information and values within ``index_dct``. The user may
+        disable this when it the index was already normalized, e.g. when the
+        index python objects gets copied, or when the index data is restored
+        from a parquet file that was written by a trusted write path.
+    """
+
     def __init__(
         self,
         column: str,
@@ -42,23 +60,6 @@ class IndexBase(CopyMixin):
         dtype: Optional[pa.DataType] = None,
         normalize_dtype: bool = True,
     ):
-        """
-        Initialize an IndexBase.
-
-        Parameters
-        ----------
-        column
-            Name of the column this index is for.
-        index_dct
-            Mapping from index values to partition labels
-        dtype
-            Type of index. If left out and ``index_dct`` is present, this will be inferred.
-        normalize_dtype
-            Normalize type information and values within ``index_dct``. The user may
-            disable this when it the index was already normalized, e.g. when the
-            index python objects gets copied, or when the index data is restored
-            from a parquet file that was written by a trusted write path.
-        """
         if column == _PARTITION_COLUMN_NAME:
             raise ValueError(
                 "Cannot create an index for column {} due to an internal implementation conflict. "

@@ -95,9 +95,15 @@ refine them based on your results.
 * Look for the right sizing of the parquet files.
 * Check your row group sizing. They allow for partial loading of a Parquet file.
 * Sort column contents to produce compact and disjoint value ranges between row
-  groups. This allows for better selections of row groups. 
+  groups. This allows for better selections of row groups.
 * Avoid string columns. Try to use a more specific datatype. See
   :doc:`type_system` for more information on possible column types.
 
 See :func:`kartothek.io.dask.dataframe.update_dataset_from_ddf` for more
 information.
+
+
+See also
+--------
+* :doc:`indexing`
+* :doc:`../guide/partitioning`
