@@ -10,6 +10,14 @@ import logging
 _logger = logging.getLogger(__name__)
 
 
+class BufferReadError(IOError):
+    """
+    Internal kartothek error while attempting to read from buffer
+    """
+
+    pass
+
+
 class BlockBuffer(io.BufferedIOBase):
     """
     Block-based buffer.
@@ -111,7 +119,7 @@ class BlockBuffer(io.BufferedIOBase):
                 f"Expected raw read to return {size} bytes, but instead got {len(data)}"
             )
             _logger.error(err)
-            raise AssertionError(err)
+            raise BufferReadError(err)
 
         # fill blocks
         for i in range(n):
@@ -135,7 +143,7 @@ class BlockBuffer(io.BufferedIOBase):
         if size < 0:
             msg = f"Expected size >= 0, but got start={start}, size={size}"
             _logger.error(msg)
-            raise AssertionError(msg)
+            raise BufferReadError(msg)
 
         block = start // self._blocksize
         offset = start % self._blocksize

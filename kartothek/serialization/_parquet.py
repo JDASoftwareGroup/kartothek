@@ -6,6 +6,8 @@ This module contains functionality for persisting/serialising DataFrames.
 
 
 import datetime
+import logging
+import time
 from typing import Iterable, Optional
 
 import numpy as np
@@ -33,8 +35,12 @@ try:
 except ImportError:
     HAVE_BOTO = False
 
+_logger = logging.getLogger(__name__)
+
 
 EPOCH_ORDINAL = datetime.date(1970, 1, 1).toordinal()
+MAX_NB_RETRIES = 6  # longest retry backoff = BACKOFF_TIME * 2**(MAX_NB_RETRIES - 2)
+BACKOFF_TIME = 0.01  # 10 ms
 
 
 def _empty_table_from_schema(parquet_file):
@@ -63,6 +69,14 @@ def _reset_dictionary_columns(table, exclude=None):
 
     table = table.cast(schema)
     return table
+
+
+class ParquetReadError(IOError):
+    """
+    Internal kartothek error while attempting to read Parquet file
+    """
+
+    pass
 
 
 class ParquetSerializer(DataFrameSerializer):
@@ -98,7 +112,7 @@ class ParquetSerializer(DataFrameSerializer):
         )
 
     @staticmethod
-    def restore_dataframe(
+    def _restore_dataframe(
         store: KeyValueStore,
         key: str,
         filter_query: Optional[str] = None,
@@ -107,7 +121,7 @@ class ParquetSerializer(DataFrameSerializer):
         categories: Optional[Iterable[str]] = None,
         predicates: Optional[PredicatesType] = None,
         date_as_object: bool = False,
-    ):
+    ) -> pd.DataFrame:
         check_predicates(predicates)
         # If we want to do columnar access we can benefit from partial reads
         # otherwise full read en block is the better option.
@@ -186,6 +200,58 @@ class ParquetSerializer(DataFrameSerializer):
             return df.reindex(columns=columns, copy=False)
         else:
             return df
+
+    @classmethod
+    def restore_dataframe(
+        cls,
+        store: KeyValueStore,
+        key: str,
+        filter_query: Optional[str] = None,
+        columns: Optional[Iterable[str]] = None,
+        predicate_pushdown_to_io: bool = True,
+        categories: Optional[Iterable[str]] = None,
+        predicates: Optional[PredicatesType] = None,
+        date_as_object: bool = False,
+    ) -> pd.DataFrame:
+        # https://github.com/JDASoftwareGroup/kartothek/issues/407  We have been seeing weird `IOError`s while reading
+        # Parquet files from Azure Blob Store. These errors have caused long running computations to fail.
+        # The workaround is to retry the serialization here and gain more stability for long running tasks.
+        # This code should not live forever, it should be removed once the underlying cause has been resolved.
+        for nb_retry in range(MAX_NB_RETRIES):
+            try:
+                return cls._restore_dataframe(
+                    store=store,
+                    key=key,
+                    filter_query=filter_query,
+                    columns=columns,
+                    predicate_pushdown_to_io=predicate_pushdown_to_io,
+                    categories=categories,
+                    predicates=predicates,
+                    date_as_object=date_as_object,
+                )
+            # We only retry OSErrors (note that IOError inherits from OSError), as these kind of errors may benefit
+            # from retries.
+            except OSError as err:
+                raised_error = err
+                _logger.warning(
+                    msg=(
+                        f"Failed to restore dataframe, attempt {nb_retry + 1} of {MAX_NB_RETRIES} with parameters "
+                        f"key: {key}, filter_query: {filter_query}, columns: {columns}, "
+                        f"predicate_pushdown_to_io: {predicate_pushdown_to_io}, categories: {categories}, "
+                        f"predicates: {predicates}, date_as_object: {date_as_object}."
+                    ),
+                    exc_info=True,
+                )
+                # we don't sleep when we're done with the last attempt
+                if nb_retry < (MAX_NB_RETRIES - 1):
+                    time.sleep(BACKOFF_TIME * 2 ** nb_retry)
+
+        raise ParquetReadError(
+            f"Failed to restore dataframe after {MAX_NB_RETRIES} attempts. Parameters: "
+            f"key: {key}, filter_query: {filter_query}, columns: {columns}, "
+            f"predicate_pushdown_to_io: {predicate_pushdown_to_io}, categories: {categories}, "
+            f"date_as_object: {date_as_object}, predicates: {predicates}."
+        ) from raised_error
 
     def store(self, store, key_prefix, df):
         key = "{}.parquet".format(key_prefix)
