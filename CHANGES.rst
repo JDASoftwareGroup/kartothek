@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 3.19.0 (2021-02-XY)
+Version 3.19.0 (2021-02-12)
 ===========================
 
 * Fix an issue where updates on cubes or updates on datatsets using
