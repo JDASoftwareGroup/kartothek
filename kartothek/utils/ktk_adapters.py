@@ -119,11 +119,11 @@ def _dummy_store_factory():
 
 def metadata_factory_from_dataset(dataset, with_schema=True, store=None):
     """
-    Create :py:class:`DatasetFactory` from :py:class:`DatasetMetadata`.
+    Create :class:`~kartothek.core.dataset.DatasetMetadata` from :class:`~kartothek.core.dataset.DatasetMetadata`.
 
     Parameters
     ----------
-    dataset: DatasetMetadata
+    dataset: kartothek.core.dataset.DatasetMetadata
         Already loaded dataset.
     with_schema: bool
         If dataset was loaded with ``load_schema``.

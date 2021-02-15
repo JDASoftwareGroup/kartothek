@@ -31,7 +31,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "sphinxe
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
 extensions = [
-    "ignore_missing_refs",
+    "reference_aliases",
     "sphinx.ext.autodoc",
     "sphinx.ext.intersphinx",
     "sphinx.ext.todo",
@@ -82,3 +82,50 @@ htmlhelp_basename = "kartothek-doc"
 
 # -- External mapping ------------------------------------------------------------
 python_version = ".".join(map(str, sys.version_info[0:2]))
+
+nitpick_ignore = [
+    ("py:class", "kartothek.core._mixins.CopyMixin"),
+    ("py:class", "dask.delayed.Delayed"),
+    # Literals
+    ("py:class", "exact"),
+    ("py:class", "all"),
+    ("py:class", "prefix"),
+    # typing.TypeVars not working
+    ("py:class", "LiteralValue"),
+    ("py:class", "T"),
+    ("py:class", ".."),
+    ("py:class", "ValueType"),
+    # Caused by SchemaWrapper copying/overloading doc string of pyarrow
+    ("py:class", "Field"),
+    ("py:class", "Schema"),
+    ("py:class", "default False"),
+    ("py:class", "False"),
+    ("py:class", "DataFrame"),
+]
+
+intersphinx_mapping = {
+    "pandas": ("https://pandas.pydata.org/docs/", None),
+    "simplekv": ("https://simplekv.readthedocs.io/en/stable/", None),
+    "pyarrow": ("https://arrow.apache.org/docs/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "python": ("https://docs.python.org/3", None),
+    "dask": ("https://docs.dask.org/en/stable/", None),
+    # Storefact isn't exposing any sphinx refs
+    # "storefact": ("https://storefact.readthedocs.io/en/stable", None),
+}
+
+# In particular type annotations are rendered as its full path to the class but
+# the sphinx docs usually expose the high level API path. This renames the
+# sphinx targets appropriately. The replacments are all applied, therefore mind
+# overlapping replacements.
+reftarget_replace = {
+    "pyarrow.lib.": "pyarrow.",
+    "pd.": "pandas.",
+    "pandas.core.series.Series": "pandas.Series",
+    "pandas.core.frame.DataFrame": "pandas.DataFrame",
+    "dask.dataframe.core.DataFrame": "dask.dataframe.DataFrame",
+    "dask.dataframe.core.Series": "dask.dataframe.Series",
+    "dask.bag.core.Bag": "dask.bag.Bag",
+    "kartothek.serialization._generic": "kartothek.serialization",
+    "kartothek.serialization._parquet": "kartothek.serialization",
+}

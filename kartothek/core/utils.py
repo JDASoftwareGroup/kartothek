@@ -1,6 +1,6 @@
 import pickle
 from functools import partial
-from typing import Any, cast
+from typing import Any, Union, cast
 
 from simplekv import KeyValueStore
 from storefact import get_store_from_url
@@ -29,7 +29,7 @@ def verify_metadata_version(*args, **kwargs):
     return _verify_metadata_version(*args, **kwargs)
 
 
-def ensure_string_type(obj):
+def ensure_string_type(obj: Union[bytes, str]) -> str:
     """
     Parse object passed to the function to `str`.
 
@@ -38,12 +38,9 @@ def ensure_string_type(obj):
 
     Parameters
     ----------
-    obj: Any
+    obj
         object which is to be parsed to `str`
 
-    Returns
-    -------
-    str_obj: String
     """
     if isinstance(obj, bytes):
         return obj.decode()

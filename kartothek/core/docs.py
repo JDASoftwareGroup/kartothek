@@ -7,42 +7,42 @@ from io import StringIO
 
 _PARAMETER_MAPPING = {
     "store": """
-    store: Callable or Str or simplekv.KeyValueStore
+    store: Callable or str or simplekv.KeyValueStore
         The store where we can find or store the dataset.
 
         Can be either ``simplekv.KeyValueStore``, a storefact store url or a
         generic Callable producing a ``simplekv.KeyValueStore``""",
     "overwrite": """
-    overwrite: bool, optional
+    overwrite: Optional[bool]
         If True, allow overwrite of an existing dataset.""",
     "label_merger": """
-    label_merger: callable, optional
+    label_merger: Optional[Callable]
         By default the shorter label of either the left or right partition is chosen
         as the merged partition label. Supplying a callable here, allows you to override
         the default behavior and create a new label from all input labels
         (depending on the matches this might be more than two values)""",
     "metadata_merger": """
-    metadata_merger: callable, optional
+    metadata_merger: Optional[Callable]
          By default partition metadata is combined using the :func:`~kartothek.io_components.utils.combine_metadata` function.
          You can supply a callable here that implements a custom merge operation on the metadata dictionaries
          (depending on the matches this might be more than two values).""",
     "table": """
-    table: str, optional
+    table: Optional[str]
         The table to be loaded. If none is specified, the default 'table' is used.""",
     "tables": """
-    tables : list of str
+    tables : List[str]
         A list of tables to be loaded. If None is given, all tables of
         a partition are loaded""",
     "table_meta": """
     table_meta: Dict[str, SchemaWrapper]
         The dataset table schemas""",
     "columns": """
-    columns : dict of list of string, optional
+    columns : Optional[List[Dict[str]]]
         A dictionary mapping tables to list of columns. Only the specified
         columns are loaded for the corresponding table. If a specfied table or column is
         not present in the dataset, a ValueError is raised.""",
     "dispatch_by": """
-    dispatch_by: list of strings, optional
+    dispatch_by: Optional[List[str]]
         List of index columns to group and partition the jobs by.
         There will be one job created for every observed index value
         combination. This may result in either many very small partitions or in
@@ -57,34 +57,34 @@ _PARAMETER_MAPPING = {
             the jobs will fetch their data individually and will *not* shuffle
             data in memory / over network.""",
     "df_serializer": """
-    df_serializer : DataFrameSerializer, optional
+    df_serializer : Optional[kartothek.serialization.DataFrameSerializer]
         A pandas DataFrame serialiser from `kartothek.serialization`""",
     "output_dataset_uuid": """
-    output_dataset_uuid: basestring, optional
+    output_dataset_uuid: Optional[str]
         UUID of the newly created dataset""",
     "output_dataset_metadata": """
-    output_dataset_metadata: dict, optional
+    output_dataset_metadata: Optional[Dict]
         Metadata for the merged target dataset. Will be updated with a
         `merge_datasets__pipeline` key that contains the source dataset uuids for
         the merge.""",
     "output_store": """
-    output_store : Callable or Str or simplekv.KeyValueStore
+    output_store : Union[Callable, str, simplekv.KeyValueStore]
         If given, the resulting dataset is written to this store. By default
         the input store.
 
-        Can be either ``simplekv.KeyValueStore``, a storefact store url or a
+        Can be either `simplekv.KeyValueStore`, a storefact store url or a
         generic Callable producing a ``simplekv.KeyValueStore``""",
     "metadata": """
-    metadata : dict, optional
+    metadata : Optional[Dict]
         A dictionary used to update the dataset metadata.""",
     "dataset_uuid": """
     dataset_uuid: str
         The dataset UUID""",
     "metadata_version": """
-    metadata_version: int, optional
+    metadata_version: Optional[int]
         The dataset metadata version""",
     "partition_on": """
-    partition_on: list
+    partition_on: List
         Column names by which the dataset should be partitioned by physically.
         These columns may later on be used as an Index to improve query performance.
         Partition columns need to be present in all dataset tables.
@@ -97,7 +97,7 @@ _PARAMETER_MAPPING = {
         only hides problems in the storage layer that need to be addressed
         there.""",
     "delete_scope": """
-    delete_scope: list of dicts
+    delete_scope: List[Dict]
         This defines which partitions are replaced with the input and therefore
         get deleted. It is a lists of query filters for the dataframe in the
         form of a dictionary, e.g.: `[{'column_1': 'value_1'}, {'column_1': 'value_2'}].
@@ -106,11 +106,11 @@ _PARAMETER_MAPPING = {
         For `kartothek.io.dask.update.update_dataset.*` a delayed object resolving to
         a list of dicts is also accepted.""",
     "categoricals": """
-    categoricals : dicts of list of string
+    categoricals : Dict[str, List[str]]
         A dictionary mapping tables to list of columns that should be
         loaded as `category` dtype instead of the inferred one.""",
     "label_filter": """
-    label_filter: callable
+    label_filter: Callable
         A callable taking a partition label as a parameter and returns a boolean. The callable will be applied
         to the list of partitions during dispatch and will filter out all partitions for which the callable
         evaluates to False.""",
@@ -120,8 +120,8 @@ _PARAMETER_MAPPING = {
         instead of using ``np.datetime64`` to preserve their type. While
         this improves type-safety, this comes at a performance cost.""",
     "predicates": """
-    predicates: list of list of tuple[str, str, Any]
-        Optional list of predicates, like [[('x', '>', 0), ...], that are used
+    predicates: List[List[Tuple[str, str, Any]]
+        Optional list of predicates, like `[[('x', '>', 0), ...]`, that are used
         to filter the resulting DataFrame, possibly using predicate pushdown,
         if supported by the file format.
         This parameter is not compatible with filter_query.
@@ -162,7 +162,7 @@ _PARAMETER_MAPPING = {
     metadata_storage_format: str
         Optional list of datastorage format to use. Currently supported is `.json` & `.msgpack.zstd"`""",
     "df_generator": """
-    df_generator: Iterable[Union[pd.DataFrame, Dict[str, pd.DataFrame]]]
+    df_generator: Iterable[Union[pandas.DataFrame, Dict[str, pandas.DataFrame]]]
         The dataframe(s) to be stored""",
     "central_partition_metadata": """
     central_partition_metadata: bool
@@ -177,7 +177,7 @@ _PARAMETER_MAPPING = {
     concat_partitions_on_primary_index: bool
         Concatenate partition based on their primary index values.""",
     "delayed_tasks": """
-    delayed_tasks: list of dask.delayed
+    delayed_tasks: List[dask.delayed.Delayed]
         Every delayed object represents a partition and should be accepted by
         :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition`""",
     "load_dataset_metadata": """

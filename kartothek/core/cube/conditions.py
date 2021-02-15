@@ -446,15 +446,19 @@ class Conjunction:
     )
 
     @classmethod
-    def from_two(cls, left, right):
+    def from_two(
+        cls,
+        left: typing.Union[Condition, "Conjunction"],
+        right: typing.Union[Condition, "Conjunction"],
+    ) -> "Conjunction":
         """
         Create conjunction from two elements.
 
         Parameters
         ----------
-        left: Union[Condition, Conjunction]:
+        left
             Left part.
-        right: Union[Condition, Conjunction]:
+        right
             Right part.
 
         Returns
@@ -462,7 +466,7 @@ class Conjunction:
         conjunction: Conjunction
             Conjunction of the two given parts.
         """
-        conditions = []
+        conditions: typing.List[Condition] = []
 
         for obj in (left, right):
             if isinstance(obj, Conjunction):

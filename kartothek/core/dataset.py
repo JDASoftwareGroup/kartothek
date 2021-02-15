@@ -136,15 +136,11 @@ class DatasetMetadataBase(CopyMixin):
 
         Parameters
         ----------
-        uuid: str or unicode
+        uuid
             UUID of the dataset.
-        store: Object
+        store
             Object that implements the .get method for file/object loading.
 
-        Returns
-        -------
-        exists: bool
-            Whether a metadata file could be found.
         """
         store = ensure_store(store)
         key = naming.metadata_key_from_uuid(uuid)
@@ -162,15 +158,11 @@ class DatasetMetadataBase(CopyMixin):
 
         Parameters
         ----------
-        uuid:
+        uuid
             UUID of the dataset.
-        store:
+        store
             Object that implements the .iter_keys method for key retrieval loading.
 
-        Returns
-        -------
-        keys:
-            Sorted list of storage keys.
         """
         store = ensure_store(store)
         start_markers = ["{}.".format(uuid), "{}/".format(uuid)]
@@ -226,9 +218,9 @@ class DatasetMetadataBase(CopyMixin):
 
         Parameters
         ----------
-        column: str
+        column
             Name of the column for which the index should be loaded.
-        store: Object
+        store
             Object that implements the .get method for file/object loading.
 
         Returns
@@ -266,9 +258,9 @@ class DatasetMetadataBase(CopyMixin):
 
         Parameters
         ----------
-        store: Object
+        store
             Object that implements the .get method for file/object loading.
-        load_partition_indices: bool
+        load_partition_indices
             Flag if filename indices should be loaded. Default is True.
 
         Returns
@@ -304,6 +296,7 @@ class DatasetMetadataBase(CopyMixin):
 
         Returns
         -------
+        List[str]
             List of keys of partitions that contain the queries values in the respective columns.
         """
         candidate_set = set(self.partitions.keys())
@@ -416,7 +409,9 @@ class DatasetMetadataBase(CopyMixin):
             )
         return df
 
-    def _evaluate_conjunction(self, columns, predicates, date_as_object):
+    def _evaluate_conjunction(
+        self, columns: List[str], predicates: PredicatesType, date_as_object: bool
+    ) -> pd.DataFrame:
         """
         Evaluate all predicates related to `columns` to "AND".
 
@@ -424,7 +419,7 @@ class DatasetMetadataBase(CopyMixin):
         ----------
         columns:
             A list of all columns, including query and index columns.
-        predicates: list of list of tuple[str, str, Any]
+        predicates:
             Optional list of predicates, like [[('x', '>', 0), ...], that are used
             to filter the resulting DataFrame, possibly using predicate pushdown,
             if supported by the file format.
@@ -445,7 +440,7 @@ class DatasetMetadataBase(CopyMixin):
 
         Returns
         -------
-        df_result:
+        pd.DataFrame: df_result
             A DataFrame containing all indices for which `predicates` holds true.
         """
         non_index_columns = set(columns) - self.indices.keys()
@@ -518,7 +513,7 @@ class DatasetMetadata(DatasetMetadataBase):
 
         Returns
         -------
-        dataset_metadata:
+        DatasetMetadata:
             Parsed metadata.
         """
         if format == "json":
@@ -539,13 +534,13 @@ class DatasetMetadata(DatasetMetadataBase):
 
         Parameters
         ----------
-        uuid: str or unicode
+        uuid
             UUID of the dataset.
-        store: Object
+        store
             Object that implements the .get method for file/object loading.
-        load_schema: bool
+        load_schema
             Load table schema
-        load_all_indices: bool
+        load_all_indices
             Load all registered indices into memory.
 
         Returns
@@ -574,22 +569,20 @@ class DatasetMetadata(DatasetMetadataBase):
         return ds
 
     @staticmethod
-    def load_from_dict(dct: Dict, store: StoreInput, load_schema: bool = True):
+    def load_from_dict(
+        dct: Dict, store: StoreInput, load_schema: bool = True
+    ) -> "DatasetMetadata":
         """
         Load dataset metadata from a dictionary and resolve any external includes.
 
         Parameters
         ----------
-        dct: dict
-        store: Object
+        dct
+        store
             Object that implements the .get method for file/object loading.
-        load_schema: bool
+        load_schema
             Load table schema
 
-        Returns
-        -------
-        dataset_metadata: :class:`~kartothek.core.dataset.DatasetMetadata`
-            Parsed metadata.
         """
         # Use copy here to get an OrderedDict
         metadata = copy.copy(dct)
@@ -816,16 +809,21 @@ def _get_empty_index():
     return defaultdict(set)
 
 
-def create_partition_key(dataset_uuid, table, index_values, filename="data"):
+def create_partition_key(
+    dataset_uuid: str,
+    table: str,
+    index_values: List[Tuple[str, str]],
+    filename: str = "data",
+):
     """
     Create partition key for a kartothek partition
 
     Parameters
     ----------
-    dataset_uuid: str
-    table: str
-    index_values: list of tuples str:str
-    filename: str
+    dataset_uuid
+    table
+    index_values
+    filename
 
     Example:
         create_partition_key('my-uuid', 'testtable',

@@ -7,7 +7,20 @@ import warnings
 from collections import defaultdict, namedtuple
 from copy import copy
 from functools import wraps
-from typing import Any, Dict, Iterable, Iterator, Optional, Sequence, Set, Union, cast
+from typing import (
+    Any,
+    Callable,
+    Dict,
+    Iterable,
+    Iterator,
+    List,
+    Optional,
+    Sequence,
+    Set,
+    Tuple,
+    Union,
+    cast,
+)
 
 import numpy as np
 import pandas as pd
@@ -15,6 +28,7 @@ import pyarrow as pa
 
 from kartothek.core import naming
 from kartothek.core.common_metadata import (
+    SchemaWrapper,
     make_meta,
     normalize_column_order,
     read_schema_metadata,
@@ -199,16 +213,16 @@ class MetaPartition(Iterable):
 
     def __init__(
         self,
-        label,
-        files=None,
-        metadata=None,
-        data=None,
-        dataset_metadata=None,
+        label: Optional[str],
+        files: Optional[Dict[str, str]] = None,
+        metadata: Any = None,
+        data: Optional[Dict[str, pd.DataFrame]] = None,
+        dataset_metadata: Optional[Dict] = None,
         indices: Optional[Dict[Any, Any]] = None,
-        metadata_version=None,
-        table_meta=None,
-        partition_keys=None,
-        logical_conjunction=None,
+        metadata_version: Optional[int] = None,
+        table_meta: Optional[Dict[str, SchemaWrapper]] = None,
+        partition_keys: Optional[Sequence[str]] = None,
+        logical_conjunction: Optional[List[Tuple[Any, str, Any]]] = None,
     ):
         """
         Initialize the :mod:`kartothek.io` base class MetaPartition.
@@ -223,26 +237,26 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        label : basestring
+        label
             partition label
-        files : dict, optional
+        files
             A dictionary with references to the files in store where the
             keys represent file labels and the keys file prefixes.
-        metadata : dict, optional
+        metadata
             The metadata of the partition
-        data : dict, optional
+        data
             A dictionary including the materialized in-memory DataFrames
             corresponding to the file references in `files`.
-        dataset_metadata : dict, optional
+        dataset_metadata
             The metadata of the original dataset
-        indices : dict, optional
+        indices
             Kartothek index dictionary,
-        metadata_version : int, optional
-        table_meta: Dict[str, SchemaWrapper]
+        metadata_version
+        table_meta
             The dataset table schemas
-        partition_keys: List[str]
+        partition_keys
             The dataset partition keys
-        logical_conjunction: List[Tuple[object, str, object]]
+        logical_conjunction
             A logical conjunction to assign to the MetaPartition. By assigning
             this, the MetaPartition will only be able to load data respecting
             this conjunction.
@@ -408,14 +422,14 @@ class MetaPartition(Iterable):
 
     @staticmethod
     def from_partition(
-        partition,
-        data=None,
-        dataset_metadata=None,
-        indices=None,
-        metadata_version=None,
-        table_meta=None,
-        partition_keys=None,
-        logical_conjunction=None,
+        partition: Partition,
+        data: Optional[Dict] = None,
+        dataset_metadata: Dict = None,
+        indices: Dict = None,
+        metadata_version: Optional[int] = None,
+        table_meta: Optional[Dict] = None,
+        partition_keys: Optional[List[str]] = None,
+        logical_conjunction: Optional[List[Tuple[Any, str, Any]]] = None,
     ):
         """
         Transform a kartothek :class:`~kartothek.core.partition.Partition` into a
@@ -423,19 +437,20 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        partition : :class:`~kartothek.core.partition.Partition`
+        partition
             The kartothek partition to be wrapped
-        data : dict, optional
+        data
             A dictionaries with materialised :class:`~pandas.DataFrame`
-        dataset_metadata : dict of basestring, optional
+        dataset_metadata
             The metadata of the original dataset
-        indices : dict
+        indices
             The index dictionary of the dataset
-        table_meta: Union[None, Dict[String, pyarrow.Schema]]
+        table_meta
             Type metadata for each table, optional
-        metadata_version: int, optional
-        partition_keys: Union[None, List[String]]
+        metadata_version
+        partition_keys
             A list of the primary partition keys
+
         Returns
         -------
         :class:`~kartothek.io_components.metapartition.MetaPartition`
@@ -453,7 +468,10 @@ class MetaPartition(Iterable):
         )
 
     def add_metapartition(
-        self, metapartition, metadata_merger=None, schema_validation=True
+        self,
+        metapartition: "MetaPartition",
+        metadata_merger: Optional[Callable] = None,
+        schema_validation: bool = True,
     ):
         """
         Adds a metapartition to the internal list structure to enable batch processing.
@@ -463,11 +481,11 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        metapartition: [MetaPartition]
+        metapartition
             The MetaPartition to be added.
-        metadata_merger: [callable]
+        metadata_merger
             A callable to perform the metadata merge. By default [kartothek.io_components.utils.combine_metadata] is used
-        schema_validation : [bool]
+        schema_validation
             If True (default), ensure that the `table_meta` of both `MetaPartition` objects are the same
         """
         if self.is_sentinel:
@@ -641,7 +659,7 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        tables : list of string, optional
+        tables
             If a list is supplied, only the given tables of the partition are
             loaded. If the given table does not exist it is ignored.
 
@@ -863,7 +881,12 @@ class MetaPartition(Iterable):
 
     @_apply_to_list
     def merge_dataframes(
-        self, left, right, output_label, merge_func=pd.merge, merge_kwargs=None
+        self,
+        left: str,
+        right: str,
+        output_label: str,
+        merge_func: Callable = pd.merge,
+        merge_kwargs: Optional[Dict] = None,
     ):
         """
         Merge internal dataframes.
@@ -880,17 +903,17 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        left : basestring
+        left
             Category of the left dataframe.
-        right : basestring
+        right
             Category of the right dataframe.
-        output_label : basestring
+        output_label
             Category for the newly created dataframe
-        merge_func : callable, optional
+        merge_func
             The function to take care of the merge. By default: pandas.merge.
             The function should have the signature
-            :func:`func(left_df, right_df, **kwargs)`
-        merge_kwargs : dict
+            `func(left_df, right_df, **kwargs)`
+        merge_kwargs
             Keyword arguments which should be supplied to the merge function
 
         Returns
@@ -942,9 +965,9 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        store: KeyValueStore or callable
+        store
             If it is a function, the result of calling it must be a KeyValueStore.
-        dataset_uuid: str
+        dataset_uuid
             The dataset UUID the partition will be assigned to
         """
 
@@ -987,11 +1010,11 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        store: KeyValueStore or callable
+        store
             If it is a function, the result of calling it must be a KeyValueStore.
-        dataset_uuid: str
+        dataset_uuid
             The dataset UUID the partition will be assigned to
-        df_serializer : kartothek.serialization.DataFrameSerializer
+        df_serializer
             Serialiser to be used to store the dataframe
         Returns
         -------
@@ -1082,28 +1105,30 @@ class MetaPartition(Iterable):
             return self
 
     @_apply_to_list
-    def apply(self, func, tables=None, metadata=None, type_safe=False):
+    def apply(
+        self,
+        func: Union[Callable, Dict[str, Callable]],
+        tables: Optional[List[str]] = None,
+        metadata: Optional[Dict] = None,
+        type_safe: bool = False,
+    ) -> "MetaPartition":
         """
         Applies a given function to all dataframes of the MetaPartition.
 
         Parameters
         ----------
-        func : callable or dict of callable
+        func
             A callable accepting and returning a :class:`pandas.DataFrame`
-        tables : list of basestring
+        tables
             Only apply and return the function on the given tables.
             Note: behavior will change in future versions!
             New behavior will be:
             Only apply the provided function to the given tables
-        uuid : basestring
+        uuid
             The changed dataset is assigned a new UUID.
-        type_safe: bool
+        type_safe
             If the transformation is type-safe, optimizations can be applied
-        Returns
-        -------
-        MetaPartition
-            A metapartition where `func` has been applied to all internal
-            DataFrames
+
         """
         if tables is None:
             tables = self.data.keys()
@@ -1307,7 +1332,7 @@ class MetaPartition(Iterable):
 
         Parameters
         ----------
-        partition_on: list or str
+        partition_on
 
 
         """
@@ -1627,17 +1652,10 @@ def _unique_label(label_list):
     return label
 
 
-def partition_labels_from_mps(mps):
+def partition_labels_from_mps(mps: List[MetaPartition]) -> List[str]:
     """
     Get a list of partition labels, flattening any nested meta partitions in the input and ignoring sentinels.
 
-    Parameters
-    ----------
-    mps: List[MetaPartition]
-
-    Returns
-    -------
-    partition_labels: List[str]
     """
     partition_labels = []
     for mp in mps:
@@ -1695,7 +1713,7 @@ def parse_input_to_metapartition(
     2. Mode - `pandas.DataFrame`
 
         If only a DataFrame is provided, a UUID is generated and the dataframe is stored
-        for the table name :data:`SINGLE_TABLE`
+        for the table name `SINGLE_TABLE`
 
     3. Mode - :class:`~kartothek.io_components.metapartition.MetaPartition`
 
@@ -1719,10 +1737,10 @@ def parse_input_to_metapartition(
 
     Parameters
     ----------
-    obj : Union[Dict, pd.DataFrame, kartothek.io_components.metapartition.MetaPartition, List]
-    metadata_version : int, optional
+    obj
+    metadata_version
         The kartothek dataset specification version
-    expected_secondary_indices : Optional[Union[Iterable[str], Literal[False]]]
+    expected_secondary_indices
         Iterable of strings containing expected columns on which indices are created. An empty iterable indicates no
         indices are expected.
         The default is `False`, which, indicates no checking will be done (`None` behaves the same way).

@@ -26,7 +26,7 @@ def prepare_metapartitions_for_removal_action(
         Store.
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional. Defaults to "entire cube".
-    ktk_cube_dataset_ids: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
+    ktk_cube_dataset_ids: Optional[Union[Iterable[str], str]]
         Ktk_cube dataset IDs to apply the remove action to, optional. Default to "all".
     existing_datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
         Existing datasets.

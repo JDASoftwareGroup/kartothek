@@ -24,7 +24,7 @@ Version 3.18.0 (2021-01-25)
 
 * Add ``cube.suppress_index_on`` to switch off the default index creation for dimension columns
 * Fixed the import issue of zstd module for `kartothek.core _zmsgpack`.
-* Fix a bug in :func:`~kartothek.io_components.read.dispatch_metapartitions_from_factory` where
+* Fix a bug in `kartothek.io_components.read.dispatch_metapartitions_from_factory` where
   `dispatch_by=[]` would be treated like `dispatch_by=None`, not merging all dataset partitions into
   a single partitions.
 
@@ -314,7 +314,7 @@ Version 3.5.1 (2019-10-25)
 - Fix potential ``pyarrow.lib.ArrowNotImplementedError`` when trying to store or pickle empty
   :class:`~kartothek.core.index.ExplicitSecondaryIndex` objects
 - Fix pickling of :class:`~kartothek.core.index.ExplicitSecondaryIndex` unloaded in
-  :func:`~kartothek.io_components.read.dispatch_metapartitions_from_factory`
+  `dispatch_metapartitions_from_factory`
 
 
 Version 3.5.0 (2019-10-21)
@@ -379,16 +379,15 @@ Version 3.2.0 (2019-07-25)
 - Fix gh:66 where predicate pushdown may evalute false results if evaluated
   using improper types. The behavior now is to raise in these situations.
 - Predicate pushdown and :func:`~kartothek.serialization.filter_array_like` will now properly handle pandas Categoricals.
-- Make the size of partitions controllable by introducing the `partition_size` parameter in `kartothek.io.dask.bag.read_dataset_as_metapartitions_bag` and `karothek.io.dask.bag.read_dataset_as_dataframes_bag`
-- Add :meth:`~karothek.io.dask.bag.read_dataset_as_dataframes_bag`
-- Add :meth:`~karothek.io.dask.bag.read_dataset_as_metapartitions_bag`
+- Add :meth:`~kartothek.io.dask.bag.read_dataset_as_dataframe_bag`
+- Add :meth:`~kartothek.io.dask.bag.read_dataset_as_metapartitions_bag`
 
 
 Version 3.1.1 (2019-07-12)
 ==========================
 
-- make :meth:`~karothek.io.dask.bag.build_dataset_indices__bag` more efficient
-- make :meth:`~kartothek.io.eager.build_dataset_indices` more efficient
+- make :func:`~kartothek.io.dask.bag.build_dataset_indices__bag` more efficient
+- make :func:`~kartothek.io.eager.build_dataset_indices` more efficient
 - fix pseudo-private :meth:`~kartothek.io_components.read.dispatch_metapartitions` handling of
   ``concat_partitions_on_primary_index``
 - fix internal errors if querying (e.g. via :meth:`~kartothek.io.eager.read_dataset_as_dataframes`) with
@@ -426,9 +425,9 @@ Version 3.1.0 (2019-07-10)
   in :meth:`~kartothek.io_components.metapartition.MetaPartition.add_metapartition`.
   This fixes issue https://github.com/JDASoftwareGroup/kartothek/issues/40 .
 
-- Add :meth:`~karothek.io.dask.bag.build_dataset_indices__bag`
+- Add :meth:`~kartothek.io.dask.bag.build_dataset_indices__bag`
 
-- Return :class:`~dask.bag.Item` object from :meth:`~kartothek.io.dask.bag.store_bag_as_dataset` to avoid misoptimization
+- Return `dask.bag.Item` object from :meth:`~kartothek.io.dask.bag.store_bag_as_dataset` to avoid misoptimization
 
 **Breaking:**
 

@@ -145,7 +145,7 @@ Some information is not available when reading the schema information and requir
    </pre>
 
 
-Use ``kartothek_cube --help`` to get a list of all commands, or see :mod:`kartothek_cube.cli`.
+Use ``kartothek_cube --help`` to get a list of all commands, or see :mod:`~kartothek.cli`.
 
 .. _storefact: https://github.com/blue-yonder/storefact
 

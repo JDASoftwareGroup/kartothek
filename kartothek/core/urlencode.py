@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+from typing import List, Tuple
+
 from urlquote import quote as urlquote_quote
 from urlquote import unquote as urlquote_unquote
 from urlquote.quoting import PYTHON_3_7_QUOTING
@@ -46,7 +48,7 @@ def decode_key(key):
     return dataset_uuid, table, key_indices, file_
 
 
-def quote_indices(indices):
+def quote_indices(indices: List[Tuple[str, str]]) -> List[str]:
     """
     Urlencode a list of column-value pairs and encode them as:
 
@@ -54,12 +56,12 @@ def quote_indices(indices):
 
     Parameters
     ----------
-    indices: list of tuple
+    indices
         A list of tuples where each list entry is (column, value)
 
     Returns
     -------
-    list
+    List[str]
         List with urlencoded column=value strings
     """
     quoted_pairs = []
@@ -71,7 +73,7 @@ def quote_indices(indices):
     return quoted_pairs
 
 
-def unquote_indices(index_strings):
+def unquote_indices(index_strings: List[str]) -> List[Tuple[str, str]]:
     """
     Take a list of encoded column-value strings and decode them to tuples
 
@@ -80,12 +82,12 @@ def unquote_indices(index_strings):
 
     Parameters
     ----------
-    indices: list of tuple
+    indices
         A list of tuples where each list entry is (column, value)
 
     Returns
     -------
-    list
+    List[str]
         List with column value pairs
     """
     indices = []

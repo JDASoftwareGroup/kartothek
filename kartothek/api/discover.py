@@ -94,7 +94,7 @@ def discover_datasets_unchecked(
 
     .. warning::
         The results are not checked for validity. Found datasets may be incompatible w/ the given cube. Use
-        :meth:`check_datasets` to check the results, or go for :meth:`discover_datasets` in the first place.
+        :meth:`~kartothek.api.consistency.check_datasets` to check the results, or go for :func:`~kartothek.api.discover.discover_datasets` in the first place.
 
     Parameters
     ----------

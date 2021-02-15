@@ -49,15 +49,15 @@ class DatasetFactory(DatasetMetadataBase):
 
         Parameters
         ----------
-        dataset_uuid: str
+        dataset_uuid
             The unique indetifier for the dataset.
-        store_factory: callable
+        store_factory
             A callable which creates a KeyValueStore object
-        load_schema: bool
+        load_schema
             Load the schema information immediately.
-        load_all_indices: bool
+        load_all_indices
             Load all indices immediately.
-        load_dataset_metadata: bool
+        load_dataset_metadata
             Keep the user metadata in memory
         """
         self._cache_metadata: Optional[DatasetMetadata] = None
@@ -161,7 +161,7 @@ class DatasetFactory(DatasetMetadataBase):
 
 def _ensure_factory(
     dataset_uuid: Optional[str],
-    store: StoreInput,
+    store: Optional[StoreInput],
     factory: Optional[DatasetFactory],
     load_dataset_metadata: bool,
     load_schema: bool = True,

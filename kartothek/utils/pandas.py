@@ -340,9 +340,9 @@ def merge_dataframes_robust(df1, df2, how):
 
     Parameters
     ----------
-    df1: pd.Dataframe
+    df1: pd.DataFrame
         Left DataFrame.
-    df2: pd.Dataframe
+    df2: pd.DataFrame
         Right DataFrame.
     how: str
         How to join the frames.
