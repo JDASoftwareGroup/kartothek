@@ -68,7 +68,7 @@ what follows is the filepath).
 .. admonition:: Storage locations
 
     `storefact`_ offers support for several stores in Kartothek, these can be created using the
-    function :func:`storefact.get_store_from_url` with one of the following prefixes:
+    function `storefact.get_store_from_url` with one of the following prefixes:
 
     - ``hfs``: Local filesystem
     - ``hazure``: AzureBlockBlobStorage
@@ -191,8 +191,7 @@ For example,
     Origin reference: {table/80feb4d84ac34a9c9d08ba48c8170647}
 
 
-.. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`,
-          :ref:`input_output`.
+.. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`
 
 
 When we do not explicitly define the name of the table and partition, Kartothek uses the
@@ -278,10 +277,6 @@ function but returns a collection of ``dask.delayed`` objects.
 
         # Read only values table `core-table` where `f` < 2.5
         read_table("two-tables", store_url, table="core-table", predicates=[[("f", "<", 2.5)]])
-
-
-For a deeper dive into Kartothek you can take a look at
-:ref:`further_useful_features`. Also look at :ref:`efficient_querying`.
 
 .. _storefact: https://github.com/blue-yonder/storefact
 .. _dask: https://docs.dask.org/en/latest/

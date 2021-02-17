@@ -522,10 +522,6 @@ def store_dataframes_as_dataset(
     dfs:
         The dataframe(s) to be stored.
 
-    Returns
-    -------
-    The stored dataset
-
     """
     if isinstance(dfs, (pd.DataFrame, dict)):
         dfs = [dfs]

@@ -1,13 +1,14 @@
 """
 Dask.Bag IO.
 """
-from typing import Any, Dict, Iterable, Optional
+from typing import Any, Dict, Iterable, Optional, Union
 
 import dask.bag as db
 from simplekv import KeyValueStore
 
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
+from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.typing import StoreFactory
 from kartothek.io.dask.common_cube import (
     append_to_cube_from_bag_internal,
@@ -59,7 +60,7 @@ def build_cube_from_bag(
 
     Parameters
     ----------
-    data:
+    data: dask.bag.Bag
         Bag containing dataframes
     cube:
         Cube specification.
@@ -74,7 +75,6 @@ def build_cube_from_bag(
         If possibly existing datasets should be overwritten.
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
     df_serializer:
         Optional Dataframe to Parquet serializer
 
@@ -109,13 +109,13 @@ def extend_cube_from_bag(
     """
     Create dask computation graph that extends a cube by the data supplied from a dask bag.
 
-    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+    For details on ``data`` and ``metadata``, see :func:`~kartothek.io.eager_cube.build_cube`.
 
     Parameters
     ----------
-    data:
-        Bag containing dataframes (see :meth:`build_cube` for possible format and types).
-    cube:
+    data: dask.bag.Bag
+        Bag containing dataframes (see :func:`~kartothek.io.eager_cube.build_cube` for possible format and types).
+    cube: kartothek.core.cube.cube.Cube
         Cube specification.
     store:
         Store to which the data should be written to.
@@ -127,7 +127,6 @@ def extend_cube_from_bag(
         If possibly existing datasets should be overwritten.
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
     df_serializer:
         Optional Dataframe to Parquet serializer
 
@@ -162,7 +161,7 @@ def query_cube_bag(
     """
     Query cube.
 
-    For detailed documentation, see :meth:`query_cube`.
+    For detailed documentation, see :func:`~kartothek.io.eager_cube.query_cube`.
 
     Parameters
     ----------
@@ -173,7 +172,7 @@ def query_cube_bag(
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, an
+        Datasets to query, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, an
         iterable of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
@@ -187,7 +186,7 @@ def query_cube_bag(
 
     Returns
     -------
-    bag: dask.Bag
+    bag: dask.bag.Bag
         Bag of 1-sized partitions of non-empty DataFrames, order by ``partition_by``. Column of DataFrames is
         alphabetically ordered. Data types are provided on best effort (they are restored based on the preserved data,
         but may be different due to Pandas NULL-handling, e.g. integer columns may be floats).
@@ -205,7 +204,12 @@ def query_cube_bag(
     return b
 
 
-def delete_cube_bag(cube, store, blocksize=100, datasets=None):
+def delete_cube_bag(
+    cube: Cube,
+    store: StoreFactory,
+    blocksize: int = 100,
+    datasets: Optional[Union[Iterable[str], Dict[str, DatasetMetadata]]] = None,
+):
     """
     Delete cube from store.
 
@@ -215,14 +219,14 @@ def delete_cube_bag(cube, store, blocksize=100, datasets=None):
 
     Parameters
     ----------
-    cube: Cube
+    cube
         Cube specification.
-    store: StoreFactory
+    store
         KV store.
-    blocksize: int
+    blocksize
         Number of keys to delete at once.
-    datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to delete, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+    datasets
+        Datasets to delete, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case entire cube will be deleted).
 
     Returns
@@ -251,25 +255,30 @@ def delete_cube_bag(cube, store, blocksize=100, datasets=None):
 
 
 def copy_cube_bag(
-    cube, src_store, tgt_store, blocksize=100, overwrite=False, datasets=None
+    cube,
+    src_store: StoreFactory,
+    tgt_store: StoreFactory,
+    blocksize: int = 100,
+    overwrite: bool = False,
+    datasets: Optional[Union[Iterable[str], Dict[str, DatasetMetadata]]] = None,
 ):
     """
     Copy cube from one store to another.
 
     Parameters
     ----------
-    cube: Cube
+    cube
         Cube specification.
-    src_store: StoreFactory
+    src_store
         Source KV store.
-    tgt_store: StoreFactory
+    tgt_store
         Target KV store.
-    overwrite: bool
+    overwrite
         If possibly existing datasets in the target store should be overwritten.
-    blocksize: int
+    blocksize
         Number of keys to copy at once.
-    datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to copy, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+    datasets
+        Datasets to copy, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
 
     Returns
@@ -297,20 +306,25 @@ def copy_cube_bag(
     )
 
 
-def collect_stats_bag(cube, store, datasets=None, blocksize=100):
+def collect_stats_bag(
+    cube: Cube,
+    store: StoreFactory,
+    datasets: Optional[Union[Iterable[str], Dict[str, DatasetMetadata]]] = None,
+    blocksize: int = 100,
+):
     """
     Collect statistics for given cube.
 
     Parameters
     ----------
-    cube: Cube
+    cube
         Cube specification.
-    store: simplekv.KeyValueStore
+    store
         KV store that preserves the cube.
-    datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+    datasets
+        Datasets to query, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
-    blocksize: int
+    blocksize
         Number of partitions to scan at once.
 
     Returns
@@ -343,7 +357,7 @@ def collect_stats_bag(cube, store, datasets=None, blocksize=100):
     )
 
 
-def cleanup_cube_bag(cube, store, blocksize=100):
+def cleanup_cube_bag(cube: Cube, store: StoreFactory, blocksize: int = 100) -> db.Bag:
     """
     Remove unused keys from cube datasets.
 
@@ -354,11 +368,11 @@ def cleanup_cube_bag(cube, store, blocksize=100):
 
     Parameters
     ----------
-    cube: Cube
+    cube
         Cube specification.
-    store: Union[simplekv.KeyValueStore, StoreFactory]
+    store
         KV store.
-    blocksize: int
+    blocksize
         Number of keys to delete at once.
 
     Returns
@@ -390,7 +404,7 @@ def append_to_cube_from_bag(
     """
     Append data to existing cube.
 
-    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+    For details on ``data`` and ``metadata``, see :func:`~kartothek.io.eager_cube.build_cube`.
 
     .. important::
 
@@ -400,11 +414,11 @@ def append_to_cube_from_bag(
     .. hint::
 
         To have better control over the overwrite "mask" (i.e. which partitions are overwritten), you should use
-        :meth:`remove_partitions` beforehand or use :meth:`update_cube_from_bag` instead.
+        :func:`~kartothek.io.eager_cube.remove_partitions` beforehand or use :func:`~kartothek.io.dask.bag_cube.update_cube_from_bag` instead.
 
     Parameters
     ----------
-    data:
+    data: dask.bag.Bag
         Bag containing dataframes
     cube:
         Cube specification.
@@ -446,13 +460,13 @@ def update_cube_from_bag(
     """
     Remove partitions and append data to existing cube.
 
-    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+    For details on ``data`` and ``metadata``, see :func:`~kartothek.io.eager_cube.build_cube`.
 
     Only datasets in `ktk_cube_dataset_ids` will be affected.
 
     Parameters
     ----------
-    data:
+    data: dask.bag.Bag
         Bag containing dataframes
     cube:
         Cube specification.

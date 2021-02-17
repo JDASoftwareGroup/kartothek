@@ -4,7 +4,7 @@ This module is a collection of helper functions
 import collections
 import inspect
 import logging
-from typing import Iterable, List, Optional, TypeVar, Union, overload
+from typing import Dict, Iterable, List, Optional, TypeVar, Union, overload
 
 import decorator
 import pandas as pd
@@ -36,7 +36,7 @@ class InvalidObject:
     pass
 
 
-def combine_metadata(dataset_metadata, append_to_list=True):
+def combine_metadata(dataset_metadata: List[Dict], append_to_list: bool = True) -> Dict:
     """
     Merge a list of dictionaries
 
@@ -49,9 +49,9 @@ def combine_metadata(dataset_metadata, append_to_list=True):
 
     Parameters
     ----------
-    dataset_metadata: list of dict
+    dataset_metadata
         The list of dictionaries (usually metadata) to be combined.
-    append_to_list: bool
+    append_to_list
         If True, all values are concatenated. If False, only unique values are kept
     """
     meta = _combine_metadata(dataset_metadata, append_to_list)
@@ -246,6 +246,8 @@ def normalize_arg(arg_name, old_value):
     * "store"
 
     Will be converted to a callable returning
+
+    :meta private:
     """
 
     def _make_list(_args):
@@ -383,7 +385,9 @@ def align_categories(dfs, categoricals):
     return return_dfs
 
 
-def sort_values_categorical(df: pd.DataFrame, columns: Union[List[str], str]):
+def sort_values_categorical(
+    df: pd.DataFrame, columns: Union[List[str], str]
+) -> pd.DataFrame:
     """
     Sort a dataframe lexicographically by the categories of column `column`
     """

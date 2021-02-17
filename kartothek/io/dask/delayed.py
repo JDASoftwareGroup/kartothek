@@ -2,14 +2,17 @@
 import warnings
 from collections import defaultdict
 from functools import partial
+from typing import List, Optional
 
 import dask
 from dask import delayed
+from dask.delayed import Delayed
 
 from kartothek.core import naming
 from kartothek.core.docs import default_docs
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
+from kartothek.core.typing import StoreInput
 from kartothek.core.utils import lazy_store
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.delete import (
@@ -96,8 +99,11 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
 @default_docs
 @normalize_args
 def garbage_collect_dataset__delayed(
-    dataset_uuid=None, store=None, chunk_size=100, factory=None
-):
+    dataset_uuid: Optional[str] = None,
+    store: StoreInput = None,
+    chunk_size: int = 100,
+    factory=None,
+) -> List[Delayed]:
     """
     Remove auxiliary files that are no longer tracked by the dataset.
 
@@ -107,12 +113,9 @@ def garbage_collect_dataset__delayed(
 
     Parameters
     ----------
-    chunk_size: int
+    chunk_size
         Number of files that should be deleted in a single job.
 
-    Returns
-    -------
-    tasks: list of dask.delayed
     """
 
     ds_factory = _ensure_factory(
@@ -458,7 +461,7 @@ def update_dataset_from_delayed(
     A dask.delayed graph to add and store a list of dictionaries containing
     dataframes to a kartothek dataset in store. The input should be a list
     (or splitter pipeline) containing
-    :class:`~karothek.io.metapartition.MetaPartition`. If you want to use this
+    :class:`~kartothek.io_components.metapartition.MetaPartition`. If you want to use this
     pipeline step for just deleting partitions without adding new ones you
     have to give an empty meta partition as input (``[Metapartition(None)]``).
 
@@ -520,18 +523,13 @@ def store_delayed_as_dataset(
     partition_on=None,
     metadata_storage_format=naming.DEFAULT_METADATA_STORAGE_FORMAT,
     secondary_indices=None,
-):
+) -> Delayed:
     """
     Transform and store a list of dictionaries containing
     dataframes to a kartothek dataset in store.
 
     Parameters
     ----------
-
-
-    Returns
-    -------
-    A dask.delayed dataset object.
     """
     store = lazy_store(store)
     if dataset_uuid is None:

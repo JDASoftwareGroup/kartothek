@@ -57,26 +57,25 @@ def build_cube_from_dataframe(
 
     Parameters
     ----------
-    data:
+    data
         Data that should be written to the cube. If only a single dataframe is given, it is assumed to be the seed
         dataset.
-    cube:
+    cube
         Cube specification.
-    store:
+    store
         Store to which the data should be written to.
-    metadata:
+    metadata
         Metadata for every dataset.
-    overwrite:
+    overwrite
         If possibly existing datasets should be overwritten.
-    partition_on:
+    partition_on
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
     df_serializer:
         Optional Dataframe to Parquet serializer
 
     Returns
     -------
-    metadata_dict:
+    metadata_dict: dask.delayed.Delayed
         A dask delayed object containing the compute graph to build a cube returning the dict of dataset metadata
         objects.
     """
@@ -146,25 +145,24 @@ def extend_cube_from_dataframe(
     """
     Create dask computation graph that extends a cube by the data supplied from a dask dataframe.
 
-    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+    For details on ``data`` and ``metadata``, see :func:`~kartothek.io.eager_cube.build_cube`.
 
     Parameters
     ----------
-    data:
+    data
         Data that should be written to the cube. If only a single dataframe is given, it is assumed to be the seed
         dataset.
-    cube:
+    cube
         Cube specification.
-    store:
+    store
         Store to which the data should be written to.
-    metadata:
+    metadata
         Metadata for every dataset.
-    overwrite:
+    overwrite
         If possibly existing datasets should be overwritten.
-    partition_on:
+    partition_on
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
-    df_serializer:
+    df_serializer
         Optional Dataframe to Parquet serializer
 
     Returns
@@ -203,7 +201,7 @@ def query_cube_dataframe(
     """
     Query cube.
 
-    For detailed documentation, see :meth:`query_cube`.
+    For detailed documentation, see :func:`~kartothek.io.eager_cube.query_cube`.
 
     .. important::
         In contrast to other backends, the Dask DataFrame may contain partitions with empty DataFrames!
@@ -217,7 +215,7 @@ def query_cube_dataframe(
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+        Datasets to query, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
@@ -262,7 +260,7 @@ def append_to_cube_from_dataframe(
     """
     Append data to existing cube.
 
-    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+    For details on ``data`` and ``metadata``, see :func:`~kartothek.io.eager_cube.build_cube`.
 
     .. important::
 
@@ -272,11 +270,11 @@ def append_to_cube_from_dataframe(
     .. hint::
 
         To have better control over the overwrite "mask" (i.e. which partitions are overwritten), you should use
-        :meth:`remove_partitions` beforehand.
+        :func:`~kartothek.io.eager_cube.remove_partitions` beforehand.
 
     Parameters
     ----------
-    data:
+    data: dask.bag.Bag
         Bag containing dataframes
     cube:
         Cube specification.

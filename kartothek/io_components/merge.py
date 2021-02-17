@@ -1,26 +1,39 @@
 import logging
+from typing import Callable, Generator, List, Union
 
 from kartothek.core.dataset import DatasetMetadata
+from kartothek.core.typing import StoreInput
 from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import MetaPartition
 
 LOGGER = logging.getLogger(__name__)
 
+try:
+    from typing_extensions import Literal  # type: ignore
+except ImportError:
+    from typing import Literal  # type: ignore
 
-def align_datasets(left_dataset_uuid, right_dataset_uuid, store, match_how="exact"):
+
+def align_datasets(
+    left_dataset_uuid: str,
+    right_dataset_uuid: str,
+    store: StoreInput,
+    match_how: Union[Literal["exact", "prefix", "all"], Callable] = "exact",
+) -> Generator[List[MetaPartition], None, None]:
     """
     Determine dataset partition alignment
 
     Parameters
     ----------
-    left_dataset_uuid : basestring
-    right_dataset_uuid : basestring
-    store : KeyValuestore or callable
-    match_how : basestring or callable, {exact, prefix, all, callable}
+    left_dataset_uuid
+    right_dataset_uuid
+    store
+    match_how
+
 
     Yields
     ------
-    list
+    List
 
     """
     store = ensure_store(store)

@@ -182,9 +182,9 @@ def _process_conditions(
 
     Returns
     -------
-    conditions_pre: Dict[str, Conjuction]
+    conditions_pre: Dict[str, kartothek.core.cube.conditions.Conjunction]
         Conditions to be applied based on the index data alone.
-    conditions_post: Dict[str, Conjuction]
+    conditions_post: Dict[str, kartothek.core.cube.conditions.Conjunction]
         Conditions to be applied during the load process.
 
     Raises
@@ -362,9 +362,9 @@ class QueryIntention:
         Real dimension columns.
     partition_by: Tuple[str, ...]
         Real partition-by columns, may be empty.
-    conditions_pre: Dict[str, Conjuction]
+    conditions_pre: Dict[str, kartothek.core.cube.conditions.Conjunction]
         Conditions to be applied based on the index data alone.
-    conditions_post: Dict[str, Conjuction]
+    conditions_post: Dict[str, kartothek.core.cube.conditions.Conjunction]
         Conditions to be applied during the load process.
     output_columns: Tuple[str, ...]
         Output columns to be passed back to the user, in correct order.

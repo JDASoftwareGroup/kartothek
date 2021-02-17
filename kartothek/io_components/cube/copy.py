@@ -23,7 +23,7 @@ def get_copy_keys(cube, src_store, tgt_store, overwrite, datasets=None):
     overwrite: bool
         If possibly existing datasets in the target store should be overwritten.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to copy, must all be part of the cube. May be either the result of :meth:`discover_datasets`, an
+        Datasets to copy, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, an
         iterable of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
 
     Returns

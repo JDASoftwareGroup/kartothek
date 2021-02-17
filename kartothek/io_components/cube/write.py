@@ -314,7 +314,7 @@ def prepare_data_for_ktk(
 
     Returns
     -------
-    mp: Kartothek.io.metapartition.MetaPartition
+    mp: kartothek.io_components.metapartition.MetaPartition
         Kartothek-ready MetaPartition, may be sentinel (aka empty and w/o label).
 
     Raises
@@ -578,7 +578,7 @@ def prepare_ktk_partition_on(
 
     Returns
     -------
-    partition_on:
+    partition_on: Dict
         Partition-on per dataset.
 
     Raises

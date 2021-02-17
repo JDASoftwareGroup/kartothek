@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
 This module contains functionality for persisting/serialising DataFrames.
@@ -80,6 +79,8 @@ class ParquetReadError(IOError):
 
 
 class ParquetSerializer(DataFrameSerializer):
+    """Serializer to store as parquet"""
+
     _PARQUET_VERSION = "2.0"
     type_stable = True
 

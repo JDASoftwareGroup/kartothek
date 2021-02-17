@@ -10,6 +10,9 @@ Available constants
 **LiteralType**  - A type for a single literal
 
 **LiteralValue** - A type indicating the value of a predicate literal
+
+
+:meta public:
 """
 
 from typing import Dict, Iterable, List, Optional, Set, Tuple, TypeVar
@@ -35,6 +38,8 @@ class DataFrameSerializer:
     """
     Abstract class that supports serializing DataFrames to/from
     simplekv stores.
+
+    :meta public:
     """
 
     _serializers: Dict[str, "DataFrameSerializer"] = {}
@@ -65,44 +70,41 @@ class DataFrameSerializer:
 
         Parameters
         ----------
-        store: simplekv.KeyValueStore
-                store engine
-        key: str
-                Key that specifies a path where object should be
-                retrieved from the store resource.
-        filter_query: str
-                Optional query to filter the DataFrame. Must adhere to the specification
-                of pandas.DataFrame.query.
-        columns : str or None
-                Only read in listed columns. When set to None, the full file
-                will be read in.
-        predicate_pushdown_to_io: bool
-                Push predicates through to the I/O layer, default True. Disable
-                this if you see problems with predicate pushdown for the given
-                file even if the file format supports it. Note that this option
-                only hides problems in the store layer that need to be addressed
-                there.
-        categories: list of str (optional)
-                Columns that should be loaded as categoricals.
-        predicates: list of list of tuple[str, str, Any]
-                Optional list of predicates, like [[('x', '>', 0), ...], that are used
-                to filter the resulting DataFrame, possibly using predicate pushdown,
-                if supported by the file format.
-                This parameter is not compatible with filter_query.
+        store
+            store engine
+        key
+            Key that specifies a path where object should be
+            retrieved from the store resource.
+        filter_query
+            Optional query to filter the DataFrame. Must adhere to the specification
+            of pandas.DataFrame.query.
+        columns
+            Only read in listed columns. When set to None, the full file
+            will be read in.
+        predicate_pushdown_to_io
+            Push predicates through to the I/O layer, default True. Disable
+            this if you see problems with predicate pushdown for the given
+            file even if the file format supports it. Note that this option
+            only hides problems in the store layer that need to be addressed
+            there.
+        categories
+            Columns that should be loaded as categoricals.
+        predicates
+            Optional list of predicates, like [[('x', '>', 0), ...], that are used
+            to filter the resulting DataFrame, possibly using predicate pushdown,
+            if supported by the file format.
+            This parameter is not compatible with filter_query.
 
-                Predicates are expressed in disjunctive normal form (DNF). This means
-                that the innermost tuple describe a single column predicate. These
-                inner predicate make are all combined with a conjunction (AND) into a
-                larger predicate. The most outer list then combines all predicates
-                with a disjunction (OR). By this, we should be able to express all
-                kinds of predicates that are possible using boolean logic.
-        date_as_object: bool
-                Retrieve all date columns as an object column holding datetime.date objects
-                instead of pd.Timestamp. Note that this option only works for type-stable
-                serializers, e.g. ``ParquetSerializer``.
-        Returns
-        -------
-        Data in pandas dataframe format.
+            Predicates are expressed in disjunctive normal form (DNF). This means
+            that the innermost tuple describe a single column predicate. These
+            inner predicate make are all combined with a conjunction (AND) into a
+            larger predicate. The most outer list then combines all predicates
+            with a disjunction (OR). By this, we should be able to express all
+            kinds of predicates that are possible using boolean logic.
+        date_as_object
+            Retrieve all date columns as an object column holding datetime.date objects
+            instead of pd.Timestamp. Note that this option only works for type-stable
+            serializers, e.g. ``ParquetSerializer``.
         """
         if filter_query and predicates:
             raise ValueError("Can only specify one of filter_query and predicates")
@@ -273,24 +275,21 @@ def filter_df_from_predicates(
     df: pd.DataFrame,
     predicates: Optional[PredicatesType],
     strict_date_types: bool = False,
-) -> PredicatesType:
+) -> pd.DataFrame:
     """
     Filter a `pandas.DataFrame` based on predicates in disjunctive normal form.
 
     Parameters
     ----------
-    df: pd.DataFrame
+    df
         The pandas DataFrame to be filtered
-    predicates: list of lists
+    predicates
         Predicates in disjunctive normal form (DNF). For a thorough documentation, see
         :class:`DataFrameSerializer.restore_dataframe`
         If None, the df is returned unmodified
-    strict_date_types: bool
+    strict_date_types
         If False (default), cast all datelike values to datetime64 for comparison.
 
-    Returns
-    -------
-    pd.DataFrame
     """
     if predicates is None:
         return df
@@ -418,33 +417,37 @@ def _ensure_type_stability(
 
 def filter_array_like(
     array_like,
-    op,
+    op: str,
     value,
     mask=None,
     out=None,
-    strict_date_types=False,
-    column_name=None,
+    strict_date_types: bool = False,
+    column_name: Optional[str] = None,
 ):
     """
     Filter an array-like object using operations defined in the predicates
 
     Parameters
     ----------
-    array_like: array-like, c.f. pd.api.types.is_array_like
+    array_like
         The array like object to be filtered
-    op: string
-    value: object
-    mask: boolean array-like, optional
+
+        See also
+        --------
+        `pandas.api.types.is_array_like`
+    op
+    value
+    mask
         A boolean array like object which will be combined with the result
         of this evaluation using a logical AND. If an array with all True is
         given, it will be the same result as if left empty
-    out: array-like
+    out
         An array into which the result is stored. If provided, it must have a shape
         that the inputs broadcast to. If not provided or None, a freshly-allocated
         array is returned.
-    strict_date_types: bool
+    strict_date_types
         If False (default), cast all datelike values to datetime64 for comparison.
-    column_name: str, optional
+    column_name
         Name of the column where `array_like` originates from, used for nicer
         error messages.
     """

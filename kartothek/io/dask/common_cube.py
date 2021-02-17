@@ -101,7 +101,7 @@ def build_cube_from_bag_internal(
 
     Parameters
     ----------
-    data:
+    data: dask.bag.Bag
         Bag containing dataframes
     cube:
         Cube specification.
@@ -116,7 +116,6 @@ def build_cube_from_bag_internal(
         If possibly existing datasets should be overwritten.
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
     df_serializer:
         Optional Dataframe to Parquet serializer
 
@@ -192,13 +191,13 @@ def extend_cube_from_bag_internal(
     """
     Create dask computation graph that extends a cube by the data supplied from a dask bag.
 
-    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+    For details on ``data`` and ``metadata``, see :func:`~kartothek.io.eager_cube.build_cube`.
 
     Parameters
     ----------
-    data:
-        Bag containing dataframes (see :meth:`build_cube` for possible format and types).
-    cube:
+    data: dask.bag.Bag
+        Bag containing dataframes (see :func:`~kartothek.io.eager_cube.build_cube` for possible format and types).
+    cube: kartothek.core.cube.cube.Cube
         Cube specification.
     store:
         Store to which the data should be written to.
@@ -210,7 +209,6 @@ def extend_cube_from_bag_internal(
         If possibly existing datasets should be overwritten.
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
     df_serializer:
         Optional Dataframe to Parquet serializer
 
@@ -294,7 +292,7 @@ def query_cube_bag_internal(
     """
     Query cube.
 
-    For detailed documentation, see :meth:`query_cube`.
+    For detailed documentation, see :func:`~kartothek.io.eager_cube.query_cube`.
 
     Parameters
     ----------
@@ -305,7 +303,7 @@ def query_cube_bag_internal(
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+        Datasets to query, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
@@ -321,7 +319,7 @@ def query_cube_bag_internal(
     -------
     empty: pandas.DataFrame
         Empty DataFrame with correct dtypes and column order.
-    bag: dask.Bag
+    bag: dask.bag.Bag
         Bag of 1-sized partitions of non-empty DataFrames, order by ``partition_by``. Column of DataFrames is
         alphabetically ordered. Data types are provided on best effort (they are restored based on the preserved data,
         but may be different due to Pandas NULL-handling, e.g. integer columns may be floats).
@@ -375,7 +373,7 @@ def append_to_cube_from_bag_internal(
     """
     Append data to existing cube.
 
-    For details on ``data`` and ``metadata``, see :meth:`build_cube`.
+    For details on ``data`` and ``metadata``, see :func:`~kartothek.io.eager_cube.build_cube`.
 
     .. important::
 
@@ -385,7 +383,7 @@ def append_to_cube_from_bag_internal(
 
     Parameters
     ----------
-    data:
+    data: dask.bag.Bag
         Bag containing dataframes
     cube:
         Cube specification.

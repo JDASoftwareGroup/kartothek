@@ -2,13 +2,15 @@
 Eager IO aka "everything is done locally and immediately".
 """
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Union
+from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
 
 import pandas as pd
+import simplekv
 from simplekv import KeyValueStore
 
 from kartothek.api.consistency import get_cube_payload
 from kartothek.api.discover import discover_datasets, discover_datasets_unchecked
+from kartothek.core.cube.conditions import Condition, Conjunction
 from kartothek.core.cube.constants import (
     KTK_CUBE_DF_SERIALIZER,
     KTK_CUBE_METADATA_STORAGE_FORMAT,
@@ -16,6 +18,7 @@ from kartothek.core.cube.constants import (
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
+from kartothek.core.typing import StoreFactory
 from kartothek.io.eager import (
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
@@ -184,7 +187,6 @@ def build_cube(
         If possibly existing datasets should be overwritten.
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
     df_serializer:
         Optional Dataframe to Parquet serializer
 
@@ -260,7 +262,6 @@ def extend_cube(
         If possibly existing datasets should be overwritten.
     partition_on:
         Optional parition-on attributes for datasets (dictionary mapping :term:`Dataset ID` -> columns).
-        See :ref:`Dimensionality and Partitioning Details` for details.
     df_serializer:
         Optional Dataframe to Parquet serializer
 
@@ -342,7 +343,7 @@ def query_cube(
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+        Datasets to query, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
     dimension_columns: Union[None, str, Iterable[str]]
         Dimension columns of the query, may result in projection. If not provided, dimension columns from cube
@@ -396,7 +397,7 @@ def delete_cube(cube, store, datasets=None):
     store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         KV store.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to delete, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+        Datasets to delete, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case entire cube will be deleted).
     """
     if callable(store):
@@ -433,7 +434,7 @@ def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
     overwrite: bool
         If possibly existing datasets in the target store should be overwritten.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to copy, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+        Datasets to copy, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
     """
     if callable(src_store):
@@ -465,7 +466,7 @@ def collect_stats(cube, store, datasets=None):
     store: simplekv.KeyValueStore
         KV store that preserves the cube.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
-        Datasets to query, must all be part of the cube. May be either the result of :meth:`discover_datasets`, a list
+        Datasets to query, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case auto-discovery will be used).
 
     Returns
@@ -514,7 +515,11 @@ def cleanup_cube(cube, store):
 
 
 def remove_partitions(
-    cube, store, conditions=None, ktk_cube_dataset_ids=None, metadata=None
+    cube: Cube,
+    store: Union[simplekv.KeyValueStore, StoreFactory],
+    conditions: Union[None, Condition, Sequence[Condition], Conjunction] = None,
+    ktk_cube_dataset_ids: Optional[Union[Sequence[str], str]] = None,
+    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
 ):
     """
     Remove given partition range from cube using a transaction.
@@ -527,15 +532,15 @@ def remove_partitions(
 
     Parameters
     ----------
-    cube: kartothek.core.cube.cube.Cube
+    cube
         Cube spec.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store
         Store.
-    conditions: Union[None, Condition, Iterable[Condition], Conjunction]
+    conditions
         Select the partitions to be removed. Must be a condition only on partition columns.
-    ktk_cube_dataset_ids: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
+    ktk_cube_dataset_ids
         Ktk_cube dataset IDs to apply the remove action to, optional. Default to "all".
-    metadata: Optional[Dict[str, Dict[str, Any]]]
+    metadata
         Metadata for every the datasets, optional. Only given keys are updated/replaced. Deletion of
         metadata keys is not possible.
 

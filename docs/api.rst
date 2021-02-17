@@ -84,8 +84,8 @@ Dask
 ****
 
 The `dask` module offers a seamless integration to `dask <https://docs.dask.org>`_
-and offers implementations for dask data collections like `dask.Bag`,
-`dask.DataFrame` or as `dask.Delayed`.
+and offers implementations for dask data collections like :class:`~dask.bag.Bag`,
+:class:`dask.dataframe.DataFrame` or as :class:`dask.delayed.Delayed`.
 This implementation is best suited to handle big data and scale the
 pipelines across many workers using `dask.distributed`.
 

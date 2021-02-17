@@ -33,10 +33,10 @@ def default_serializer():
 
 __all__ = [
     # Serializer classes
-    "CsvSerializer",
     "DataFrameSerializer",
-    "ParquetSerializer",
     "default_serializer",
+    "ParquetSerializer",
+    "CsvSerializer",
     # functions
     "check_predicates",
     "columns_in_predicates",

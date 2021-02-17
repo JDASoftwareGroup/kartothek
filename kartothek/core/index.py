@@ -47,13 +47,13 @@ class IndexBase(CopyMixin):
 
         Parameters
         ----------
-        column:
+        column
             Name of the column this index is for.
-        index_dct:
+        index_dct
             Mapping from index values to partition labels
-        dtype:
+        dtype
             Type of index. If left out and ``index_dct`` is present, this will be inferred.
-        normalize_dtype:
+        normalize_dtype
             Normalize type information and values within ``index_dct``. The user may
             disable this when it the index was already normalized, e.g. when the
             index python objects gets copied, or when the index data is restored
@@ -149,9 +149,9 @@ class IndexBase(CopyMixin):
 
         Parameters
         ----------
-        dtype: pyarrow.Type
+        dtype
             Arrow type of the index.
-        value: Any
+        value
             any value
 
         Returns
@@ -224,7 +224,8 @@ class IndexBase(CopyMixin):
             The value to be evaluated
         Returns
         -------
-        set: Allowed partition labels
+        set
+            Allowed partition labels
         """
         result = set()
         index_dct = self.index_dct
@@ -260,7 +261,7 @@ class IndexBase(CopyMixin):
 
         Returns
         -------
-        keys:
+        keys: List[str]
             A list of keys of partitions that contain the corresponding value.
         """
         if self.index_dct is None:
@@ -328,7 +329,7 @@ class IndexBase(CopyMixin):
         return self.copy(column=self.column, index_dct=new_index_dict, dtype=self.dtype)
 
     def remove_partitions(
-        self, list_of_partitions: List[str], inplace=False
+        self, list_of_partitions: List[str], inplace: bool = False
     ) -> "IndexBase":
         """
         Removes a partition from the internal index dictionary
@@ -338,9 +339,9 @@ class IndexBase(CopyMixin):
 
         Parameters
         ----------
-        list_of_partitions: obj
+        list_of_partitions
             The partition to be removed
-        inplace: bool, (default: False)
+        inplace
             If `True` the operation is performed inplace and will return the same object
         """
         if not list_of_partitions:
@@ -378,9 +379,9 @@ class IndexBase(CopyMixin):
 
         Parameters
         ----------
-        list_of_values: list
+        list_of_values
             The value to be removed
-        inplace: bool, (default: False)
+        inplace:
             If `True` the operation is performed inplace and will return the same object
         """
         set_of_values = set(
@@ -444,19 +445,20 @@ class IndexBase(CopyMixin):
         partitions_as_index: bool = False,
         date_as_object: bool = False,
         predicates: PredicatesType = None,
-    ):
+    ) -> pd.Series:
         """
+
         Convert the Index object to a pandas.Series
 
         Parameters
         ----------
-        compact:
+        compact
             If True, ensures that the index will be unique. If there a multiple partition values per index, there values
             will be compacted into a list (see Examples section).
-        partitions_as_index:
+        partitions_as_index
             If True, the relation between index values and partitions will be reverted for the output dataframe:
             partition values will be used as index and the indices will be mapped to the partitions.
-        predicates:
+        predicates
             A list of predicates. If a literal within the provided predicates
             references a column which is not part of this index, this literal is
             interpreted as True.
@@ -724,7 +726,7 @@ class ExplicitSecondaryIndex(IndexBase):
 
         Parameters
         ----------
-        store: Object
+        store
             Object that implements the .get method for file/object loading.
 
         Returns
@@ -785,7 +787,7 @@ def merge_indices(
 
     Parameters
     ----------
-    list_of_indices: list of tuple
+    list_of_indices
         A list of tuples holding index information
 
         Format: [ (partition_label, index_dict) ]
@@ -820,9 +822,9 @@ def remove_partitions_from_indices(
 
     Parameters
     ----------
-    index_dict: dict of Index
+    index_dict
         A dictionary holding kartothek indices
-    partitions: list
+    partitions
         A list of partition labels which should be removed form the index objects
     """
     new_index_dict = {}

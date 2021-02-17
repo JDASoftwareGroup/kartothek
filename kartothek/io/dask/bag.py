@@ -2,12 +2,15 @@
 import warnings
 from collections import defaultdict
 from functools import partial
+from typing import Optional, Sequence
 
 import dask.bag as db
+from dask.delayed import Delayed
 
 from kartothek.core import naming
 from kartothek.core.docs import default_docs
-from kartothek.core.factory import _ensure_factory
+from kartothek.core.factory import DatasetFactory, _ensure_factory
+from kartothek.core.typing import StoreInput
 from kartothek.core.utils import lazy_store
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.dask._utils import (
@@ -60,14 +63,15 @@ def read_dataset_as_metapartitions_bag(
     dispatch_metadata=True,
 ):
     """
-    Retrieve dataset as `dask.bag` of `MetaPartition` objects.
+    Retrieve dataset as `dask.bag.Bag` of `MetaPartition` objects.
 
     Parameters
     ----------
 
     Returns
     -------
-    A dask.bag object containing the metapartions.
+    dask.bag.Bag:
+        A dask.bag object containing the metapartions.
     """
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
@@ -152,15 +156,15 @@ def read_dataset_as_dataframe_bag(
     partition_size=None,
 ):
     """
-    Retrieve data as dataframe from a `dask.bag` of `MetaPartition` objects
+    Retrieve data as dataframe from a :class:`dask.bag.Bag` of `MetaPartition` objects
 
     Parameters
     ----------
 
     Returns
     -------
-    dask.bag
-        A dask.bag which contains the metapartitions and mapped to a function for retrieving the data.
+    dask.bag.Bag
+        A dask.bag.Bag which contains the metapartitions and mapped to a function for retrieving the data.
     """
     mps = read_dataset_as_metapartitions_bag(
         dataset_uuid=dataset_uuid,
@@ -202,17 +206,14 @@ def store_bag_as_dataset(
     dataframes to a kartothek dataset in store.
 
     This is the dask.bag-equivalent of
-    :func:`store_delayed_as_dataset`. See there
+    :func:`~kartothek.io.dask.delayed.store_delayed_as_dataset`. See there
     for more detailed documentation on the different possible input types.
 
     Parameters
     ----------
-    bag: dask.bag
+    bag: dask.bag.Bag
         A dask bag containing dictionaries of dataframes or dataframes.
 
-    Returns
-    -------
-    A dask.bag.Item dataset object.
     """
     store = lazy_store(store)
     if dataset_uuid is None:
@@ -255,8 +256,12 @@ def store_bag_as_dataset(
 
 @default_docs
 def build_dataset_indices__bag(
-    store, dataset_uuid, columns, partition_size=None, factory=None
-):
+    store: Optional[StoreInput],
+    dataset_uuid: Optional[str],
+    columns: Sequence[str],
+    partition_size: Optional[int] = None,
+    factory: Optional[DatasetFactory] = None,
+) -> Delayed:
     """
     Function which builds a :class:`~kartothek.core.index.ExplicitSecondaryIndex`.
 
@@ -266,9 +271,6 @@ def build_dataset_indices__bag(
     Parameters
     ----------
 
-    Returns
-    -------
-    A dask.delayed computation object.
     """
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,

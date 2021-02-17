@@ -3,6 +3,8 @@ Helper module to convert user inputs into normalized forms.
 """
 from __future__ import absolute_import
 
+from typing import Iterable, Optional, Tuple, Union
+
 import pandas as pd
 import pyarrow as pa
 
@@ -22,7 +24,7 @@ def converter_str_set(obj) -> frozenset:
 
     Parameters
     ----------
-    obj: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
+    obj: Optional[Union[Iterable[str], str]]
         Object to convert.
 
     Returns
@@ -46,7 +48,7 @@ def converter_str_set_optional(obj):
 
     Parameters
     ----------
-    obj: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
+    obj: Optional[Union[Iterable[str], str]]
         Object to convert.
 
     Returns
@@ -64,7 +66,7 @@ def converter_str_set_optional(obj):
     return converter_str_set(obj)
 
 
-def converter_str_tupleset(obj) -> tuple:
+def converter_str_tupleset(obj: Optional[Union[Iterable[str], str]]) -> Tuple[str, ...]:
     """
     Convert input to tuple of unique unicode strings. ``None`` will be converted to an empty set.
 
@@ -72,13 +74,8 @@ def converter_str_tupleset(obj) -> tuple:
 
     Parameters
     ----------
-    obj: Optional[Union[Iterable[Union[Str, Bytes]], Union[Str, Bytes]]]
+    obj
         Object to convert.
-
-    Returns
-    -------
-    obj: Tuple[str, ...]
-        String set.
 
     Raises
     ------
@@ -128,7 +125,7 @@ def converter_str(obj) -> str:
 
     Parameters
     ----------
-    obj: Union[Str, Bytes]
+    obj: str
         Object to convert.
 
     Returns

@@ -454,7 +454,7 @@ def update_dataset_from_ddf(
 @default_docs
 @normalize_args
 def collect_dataset_metadata(
-    store: Optional[StoreFactory] = None,
+    store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,
     table_name: str = SINGLE_TABLE,
     predicates: Optional[PredicatesType] = None,
@@ -485,15 +485,16 @@ def collect_dataset_metadata(
 
     Returns
     -------
-    A dask.DataFrame containing the following information about dataset statistics:
-       * `partition_label`: File name of the parquet file, unique to each physical partition.
-       * `row_group_id`: Index of the row groups within one parquet file.
-       * `row_group_compressed_size`: Byte size of the data within one row group.
-       * `row_group_uncompressed_size`: Byte size (uncompressed) of the data within one row group.
-       * `number_rows_total`: Total number of rows in one parquet file.
-       * `number_row_groups`: Number of row groups in one parquet file.
-       * `serialized_size`: Serialized size of the parquet file.
-       * `number_rows_per_row_group`: Number of rows per row group.
+    dask.dataframe.DataFrame:
+        A dask.DataFrame containing the following information about dataset statistics:
+        * `partition_label`: File name of the parquet file, unique to each physical partition.
+        * `row_group_id`: Index of the row groups within one parquet file.
+        * `row_group_compressed_size`: Byte size of the data within one row group.
+        * `row_group_uncompressed_size`: Byte size (uncompressed) of the data within one row group.
+        * `number_rows_total`: Total number of rows in one parquet file.
+        * `number_row_groups`: Number of row groups in one parquet file.
+        * `serialized_size`: Serialized size of the parquet file.
+        * `number_rows_per_row_group`: Number of rows per row group.
 
     Raises
     ------
@@ -580,9 +581,9 @@ def hash_dataset(
 
     Parameters
     ----------
-    subset:
+    subset
         If provided, only take these columns into account when hashing the dataset
-    group_key:
+    group_key
         If provided, calculate hash per group instead of per partition
     """
     dataset_factory = _ensure_factory(

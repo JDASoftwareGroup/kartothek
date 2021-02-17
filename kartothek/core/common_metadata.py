@@ -6,7 +6,7 @@ import logging
 import pprint
 from copy import copy, deepcopy
 from functools import reduce
-from typing import Set, Union
+from typing import Any, Dict, List, Optional, Sequence, Set, Tuple, Union
 
 import pandas as pd
 import pyarrow as pa
@@ -47,10 +47,6 @@ class SchemaWrapper:
         origin:
             New origin.
 
-        Returns
-        -------
-        schema:
-            New schema.
         """
         return SchemaWrapper(self.__schema, origin)
 
@@ -278,7 +274,12 @@ def make_meta(obj, origin, partition_keys=None):
     return normalize_column_order(SchemaWrapper(schema, origin), partition_keys)
 
 
-def normalize_type(t_pa, t_pd, t_np, metadata):
+def normalize_type(
+    t_pa: pa.DataType,
+    t_pd: Optional[str],
+    t_np: Optional[str],
+    metadata: Optional[Dict[str, Any]],
+) -> Tuple[pa.DataType, Optional[str], Optional[str], Optional[Dict[str, Any]]]:
     """
     This will normalize types as followed:
 
@@ -292,19 +293,15 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
 
     Parameters
     ----------
-    t_pa: pyarrow.Type
+    t_pa
         pyarrow type object, e.g. ``pa.list_(pa.int8())``.
-    t_pd: string
+    t_pd
         pandas type identifier, e.g. ``"list[int8]"``.
-    t_np: string
+    t_np
         numpy type identifier, e.g. ``"object"``.
-    metadata: Union[None, Dict[String, Any]]
+    metadata
         metadata associated with the type, e.g. information about categorials.
 
-    Returns
-    -------
-    type_tuple: Tuple[pyarrow.Type, string, string, Union[None, Dict[String, Any]]]
-        tuple of ``t_pa``, ``t_pd``, ``t_np``, ``metadata`` for normalized type
     """
     if pa.types.is_signed_integer(t_pa):
         return pa.int64(), "int64", "int64", None
@@ -313,6 +310,7 @@ def normalize_type(t_pa, t_pd, t_np, metadata):
     elif pa.types.is_floating(t_pa):
         return pa.float64(), "float64", "float64", None
     elif pa.types.is_list(t_pa):
+        assert t_pd is not None
         t_pa2, t_pd2, t_np2, metadata2 = normalize_type(
             t_pa.value_type, t_pd[len("list[") : -1], None, None
         )
@@ -336,11 +334,11 @@ def read_schema_metadata(
 
     Parameters
     ----------
-    dataset_uuid: str
+    dataset_uuid
         Unique ID of the dataset in question.
-    store: obj
+    store
         Object that implements `.get(key)` to read data.
-    table: str
+    table
         Table to read metadata for.
 
     Returns
@@ -360,13 +358,13 @@ def store_schema_metadata(
 
     Parameters
     ----------
-    schema: Schema
+    schema
         Schema information for DataFrame/table.
-    dataset_uuid: str
+    dataset_uuid
         Unique ID of the dataset in question.
-    store: obj
+    store
         Object that implements `.put(key, data)` to write data.
-    table: str
+    table
         Table to write metadata for.
 
     Returns
@@ -411,7 +409,9 @@ def _pandas_in_schemas(schemas):
     return has_pandas
 
 
-def _determine_schemas_to_compare(schemas, ignore_pandas):
+def _determine_schemas_to_compare(
+    schemas: Sequence[SchemaWrapper], ignore_pandas: bool
+) -> Tuple[Optional[SchemaWrapper], List[Tuple[SchemaWrapper, List[str]]]]:
     """
     Iterate over a list of `pyarrow.Schema` objects and prepares them for comparison by picking a reference
     and determining all null columns.
@@ -433,7 +433,7 @@ def _determine_schemas_to_compare(schemas, ignore_pandas):
         must be removed before comparing the schemas
     """
     has_pandas = _pandas_in_schemas(schemas) and not ignore_pandas
-    schemas_to_evaluate = []
+    schemas_to_evaluate: List[Tuple[SchemaWrapper, List[str]]] = []
     reference = None
     null_cols_in_reference = set()
 
@@ -462,7 +462,7 @@ def _determine_schemas_to_compare(schemas, ignore_pandas):
             current = schema
 
         # If a field is null we cannot compare it and must therefore reject it
-        null_columns = {field.name for field in current if field.type == pa.null()}
+        null_columns = {field.name for field in current if field.type == pa.null()}  # type: ignore
 
         # Determine a valid reference schema. A valid reference schema is considered to be the schema
         # of all input schemas with the least empty columns.
