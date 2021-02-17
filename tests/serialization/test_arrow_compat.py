@@ -11,8 +11,21 @@ from storefact import get_store_from_url
 from kartothek.core.testing import get_dataframe_alltypes
 from kartothek.serialization import ParquetSerializer
 
+KNOWN_ARROW_VERSIONS = [
+    "0.12.1",
+    "0.13.0",
+    "0.14.1",
+    "0.15.0",
+    "0.16.0",
+    "0.17.1",
+    "1.0.0",
+    "1.0.1",
+    "2.0.0",
+    "3.0.0",
+]
 
-@pytest.fixture(params=["0.12.1", "0.13.0", "0.14.1", "0.15.0", "0.16.0", "1.0.0"])
+
+@pytest.fixture(params=KNOWN_ARROW_VERSIONS)
 def arrow_version(request):
     yield request.param
 
@@ -26,6 +39,17 @@ def reference_store():
         "arrow-compat",
     )
     return get_store_from_url("hfs://{}".format(path))
+
+
+def test_current_arrow_version_tested():
+    """Ensure that we do not forget to generate the reference file"""
+    import pyarrow as pa
+    from packaging.version import parse
+
+    version = parse(pa.__version__)
+    is_stable = not version.is_devrelease and not version.is_prerelease
+    if is_stable:
+        assert pa.__version__ in KNOWN_ARROW_VERSIONS
 
 
 def test_arrow_compat(arrow_version, reference_store, mocker):
