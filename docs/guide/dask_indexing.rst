@@ -1,6 +1,7 @@
+.. _dask_index:
 
 (Re-)Store a dask index
-~~~~~~~~~~~~~~~~~~~~~~~
+=======================
 
 Calculating a dask index is usually a very expensive operation which requires data to be shuffled around. To (re-)store the dask index we can use the `dask_index_on` keyword.
 

@@ -225,4 +225,4 @@ can be seen in the example below.
      all rows in a partition.
    * The value of the indices map is the name of the Parquet file storing the
      index.
-   * For a storage specification of the indices, see :ref:`partition_indices`
+   * For a description of the indices, see :ref:`indexing`

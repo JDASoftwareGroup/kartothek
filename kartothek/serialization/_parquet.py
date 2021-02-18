@@ -79,7 +79,78 @@ class ParquetReadError(IOError):
 
 
 class ParquetSerializer(DataFrameSerializer):
-    """Serializer to store as parquet"""
+    """Serializer to store a :class:`pandas.DataFrame` as parquet
+
+    On top of the plain serialization, this class handles forward and
+    backwards compatibility between pyarrow versions.
+
+    Parameters
+    ----------
+    compression
+        The compression algorithm to be used for the parquet file. For a
+        comprehensive list of available compression algorithms, please
+        see :func:`pyarrow.parquet.write_table`.
+        The default is set to "SNAPPY" which usually offers a good balance
+        between performance and compression rate. Depending on your data,
+        picking a different algorithm may have vastly different
+        characteristics and we can only recommend to test this on your own
+        data. Depending on the reader parquet implementation, some
+        compression algorithms may not be supported and we recommend to
+        consult the documentation of the reader libraries first.
+    chunk_size
+        The number of rows stored in a Parquet RowGroup. To leverage
+        predicate pushdown, it is necessary to set this value. We do not
+        apply any default value since a good choice is very sensitive to the
+        kind of data you are using and what kind of storage.
+        A typical range to try out would be somewhere between 50k-200k. To fully leverage row group statistics, it is highly recommended to sort the file before serialization.
+
+    Notes
+    -----
+
+    Regarding type stability and supported types there are a few known limitations users should be aware of.
+
+
+    .. ipython:: python
+        :suppress:
+
+        from kartothek.core.utils import ensure_store
+        import pandas as pd
+        from kartothek.serialization import ParquetSerializer
+
+        store = ensure_store("hmemory://")
+
+    * `pandas.Categorical`
+
+        Kartothek offers the keyword argument `categories` which contains a list of field names which are supposed to retrieved as a `pandas.Categorical`.
+
+        See also :ref:`Dictionary Encoding`
+
+        .. ipython:: python
+
+            ser = ParquetSerializer()
+
+            df = pd.DataFrame({"cat_field": pd.Categorical(["A"])})
+            df.dtypes
+            ser.restore_dataframe(store, ser.store(store, "cat", df))
+            ser.restore_dataframe(store, ser.store(store, "cat", df), categories=["cat_field"])
+
+    * Timestamps with nanosecond resolution
+
+        Timestamps can only be stored in micro second (`us`) accuracy. Trying to do differently may raise an exception.
+
+        See also :ref:`timestamp`
+
+        .. ipython:: python
+            :okexcept:
+
+            import pyarrow as pa
+
+            pa.__version__
+
+            df = pd.DataFrame({"nanosecond": [pd.Timestamp("2021-01-01 00:00:00.0000001")]})
+            # nanosecond resolution
+            ser.store(store, "key", df)
+    """
 
     _PARQUET_VERSION = "2.0"
     type_stable = True

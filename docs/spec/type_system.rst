@@ -231,6 +231,8 @@ This is the colleague of `Date`_ and stores the time at a given day.
 The normalization of ``time32[U]`` and ``time64[U]`` (where ``U`` is either ``"s"`` for seconds or ``"ms"`` for
 milliseconds) is currently not implemented. This might change in a future metadata version.
 
+.. _timestamp:
+
 Timestamp
 ~~~~~~~~~
 A combination of `Date`_ and `Time`_ and is particularly useful to store when an event occurred without the need to
@@ -243,6 +245,35 @@ occupies 64bits.
 We cannot treat timestamps for different timezones as the same time because the timezone parameter has important
 semantic meaning. We also cannot treat timestamps with different unit types as same since they all have very different
 ranges. So, no normalization is implemented for timestamps.
+
+.. note::
+
+  For compatibility reasons, `kartothek` coerces timestamps to `us` accuracy, effectively truncating the timestamp. If the timestamp actually has a higher accuracy, arrow raises an exception, rejecting it
+
+  .. ipython:: python
+    :suppress:
+
+    import pandas as pd
+    from kartothek.serialization import ParquetSerializer
+    from kartothek.core.utils import ensure_store
+
+    store = ensure_store("memory://")
+    ser = ParquetSerializer()
+
+  .. ipython:: python
+    :okexcept:
+
+    df = pd.DataFrame({"nano": [pd.Timestamp("2021-01-01 00:00:00.0000001")]})
+    # nanosecond resolution
+    ser.store(store, "key", df)
+
+  One possibility to deal with this is to set the appropriate accuracy using `pandas.Timestamp.ceil`_ or `pandas.Timestamp.floor`_
+
+  .. ipython:: python
+
+    df.nano = df.nano.dt.ceil("us")
+    ser.restore_dataframe(store, ser.store(store, "key", df))
+
 
 Lists
 ~~~~~
@@ -392,6 +423,8 @@ also have meant to be a ``string`` or ``date32`` column, but pyarrow cannot know
 
 To keep things pragmatic, we ignore ``null`` during type checks.
 
+.. _`Dictionary Encoding`:
+
 Dictionary Encoding
 -------------------
 Dictionary encoded data is normally produced by Pandas categoricals:
@@ -525,3 +558,5 @@ Kartothek aims to be as compatible as possible with them.
 .. _Turbodbc: https://github.com/blue-yonder/turbodbc
 .. _Unicode: https://unicode.org/
 .. _UNIX Epoch: https://en.wikipedia.org/wiki/Unix_time
+.. _pandas.Timestamp.ceil: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.ceil.html#pandas.Timestamp.ceil
+.. _pandas.Timestamp.floor: https://pandas.pydata.org/pandas-docs/stable/reference/api/pandas.Timestamp.floor.html

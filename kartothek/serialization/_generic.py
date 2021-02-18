@@ -290,6 +290,9 @@ def filter_df_from_predicates(
     strict_date_types
         If False (default), cast all datelike values to datetime64 for comparison.
 
+    See Also
+    --------
+    * :ref:`predicate_pushdown`
     """
     if predicates is None:
         return df
@@ -432,9 +435,7 @@ def filter_array_like(
     array_like
         The array like object to be filtered
 
-        See also
-        --------
-        `pandas.api.types.is_array_like`
+        See also `pandas.api.types.is_array_like`
     op
     value
     mask
@@ -450,6 +451,10 @@ def filter_array_like(
     column_name
         Name of the column where `array_like` originates from, used for nicer
         error messages.
+
+    See Also
+    --------
+    * :ref:`predicate_pushdown`
     """
     if mask is None:
         mask = np.ones(len(array_like), dtype=bool)
