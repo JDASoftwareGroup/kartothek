@@ -2,7 +2,7 @@ Kartothek
 =========
 
 [![Build Status](https://github.com/JDASoftwareGroup/kartothek/workflows/CI/badge.svg)](https://github.com/JDASoftwareGroup/kartothek/actions?query=branch%3Amaster)
-[![Documentation Status](https://readthedocs.org/projects/kartothek/badge/?version=latest)](https://kartothek.readthedocs.io/en/latest/?badge=latest)
+[![Documentation Status](https://readthedocs.org/projects/kartothek/badge/?version=stable)](https://kartothek.readthedocs.io/en/stable/?badge=stable)
 [![codecov.io](https://codecov.io/github/JDASoftwareGroup/kartothek/coverage.svg?branch=master)](https://codecov.io/github/JDASoftwareGroup/kartothek)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://github.com/JDASoftwareGroup/kartothek/blob/master/LICENSE.txt)
 [![Anaconda-Server Badge](https://anaconda.org/conda-forge/kartothek/badges/installer/conda.svg)](https://conda.anaconda.org/conda-forge)
