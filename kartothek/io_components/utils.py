@@ -344,7 +344,7 @@ def align_categories(dfs, categoricals):
         for ix, df in enumerate(dfs):
             ser = df[column]
             if not pd.api.types.is_categorical_dtype(ser):
-                cats = ser.unique()
+                cats = ser.dropna().unique()
                 LOGGER.info(
                     "Encountered non-categorical type where categorical was expected\n"
                     "Found at index position {ix} for column {col}\n"
