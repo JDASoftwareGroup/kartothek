@@ -134,3 +134,45 @@ def test_raises_when_cube_defines_index_not_in_dataset():
         ensure_valid_cube_indices(
             {"source": source_metadata, "extra": extra_metadata}, cube
         )
+
+
+def test_no_indices_are_suppressed_when_they_already_exist():
+    """
+    Test that no indicies marked as suppressed in the cube are actually suppressed when
+    they are already present in the dataset
+    """
+    source_metadata = DatasetMetadata.from_dict(
+        {
+            "dataset_uuid": "source",
+            "dataset_metadata_version": 4,
+            "table_meta": {"table": FakeSeedTableMetadata()},
+            "partition_keys": ["p"],
+            "indices": {
+                "d1": {"1": ["part_1"]},
+                "d2": {"1": ["part_1"]},
+                "i1": {"1": ["part_1"]},
+            },
+        }
+    )
+    extra_metadata = DatasetMetadata.from_dict(
+        {
+            "dataset_uuid": "extra",
+            "dataset_metadata_version": 4,
+            "table_meta": {"table": FakeExtraTableMetadata()},
+            "partition_keys": ["p"],
+            "indices": {"i1": {"1": ["part_1"]}},
+        }
+    )
+    cube = Cube(
+        dimension_columns=["d1", "d2"],
+        partition_columns=["p"],
+        uuid_prefix="cube",
+        seed_dataset="source",
+        suppress_index_on=["d1", "d2"],
+    )
+
+    validated_cube = ensure_valid_cube_indices(
+        {"source": source_metadata, "extra": extra_metadata}, cube
+    )
+
+    assert validated_cube.suppress_index_on == frozenset()
