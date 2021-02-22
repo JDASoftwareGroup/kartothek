@@ -6,6 +6,8 @@ Version 3.19.1 (2021-02-XX)
 ===========================
 
 * Allow ``pyarrow==3`` as a dependency.
+* Fix a bug in :func:`~kartothek.io_components.utils.align_categories` for dataframes
+  with missings and of non-categorical dtype.
 
 Version 3.19.0 (2021-02-12)
 ===========================
