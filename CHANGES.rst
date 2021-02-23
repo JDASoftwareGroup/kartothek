@@ -6,6 +6,7 @@ Version 3.19.1 (2021-02-XX)
 ===========================
 
 * Allow ``pyarrow==3`` as a dependency.
+* Fix an issue with the cube index validation introduced in v3.19.0 (#413).
 
 Version 3.19.0 (2021-02-12)
 ===========================
