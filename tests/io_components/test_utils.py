@@ -1,6 +1,7 @@
 from functools import partial
 from typing import Callable
 
+import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
@@ -200,6 +201,20 @@ def test_align_categories():
             name=col_name,
         )
         pdt.assert_series_equal(out_dfs[2][col_name], expected_3)
+
+
+def test_align_categories_with_missings():
+    df_0 = pd.DataFrame({"letters": ["a", "a", "b", np.nan]})
+    df_1 = pd.DataFrame({"letters": ["a", "a"]})
+    out = align_categories([df_0, df_1], ["letters"])
+    expected_0 = pd.DataFrame(
+        {"letters": pd.Categorical(["a", "a", "b", np.nan], categories=["a", "b"])}
+    )
+    expected_1 = pd.DataFrame(
+        {"letters": pd.Categorical(["a", "a"], categories=["a", "b"])}
+    )
+    pdt.assert_frame_equal(out[0], expected_0)
+    pdt.assert_frame_equal(out[1], expected_1)
 
 
 def test_sort_cateogrical():
