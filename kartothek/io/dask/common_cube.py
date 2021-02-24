@@ -61,7 +61,7 @@ def ensure_valid_cube_indices(
 ) -> Cube:
     """
     Parse all existing datasets and infer the required set of indices. We do not
-    allow indices to be removed or added in update steps at the momenent and
+    allow indices to be removed or added in update steps at the moment and
     need to make sure that existing ones are updated properly.
     The returned `Cube` instance will be a copy of the input with
     `index_columns` and `suppress_index_on` fields adjusted to reflect the

@@ -10,7 +10,7 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_METADATA_KEY_IS_SEED,
     KTK_CUBE_METADATA_PARTITION_COLUMNS,
     KTK_CUBE_METADATA_SUPPRESS_INDEX_ON,
-    KTK_CUBE_UUID_SEPERATOR,
+    KTK_CUBE_UUID_SEPARATOR,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
@@ -79,7 +79,7 @@ def discover_ktk_cube_dataset_ids(uuid_prefix: str, store: StoreInput) -> Set[st
         The ktk_cube dataset ids
 
     """
-    prefix = uuid_prefix + KTK_CUBE_UUID_SEPERATOR
+    prefix = uuid_prefix + KTK_CUBE_UUID_SEPARATOR
     names = _discover_dataset_meta_files(prefix, store)
     return set([name[len(prefix) :] for name in names])
 
@@ -115,7 +115,7 @@ def discover_datasets_unchecked(
     filter_ktk_cube_dataset_ids = converter_str_set_optional(
         filter_ktk_cube_dataset_ids
     )
-    prefix = uuid_prefix + KTK_CUBE_UUID_SEPERATOR
+    prefix = uuid_prefix + KTK_CUBE_UUID_SEPARATOR
 
     names = _discover_dataset_meta_files(prefix, store)
 

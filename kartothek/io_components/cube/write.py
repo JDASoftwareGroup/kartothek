@@ -130,6 +130,7 @@ def prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata):
     return ds_metadata
 
 
+# XXX: This is not consistent with plain kartothek datasets (indices are accepted on nullable columns there)
 def assert_dimesion_index_cols_notnull(
     df: pd.DataFrame, ktk_cube_dataset_id: str, cube: Cube, partition_on: Sequence[str]
 ) -> pd.DataFrame:
