@@ -555,17 +555,16 @@ def _predicate_accepts(predicate, row_meta, arrow_schema, parquet_reader):
     elif op == ">":
         return max_value > val
     elif op == "in":
-        # This implementation is chosen for performance reasons. See
-        # https://github.com/JDASoftwareGroup/kartothek/pull/130 for more information/benchmarks.
-        # We accept the predicate if there is any value in the provided array which is equal to or between
-        # the parquet min and max statistics. Otherwise, it is rejected.
-        for x in val:
-            if pd.isnull(x):
-                if parquet_statistics.null_count > 0:
-                    return True
-            elif min_value <= x <= max_value:
-                return True
-        return False
+        # We don't duplicate the logic here, as "in" is just a disjunction of "=="'s
+        return any(
+            _predicate_accepts(
+                predicate=[col, "==", value],
+                row_meta=row_meta,
+                arrow_schema=arrow_schema,
+                parquet_reader=parquet_reader,
+            )
+            for value in val
+        )
     else:
         raise NotImplementedError("op not supported")
 
