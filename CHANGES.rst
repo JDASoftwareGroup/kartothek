@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 3.19.1 (2021-02-XX)
+Version 3.19.1 (2021-02-24)
 ===========================
 
 * Allow ``pyarrow==3`` as a dependency.
