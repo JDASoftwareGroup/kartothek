@@ -330,11 +330,15 @@ def align_categories(dfs, categoricals):
         A list of dataframes for which the categoricals should be aligned
     categoricals: List[str]
         Columns holding categoricals which should be aligned
+
     Returns
     -------
     List[pd.DataFrame]
         A list with aligned dataframes
     """
+    if len(categoricals) == 0:
+        return dfs
+
     col_dtype = {}
 
     for column in categoricals:

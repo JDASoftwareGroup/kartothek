@@ -1453,6 +1453,26 @@ def test_concat_metapartition_different_partitioning(df_all_types):
         MetaPartition.concat_metapartitions([mp1, mp2])
 
 
+def test_concat_metapartition_categoricals(df_all_types):
+    mp1 = MetaPartition(
+        label="first",
+        data={"table": pd.DataFrame({"a": [0, 0], "b": ["a", "a"]}, dtype="category")},
+        metadata_version=4,
+        partition_keys=["a"],
+    )
+    mp2 = MetaPartition(
+        label="second",
+        data={"table": pd.DataFrame({"a": [1, 1], "b": ["a", "b"]}, dtype="category")},
+        metadata_version=4,
+        partition_keys=["a"],
+    )
+
+    new_mp = MetaPartition.concat_metapartitions([mp1, mp2])
+
+    assert new_mp.tables == ["table"]
+    assert pd.api.types.is_categorical_dtype(new_mp.data["table"]["b"].dtype)
+
+
 # We can't partition on null columns (gh-262)
 @pytest.mark.parametrize(
     "col", sorted(set(get_dataframe_not_nested().columns) - {"null"})
