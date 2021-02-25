@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import string
 from datetime import date, datetime
 
 import numpy as np
@@ -58,5 +59,7 @@ def get_dataframe_not_nested(n):
             "unicode": pd.Series([str(x) for x in range(n)], dtype=str),
             "null": pd.Series([None] * n, dtype=object),
             "bytes": pd.Series(binaries, dtype=np.object),
+            "Int64": pd.Series(range(n), dtype="Int64"),
+            "string": pd.Series([x for x in string.ascii_letters[:n]], dtype="string"),
         }
     ).sort_index(axis=1)
