@@ -51,6 +51,7 @@ from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.utils import (
     InferredIndices,
     _ensure_valid_indices,
+    align_categories,
     combine_metadata,
 )
 from kartothek.serialization import (
@@ -1561,6 +1562,12 @@ class MetaPartition(Iterable):
             if len(data[table]) == 1:
                 new_data[table] = data[table][0]
             else:
+                categoricals = [
+                    col
+                    for col, dtype in data[table][0].items()
+                    if pd.api.types.is_categorical_dtype(dtype)
+                ]
+                data[table] = align_categories(data[table], categoricals)
                 new_data[table] = pd.concat(data[table])
 
             new_schema[table] = validate_compatible(schema[table])
