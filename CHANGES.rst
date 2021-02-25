@@ -2,6 +2,14 @@
 Changelog
 =========
 
+Version 3.19.2 (2021-xx-xx)
+===========================
+
+* :func:`~kartothek.io.eager.read_dataset_as_dataframes` and
+  :func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator` now correctly return
+  categoricals as requested for misaligned categories.
+
+
 Version 3.19.1 (2021-02-24)
 ===========================
 
