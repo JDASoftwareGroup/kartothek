@@ -728,9 +728,11 @@ class MetaPartition(Iterable):
             # ------------------------------------------
             # PyArrow
             # ------------------------------------------
-            from .simplekv_fsspec import SimplekvFsspecWrapper
+            from kartothek.io_components.simplekv_fsspec import SimplekvFsspecWrapper
             import pyarrow as pa
+            import pyarrow.dataset
             from pyarrow.fs import PyFileSystem, FSSpecHandler
+
 
             # -------------------------------------
             # FSspec
@@ -738,12 +740,9 @@ class MetaPartition(Iterable):
 
 
             # -------------------------------------
-            # Schema inferred from file
-            # from pyarrow.parquet import ParquetDataset
-            # schema = pa.parquet.read_schema(pa_fs.open_input_file(key))
-
             # Schema inferred from _common_metadata
-            schema = self.table_meta["table"].internal()
+            schema = self.table_meta[table].internal()
+            print(schema)
 
             # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
             def with_type(field, new_type):
@@ -779,7 +778,6 @@ class MetaPartition(Iterable):
 
             # -------------------------------------
             # Predicates
-            print(predicates)
             predicates_pa = None
             if predicates is not None:
                 for conjunction in predicates:
@@ -808,6 +806,12 @@ class MetaPartition(Iterable):
                     else:
                         predicates_pa = predicates_pa | conjunctions_pa
 
+
+            # -------------------------------------
+            # columns
+            if table_columns is not None:
+                # pyarrow only accepts list and not set
+                table_columns = list(table_columns)
 
             start = time.time()
 
