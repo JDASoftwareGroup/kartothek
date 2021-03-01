@@ -725,57 +725,116 @@ class MetaPartition(Iterable):
 
             self._load_table_meta(dataset_uuid=dataset_uuid, table=table, store=store)
 
-            # Filter predicates that would apply to this partition and remove the partition columns
-            if predicates:
-                # Check if there are predicates that match to the partition columns.
-                # For these we need to check if the partition columns already falsify
-                # the conditition.
-                #
-                # We separate these predicates into their index and their Parquet part.
-                (
-                    split_predicates,
-                    has_index_condition,
-                ) = self._split_predicates_in_index_and_content(predicates)
+            # ------------------------------------------
+            # PyArrow
+            # ------------------------------------------
+            from .simplekv_fsspec import SimplekvFsspecWrapper
+            import pyarrow as pa
+            from pyarrow.fs import PyFileSystem, FSSpecHandler
 
-                filtered_predicates = []
-                if has_index_condition:
-                    filtered_predicates = self._apply_partition_key_predicates(
-                        table, indices, split_predicates
-                    )
+            # -------------------------------------
+            # FSspec
+            pa_fs = PyFileSystem(FSSpecHandler(SimplekvFsspecWrapper(store)))
+
+
+            # -------------------------------------
+            # Schema inferred from file
+            # from pyarrow.parquet import ParquetDataset
+            # schema = pa.parquet.read_schema(pa_fs.open_input_file(key))
+
+            # Schema inferred from _common_metadata
+            schema = self.table_meta["table"].internal()
+
+            # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
+            def with_type(field, new_type):
+                """
+                Create a new pyarrow.Field by replacing the type.
+                """
+                return pa.field(field.name, new_type, field.nullable, field.metadata)
+
+            fields = []
+            for field in schema:
+                if pa.types.is_timestamp(field.type):
+                    fields.append(with_type(field, pa.timestamp("us")))
                 else:
-                    filtered_predicates = [
-                        pred.content_part for pred in split_predicates
-                    ]
+                    fields.append(field)
+            schema = pa.schema(fields, metadata=schema.metadata)
 
-            # Remove partition_keys from table_columns_to_io
-            if self.partition_keys and table_columns_to_io is not None:
-                keys_to_remove = set(self.partition_keys) & set(table_columns_to_io)
-                # This is done to not change the ordering of the list
-                table_columns_to_io = [
-                    c for c in table_columns_to_io if c not in keys_to_remove
-                ]
+
+            # -------------------------------------
+            # Partitions
+            partitions = None # TODO: Typecasting
+            
+            for index in indices:
+                value = index[1]
+                try:
+                    value = int(value)
+                except ValueError:
+                    pass
+                partition = (pa.dataset.field(index[0]) == value)
+                if partitions is None:
+                    partitions = partition
+                else:
+                    partitions = (partitions & partition)
+
+            # -------------------------------------
+            # Predicates
+            print(predicates)
+            predicates_pa = None
+            if predicates is not None:
+                for conjunction in predicates:
+                    conjunctions_pa = None
+                    for literal in conjunction:
+                        if literal[1] == "==":
+                            tmp_conjunction = pa.dataset.field(literal[0]) == literal[2]
+                        elif literal[1] == "!=":
+                            tmp_conjunction = pa.dataset.field(literal[0]) != literal[2]
+                        elif literal[1] == ">":
+                            tmp_conjunction = pa.dataset.field(literal[0]) > literal[2]
+                        elif literal[1] == "<":
+                            tmp_conjunction = pa.dataset.field(literal[0]) < literal[2]
+                        elif literal[1] == ">=":
+                            tmp_conjunction = pa.dataset.field(literal[0]) >= literal[2]
+                        elif literal[1] == "<=":
+                            tmp_conjunction = pa.dataset.field(literal[0]) <= literal[2]
+                        elif literal[1] == "in":
+                            tmp_conjunction = pa.dataset.field(literal[0]).isin(literal[2])
+                        if conjunctions_pa is None:
+                            conjunctions_pa = tmp_conjunction
+                        else:
+                            conjunctions_pa = (conjunctions_pa & tmp_conjunction)
+                    if predicates_pa is None:
+                        predicates_pa = conjunctions_pa
+                    else:
+                        predicates_pa = predicates_pa | conjunctions_pa
+
 
             start = time.time()
-            df = DataFrameSerializer.restore_dataframe(
-                key=key,
-                store=store,
-                columns=table_columns_to_io,
-                categories=categories,
-                predicate_pushdown_to_io=predicate_pushdown_to_io,
-                predicates=filtered_predicates,
-                date_as_object=dates_as_object,
-            )
-            LOGGER.debug("Loaded dataframe %s in %s seconds.", key, time.time() - start)
-            # Metadata version >=4 parse the index columns and add them back to the dataframe
 
-            df = self._reconstruct_index_columns(
-                df=df,
-                key_indices=indices,
-                table=table,
-                columns=table_columns,
-                categories=categories,
-                date_as_object=dates_as_object,
+            # -------------------------------------
+            # FileSystemDataset api
+            ds = pa.dataset.FileSystemDataset.from_paths(
+                    paths=[key],
+                    schema=schema,
+                    format=pa.dataset.ParquetFileFormat(),
+                    filesystem=pa_fs,
+                    partitions=[partitions]
             )
+            
+            ds = ds.to_table(
+                filter=predicates_pa,
+                columns=table_columns
+            )
+            df = ds.to_pandas(
+                categories=categories,
+                date_as_object=dates_as_object
+            )
+
+            # -----------------------------------
+            # PyArrow end
+            # -----------------------------------
+
+            LOGGER.debug("Loaded dataframe %s in %s seconds.", key, time.time() - start)
 
             df.columns = df.columns.map(ensure_string_type)
             if table_columns is not None:
