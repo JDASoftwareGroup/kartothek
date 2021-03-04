@@ -742,7 +742,13 @@ class MetaPartition(Iterable):
             # -------------------------------------
             # Schema inferred from _common_metadata
             schema = self.table_meta[table].internal()
+            print("###########")
             print(schema)
+            from kartothek.core.common_metadata import read_schema_metadata as rsm
+            schema1 = rsm(dataset_uuid, store, table)
+            print("###########")
+            print(schema1)
+            
 
             def with_type(field, new_type):
                 """
@@ -752,6 +758,7 @@ class MetaPartition(Iterable):
 
             fields = []
             for field in schema:
+                print("++++++")
                 print(field)
                 # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
                 if pa.types.is_timestamp(field.type):
@@ -759,26 +766,28 @@ class MetaPartition(Iterable):
 
                 # FIXME: Upcasting
                 # int8/16/32 to int64
-                elif pa.types.is_signed_integer(field.type) and not pa.types.is_int64(field.type):
-                    fields.append(with_type(field, pa.int64()))
+                # elif pa.types.is_signed_integer(field.type) and not pa.types.is_int64(field.type):
+                #     fields.append(with_type(field, pa.int64()))
 
                 else:
                     fields.append(field)
             
             schema = pa.schema(fields, metadata=schema.metadata)
+            print(schema)
 
 
             # -------------------------------------
             # Partitions
             partitions = None
             
-            for index in indices:
-                value = index[1]
+            for key, value in indices:
+                tmp = schema[0].type
+                print(tmp)
                 try:
                     value = int(value)
                 except ValueError:
                     pass
-                partition = (pa.dataset.field(index[0]) == value)
+                partition = (pa.dataset.field(key) == value)
                 if partitions is None:
                     partitions = partition
                 else:
