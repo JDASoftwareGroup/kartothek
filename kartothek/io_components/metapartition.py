@@ -744,7 +744,6 @@ class MetaPartition(Iterable):
             schema = self.table_meta[table].internal()
             print(schema)
 
-            # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
             def with_type(field, new_type):
                 """
                 Create a new pyarrow.Field by replacing the type.
@@ -753,16 +752,25 @@ class MetaPartition(Iterable):
 
             fields = []
             for field in schema:
+                print(field)
+                # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
                 if pa.types.is_timestamp(field.type):
                     fields.append(with_type(field, pa.timestamp("us")))
+
+                # FIXME: Upcasting
+                # int8/16/32 to int64
+                elif pa.types.is_signed_integer(field.type) and not pa.types.is_int64(field.type):
+                    fields.append(with_type(field, pa.int64()))
+
                 else:
                     fields.append(field)
+            
             schema = pa.schema(fields, metadata=schema.metadata)
 
 
             # -------------------------------------
             # Partitions
-            partitions = None # TODO: Typecasting
+            partitions = None
             
             for index in indices:
                 value = index[1]
