@@ -736,58 +736,52 @@ class MetaPartition(Iterable):
 
             # -------------------------------------
             # FSspec
-            pa_fs = PyFileSystem(FSSpecHandler(SimplekvFsspecWrapper(store)))
+            fsspec_fs = SimplekvFsspecWrapper(store)
+            pa_fs = PyFileSystem(FSSpecHandler(fsspec_fs))
 
 
             # -------------------------------------
-            # Schema inferred from _common_metadata
+            # Get schema from _common_metadata
             schema = self.table_meta[table].internal()
-            print("###########")
-            print(schema)
-            from kartothek.core.common_metadata import read_schema_metadata as rsm
-            schema1 = rsm(dataset_uuid, store, table)
-            print("###########")
-            print(schema1)
             
+            # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
+            # Get schema of file
+            schema_of_file = pa.parquet.read_schema(fsspec_fs.open(key, "r"))
+
 
             def with_type(field, new_type):
                 """
                 Create a new pyarrow.Field by replacing the type.
                 """
                 return pa.field(field.name, new_type, field.nullable, field.metadata)
-
             fields = []
             for field in schema:
-                print("++++++")
-                print(field)
                 # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
                 if pa.types.is_timestamp(field.type):
                     fields.append(with_type(field, pa.timestamp("us")))
 
-                # FIXME: Upcasting
-                # int8/16/32 to int64
-                # elif pa.types.is_signed_integer(field.type) and not pa.types.is_int64(field.type):
-                #     fields.append(with_type(field, pa.int64()))
+                # TODO(ARROW-8282): Upcasting of int not yet supported
+                # Error if int64 in schema but int8/16/32 in parquet file
+                elif pa.types.is_signed_integer(field.type) and not any(field.name in idx for idx in indices):
+                    fields.append(schema_of_file.field(field.name))
 
                 else:
                     fields.append(field)
             
             schema = pa.schema(fields, metadata=schema.metadata)
-            print(schema)
 
 
             # -------------------------------------
             # Partitions
             partitions = None
             
-            for key, value in indices:
+            for part_key, part_value in indices:
                 tmp = schema[0].type
-                print(tmp)
                 try:
-                    value = int(value)
+                    part_value = int(part_value)
                 except ValueError:
                     pass
-                partition = (pa.dataset.field(key) == value)
+                partition = (pa.dataset.field(part_key) == part_value)
                 if partitions is None:
                     partitions = partition
                 else:
@@ -834,6 +828,8 @@ class MetaPartition(Iterable):
 
             # -------------------------------------
             # FileSystemDataset api
+            print(key)
+            print(store.url_for(key))
             ds = pa.dataset.FileSystemDataset.from_paths(
                     paths=[key],
                     schema=schema,
