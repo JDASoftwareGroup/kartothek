@@ -728,64 +728,88 @@ class MetaPartition(Iterable):
             # ------------------------------------------
             # PyArrow
             # ------------------------------------------
+            import datetime
+
             from kartothek.io_components.simplekv_fsspec import SimplekvFsspecWrapper
             import pyarrow as pa
             import pyarrow.dataset
             from pyarrow.fs import PyFileSystem, FSSpecHandler
-
 
             # -------------------------------------
             # FSspec
             fsspec_fs = SimplekvFsspecWrapper(store)
             pa_fs = PyFileSystem(FSSpecHandler(fsspec_fs))
 
-
             # -------------------------------------
             # Get schema from _common_metadata
             schema = self.table_meta[table].internal()
-            
+
             # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
             # Get schema of file
             schema_of_file = pa.parquet.read_schema(fsspec_fs.open(key, "r"))
-
 
             def with_type(field, new_type):
                 """
                 Create a new pyarrow.Field by replacing the type.
                 """
                 return pa.field(field.name, new_type, field.nullable, field.metadata)
+
             fields = []
             for field in schema:
                 # TODO(ARROW-8284): Schema evolution for timestamp columns is not yet supported
                 if pa.types.is_timestamp(field.type):
                     fields.append(with_type(field, pa.timestamp("us")))
 
-                # TODO(ARROW-8282): Upcasting of int not yet supported
+                # TODO(ARROW-8282): Upcasting of int/float not yet supported
                 # Error if int64 in schema but int8/16/32 in parquet file
-                elif pa.types.is_signed_integer(field.type) and not any(field.name in idx for idx in indices):
+                elif pa.types.is_integer(field.type) and not any(
+                    field.name in idx for idx in indices
+                ):
+                    fields.append(schema_of_file.field(field.name))
+                elif pa.types.is_floating(field.type) and not any(
+                    field.name in idx for idx in indices
+                ):
                     fields.append(schema_of_file.field(field.name))
 
                 else:
                     fields.append(field)
-            
-            schema = pa.schema(fields, metadata=schema.metadata)
 
+            schema = pa.schema(fields, metadata=schema.metadata)
+            print(schema)
 
             # -------------------------------------
             # Partitions
+            # The partitions need to be expressed as a list of pa.dataset.Expression objects.
             partitions = None
-            
+
             for part_key, part_value in indices:
-                tmp = schema[0].type
-                try:
-                    part_value = int(part_value)
-                except ValueError:
-                    pass
-                partition = (pa.dataset.field(part_key) == part_value)
+                pa_type = schema.field(part_key).type
+                if pa.types.is_signed_integer(pa_type):
+                    part_value = pa.scalar(int(part_value), pa_type)
+                elif pa.types.is_floating(pa_type):
+                    part_value = pa.scalar(float(part_value, pa_type))
+                elif pa.types.is_date32(pa_type):
+                    year, month, day = (
+                        int(date_comp) for date_comp in part_value.split("-")
+                    )
+                    date = datetime.date(year, month, day)
+                    part_value = pa.scalar(date, pa_type)
+                elif pa.types.is_timestamp(pa_type):
+                    timestamp = pd.Timestamp(part_value).to_pydatetime() 
+                    part_value = pa.scalar(timestamp, pa_type)
+                elif pa.types.is_boolean(pa_type):
+                    if part_value == "True":
+                        part_value = pa.scalar(True, pa_type)
+                    else:
+                        part_value = pa.scalar(False, pa_type)
+
+
+                partition = pa.dataset.field(part_key) == part_value
+
                 if partitions is None:
                     partitions = partition
                 else:
-                    partitions = (partitions & partition)
+                    partitions = partitions & partition
 
             # -------------------------------------
             # Predicates
@@ -793,30 +817,29 @@ class MetaPartition(Iterable):
             if predicates is not None:
                 for conjunction in predicates:
                     conjunctions_pa = None
-                    for literal in conjunction:
-                        if literal[1] == "==":
-                            tmp_conjunction = pa.dataset.field(literal[0]) == literal[2]
-                        elif literal[1] == "!=":
-                            tmp_conjunction = pa.dataset.field(literal[0]) != literal[2]
-                        elif literal[1] == ">":
-                            tmp_conjunction = pa.dataset.field(literal[0]) > literal[2]
-                        elif literal[1] == "<":
-                            tmp_conjunction = pa.dataset.field(literal[0]) < literal[2]
-                        elif literal[1] == ">=":
-                            tmp_conjunction = pa.dataset.field(literal[0]) >= literal[2]
-                        elif literal[1] == "<=":
-                            tmp_conjunction = pa.dataset.field(literal[0]) <= literal[2]
-                        elif literal[1] == "in":
-                            tmp_conjunction = pa.dataset.field(literal[0]).isin(literal[2])
+                    for col, op, value in conjunction:
+                        if op == "==":
+                            tmp_conjunction = pa.dataset.field(col) == value
+                        elif op == "!=":
+                            tmp_conjunction = pa.dataset.field(col) != value
+                        elif op == ">":
+                            tmp_conjunction = pa.dataset.field(col) > value
+                        elif op == "<":
+                            tmp_conjunction = pa.dataset.field(col) < value
+                        elif op == ">=":
+                            tmp_conjunction = pa.dataset.field(col) >= value
+                        elif op == "<=":
+                            tmp_conjunction = pa.dataset.field(col) <= value
+                        elif op == "in":
+                            tmp_conjunction = pa.dataset.field(col).isin(value)
                         if conjunctions_pa is None:
                             conjunctions_pa = tmp_conjunction
                         else:
-                            conjunctions_pa = (conjunctions_pa & tmp_conjunction)
+                            conjunctions_pa = conjunctions_pa & tmp_conjunction
                     if predicates_pa is None:
                         predicates_pa = conjunctions_pa
                     else:
                         predicates_pa = predicates_pa | conjunctions_pa
-
 
             # -------------------------------------
             # columns
@@ -831,21 +854,17 @@ class MetaPartition(Iterable):
             print(key)
             print(store.url_for(key))
             ds = pa.dataset.FileSystemDataset.from_paths(
-                    paths=[key],
-                    schema=schema,
-                    format=pa.dataset.ParquetFileFormat(),
-                    filesystem=pa_fs,
-                    partitions=[partitions]
+                paths=[key],
+                schema=schema,
+                format=pa.dataset.ParquetFileFormat(),
+                filesystem=pa_fs,
+                partitions=[partitions],
             )
-            
-            ds = ds.to_table(
-                filter=predicates_pa,
-                columns=table_columns
-            )
-            df = ds.to_pandas(
-                categories=categories,
-                date_as_object=dates_as_object
-            )
+
+            ds = ds.to_table(filter=predicates_pa, columns=table_columns)
+            df = ds.to_pandas(categories=categories, date_as_object=dates_as_object)
+            print(df)
+
 
             # -----------------------------------
             # PyArrow end
