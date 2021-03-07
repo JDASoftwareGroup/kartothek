@@ -770,7 +770,6 @@ class MetaPartition(Iterable):
                     field.name in idx for idx in indices
                 ):
                     fields.append(schema_of_file.field(field.name))
-
                 else:
                     fields.append(field)
 
@@ -802,7 +801,6 @@ class MetaPartition(Iterable):
                         part_value = pa.scalar(True, pa_type)
                     else:
                         part_value = pa.scalar(False, pa_type)
-
 
                 partition = pa.dataset.field(part_key) == part_value
 
@@ -840,6 +838,7 @@ class MetaPartition(Iterable):
                         predicates_pa = conjunctions_pa
                     else:
                         predicates_pa = predicates_pa | conjunctions_pa
+
 
             # -------------------------------------
             # columns
