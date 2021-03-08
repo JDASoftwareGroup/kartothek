@@ -2,10 +2,14 @@
 Workarounds for limitations of the simplekv API.
 """
 import logging
+import re
 import time
 from urllib.parse import quote
 
 from simplekv.contrib import VALID_KEY_RE_EXTENDED
+
+from kartothek.api.discover import discover_datasets_unchecked
+from kartothek.core.dataset import DatasetMetadataBuilder
 
 try:
     # azure-storage-blob < 12
@@ -48,6 +52,8 @@ __all__ = ("copy_keys",)
 
 _logger = logging.getLogger(__name__)
 
+RX_TRANSFORM_KEY = re.compile(r"(\w*)\+\+(\w*)(.*)")
+RX_JSON_META = re.compile(r"\w*\+\+(\w*)\.by-dataset-metadata\.json")
 
 # Specialized implementation for azure-storage-blob < 12, using BlockBlobService (`bbs`):
 
@@ -181,12 +187,69 @@ def _copy_azure_cc(keys, src_store, tgt_store):
                 )
 
 
-def _copy_naive(keys, src_store, tgt_store):
-    for k in keys:
-        tgt_store.put(k, src_store.get(k))
+def _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=None):
+    """
+    Copies a list of items from one KV store to another.
+
+    Parameters
+    ----------
+    key_mappings: Dict[str, str]
+        Mapping of source key names to target key names. May be equal if a key will
+        not be renamed.
+    src_store: simplekv.KeyValueStore
+        Source KV store
+    tgt_store: simplekv.KeyValueStore
+        Target KV store
+    """
+    for src_key, tgt_key in key_mappings.items():
+        match_json = RX_JSON_META.match(src_key)
+        if match_json:
+            ds_name = match_json.groups()[0]
+            item = mapped_metadata.get(ds_name, src_store.get(src_key))
+        else:
+            item = src_store.get(src_key)
+        tgt_store.put(tgt_key, item)
 
 
-def copy_keys(keys, src_store, tgt_store):
+def _transform_key(source_key, datasets_to_rename):
+    """
+    Transforms a source store key to a target store key. The transformation
+    may contain renamings.
+
+    Parameters
+    ----------
+    source_key: str
+        Key inside the source store
+    datasets_to_rename: Dict[str, str]
+        Dictionary with datasets to rename, format {old_name: new:name}. Can be an
+        empty dict if renaming is not planned
+    """
+    match_key = RX_TRANSFORM_KEY.match(source_key)
+    if match_key:
+        source_cube, source_dataset, source_path = match_key.groups()
+        tgt_dataset = datasets_to_rename.get(source_dataset, source_dataset)
+        return f"{source_cube}++{tgt_dataset}{source_path}"
+    else:
+        raise ValueError(f"Key {source_key} cannot be parsed!")
+
+
+def _transform_metadata(datasets_to_rename, cube, src_store):
+    result = {}
+    for src_ds in datasets_to_rename.keys():
+        src_metadata = discover_datasets_unchecked(
+            uuid_prefix=cube.uuid_prefix,
+            store=src_store,
+            filter_ktk_cube_dataset_ids=[src_ds],
+        )
+        result[src_ds] = (
+            DatasetMetadataBuilder.from_dataset(src_metadata[src_ds])
+            .modify_dataset_name(datasets_to_rename[src_ds])
+            .to_json()[1]
+        )
+    return result
+
+
+def copy_keys(keys, src_store, tgt_store, datasets_to_rename=None, src_cube=None):
     """
     Copy keys from one store the another.
 
@@ -198,17 +261,28 @@ def copy_keys(keys, src_store, tgt_store):
         Source KV store.
     tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Target KV store.
+    datasets_to_rename: Optional[Dict[str, str]]
+        Optional dict of {old dataset name:  new dataset name} entries. If specified,
+        the corresponding datasets will be renamed accordingly.
     """
     if callable(src_store):
         src_store = src_store()
     if callable(tgt_store):
         tgt_store = tgt_store()
 
+    # create dict {old key: new key} for all keys, where old and new may be empty
+    # if no renaming is used
+    mapped_keys = {}
     keys = sorted(keys)
     for k in keys:
         if (k is None) or (not VALID_KEY_RE_EXTENDED.match(k)) or (k == "/"):
             raise ValueError("Illegal key: {}".format(k))
+        mapped_keys[k] = _transform_key(k, datasets_to_rename or {})
 
+    if datasets_to_rename:
+        mapped_metadata = _transform_metadata(datasets_to_rename, src_cube, src_store)
+    else:
+        mapped_metadata = {}
     if _has_azure_bbs(src_store) and _has_azure_bbs(tgt_store):
         _logger.debug(
             "Azure stores based on BlockBlobStorage class detected, use fast-path."
@@ -221,4 +295,4 @@ def copy_keys(keys, src_store, tgt_store):
         _copy_azure_cc(keys, src_store, tgt_store)
     else:
         _logger.debug("Use naive slow-path.")
-        _copy_naive(keys, src_store, tgt_store)
+        _copy_naive(mapped_keys, src_store, tgt_store, mapped_metadata=mapped_metadata)

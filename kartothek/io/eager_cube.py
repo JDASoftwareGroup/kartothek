@@ -419,7 +419,15 @@ def delete_cube(cube, store, datasets=None):
         store.delete(k)
 
 
-def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
+def copy_cube(
+    cube,
+    src_store,
+    tgt_store,
+    overwrite=False,
+    datasets=None,
+    renamed_cube=None,
+    datasets_to_rename=None,
+):
     """
     Copy cube from one store to another.
 
@@ -436,6 +444,12 @@ def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
         Datasets to copy, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
+    renamed_cube: Optional[str]
+        If specified, the entire cube will be renamed while copying
+    datasets_to_rename: Optional[Dict[str, str]]
+        Optional dict of {old dataset name:  new dataset name} entries. If specified,
+        the corresponding datasets will be renamed accordingly. Unknown keys will cause
+        an error.
     """
     if callable(src_store):
         src_store = src_store()
@@ -451,8 +465,11 @@ def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
         tgt_store=tgt_store,
         overwrite=overwrite,
         datasets=datasets,
+        datasets_to_rename=datasets_to_rename,
     )
-    copy_keys(keys, src_store, tgt_store)
+    copy_keys(
+        keys, src_store, tgt_store, datasets_to_rename=datasets_to_rename, src_cube=cube
+    )
 
 
 def collect_stats(cube, store, datasets=None):

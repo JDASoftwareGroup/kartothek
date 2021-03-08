@@ -888,6 +888,28 @@ class DatasetMetadataBuilder(CopyMixin):
         ds_builder.tables = dataset.tables
         return ds_builder
 
+    def modify_dataset_name(self, new_ds_name):
+        """
+        Modify the dataset name and change dependent fields, i.e. UUID and partitioning
+        information.
+
+        TODO: This will atm only work for cube datasets with a UUID like cube++dataset.
+        Which UUIDs are possible for non-cube datasets?
+        """
+        rx_transform_path = re.compile(r"(\w*)\+\+(\w*)/(.*)")
+
+        cube_name, old_ds_name = self.uuid.split("++")
+        self.uuid = cube_name + "++" + new_ds_name
+        for p_key, p in self.partitions.items():
+            pdict = p.to_dict()
+            for table_name, file_name in pdict["files"].items():
+                match = rx_transform_path.match(file_name)
+                if match:
+                    f_cube, f_ds, f_path = match.groups()
+                    pdict["files"][table_name] = f"{f_cube}++{new_ds_name}/{f_path}"
+            self.partitions[p_key] = Partition.from_dict(p_key, pdict)
+        return self
+
     def add_partition(self, name, partition):
         """
         Add an (embedded) Partition.
