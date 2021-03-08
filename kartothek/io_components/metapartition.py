@@ -770,10 +770,14 @@ class MetaPartition(Iterable):
                     field.name in idx for idx in indices
                 ):
                     fields.append(schema_of_file.field(field.name))
+                # TODO: Same thing for lists
+                elif pa.types.is_list(field.type):
+                    fields.append(schema_of_file.field(field.name))
                 else:
                     fields.append(field)
 
             schema = pa.schema(fields, metadata=schema.metadata)
+            print("------------------------")
             print(schema)
 
             # -------------------------------------
@@ -850,8 +854,6 @@ class MetaPartition(Iterable):
 
             # -------------------------------------
             # FileSystemDataset api
-            print(key)
-            print(store.url_for(key))
             ds = pa.dataset.FileSystemDataset.from_paths(
                 paths=[key],
                 schema=schema,
@@ -862,8 +864,18 @@ class MetaPartition(Iterable):
 
             ds = ds.to_table(filter=predicates_pa, columns=table_columns)
             df = ds.to_pandas(categories=categories, date_as_object=dates_as_object)
-            print(df)
-
+            # TODO: Just a PoC. This is needed if the primary index columns are present in the
+            #       Parquet File and the values differ from those encoded in the path.
+            #       In this case pyarrow uses the values stored in the files and not those 
+            #       passed as the partitions argument.
+            df = self._reconstruct_index_columns(
+                df=df,
+                key_indices=indices,
+                table=table,
+                columns=table_columns,
+                categories=categories,
+                date_as_object=dates_as_object
+            )
 
             # -----------------------------------
             # PyArrow end
