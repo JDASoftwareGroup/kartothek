@@ -69,6 +69,7 @@ def ensure_valid_cube_indices(
     """
     dataset_indices = []
     for ds in existing_datasets.values():
+        assert ds.schema is not None
         dataset_columns = set(ds.schema.names)
         table_indices = cube.index_columns & dataset_columns
         compatible_indices = _ensure_compatible_indices(ds, table_indices)

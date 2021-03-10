@@ -284,6 +284,7 @@ def build_dataset_indices__bag(
         load_dataset_metadata=False,
     )
 
+    assert ds_factory.schema is not None
     cols_to_load = set(columns) & set(ds_factory.schema.names)
 
     mps = dispatch_metapartitions_from_factory(ds_factory)

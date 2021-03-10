@@ -17,7 +17,6 @@ from kartothek.io.dask.dataframe import (
 )
 from kartothek.io.dask.delayed import (
     delete_dataset__delayed,
-    merge_datasets_as_delayed,
     read_dataset_as_delayed,
     read_dataset_as_delayed_metapartitions,
     store_delayed_as_dataset,
@@ -55,7 +54,6 @@ from kartothek.io.iter import (
         store_dataset_from_ddf,
         update_dataset_from_ddf,
         delete_dataset__delayed,
-        merge_datasets_as_delayed,
         read_dataset_as_delayed_metapartitions,
         read_dataset_as_delayed,
         update_dataset_from_delayed,

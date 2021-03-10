@@ -3,7 +3,7 @@ import io
 import logging
 import os
 import time
-from collections import defaultdict, namedtuple
+from collections import namedtuple
 from copy import copy
 from functools import wraps
 from typing import (
@@ -410,7 +410,7 @@ class MetaPartition(Iterable):
             A dictionaries with materialised :class:`~pandas.DataFrame`
         indices : dict
             The index dictionary of the dataset
-        schema: Union[None, Dict[String, pyarrow.Schema]]
+        schema
             Type metadata for each table, optional
         metadata_version
         partition_keys
@@ -432,10 +432,7 @@ class MetaPartition(Iterable):
         )
 
     def add_metapartition(
-        self,
-        metapartition: "MetaPartition",
-        metadata_merger: Optional[Callable] = None,
-        schema_validation: bool = True,
+        self, metapartition: "MetaPartition", schema_validation: bool = True,
     ):
         """
         Adds a metapartition to the internal list structure to enable batch processing.
@@ -444,8 +441,6 @@ class MetaPartition(Iterable):
         ----------
         metapartition
             The MetaPartition to be added.
-        metadata_merger
-            A callable to perform the metadata merge. By default [kartothek.io_components.utils.combine_metadata] is used
         schema_validation
             If True (default), ensure that the `table_meta` of both `MetaPartition` objects are the same
         """
@@ -1292,46 +1287,6 @@ class MetaPartition(Iterable):
         return new_label
 
     @staticmethod
-    def merge_metapartitions(metapartitions, label_merger=None, metadata_merger=None):
-        raise
-        LOGGER.debug("Merging metapartitions")
-        data = defaultdict(list)
-        new_metadata_version = -1
-        logical_conjunction = None
-
-        for mp in metapartitions:
-            new_metadata_version = max(new_metadata_version, mp.metadata_version)
-            for label, df in mp.data.items():
-                data[label].append(df)
-            if mp.logical_conjunction or logical_conjunction:
-                if logical_conjunction != mp.logical_conjunction:
-                    raise TypeError(
-                        "Can only merge metapartitions belonging to the same logical partition."
-                    )
-                else:
-                    logical_conjunction = mp.logical_conjunction
-
-        new_data = {}
-        for label in data:
-            if len(data[label]) == 1:
-                new_data[label] = data[label][0]
-            else:
-                for ix, idf in enumerate(data[label]):
-                    new_label = "{}_{}".format(label, ix)
-                    new_data[new_label] = idf
-
-        new_label = MetaPartition._merge_labels(metapartitions, label_merger)
-
-        new_mp = MetaPartition(
-            label=new_label,
-            # data=,
-            metadata_version=new_metadata_version,
-            logical_conjunction=logical_conjunction,
-        )
-
-        return new_mp
-
-    @staticmethod
     def concat_metapartitions(metapartitions, label_merger=None):
         LOGGER.debug("Concatenating metapartitions")
 
@@ -1352,7 +1307,7 @@ class MetaPartition(Iterable):
             if pd.api.types.is_categorical_dtype(dtype)
         ]
         if categoricals:
-            new_df = align_categories(data, categoricals)
+            data = align_categories(data, categoricals)
         new_df = pd.concat(data)
 
         new_schema = validate_compatible(schema)
