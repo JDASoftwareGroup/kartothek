@@ -227,27 +227,6 @@ def read_dataset_as_metapartitions(
     return list(ds_iter)
 
 
-def _check_compatible_list(table, obj, argument_name=""):
-    if obj is None:
-        return obj
-    elif isinstance(obj, dict):
-        if table not in obj:
-            raise ValueError(
-                "Provided table {} is not compatible with input from argument {}.".format(
-                    table, argument_name
-                )
-            )
-        return obj
-    elif isinstance(obj, list):
-        return {table: obj}
-    else:
-        raise TypeError(
-            "Unknown type encountered for argument {}. Expected `list`, got `{}` instead".format(
-                argument_name, type(obj)
-            )
-        )
-
-
 @default_docs
 def read_table(
     dataset_uuid: Optional[str] = None,
@@ -524,7 +503,7 @@ def store_dataframes_as_dataset(
         The dataframe(s) to be stored.
 
     """
-    if isinstance(dfs, (pd.DataFrame, dict)):
+    if isinstance(dfs, pd.DataFrame):
         dfs = [dfs]
         warnings.warn(
             "Passing a single dataframe instead of an iterable is deprecated and may "

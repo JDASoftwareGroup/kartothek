@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import warnings
-from collections import defaultdict
 from functools import partial
 from typing import Optional, Sequence
 
@@ -16,7 +15,6 @@ from kartothek.core.uuid import gen_uuid
 from kartothek.io.dask._utils import (
     _cast_categorical_to_index_cat,
     _get_data,
-    _identity,
     _maybe_get_categoricals_from_index,
 )
 from kartothek.io_components.index import update_indices_from_partitions
@@ -132,14 +130,14 @@ def read_dataset_as_metapartitions_bag(
     )
 
     if categoricals_from_index:
-        func_dict = defaultdict(_identity)
-        func_dict.update(
-            {
-                table: partial(_cast_categorical_to_index_cat, categories=cats)
-                for table, cats in categoricals_from_index.items()
-            }
+
+        mps = mps.map(
+            MetaPartition.apply,
+            func=partial(
+                _cast_categorical_to_index_cat, categories=categoricals_from_index
+            ),
+            type_safe=True,
         )
-        mps = mps.map(MetaPartition.apply, func_dict, type_safe=True)
     return mps
 
 

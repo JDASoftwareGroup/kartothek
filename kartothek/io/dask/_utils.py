@@ -15,13 +15,6 @@ except ImportError:
 CATEGORICAL_EFFICIENCY_WARN_LIMIT = 100000
 
 
-def _identity():
-    def _id(x):
-        return x
-
-    return _id
-
-
 def _get_data(mp, table=None):
     """
     Task to avoid serialization of lambdas

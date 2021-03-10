@@ -4,7 +4,6 @@ import logging
 import os
 import time
 from collections import namedtuple
-from copy import copy
 from functools import wraps
 from typing import (
     Any,
@@ -795,80 +794,6 @@ class MetaPartition(Iterable):
             df.insert(pos, primary_key, value)
 
         return df
-
-    @_apply_to_list
-    def merge_dataframes(
-        self,
-        left: str,
-        right: str,
-        output_label: str,
-        merge_func: Callable = pd.merge,
-        merge_kwargs: Optional[Dict] = None,
-    ):
-        """
-        Merge internal dataframes.
-
-        The two referenced dataframes are removed from the internal list and
-        the newly created dataframe is added.
-
-        The merge itself can be completely customized by supplying a
-        callable `merge_func(left_df, right_df, **merge_kwargs)` which can
-        handle data pre-processing as well as the merge itself.
-
-        The files attribute of the result will be empty since the in-memory
-        DataFrames are no longer representations of the referenced files.
-
-        Parameters
-        ----------
-        left
-            Category of the left dataframe.
-        right
-            Category of the right dataframe.
-        output_label
-            Category for the newly created dataframe
-        merge_func
-            The function to take care of the merge. By default: pandas.merge.
-            The function should have the signature
-            `func(left_df, right_df, **kwargs)`
-        merge_kwargs
-            Keyword arguments which should be supplied to the merge function
-
-        Returns
-        -------
-        MetaPartition
-
-        """
-        # Shallow copy
-        new_data = copy(self.data)
-        if merge_kwargs is None:
-            merge_kwargs = {}
-
-        left_df = new_data.pop(left)
-        right_df = new_data.pop(right)
-
-        LOGGER.debug("Merging internal dataframes of %s", self.label)
-
-        try:
-            df_merged = merge_func(left_df, right_df, **merge_kwargs)
-        except TypeError:
-            LOGGER.error(
-                "Tried to merge using %s with\n left:%s\nright:%s\n " "kwargs:%s",
-                merge_func.__name__,
-                left_df.head(),
-                right_df.head(),
-                merge_kwargs,
-            )
-            raise
-
-        new_data[output_label] = df_merged
-        new_schema = copy(self.schema)
-
-        new_schema = make_meta(
-            df_merged,
-            origin="{}/{}".format(output_label, self.label),
-            partition_keys=self.partition_keys,
-        )
-        return self.copy(file=None, data=new_data, schema=new_schema)
 
     @_apply_to_list
     def validate_schema_compatible(
