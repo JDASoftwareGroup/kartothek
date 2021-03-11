@@ -24,7 +24,6 @@ Feature toggles (optional):
 The following fixtures should be present (see tests.read.conftest)
 * ``use_categoricals`` - Whether or not the call retrievs categorical data.
 * ``dates_as_object`` - Whether or not the call retrievs date columns as objects.
-* ``label_filter`` - a callable to filter partitions by label.
 
 """
 
@@ -52,29 +51,9 @@ def dates_as_object(request):
     return request.param
 
 
-@pytest.fixture(
-    params=[True, False],
-    ids=["load_dataset_metadata_TRUE", "load_dataset_metadata_FALSE"],
-)
-def load_dataset_metadata(request):
-    return request.param
-
-
-@pytest.fixture(params=[None, lambda part_label: "cluster_1" in part_label])
-def label_filter(request):
-    return request.param
-
-
 @pytest.fixture(params=[True, False], ids=["use_factory", "no_factory"])
 def use_dataset_factory(request, dates_as_object):
     return request.param
-
-
-def _strip_unused_categoricals(df):
-    for col in df.columns:
-        if pd.api.types.is_categorical_dtype(df[col]):
-            df[col] = df[col].cat.remove_unused_categories()
-    return df
 
 
 class NoPickle:
@@ -159,7 +138,6 @@ def _perform_read_test(
     execute_read_callable,
     use_categoricals,
     output_type,
-    label_filter,
     dates_as_object,
     read_kwargs=None,
     ds_factory=None,
@@ -177,17 +155,11 @@ def _perform_read_test(
         store=store_factory,
         factory=ds_factory,
         categoricals=categoricals,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
         **read_kwargs,
     )
 
-    # The filter should allow only a single partition
-    if not label_filter:
-        assert len(result) == 2
-    else:
-        # The filter should allow only a single partition
-        assert len(result) == 1
+    assert len(result) == 2
 
     if output_type == "metapartition":
         for res in result:
@@ -490,7 +462,6 @@ def test_read_dataset_as_dataframes(
     bound_load_dataframes,
     use_categoricals,
     output_type,
-    label_filter,
     dates_as_object,
 ):
     if use_dataset_factory:
@@ -509,7 +480,6 @@ def test_read_dataset_as_dataframes(
         execute_read_callable=bound_load_dataframes,
         use_categoricals=use_categoricals,
         output_type=output_type,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
     )
 

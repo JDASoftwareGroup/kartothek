@@ -7,10 +7,7 @@ from kartothek.core.naming import TABLE_METADATA_FILE
 
 def dispatch_files_to_gc(dataset_uuid, store_factory, chunk_size, factory):
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store_factory,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store_factory, factory=factory,
     )
     dataset_uuid = dataset_uuid or ds_factory.uuid
 

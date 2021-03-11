@@ -1,6 +1,5 @@
 import math
 import types
-from collections import OrderedDict
 
 import numpy as np
 import pandas as pd
@@ -22,22 +21,6 @@ def test_dispatch_metapartitions(dataset, store_session):
     for mp in partitions:
         assert isinstance(mp, MetaPartition)
         assert mp.table_name == SINGLE_TABLE
-
-
-def test_dispatch_metapartitions_label_filter(dataset, store_session):
-    def label_filter(part_label):
-        return "cluster_1" in part_label
-
-    part_generator = dispatch_metapartitions(
-        dataset.uuid, store_session, label_filter=label_filter
-    )
-
-    assert isinstance(part_generator, types.GeneratorType)
-    partitions = OrderedDict([(part.label, part) for part in part_generator])
-
-    assert len(partitions) == 1
-    mp = partitions["cluster_1"]
-    assert isinstance(mp, MetaPartition)
 
 
 @pytest.mark.parametrize(
@@ -103,20 +86,8 @@ def test_dispatch_metapartitions_concat_regression(store):
         partition_on=["p"],
     )
 
-    mps = list(
-        dispatch_metapartitions(
-            dataset.uuid, store, concat_partitions_on_primary_index=False
-        )
-    )
+    mps = list(dispatch_metapartitions(dataset.uuid, store))
     assert len(mps) == 2
-
-    with pytest.deprecated_call():
-        mps = list(
-            dispatch_metapartitions(
-                dataset.uuid, store, concat_partitions_on_primary_index=True
-            )
-        )
-        assert len(mps) == 1
 
     mps = list(dispatch_metapartitions(dataset.uuid, store, dispatch_by=["p"]))
     assert len(mps) == 1

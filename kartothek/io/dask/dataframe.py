@@ -1,5 +1,4 @@
 import random
-import warnings
 from typing import (
     Callable,
     Iterable,
@@ -65,10 +64,8 @@ def read_dataset_as_ddf(
     store=None,
     table=SINGLE_TABLE,
     columns=None,
-    concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
     categoricals: Optional[Sequence[str]] = None,
-    label_filter=None,
     dates_as_object=False,
     predicates=None,
     factory=None,
@@ -102,20 +99,8 @@ def read_dataset_as_ddf(
         )
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
-
-    if len(ds_factory.tables) > 1:
-        warnings.warn(
-            "Trying to read a dataset with multiple internal tables. This functionality will be removed in the next "
-            "major release. If you require a multi tabled data format, we recommend to switch to the kartothek Cube "
-            "functionality. "
-            "https://kartothek.readthedocs.io/en/stable/guide/cube/kartothek_cubes.html",
-            DeprecationWarning,
-        )
 
     if isinstance(columns, dict):
         columns = columns[table]
@@ -130,10 +115,8 @@ def read_dataset_as_ddf(
     delayed_partitions = read_dataset_as_delayed(
         factory=ds_factory,
         columns=columns,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         categoricals=categoricals,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
         dispatch_by=dask_index_on if dask_index_on else dispatch_by,
@@ -291,9 +274,7 @@ def store_dataset_from_ddf(
     if table is None:
         raise TypeError("The parameter `table` is not optional.")
 
-    ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid, store=store, factory=None, load_dataset_metadata=True
-    )
+    ds_factory = _ensure_factory(dataset_uuid=dataset_uuid, store=store, factory=None)
 
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
@@ -514,10 +495,7 @@ def collect_dataset_metadata(
             "Please make sure to provide a value larger than 0.0 and smaller than or equal to 1.0 ."
         )
     dataset_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     mps = list(
@@ -593,10 +571,7 @@ def hash_dataset(
         If provided, calculate hash per group instead of per partition
     """
     dataset_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     columns = subset

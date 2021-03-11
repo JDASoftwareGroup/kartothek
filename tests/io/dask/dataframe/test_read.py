@@ -84,7 +84,6 @@ def test_load_dataframe_categoricals_with_index(dataset_with_index_factory):
         bound_load_dataframes=func,
         use_categoricals=True,
         output_type="table",
-        label_filter=None,
         dates_as_object=False,
     )
 

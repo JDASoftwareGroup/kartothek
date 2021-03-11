@@ -449,7 +449,6 @@ def dataset_factory(dataset, store_session_factory):
         store_factory=store_session_factory,
         load_schema=True,
         load_all_indices=False,
-        load_dataset_metadata=True,
     )
 
 
@@ -480,7 +479,6 @@ def dataset_partition_keys_factory(dataset_partition_keys, store_session_factory
         store_factory=store_session_factory,
         load_schema=True,
         load_all_indices=False,
-        load_dataset_metadata=True,
     )
 
 
@@ -515,7 +513,6 @@ def dataset_with_index_factory(dataset_with_index, store_session_factory):
         store_factory=store_session_factory,
         load_schema=True,
         load_all_indices=False,
-        load_dataset_metadata=True,
     )
 
 
