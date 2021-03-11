@@ -26,5 +26,5 @@ types of objects exposed by a library but as well by its behaviour. Many changes
 involve judgement calls about the compatibility of a given change and it might
 be possible that we'll introduce behavioural changes which you would not
 perceive compatible with semantic versioning. We will adhere as best as possible
-to this convention. In and case we intend to document all intended changes,
+to this convention. In any case we intend to document all intended changes,
 whether breaking or not, in our changelog, see :doc:`changes`.

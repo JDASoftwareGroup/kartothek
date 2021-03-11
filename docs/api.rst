@@ -50,7 +50,6 @@ Expert low level interface
 
 .. autosummary::
 
-    read_dataset_as_metapartitions
     create_empty_dataset_header
     write_single_partition
     commit_dataset
@@ -71,14 +70,6 @@ High level user interface
     read_dataset_as_dataframes__iterator
     update_dataset_from_dataframes__iter
     store_dataframes_as_dataset__iter
-
-Expert low level interface
-^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. autosummary::
-
-    read_dataset_as_metapartitions__iterator
-
 
 Dask
 ****
@@ -139,11 +130,9 @@ This offers a low level interface exposing the delayed interface directly.
 
 .. autosummary::
 
-    read_table_as_delayed
     read_dataset_as_delayed
     store_delayed_as_dataset
     update_dataset_from_delayed
-    merge_datasets_as_delayed
     delete_dataset__delayed
     garbage_collect_dataset__delayed
 

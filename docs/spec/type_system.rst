@@ -255,7 +255,7 @@ ranges. So, no normalization is implemented for timestamps.
 
     import pandas as pd
     from kartothek.api.serialization import ParquetSerializer
-    from kartothek.api.utils import ensure_store
+    from kartothek.api.dataset import ensure_store
 
     store = ensure_store("memory://")
     ser = ParquetSerializer()

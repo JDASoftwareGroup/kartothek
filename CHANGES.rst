@@ -393,7 +393,7 @@ Version 3.2.0 (2019-07-25)
   using improper types. The behavior now is to raise in these situations.
 - Predicate pushdown and :func:`~kartothek.serialization.filter_array_like` will now properly handle pandas Categoricals.
 - Add :meth:`~kartothek.io.dask.bag.read_dataset_as_dataframe_bag`
-- Add :meth:`~kartothek.io.dask.bag.read_dataset_as_metapartitions_bag`
+- Add `kartothek.io.dask.bag.read_dataset_as_metapartitions_bag`
 
 
 Version 3.1.1 (2019-07-12)

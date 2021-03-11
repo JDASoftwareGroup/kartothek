@@ -46,7 +46,7 @@ The first index type kartothek offers is a partition index. The partition index 
 
     import string
     import pandas as pd
-    from kartothek.api.utils import ensure_store
+    from kartothek.api.dataset import ensure_store
 
     store = ensure_store("hmemory://")
     from kartothek.api.dataset import store_dataframes_as_dataset

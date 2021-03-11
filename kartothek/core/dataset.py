@@ -33,7 +33,7 @@ _logger = logging.getLogger(__name__)
 
 TableMetaType = Dict[str, SchemaWrapper]
 
-__all__ = ("DatasetMetadata",)
+__all__ = ("DatasetMetadata", "DatasetMetadataBase")
 
 
 def _validate_uuid(uuid: str) -> bool:
@@ -106,7 +106,8 @@ class DatasetMetadataBase(CopyMixin):
     def table_meta(self) -> Dict[str, SchemaWrapper]:
         warnings.warn(
             "The attribute `DatasetMetadataBase.table_meta` will be removed in "
-            "kartothek 4.0 in favour of `DatasetMetadataBase.schema`."
+            "kartothek 4.0 in favour of `DatasetMetadataBase.schema`.",
+            DeprecationWarning,
         )
         return self._table_meta
 
