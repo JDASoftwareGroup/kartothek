@@ -1,6 +1,7 @@
 import copy
 import logging
 import re
+import warnings
 from collections import OrderedDict, defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
@@ -75,7 +76,7 @@ class DatasetMetadataBase(CopyMixin):
         self.explicit_partitions = explicit_partitions
 
         self.partition_keys = partition_keys or []
-        self.table_meta = table_meta if table_meta else {}
+        self._table_meta = table_meta if table_meta else {}
 
         _add_creation_time(self)
         super(DatasetMetadataBase, self).__init__()
@@ -98,6 +99,26 @@ class DatasetMetadataBase(CopyMixin):
         if self.table_meta != other.table_meta:
             return False
         return True
+
+    @property
+    def table_meta(self) -> Dict[str, SchemaWrapper]:
+        warnings.warn(
+            "The attribute `DatasetMetadataBase.table_meta` will be removed in "
+            "kartothek 4.0 in favour of `DatasetMetadataBase.schema`."
+        )
+        return self._table_meta
+
+    @table_meta.setter
+    def table_meta(self, value):
+        self._table_meta = value
+
+    @property
+    def schema(self) -> SchemaWrapper:
+        if len(self.tables) > 1:
+            raise AttributeError(
+                "Attribute schema can only be accessed for a single tabled dataset"
+            )
+        return self._table_meta[self.tables[0]]
 
     @property
     def primary_indices_loaded(self) -> bool:
