@@ -6,7 +6,7 @@ This is a quick walk through the basic functionality of Kartothek Cubes.
 
 First, we want to create a cube for geodata:
 
->>> from kartothek.core.cube.cube import Cube
+>>> from kartothek.api.cube import Cube
 >>> cube = Cube(
 ...     uuid_prefix="geodata",
 ...     dimension_columns=["city", "day"],
@@ -56,7 +56,7 @@ Kartothek cube should be initially filled with the following information:
 
 We use the simple :py:mod:`kartothek.io.eager_cube` backend to store the data:
 
->>> from kartothek.io.eager_cube import build_cube
+>>> from kartothek.api.cube import build_cube
 >>> datasets_build = build_cube(
 ...   data=df_weather,
 ...   store=store,
@@ -95,7 +95,7 @@ Extend
 ``````
 Now let's say we would also like to have longitude and latitude data in our cube.
 
->>> from kartothek.io.eager_cube import extend_cube
+>>> from kartothek.api.cube import extend_cube
 >>> df_location = pd.read_csv(
 ...     filepath_or_buffer=StringIO("""
 ...    city country  latitude  longitude
@@ -155,7 +155,7 @@ Query
 Now the whole beauty of Kartothek Cube does not come from storing multiple datasets, but especially from retrieving the data in a
 very comfortable way. It is possible to treat the entire cube as a single, large DataFrame:
 
->>> from kartothek.io.eager_cube import query_cube
+>>> from kartothek.api.cube import query_cube
 >>> query_cube(
 ...     cube=cube,
 ...     store=store,
@@ -189,7 +189,7 @@ more helpful for distributed backends like `Distributed`_:
 
 The query system also supports selection and projection:
 
->>> from kartothek.core.cube.conditions import C
+>>> from kartothek.api.cube import C
 >>> query_cube(
 ...     cube=cube,
 ...     store=store,
@@ -214,7 +214,7 @@ Query and Extend can be combined to build powerful transformation pipelines. To 
    `Distributed`_, Kartothek Cube requires the user to pass a :term:`Store Factory` instead of a store. This ensures that no file
    handles, TCP connections, or other non-transportable objects are shared.
 
->>> from kartothek.io.dask.bag_cube import (
+>>> from kartothek.api.cube import (
 ...     extend_cube_from_bag,
 ...     query_cube_bag,
 ... )
@@ -275,7 +275,7 @@ Append
 ``````
 New rows can be added to the cube using an append operation:
 
->>> from kartothek.io.eager_cube import append_to_cube
+>>> from kartothek.api.cube import append_to_cube
 >>> df_weather2 = pd.read_csv(
 ...     filepath_or_buffer=StringIO("""
 ... avg_temp     city country        day
@@ -321,7 +321,7 @@ Remove
 ``````
 You can remove entire partitions from the cube using the remove operation:
 
->>> from kartothek.io.eager_cube import remove_partitions
+>>> from kartothek.api.cube import remove_partitions
 >>> datasets_after_removal = remove_partitions(
 ...     cube=cube,
 ...     store=store,
@@ -346,7 +346,7 @@ Delete
 ``````
 You can also delete entire datasets (or the entire cube):
 
->>> from kartothek.io.eager_cube import delete_cube
+>>> from kartothek.api.cube import delete_cube
 >>> datasets_still_in_cube = delete_cube(
 ...     cube=cube,
 ...     store=store,

@@ -31,6 +31,12 @@ from kartothek.io_components.write import (
     store_dataset_from_partitions,
 )
 
+__all__ = (
+    "read_dataset_as_dataframe_bag",
+    "store_bag_as_dataset",
+    "build_dataset_indices__bag",
+)
+
 
 def _store_dataset_from_partitions_flat(mpss, *args, **kwargs):
     return store_dataset_from_partitions(

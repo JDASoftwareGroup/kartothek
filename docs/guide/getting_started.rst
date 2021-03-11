@@ -97,7 +97,7 @@ to store the ``DataFrame`` ``df`` that we already have in memory.
 
 .. ipython:: python
 
-    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.api.dataset import store_dataframes_as_dataset
 
     df.dtypes.equals(another_df.dtypes)  # both have the same schema
 
@@ -236,7 +236,7 @@ table of the dataset as a pandas DataFrame.
 
 .. ipython:: python
 
-    from kartothek.io.eager import read_table
+    from kartothek.api.dataset import read_table
 
     read_table("a_unique_dataset_identifier", store_url, table="table")
 
@@ -248,7 +248,7 @@ represent the `tables` of the dataset. For example,
 
 .. ipython:: python
 
-    from kartothek.io.iter import read_dataset_as_dataframes__iterator
+    from kartothek.api.dataset import read_dataset_as_dataframes__iterator
 
     for partition_index, df_dict in enumerate(
         read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_url)

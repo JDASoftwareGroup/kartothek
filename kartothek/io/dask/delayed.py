@@ -50,6 +50,14 @@ from ._utils import (
     map_delayed,
 )
 
+__all__ = (
+    "delete_dataset__delayed",
+    "garbage_collect_dataset__delayed",
+    "read_dataset_as_delayed",
+    "update_dataset_from_delayed",
+    "store_delayed_as_dataset",
+)
+
 
 def _delete_all_additional_metadata(dataset_factory):
     delete_indices(dataset_factory=dataset_factory)

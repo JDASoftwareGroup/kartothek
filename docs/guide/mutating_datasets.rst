@@ -21,7 +21,7 @@ some data there with Kartothek.
     from tempfile import TemporaryDirectory
     from storefact import get_store_from_url
 
-    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.api.dataset import store_dataframes_as_dataset
 
     dataset_dir = TemporaryDirectory()
 
@@ -59,7 +59,7 @@ Now, we create ``another_df`` with the same schema as our intial dataframe
 
 .. ipython:: python
 
-    from kartothek.io.eager import update_dataset_from_dataframes
+    from kartothek.api.dataset import update_dataset_from_dataframes
 
     another_df = pd.DataFrame(
         {
@@ -89,7 +89,7 @@ previous contents.
 
 .. ipython:: python
 
-    from kartothek.io.eager import read_table
+    from kartothek.api.dataset import read_table
 
     updated_df = read_table(dataset_uuid=dm.uuid, store=store_url, table="table")
     updated_df
@@ -314,7 +314,7 @@ When garbage collection is called, the files are removed.
 
 .. ipython:: python
 
-    from kartothek.io.eager import garbage_collect_dataset
+    from kartothek.api.dataset import garbage_collect_dataset
     from storefact import get_store_from_url
 
     store = get_store_from_url(store_url)

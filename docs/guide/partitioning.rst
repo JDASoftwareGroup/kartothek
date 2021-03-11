@@ -32,7 +32,7 @@ first and store the data there with Kartothek:
     from tempfile import TemporaryDirectory
     from storefact import get_store_from_url
 
-    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.api.dataset import store_dataframes_as_dataset
 
     dataset_dir = TemporaryDirectory()
 
@@ -151,7 +151,7 @@ number of physical input partitions.
 
     import dask.dataframe as dd
     import numpy as np
-    from kartothek.io.dask.dataframe import update_dataset_from_ddf
+    from kartothek.api.dataset import update_dataset_from_ddf
 
     df = pd.DataFrame(
         {

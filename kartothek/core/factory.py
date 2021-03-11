@@ -10,6 +10,8 @@ from kartothek.core.utils import lazy_store
 if TYPE_CHECKING:
     from simplekv import KeyValueStore
 
+__all__ = ("DatasetFactory",)
+
 T = TypeVar("T", bound="DatasetFactory")
 
 

@@ -33,6 +33,8 @@ _logger = logging.getLogger(__name__)
 
 TableMetaType = Dict[str, SchemaWrapper]
 
+__all__ = ("DatasetMetadata",)
+
 
 def _validate_uuid(uuid: str) -> bool:
     return re.match(r"[a-zA-Z0-9+\-_]+$", uuid) is not None

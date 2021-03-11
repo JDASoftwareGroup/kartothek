@@ -29,6 +29,12 @@ from kartothek.io_components.write import (
     store_dataset_from_partitions,
 )
 
+__all__ = (
+    "read_dataset_as_dataframes__iterator",
+    "update_dataset_from_dataframes__iter",
+    "store_dataframes_as_dataset__iter",
+)
+
 
 @default_docs
 @normalize_args

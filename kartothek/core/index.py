@@ -33,6 +33,12 @@ _logger = logging.getLogger(__name__)
 
 _PARTITION_COLUMN_NAME = "partition"
 
+__all__ = (
+    "IndexBase",
+    "ExplicitSecondaryIndex",
+    "PartitionIndex",
+)
+
 
 class IndexBase(CopyMixin):
     """
