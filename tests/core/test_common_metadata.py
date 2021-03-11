@@ -314,7 +314,7 @@ def test_validate_empty_dataframe(
     [
         # reference column is a native type
         ("int8", -1.1, np.float64),
-        ("int8", "a", np.object),
+        ("int8", "a", object),
         # reference column is an object
         ("unicode", -1.1, np.float64),
         ("unicode", 1, np.int64),
@@ -328,11 +328,11 @@ def test_validate_empty_dataframe(
             ),
         ),
         # reference column is a native typed array
-        ("array_int64", np.array([1.0], dtype=np.float64), np.object),
-        ("array_int64", np.array(["a"], dtype=np.object), np.object),
+        ("array_int64", np.array([1.0], dtype=np.float64), object),
+        ("array_int64", np.array(["a"], dtype=object), object),
         # reference column is an object types arrayarray
-        ("array_unicode", np.array([1], dtype=np.int8), np.object),
-        ("array_unicode", np.array([1.0], dtype=np.float64), np.object),
+        ("array_unicode", np.array([1], dtype=np.int8), object),
+        ("array_unicode", np.array([1.0], dtype=np.float64), object),
     ],
 )
 def test_validate_empty_dataframe_corrupt_raises(
@@ -347,7 +347,7 @@ def test_validate_empty_dataframe_corrupt_raises(
 
     # First, an integer column carries a float or an object.
     df_corrupt = df_all_types.copy()
-    # for value, dtype in [(-1.1, np.float64), ('a', np.object)]:
+    # for value, dtype in [(-1.1, np.float64), ('a', object)]:
     df_corrupt[corrupt_column] = pd.Series([corrupt_value], dtype=corrupt_dtype)
     df_corrupt_meta = make_meta(df_corrupt, origin="1")
     # Raise when comparing the proper to the corrupt schema

@@ -36,7 +36,7 @@ def get_dataframe_not_nested(n):
     return pd.DataFrame(
         {
             "bool": pd.Series(
-                [1] * int(np.floor(n / 2)) + [0] * int(np.ceil(n / 2)), dtype=np.bool
+                [1] * int(np.floor(n / 2)) + [0] * int(np.ceil(n / 2)), dtype=np.bool_
             ),
             "int8": pd.Series(range(n), dtype=np.int8),
             "int16": pd.Series(range(n), dtype=np.int16),
@@ -57,6 +57,6 @@ def get_dataframe_not_nested(n):
             ),
             "unicode": pd.Series([str(x) for x in range(n)], dtype=str),
             "null": pd.Series([None] * n, dtype=object),
-            "bytes": pd.Series(binaries, dtype=np.object),
+            "bytes": pd.Series(binaries, dtype=object),
         }
     ).sort_index(axis=1)
