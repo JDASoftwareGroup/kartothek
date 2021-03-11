@@ -49,7 +49,7 @@ def get_dataframe_alltypes():
 def get_dataframe_not_nested():
     return pd.DataFrame(
         {
-            "bool": pd.Series([1], dtype=np.bool),
+            "bool": pd.Series([1], dtype=np.bool_),
             "int8": pd.Series([1], dtype=np.int8),
             "int16": pd.Series([1], dtype=np.int16),
             "int32": pd.Series([1], dtype=np.int32),
