@@ -85,6 +85,24 @@ def test_roundtrip_json(metadata_version):
     assert expected == result
 
 
+def test_raise_multitable(metadata_version):
+    expected = {
+        "dataset_metadata_version": metadata_version,
+        "dataset_uuid": "uuid",
+        "metadata": {},
+        "partitions": {
+            "part_1": {"files": {"tableA": "file.parquet", "tableB": "file.parquet"}}
+        },
+        "partition_keys": [],
+    }
+
+    with pytest.raises(
+        RuntimeError,
+        match=r"Dataset uuid has tables.*but read support for multi tabled dataset was dropped with kartothek 4\.0\.",
+    ):
+        DatasetMetadata.from_dict(expected)
+
+
 def test_roundtrip_msgpack():
     expected = {
         "dataset_metadata_version": 4,

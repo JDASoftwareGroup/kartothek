@@ -121,15 +121,19 @@ class DatasetMetadataBase(CopyMixin):
         if self._table_name:
             return self._table_name
         elif self.partitions:
-            table_name = next(iter(next(iter(self.partitions.values())).files.keys()))
-
-            return table_name
-        else:
-            return "<Unknown Table>"
+            tables = self.tables
+            if tables:
+                return self.tables[0]
+        return "<Unknown Table>"
 
     @property
     def tables(self) -> List[str]:
-        return [self.table_name]
+        tables = list(iter(next(iter(self.partitions.values())).files.keys()))
+        if len(tables) > 1:
+            raise RuntimeError(
+                f"Dataset {self.uuid} has tables {tables} but read support for multi tabled dataset was dropped with kartothek 4.0."
+            )
+        return tables
 
     @property
     def index_columns(self) -> Set[str]:
@@ -626,10 +630,6 @@ class DatasetMetadata(DatasetMetadataBase):
                 if key.endswith(naming.TABLE_METADATA_FILE):
                     table_set.add(key.split("/")[1])
             tables = list(table_set)
-        if len(tables) > 1:
-            raise RuntimeError(
-                "Reading support for multi tabled datasets was dropped in kartothek 4.0"
-            )
 
         schema = None
         table_name = None
@@ -919,6 +919,12 @@ class DatasetMetadataBuilder(CopyMixin):
         partition: :class:`kartothek.core.partition.Partition`
             The partition to add.
         """
+
+        if len(partition.files) > 1:
+            raise RuntimeError(
+                f"Dataset {self.uuid} has tables {sorted(partition.files.keys())} but read support for multi tabled dataset was dropped with kartothek 4.0."
+            )
+
         self.partitions[name] = partition
         return self
 

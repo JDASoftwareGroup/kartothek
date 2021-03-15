@@ -75,10 +75,7 @@ def test_builder_full(metadata_version, frozen_time):
         "dataset_metadata_version": metadata_version,
         "partitions": {
             "run_id=1/L=1/P=1/part_1": {
-                "files": {
-                    "core": "uuid/core/run_id=1/L=1/P=1/part_1.parquet",
-                    "helper": "uuid/helper/run_id=1/L=1/P=1/part_1.parquet",
-                }
+                "files": {"core": "uuid/core/run_id=1/L=1/P=1/part_1.parquet"}
             }
         },
         "metadata": {"key": "value", "creation_time": TIME_TO_FREEZE_ISO},
@@ -97,10 +94,7 @@ def test_builder_full(metadata_version, frozen_time):
     )
     part_2 = Partition(
         label="run_id=1/L=1/P=1/part_1",
-        files={
-            "core": "uuid/core/run_id=1/L=1/P=1/part_1.parquet",
-            "helper": "uuid/helper/run_id=1/L=1/P=1/part_1.parquet",
-        },
+        files={"core": "uuid/core/run_id=1/L=1/P=1/part_1.parquet"},
     )
     builder.add_partition("run_id=1/L=1/P=1/part_1", part_2)
     builder.add_metadata("key", "value")
