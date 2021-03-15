@@ -851,7 +851,6 @@ def create_partition_key(
 
         returns 'my-uuid/testtable/index1=value1/index2=value2/data'
     """
-    # TODO: ensure private
     key_components = [dataset_uuid, table]
     index_path = quote_indices(index_values)
     key_components.extend(index_path)
