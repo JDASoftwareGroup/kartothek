@@ -72,7 +72,7 @@ _METADATA_SCHEMA = {
     "number_rows_per_row_group": np.dtype(int),
 }
 
-MetaPartitionInput = Optional[Union[Dict, pd.DataFrame, Sequence, "MetaPartition"]]
+MetaPartitionInput = Optional[Union[pd.DataFrame, Sequence, "MetaPartition"]]
 
 
 def _predicates_to_named(predicates):
@@ -1334,92 +1334,27 @@ def partition_labels_from_mps(mps: List[MetaPartition]) -> List[str]:
     return partition_labels
 
 
-# TODO: scratch docs and search for references to this in whole documentation
 def parse_input_to_metapartition(
     obj: MetaPartitionInput,
     table_name: str = SINGLE_TABLE,
     metadata_version: Optional[int] = None,
 ) -> MetaPartition:
     """
-    Parses given user input and returns a MetaPartition
+    Parses given user input and return a MetaPartition
 
-    The format specification supports multiple input modes as following:
+    The expected input is a :class:`pandas.DataFrame` or a list of
+    :class:`pandas.DataFrame`.
 
-    1. Mode - Dictionary with partition information
-
-        In this case, a dictionary is supplied where the keys describe the partition.
-
-            * **label** - (optional) Unique partition label. If None is given, a UUID \
-                        is generated using :func:`kartothek.core.uuid.gen_uuid`.
-            * **data** - A dict or list of tuples. The keys represent the table name \
-                        and the values are the actual payload data as a pandas.DataFrame.
-            * **indices** - Deprecated, see the keyword argument `secondary_indices` to create indices.
-                            A dictionary to describe the dataset indices. All \
-                            partition level indices are finally merged using \
-                            :func:`kartothek.io_components.metapartition.MetaPartition.merge_indices` \
-                            into a single dataset index
-
-        Examples::
-
-            # A partition with explicit label, no metadata, one table and index information
-            input_obj = {
-                'label': 'partition_label',
-                'data': [('table', pd.DataFrame([{'column_1':values_1, 'column_2':values_2}]))],
-                'indices': {
-                    "column_1": {
-                        value: ['partition_label']
-                    }
-                }
-            }
-            # If no label is given, a UUID will be generated using :func:`kartothek.core.uuid.gen_uuid`
-            simple_input = {
-                'data': [('table', pd.DataFrame())],
-            }
-
-    2. Mode - `pandas.DataFrame`
-
-        If only a DataFrame is provided, a UUID is generated and the dataframe is stored
-        for the table name `SINGLE_TABLE`
-
-    3. Mode - :class:`~kartothek.io_components.metapartition.MetaPartition`
-
-        If a MetaPartition is passed directly, it is simply passed through.
-
-    4. Mode - List of tuples
-
-        The first item represents the table name and the second is the actual payload data \
-        as a pandas.DataFrame.
-
-        Example::
-
-            # A partition with no explicit label, no metadata and one table
-            input_obj = [('table', pd.DataFrame())]
-
-    Nested MetaPartitions:
-
-        The input may also be provided as a list to ease batch processing. The returned MetaPartition
-        will be nested and each list element represents a single physical partition. For details on
-        nested MetaPartitions, see :class:`~kartothek.io_components.metapartition.MetaPartition`
+    Every element of the list will be treated as a dedicated user input and will
+    result in a physical file, if not specified otherwise.
 
     Parameters
     ----------
     obj
+    table_name
+        The table name assigned to the partitions
     metadata_version
         The kartothek dataset specification version
-    expected_secondary_indices
-        Iterable of strings containing expected columns on which indices are created. An empty iterable indicates no
-        indices are expected.
-        The default is `False`, which, indicates no checking will be done (`None` behaves the same way).
-        This is only used in mode "Dictionary with partition information".
-
-    Raises
-    ------
-    ValueError
-        In case the given input is not understood
-
-    Returns
-    -------
-    MetaPartition
     """
 
     if obj is None:

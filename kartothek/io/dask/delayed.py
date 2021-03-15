@@ -288,7 +288,7 @@ def read_dataset_as_delayed(
 
 @default_docs
 def update_dataset_from_delayed(
-    delayed_tasks,
+    delayed_tasks: List[Delayed],
     store=None,
     dataset_uuid=None,
     delete_scope=None,
@@ -356,7 +356,7 @@ def update_dataset_from_delayed(
 @default_docs
 @normalize_args
 def store_delayed_as_dataset(
-    delayed_tasks,
+    delayed_tasks: List[Delayed],
     store,
     dataset_uuid=None,
     metadata=None,

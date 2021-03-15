@@ -5,10 +5,6 @@ Getting Started
 ===============
 
 
-Kartothek manages datasets that consist of files that contain tables. It does so by offering
-a metadata definition to handle these datasets efficiently.
-
-Datasets in Kartothek are made up of one or more ``tables``, each with a unique schema.
 When working with Kartothek tables as a Python user, we will use :class:`~pandas.DataFrame`
 as the user-facing type.
 
@@ -136,28 +132,20 @@ This class holds information about the structure and schema of the dataset.
     dm.schema.remove_metadata()
 
 
-For this guide, two attributes that are noteworthy are ``tables`` and ``partitions``:
+For this guide we want to take a closer look at the ``partitions`` attribute.
+``partitions`` are the physical "pieces" of data which together constitute the
+contents of a dataset. Data is written to storage on a per-partition basis. See
+the section on partitioning for further details: :ref:`partitioning_section`.
 
-- Each dataset has one or more ``tables``, where each table is a logical collection of data,
-  bound together by a common schema.
-- ``partitions`` are the physical "pieces" of data which together constitute the
-  contents of a dataset. Data is written to storage on a per-partition basis.
-  See the section on partitioning for further details: :ref:`partitioning_section`.
-
-The attribute ``table_meta`` can be accessed to see the underlying schema of the dataset.
+The attribute ``schema`` can be accessed to see the underlying schema of the dataset.
 See :ref:`type_system` for more information.
 
 To store multiple dataframes into a dataset, it is possible to pass a collection of
 dataframes; the exact format will depend on the I/O backend used.
 
-Additionally, Kartothek supports several data input formats,
-it does not need to always be a plain ``pd.DataFrame``.
-See :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
-further details.
-
-If table names are not specified when passing an iterator of dataframes,
-Kartothek assumes these dataframes are different chunks of the same table
-and expects their schemas to be identical. A ``ValueError`` will be thrown otherwise.
+Kartothek assumes these dataframes are different chunks of the same table and
+will therefore be required to have the same schema. A ``ValueError`` will be
+thrown otherwise.
 For example,
 
 .. ipython:: python
@@ -192,11 +180,6 @@ For example,
 
 
 .. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`
-
-
-When we do not explicitly define the name of the table and partition, Kartothek uses the
-default table name ``table`` and generates a UUID for the partition name. This is the recommended way.
-
 
 
 Reading data from storage

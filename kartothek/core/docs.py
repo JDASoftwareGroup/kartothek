@@ -180,9 +180,8 @@ _PARAMETER_MAPPING = {
     concat_partitions_on_primary_index: bool
         Concatenate partition based on their primary index values.""",
     "delayed_tasks": """
-    delayed_tasks: List[dask.delayed.Delayed]
-        Every delayed object represents a partition and should be accepted by
-        :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition`""",
+    delayed_tasks
+        A list of delayed objects where each element returns a :class:`pandas.DataFrame`.""",
     "load_dataset_metadata": """
     load_dataset_metadata: bool
         Optional argument on whether to load the metadata or not""",

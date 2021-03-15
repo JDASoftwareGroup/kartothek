@@ -307,9 +307,6 @@ def read_table(
     return df
 
 
-# TODO: fix docs
-
-
 @default_docs
 @normalize_args
 def commit_dataset(
