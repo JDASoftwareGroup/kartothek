@@ -2,9 +2,15 @@
 Changelog
 =========
 
-Version 3.19.2 (2021-xx-xx)
+Version 3.20.0 (2021-03-15)
 ===========================
 
+This will be the final release in the 3.X series. Please ensure your existing
+codebase does not raise any DeprecationWarning from kartothek and migrate your
+import paths ahead of time to the new :mod:`kartothek.api` modules to ensure a
+smooth migration to 4.X.
+
+* Introduce :mod:`kartothek.api` as the public definition of the API. See also :doc:`versioning`.
 * Introduce `DatasetMetadataBase.schema` to prepare deprecation of `table_meta`
 * :func:`~kartothek.io.eager.read_dataset_as_dataframes` and
   :func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator` now correctly return
