@@ -47,6 +47,19 @@ from kartothek.io_components.write import raise_if_dataset_exists
 from kartothek.serialization import DataFrameSerializer
 from kartothek.serialization._parquet import ParquetSerializer
 
+__all__ = (
+    "delete_dataset",
+    "read_dataset_as_dataframes",
+    "read_table",
+    "commit_dataset",
+    "store_dataframes_as_dataset",
+    "create_empty_dataset_header",
+    "write_single_partition",
+    "update_dataset_from_dataframes",
+    "build_dataset_indices",
+    "garbage_collect_dataset",
+)
+
 
 @default_docs
 @normalize_args

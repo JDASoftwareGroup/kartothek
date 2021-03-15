@@ -16,8 +16,7 @@ Setup a store
 .. ipython:: python
 
     import pandas as pd
-    from kartothek.io.eager import store_dataframes_as_dataset
-    from kartothek.io.eager import read_table
+    from kartothek.api.dataset import read_table, store_dataframes_as_dataset
 
     df = pd.DataFrame({"Name": ["Paul", "Lisa"], "Age": [32, 29]})
 
@@ -50,7 +49,7 @@ Write
 .. ipython:: python
 
     import pandas as pd
-    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.api.dataset import store_dataframes_as_dataset
 
     #  Now, define the actual partitions. This list will, most of the time,
     # be the intermediate result of a previously executed pipeline which e.g. pulls
@@ -87,7 +86,7 @@ Read
 .. ipython:: python
 
     import pandas as pd
-    from kartothek.io.eager import read_dataset_as_dataframes
+    from kartothek.api.dataset import read_dataset_as_dataframes
 
     #  Create the pipeline with a minimal set of configs
     list_of_partitions = read_dataset_as_dataframes(
@@ -118,7 +117,7 @@ Write
 .. ipython:: python
 
     import pandas as pd
-    from kartothek.io.iter import store_dataframes_as_dataset__iter
+    from kartothek.api.dataset import store_dataframes_as_dataset__iter
 
     input_list_of_partitions = [
         {
@@ -148,7 +147,7 @@ Read
 .. ipython:: python
 
     import pandas as pd
-    from kartothek.io.iter import read_dataset_as_dataframes__iterator
+    from kartothek.api.dataset import read_dataset_as_dataframes__iterator
 
     #  Create the pipeline with a minimal set of configs
     list_of_partitions = read_dataset_as_dataframes__iterator(
@@ -182,7 +181,7 @@ Write
 .. ipython:: python
 
     import pandas as pd
-    from kartothek.io.dask.delayed import store_delayed_as_dataset
+    from kartothek.api.dataset import store_delayed_as_dataset
 
     input_list_of_partitions = [
         {
@@ -219,7 +218,7 @@ Read
 
     import dask
     import pandas as pd
-    from kartothek.io.dask.delayed import read_dataset_as_delayed
+    from kartothek.api.dataset import read_dataset_as_delayed
 
     tasks = read_dataset_as_delayed(dataset_uuid="MyFirstDatasetDask", store=store_url)
     tasks

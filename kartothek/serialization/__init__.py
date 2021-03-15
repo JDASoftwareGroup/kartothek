@@ -31,12 +31,12 @@ def default_serializer():
     return ParquetSerializer()
 
 
-__all__ = [
+__all__ = (
     # Serializer classes
+    "CsvSerializer",
     "DataFrameSerializer",
     "default_serializer",
     "ParquetSerializer",
-    "CsvSerializer",
     # functions
     "check_predicates",
     "columns_in_predicates",
@@ -49,4 +49,4 @@ __all__ = [
     "LiteralType",
     "LiteralValue",
     "PredicatesType",
-]
+)

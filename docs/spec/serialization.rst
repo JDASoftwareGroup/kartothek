@@ -15,7 +15,7 @@ e.g. :class:`~kartothek.serialization.ParquetSerializer`.
 
 .. code:: python
 
-    from kartothek.serialization import ParquetSerializer
+    from kartothek.api.serialization import ParquetSerializer
 
     serializer = ParquetSerializer()
     df = ...
@@ -30,7 +30,7 @@ one is determined from the filename.
 
 .. code:: python
 
-    from kartothek.serialization import DataFrameSerializer
+    from kartothek.api.serialization import DataFrameSerializer
 
     df = DataFrameSerializer.restore_dataframe(store, "file.parquet")
 

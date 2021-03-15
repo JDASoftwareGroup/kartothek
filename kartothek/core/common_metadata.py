@@ -20,6 +20,15 @@ from kartothek.core.utils import ensure_string_type
 
 _logger = logging.getLogger()
 
+__all__ = (
+    "SchemaWrapper",
+    "make_meta",
+    "validate_compatible",
+    "empty_dataframe_from_schema",
+    "normalize_type",
+    "normalize_column_order",
+)
+
 
 class SchemaWrapper:
     """

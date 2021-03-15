@@ -8,6 +8,8 @@ from storefact import get_store_from_url
 from kartothek.core.naming import MAX_METADATA_VERSION, MIN_METADATA_VERSION
 from kartothek.core.typing import StoreFactory, StoreInput
 
+__all__ = ("ensure_store", "lazy_store")
+
 
 def _verify_metadata_version(metadata_version):
     """

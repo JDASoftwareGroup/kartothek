@@ -19,6 +19,13 @@ except ImportError:
     serialize_bytes = None
     deserialize_bytes = None
 
+__all__ = (
+    "pack_payload_pandas",
+    "pack_payload",
+    "unpack_payload_pandas",
+    "unpack_payload",
+)
+
 
 def pack_payload_pandas(partition: pd.DataFrame, group_key: List[str]) -> pd.DataFrame:
     if not HAS_DISTRIBUTED:

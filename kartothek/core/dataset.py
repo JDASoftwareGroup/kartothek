@@ -10,10 +10,10 @@ import pyarrow as pa
 import simplejson
 
 import kartothek.core._time
-import kartothek.core._zmsgpack as msgpack
 from kartothek.core import naming
 from kartothek.core._compat import load_json
 from kartothek.core._mixins import CopyMixin
+from kartothek.core._zmsgpack import packb, unpackb
 from kartothek.core.common_metadata import SchemaWrapper, read_schema_metadata
 from kartothek.core.docs import default_docs
 from kartothek.core.index import (
@@ -32,6 +32,8 @@ from kartothek.serialization import PredicatesType, columns_in_predicates
 _logger = logging.getLogger(__name__)
 
 TableMetaType = Dict[str, SchemaWrapper]
+
+__all__ = ("DatasetMetadata", "DatasetMetadataBase")
 
 
 def _validate_uuid(uuid: str) -> bool:
@@ -104,7 +106,8 @@ class DatasetMetadataBase(CopyMixin):
     def table_meta(self) -> Dict[str, SchemaWrapper]:
         warnings.warn(
             "The attribute `DatasetMetadataBase.table_meta` will be removed in "
-            "kartothek 4.0 in favour of `DatasetMetadataBase.schema`."
+            "kartothek 4.0 in favour of `DatasetMetadataBase.schema`.",
+            DeprecationWarning,
         )
         return self._table_meta
 
@@ -229,7 +232,7 @@ class DatasetMetadataBase(CopyMixin):
         return simplejson.dumps(self.to_dict()).encode("utf-8")
 
     def to_msgpack(self) -> bytes:
-        return msgpack.packb(self.to_dict())
+        return packb(self.to_dict())
 
     def load_index(self: T, column: str, store: StoreInput) -> T:
         """
@@ -540,7 +543,7 @@ class DatasetMetadata(DatasetMetadataBase):
         if format == "json":
             metadata = load_json(buf)
         elif format == "msgpack":
-            metadata = msgpack.unpackb(buf)
+            metadata = unpackb(buf)
         return DatasetMetadata.load_from_dict(metadata, store)
 
     @staticmethod
@@ -578,7 +581,7 @@ class DatasetMetadata(DatasetMetadataBase):
             key2 = naming.metadata_key_from_uuid(uuid, format="msgpack")
             try:
                 value = store.get(key2)
-                metadata = msgpack.unpackb(value)
+                metadata = unpackb(value)
             except KeyError:
                 raise KeyError(
                     "Dataset does not exist. Tried {} and {}".format(key1, key2)
@@ -658,7 +661,7 @@ class DatasetMetadata(DatasetMetadataBase):
         if format == "json":
             metadata = load_json(buf)
         else:
-            metadata = msgpack.unpackb(buf)
+            metadata = unpackb(buf)
         return DatasetMetadata.from_dict(
             metadata, explicit_partitions=explicit_partitions
         )
@@ -1044,7 +1047,7 @@ class DatasetMetadataBuilder(CopyMixin):
         """
         return (
             naming.metadata_key_from_uuid(self.uuid, format="msgpack"),
-            msgpack.packb(self.to_dict()),
+            packb(self.to_dict()),
         )
 
     def to_dataset(self) -> DatasetMetadata:

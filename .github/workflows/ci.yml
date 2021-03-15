@@ -95,6 +95,11 @@ jobs:
         run: |
           python -c "import kartothek"
           python -c "import kartothek.api"
+          python -c "import kartothek.api.consistency"
+          python -c "import kartothek.api.cube"
+          python -c "import kartothek.api.dataset"
+          python -c "import kartothek.api.discover"
+          python -c "import kartothek.api.serialization"
           python -c "import kartothek.cli"
           python -c "import kartothek.core"
           python -c "import kartothek.io"

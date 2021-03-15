@@ -13,7 +13,7 @@ Calculating a dask index is usually a very expensive operation which requires da
     import pandas as pd
     from tempfile import TemporaryDirectory
 
-    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.api.dataset import store_dataframes_as_dataset
 
     dataset_dir = TemporaryDirectory()
 
@@ -38,7 +38,7 @@ Calculating a dask index is usually a very expensive operation which requires da
 .. ipython:: python
 
     import dask.dataframe as dd
-    from kartothek.io.dask.dataframe import update_dataset_from_ddf, read_dataset_as_ddf
+    from kartothek.api.dataset import update_dataset_from_ddf, read_dataset_as_ddf
 
     df
 

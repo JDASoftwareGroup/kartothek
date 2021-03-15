@@ -38,13 +38,6 @@ A Kartothek (or more modern: Zettelkasten/Katalogkasten) is a tool to organize
 
 
 .. toctree::
-   :maxdepth: 1
-   :caption: API
-   :hidden:
-
-   API <api>
-
-.. toctree::
    :maxdepth: 2
    :caption: Guides
    :hidden:

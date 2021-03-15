@@ -9,7 +9,7 @@ Specification
 The storage specification documented in :ref:`dataset_spec` is versioned using
 the integer dataset attribute `metadata_version` which can be defined for all
 writing pipelines. All `metadata_version` changes will be reflected in the
-version by increasing in.
+version by increasing it.
 New specification versions will be introduced by increasing the *minor* library
 version while a removal of a supported version (both read and write) will
 trigger an increase of the *major* version number.
@@ -17,30 +17,14 @@ trigger an increase of the *major* version number.
 
 Library API
 -----------
-The library versioning itself uses a slighlty adapted version of [semantic
-versioning](https://semver.org) since the various modules of `kartothek` reached
-different levels of maturity.
 
-We commit to full semantic versioning for the subpackages
+Kartothek exposes a dedicated module to highlight which functions, classes, etc. are considered stable API and are publicly available. We intend to apply [semantic
+versioning](https://semver.org) to the best of our ability for the API exposed in :mod:`kartothek.api`. See also :doc:`api`.
 
-* :mod:`kartothek.serialization`
-* :mod:`kartothek.io`
-* :mod:`kartothek.api`
-
-which we consider as our stable public API and should be the primary entrypoint
-for user interactions.
-
-The subpackages
-
-* :mod:`kartothek.core`
-* :mod:`kartothek.io_components`
-* :mod:`kartothek.utils`
-
-should be used primarily by extension developers and not the ordinary end user.
-We allow ourselves therefore a bit more freedom and permit breaking interface
-changes in every *minor* version. For changes in :mod:`~kartothek.core`, :mod:`kartothek.utils`
-and :mod:`~kartothek.io_components` with expected impact on end users we will decide
-on an individual case basis if an increase of major version is justified to
-signal the user potential breakage.
-Under any circumstances, breaking interface changes will be documented to the
-best of our knowledge.
+We are aware that the API not only consists of the signatures of functions and
+types of objects exposed by a library but as well by its behaviour. Many changes
+involve judgement calls about the compatibility of a given change and it might
+be possible that we'll introduce behavioural changes which you would not
+perceive compatible with semantic versioning. We will adhere as best as possible
+to this convention. In any case we intend to document all intended changes,
+whether breaking or not, in our changelog, see :doc:`changes`.

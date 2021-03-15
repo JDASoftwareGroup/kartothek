@@ -49,6 +49,14 @@ from ._shuffle import shuffle_store_dask_partitions
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
 
+__all__ = (
+    "read_dataset_as_ddf",
+    "store_dataset_from_ddf",
+    "update_dataset_from_ddf",
+    "collect_dataset_metadata",
+    "hash_dataset",
+)
+
 
 @default_docs
 @normalize_args

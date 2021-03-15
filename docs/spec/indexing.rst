@@ -23,7 +23,7 @@ All indices implement :class:`~kartothek.core.index.IndexBase` which allows the 
 
 .. ipython:: python
 
-    from kartothek.core.index import IndexBase
+    from kartothek.api.dataset import IndexBase
 
     index = IndexBase(column="FieldName", index_dct=index_dct)
 
@@ -46,10 +46,10 @@ The first index type kartothek offers is a partition index. The partition index 
 
     import string
     import pandas as pd
-    from kartothek.core.utils import ensure_store
+    from kartothek.api.dataset import ensure_store
 
     store = ensure_store("hmemory://")
-    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.api.dataset import store_dataframes_as_dataset
 
 .. ipython:: python
 
