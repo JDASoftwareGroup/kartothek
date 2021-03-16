@@ -90,7 +90,7 @@ def _copy_azure_bbs(key_mappings, src_store, tgt_store, mapped_metadata=None):
     cprops = {}
     for src_key, tgt_key in key_mappings.items():
         # skip modified metadata which was already copied manually
-        if mapped_metadata and (src_key in mapped_metadata):
+        if (mapped_metadata is not None) and (src_key in mapped_metadata):
             continue
 
         source_md5 = _azure_bbs_content_md5(
@@ -186,7 +186,7 @@ def _copy_azure_cc(key_mappings, src_store, tgt_store, mapped_metadata=None):
     copy_ids = {}
     for src_key, tgt_key in key_mappings.items():
         # skip modified metadata which was already copied manually
-        if mapped_metadata and (src_key in mapped_metadata):
+        if (mapped_metadata is not None) and (src_key in mapped_metadata):
             continue
         source_md5 = _azure_cc_content_md5(src_cc, src_key, accept_missing=False)
 
@@ -244,7 +244,7 @@ def _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=None):
         Mapping containing {key: modified metadata} values to be changed
     """
     for src_key, tgt_key in key_mappings.items():
-        if mapped_metadata & (src_key in mapped_metadata):
+        if (mapped_metadata is not None) and (src_key in mapped_metadata):
             item = mapped_metadata.get(src_key)
         else:
             item = src_store.get(src_key)
