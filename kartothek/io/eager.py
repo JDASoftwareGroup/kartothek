@@ -16,6 +16,8 @@ from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import (
     DEFAULT_METADATA_STORAGE_FORMAT,
     DEFAULT_METADATA_VERSION,
+    METADATA_BASE_SUFFIX,
+    METADATA_FORMAT_JSON,
     PARQUET_FILE_SUFFIX,
     get_partition_file_prefix,
 )
@@ -46,6 +48,8 @@ from kartothek.io_components.utils import (
 from kartothek.io_components.write import raise_if_dataset_exists
 from kartothek.serialization import DataFrameSerializer
 from kartothek.serialization._parquet import ParquetSerializer
+from kartothek.utils.ktk_adapters import get_dataset_keys
+from kartothek.utils.store import copy_keys
 
 
 @default_docs
@@ -853,3 +857,89 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
     # Given that `nested_files` is a generator with a single element, just
     # return the output of `delete_files` on that element.
     return delete_files(next(nested_files), store_factory=ds_factory.store_factory)
+
+
+def _transform_key(source_key: str, source_ds: str, target_ds: str) -> str:
+    """
+    Modify a key: replace the source dataset UUID with the target dataset UUID
+    Parameters:
+        source_key: str
+            Key to modify
+        source_ds: str
+            Source dataset UUID
+        target_ds: str
+            Target dataset UUID
+    """
+    return source_key.replace(source_ds, target_ds)
+
+
+def _transform_metadata(src_metadata: DatasetMetadata, tgt_ds: str) -> DatasetMetadata:
+    """
+    Modify the metadata to reflect the changes of the copying process
+
+    src_metadata: Metadata to modify
+    tgt_ds: UUID of target dataset
+    """
+    return (
+        DatasetMetadataBuilder.from_dataset(src_metadata)
+        .modify_uuid(tgt_ds)
+        .to_json()[1]
+    )
+
+
+def copy_dataset(
+    src_dataset_uuid: str,
+    store: KeyValueStore,
+    target_dataset_uuid: Optional[str] = None,
+    tgt_store: Optional[KeyValueStore] = None,
+):
+    """
+    Copies and optionally renames a dataset, either  from one store to another or
+    within one store.
+
+    Parameters:
+        src_dataset_uuid: str
+            UUID of source dataset
+        store: KeyValueStore
+            Source store
+        target_dataset_uuid: Optional[str]
+            UUID of target dataset. May be the same as src_dataset_uuid, if store
+            and tgt_store are different. If empty, src_dataset_uuid is used
+        tgt_store: Optional[KeyValueStore]
+            Target Store. May be the same as store, if src_dataset_uuid and
+            target_dataset_uuid are different. If empty, value from parameter store is
+            used
+    """
+    if target_dataset_uuid is None:
+        target_dataset_uuid = src_dataset_uuid
+    if tgt_store is None:
+        tgt_store = store
+
+    if (src_dataset_uuid == target_dataset_uuid) & (store == tgt_store):
+        raise ValueError(
+            "Cannot copy to a dataset with the same UUID within the same store!"
+        )
+
+    ds_factory_source = _ensure_factory(
+        dataset_uuid=src_dataset_uuid,
+        store=store,
+        factory=None,
+        load_dataset_metadata=True,
+    )
+
+    # Create a dict of {source key: target key} entries
+    keys = get_dataset_keys(ds_factory_source.dataset_metadata)
+    mapped_keys = {}
+    for key in keys:
+        mapped_keys[key] = _transform_key(key, src_dataset_uuid, target_dataset_uuid)
+
+    # Create a dict of {source key: transformed metadata} entries for all metadata
+    # which must be changed (only uuid.by-dataset-metadata.json files)
+    md_transformed = {
+        f"{src_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": _transform_metadata(
+            ds_factory_source.dataset_metadata, target_dataset_uuid
+        )
+    }
+
+    # Copy the keys from one store to another
+    copy_keys(mapped_keys, store, tgt_store, md_transformed)
