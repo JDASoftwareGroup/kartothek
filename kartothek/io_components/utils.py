@@ -4,7 +4,7 @@ This module is a collection of helper functions
 import collections
 import inspect
 import logging
-from typing import Dict, Iterable, List, Optional, TypeVar, Union, overload
+from typing import Dict, Iterable, List, Optional, Union, overload
 
 import decorator
 import pandas as pd
@@ -165,7 +165,20 @@ _NORMALIZE_ARGS_LIST = [
 
 _NORMALIZE_ARGS = _NORMALIZE_ARGS_LIST + ["store", "dispatch_by"]
 
-T = TypeVar("T")
+
+@overload
+def normalize_arg(
+    arg_name: Literal[
+        "partition_on",
+        "delete_scope",
+        "secondary_indices",
+        "bucket_by",
+        "sort_partitions_by",
+        "dispatch_by",
+    ],
+    old_value: None,
+) -> None:
+    ...
 
 
 @overload
@@ -178,8 +191,8 @@ def normalize_arg(
         "sort_partitions_by",
         "dispatch_by",
     ],
-    old_value: Optional[Union[T, List[T]]],
-) -> List[T]:
+    old_value: Union[str, List[str]],
+) -> List[str]:
     ...
 
 
