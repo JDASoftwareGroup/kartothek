@@ -4,7 +4,7 @@ import pytest
 
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
-from kartothek.io.eager_cube import build_cube, query_cube
+from kartothek.io.eager_cube import build_cube
 from kartothek.utils.ktk_adapters import get_dataset_keys
 
 __all__ = (
@@ -33,7 +33,6 @@ __all__ = (
     "test_partial_copy_dataset_list",
     "test_read_only_source",
     "test_simple",
-    "test_simple_with_rename",
 )
 
 
@@ -87,45 +86,6 @@ def assert_same_keys(store1, store2, keys):
 def test_simple(driver, function_store, function_store2, cube, simple_cube_1):
     driver(cube=cube, src_store=function_store, tgt_store=function_store2)
     assert_same_keys(function_store, function_store2, simple_cube_1)
-
-
-def test_simple_with_rename(
-    driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
-):
-    # TODO first attempt: only implemented for driver copy_cube
-    # TODO any way to use pytest.mark.skipif with a fixture variable?
-    if "copy_cube" not in str(driver):
-        return
-    ds_name_old = "enrich"
-    ds_name_new = "augmented"
-    driver(
-        cube=cube,
-        src_store=function_store,
-        tgt_store=function_store2,
-        datasets_to_rename={ds_name_old: ds_name_new},
-    )
-
-    tgt_keys = function_store2().keys()
-    for src_key in sorted(simple_cube_1):
-        tgt_key = src_key.replace(ds_name_old, ds_name_new)
-        assert tgt_key in tgt_keys
-        b1 = function_store().get(src_key)
-        b2 = function_store2().get(tgt_key)
-        if tgt_key.endswith("by-dataset-metadata.json"):
-            b1_mod = (
-                b1.decode("utf-8").replace(ds_name_old, ds_name_new).encode("utf-8")
-            )
-            assert b1_mod == b2
-        else:
-            assert b1 == b2
-
-    tgt_cube = Cube(
-        dimension_columns=["x"], partition_columns=["p"], uuid_prefix="cube"
-    )
-    tgt_cube_res = query_cube(cube=tgt_cube, store=function_store2)[0]
-    assert tgt_cube_res is not None
-    assert tgt_cube_res[["x", "p", "v1"]].equals(df_seed)
-    assert tgt_cube_res[["x", "p", "v2"]].equals(df_enrich)
 
 
 def test_overwrite_fail(
