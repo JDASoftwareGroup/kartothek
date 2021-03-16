@@ -13,6 +13,7 @@ from storefact import get_store_from_url
 
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.uuid import gen_uuid
+from kartothek.io.eager import read_table
 from kartothek.io_components.metapartition import MetaPartition
 from kartothek.serialization import DataFrameSerializer
 
@@ -621,3 +622,16 @@ def test_secondary_index_on_partition_column(store_factory, bound_store_datafram
         bound_store_dataframes(
             [df1], store=store_factory, partition_on=["x"], secondary_indices=["x"]
         )
+
+
+def test_non_default_table_name_roundtrip(store_factory, bound_store_dataframes):
+    df = pd.DataFrame({"A": [1]})
+    bound_store_dataframes(
+        [df], store=store_factory, dataset_uuid="dataset_uuid", table_name="foo"
+    )
+    for k in store_factory():
+        if k.endswith(".parquet") and "indices" not in k:
+            assert "foo" in k
+    result = read_table(dataset_uuid="dataset_uuid", store=store_factory)
+
+    pdt.assert_frame_equal(df, result)
