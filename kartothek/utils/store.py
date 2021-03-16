@@ -8,9 +8,6 @@ from urllib.parse import quote
 
 from simplekv.contrib import VALID_KEY_RE_EXTENDED
 
-from kartothek.api.discover import discover_datasets_unchecked
-from kartothek.core.dataset import DatasetMetadataBuilder
-
 try:
     # azure-storage-blob < 12
     from azure.storage.blob import BlockBlobService as _BlockBlobService
@@ -78,33 +75,47 @@ def _azure_bbs_content_md5(block_blob_service, container, key, accept_missing=Fa
             raise KeyError(key)
 
 
-def _copy_azure_bbs(keys, src_store, tgt_store):
+def _copy_azure_bbs(key_mappings, src_store, tgt_store, mapped_metadata=None):
     src_container = src_store.container
     tgt_container = tgt_store.container
     src_bbs = src_store.block_blob_service
     tgt_bbs = tgt_store.block_blob_service
 
+    # If metadata is to be modified while copying: put in manually in the target store
+    if mapped_metadata:
+        for src_key in mapped_metadata:
+            tgt_key = key_mappings[src_key]
+            tgt_store.put(tgt_key, mapped_metadata[src_key])
+
     cprops = {}
-    for k in keys:
+    for src_key, tgt_key in key_mappings.items():
+        # skip modified metadata which was already copied manually
+        if mapped_metadata and (src_key in mapped_metadata):
+            continue
+
         source_md5 = _azure_bbs_content_md5(
-            src_bbs, src_container, k, accept_missing=False
+            src_bbs, src_container, src_key, accept_missing=False
         )
 
         if source_md5 is None:
-            _logger.debug("Missing hash for {}".format(k))
+            _logger.debug("Missing hash for {}".format(src_key))
         else:
             tgt_md5 = _azure_bbs_content_md5(
-                tgt_bbs, tgt_container, k, accept_missing=True
+                tgt_bbs, tgt_container, tgt_key, accept_missing=True
             )
 
             if source_md5 == tgt_md5:
-                _logger.debug("Omitting copy to {} (checksum match)".format(k))
+                _logger.debug(
+                    "Omitting copy from {} to {} (checksum match)".format(
+                        src_key, tgt_key
+                    )
+                )
                 continue
 
         copy_source = src_bbs.make_blob_url(
-            src_container, quote(k), sas_token=src_bbs.sas_token
+            src_container, quote(src_key), sas_token=src_bbs.sas_token
         )
-        cprops[k] = tgt_bbs.copy_blob(tgt_container, k, copy_source)
+        cprops[tgt_key] = tgt_bbs.copy_blob(tgt_container, tgt_key, copy_source)
 
     for k, cprop in cprops.items():
         while True:
@@ -146,27 +157,56 @@ def _azure_cc_content_md5(cc, key, accept_missing=False):
             raise KeyError(key)
 
 
-def _copy_azure_cc(keys, src_store, tgt_store):
+def _copy_azure_cc(key_mappings, src_store, tgt_store, mapped_metadata=None):
+    """
+    Copies a list of items from one Azure store to another.
+
+    Parameters
+    ----------
+    key_mappings: Dict[str, str]
+        Mapping of source key names to target key names. May be equal if a key will
+        not be renamed.
+    src_store: KeyValueStore
+        Source KV store
+    tgt_store: KeyValueStore
+        Target KV store
+    mapped_metadata: Optional[Dict[str, bytes]]
+        Mapping containing {key: modified metadata} entries with metadata which is
+        to be changed during copying
+    """
     src_cc = src_store.blob_container_client
     tgt_cc = tgt_store.blob_container_client
 
+    # If metadata is to be modified while copying: put in manually in the target store
+    if mapped_metadata:
+        for src_key in mapped_metadata:
+            tgt_key = key_mappings[src_key]
+            tgt_store.put(tgt_key, mapped_metadata[src_key])
+
     copy_ids = {}
-    for k in keys:
-        source_md5 = _azure_cc_content_md5(src_cc, k, accept_missing=False)
+    for src_key, tgt_key in key_mappings.items():
+        # skip modified metadata which was already copied manually
+        if mapped_metadata and (src_key in mapped_metadata):
+            continue
+        source_md5 = _azure_cc_content_md5(src_cc, src_key, accept_missing=False)
 
         if source_md5 is None:
-            _logger.debug("Missing hash for {}".format(k))
+            _logger.debug("Missing hash for {}".format(src_key))
         else:
-            tgt_md5 = _azure_cc_content_md5(tgt_cc, k, accept_missing=True)
+            tgt_md5 = _azure_cc_content_md5(tgt_cc, tgt_key, accept_missing=True)
 
             if source_md5 == tgt_md5:
-                _logger.debug("Omitting copy to {} (checksum match)".format(k))
+                _logger.debug(
+                    "Omitting copy from {} to {} (checksum match)".format(
+                        src_key, tgt_key
+                    )
+                )
                 continue
 
-        copy_source = src_cc.get_blob_client(k).url
-        copy_ids[k] = tgt_cc.get_blob_client(k).start_copy_from_url(copy_source)[
-            "copy_id"
-        ]
+        copy_source = src_cc.get_blob_client(src_key).url
+        copy_ids[tgt_key] = tgt_cc.get_blob_client(tgt_key).start_copy_from_url(
+            copy_source
+        )["copy_id"]
 
     for k, copy_id in copy_ids.items():
         while True:
@@ -196,103 +236,66 @@ def _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=None):
     key_mappings: Dict[str, str]
         Mapping of source key names to target key names. May be equal if a key will
         not be renamed.
-    src_store: simplekv.KeyValueStore
+    src_store: KeyValueStore
         Source KV store
-    tgt_store: simplekv.KeyValueStore
+    tgt_store: KeyValueStore
         Target KV store
+    mapped_metadata: Dict[str, bytes]
+        Mapping containing {key: modified metadata} values to be changed
     """
     for src_key, tgt_key in key_mappings.items():
-        match_json = RX_JSON_META.match(src_key)
-        if match_json:
-            ds_name = match_json.groups()[0]
-            item = mapped_metadata.get(ds_name, src_store.get(src_key))
+        if mapped_metadata & (src_key in mapped_metadata):
+            item = mapped_metadata.get(src_key)
         else:
             item = src_store.get(src_key)
         tgt_store.put(tgt_key, item)
 
 
-def _transform_key(source_key, datasets_to_rename):
-    """
-    Transforms a source store key to a target store key. The transformation
-    may contain renamings.
-
-    Parameters
-    ----------
-    source_key: str
-        Key inside the source store
-    datasets_to_rename: Dict[str, str]
-        Dictionary with datasets to rename, format {old_name: new:name}. Can be an
-        empty dict if renaming is not planned
-    """
-    match_key = RX_TRANSFORM_KEY.match(source_key)
-    if match_key:
-        source_cube, source_dataset, source_path = match_key.groups()
-        tgt_dataset = datasets_to_rename.get(source_dataset, source_dataset)
-        return f"{source_cube}++{tgt_dataset}{source_path}"
-    else:
-        raise ValueError(f"Key {source_key} cannot be parsed!")
-
-
-def _transform_metadata(datasets_to_rename, cube, src_store):
-    result = {}
-    for src_ds in datasets_to_rename.keys():
-        src_metadata = discover_datasets_unchecked(
-            uuid_prefix=cube.uuid_prefix,
-            store=src_store,
-            filter_ktk_cube_dataset_ids=[src_ds],
-        )
-        result[src_ds] = (
-            DatasetMetadataBuilder.from_dataset(src_metadata[src_ds])
-            .modify_dataset_name(datasets_to_rename[src_ds])
-            .to_json()[1]
-        )
-    return result
-
-
-def copy_keys(keys, src_store, tgt_store, datasets_to_rename=None, src_cube=None):
+def copy_keys(keys, src_store, tgt_store, md_transformed=None):
     """
     Copy keys from one store the another.
 
     Parameters
     ----------
-    keys: Iterable[str]
-        Keys to copy.
+    keys: Union[Iterable[str], Dict[str, str]]
+        Either Iterable of Keys to copy; or Dict with {old key: new key} mappings
+        if keys are changed during copying
     src_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Source KV store.
     tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Target KV store.
-    datasets_to_rename: Optional[Dict[str, str]]
-        Optional dict of {old dataset name:  new dataset name} entries. If specified,
-        the corresponding datasets will be renamed accordingly.
+    md_transformed: Dict[str, str]
+
     """
     if callable(src_store):
         src_store = src_store()
     if callable(tgt_store):
         tgt_store = tgt_store()
 
-    # create dict {old key: new key} for all keys, where old and new may be empty
-    # if no renaming is used
-    mapped_keys = {}
-    keys = sorted(keys)
-    for k in keys:
+    if isinstance(keys, dict):
+        # If a dict of keys was specified, i.e. the keys are to be renamed while
+        # copying: use this key mapping
+        src_keys = sorted(keys.keys())
+        key_mappings = keys
+    else:
+        # otherwise, create a identity mapping dict which does not change the key
+        src_keys = sorted(keys)
+        key_mappings = {src_key: src_key for src_key in src_keys}
+
+    for k in src_keys:
         if (k is None) or (not VALID_KEY_RE_EXTENDED.match(k)) or (k == "/"):
             raise ValueError("Illegal key: {}".format(k))
-        mapped_keys[k] = _transform_key(k, datasets_to_rename or {})
 
-    if datasets_to_rename:
-        mapped_metadata = _transform_metadata(datasets_to_rename, src_cube, src_store)
-    else:
-        mapped_metadata = {}
     if _has_azure_bbs(src_store) and _has_azure_bbs(tgt_store):
         _logger.debug(
             "Azure stores based on BlockBlobStorage class detected, use fast-path."
         )
-        _copy_azure_bbs(keys, src_store, tgt_store)
+        _copy_azure_bbs(key_mappings, src_store, tgt_store)
     elif _has_azure_cc(src_store) and _has_azure_cc(tgt_store):
         _logger.debug(
             "Azure stores based on ContainerClient class detected, use fast-path."
         )
-        _copy_azure_cc(keys, src_store, tgt_store)
+        _copy_azure_cc(key_mappings, src_store, tgt_store)
     else:
         _logger.debug("Use naive slow-path.")
-        _copy_naive(mapped_keys, src_store, tgt_store, mapped_metadata=mapped_metadata)
+        _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=md_transformed)
