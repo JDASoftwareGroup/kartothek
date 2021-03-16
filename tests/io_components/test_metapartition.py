@@ -86,12 +86,7 @@ def test_load_dataframes(
 ):
     expected_df = pd.DataFrame(
         OrderedDict(
-            [
-                ("P", [1]),
-                ("L", [1]),
-                ("TARGET", [1]),
-                ("DATE", pd.to_datetime([date(2010, 1, 1)])),
-            ]
+            [("P", [1]), ("L", [1]), ("TARGET", [1]), ("DATE", [date(2010, 1, 1)])]
         )
     )
     mp = meta_partitions_files_only[0]
@@ -122,12 +117,7 @@ def test_remove_dataframes(meta_partitions_files_only, store_session):
 def test_load_dataframes_selective(meta_partitions_files_only, store_session):
     expected_df = pd.DataFrame(
         OrderedDict(
-            [
-                ("P", [1]),
-                ("L", [1]),
-                ("TARGET", [1]),
-                ("DATE", pd.to_datetime([date(2010, 1, 1)])),
-            ]
+            [("P", [1]), ("L", [1]), ("TARGET", [1]), ("DATE", [date(2010, 1, 1)])]
         )
     )
     mp = meta_partitions_files_only[0]

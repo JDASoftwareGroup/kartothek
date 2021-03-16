@@ -65,13 +65,11 @@ def test_commit_dataset_from_metapartition(dataset_function, store):
             [
                 (
                     "DATE",
-                    pd.to_datetime(
-                        [
-                            datetime.date(2016, 3, 23),
-                            datetime.date(2010, 1, 1),
-                            datetime.date(2009, 12, 31),
-                        ]
-                    ),
+                    [
+                        datetime.date(2016, 3, 23),
+                        datetime.date(2010, 1, 1),
+                        datetime.date(2009, 12, 31),
+                    ],
                 ),
                 ("L", [5, 1, 2]),
                 ("P", [5, 1, 2]),

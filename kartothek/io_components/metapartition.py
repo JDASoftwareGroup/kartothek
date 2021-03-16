@@ -3,6 +3,7 @@ import io
 import logging
 import os
 import time
+import warnings
 from collections import namedtuple
 from functools import wraps
 from typing import (
@@ -595,7 +596,7 @@ class MetaPartition(Iterable):
         columns: Optional[Sequence[str]] = None,
         predicate_pushdown_to_io: bool = True,
         categoricals: Optional[Sequence[str]] = None,
-        dates_as_object: bool = False,
+        dates_as_object: bool = True,
         predicates: PredicatesType = None,
     ) -> "MetaPartition":
         """
@@ -630,6 +631,11 @@ class MetaPartition(Iterable):
 
         if categoricals is None:
             categoricals = []
+        if not dates_as_object:
+            warnings.warn(
+                "The argument `date_as_object` is set to False. This argument will be deprecated and the future behaviour will be as if the paramere was set to `True`. Please migrate your code accordingly ahead of time.",
+                DeprecationWarning,
+            )
 
         LOGGER.debug("Loading internal dataframes of %s", self.label)
         if not self.file:

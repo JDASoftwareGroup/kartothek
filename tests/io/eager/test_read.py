@@ -67,9 +67,7 @@ def test_read_table_eager(dataset, store_session, use_categoricals):
             "P": [1, 2],
             "L": [1, 2],
             "TARGET": [1, 2],
-            "DATE": pd.to_datetime(
-                [datetime.date(2010, 1, 1), datetime.date(2009, 12, 31)]
-            ),
+            "DATE": [datetime.date(2010, 1, 1), datetime.date(2009, 12, 31)],
         }
     )
     if categories:

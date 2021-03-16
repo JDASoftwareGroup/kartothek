@@ -66,7 +66,7 @@ def read_dataset_as_ddf(
     columns=None,
     predicate_pushdown_to_io=True,
     categoricals: Optional[Sequence[str]] = None,
-    dates_as_object=False,
+    dates_as_object: bool = True,
     predicates=None,
     factory=None,
     dask_index_on=None,

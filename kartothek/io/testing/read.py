@@ -234,12 +234,7 @@ def test_read_dataset_as_dataframes_predicate(
     core_result = pd.concat(result)
 
     expected_core = pd.DataFrame(
-        {
-            "P": [2],
-            "L": [2],
-            "TARGET": [2],
-            "DATE": pd.to_datetime([datetime.date(2009, 12, 31)]),
-        }
+        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
     )
     pdt.assert_frame_equal(
         core_result, expected_core, check_dtype=False, check_like=True
@@ -275,12 +270,7 @@ def test_read_dataset_as_dataframes_predicate_with_partition_keys(
     core_result = pd.concat(result)
 
     expected_core = pd.DataFrame(
-        {
-            "P": [2],
-            "L": [2],
-            "TARGET": [2],
-            "DATE": pd.to_datetime([datetime.date(2009, 12, 31)]),
-        }
+        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
     )
     pdt.assert_frame_equal(
         core_result, expected_core, check_dtype=False, check_like=True
