@@ -907,26 +907,33 @@ class DatasetMetadataBuilder(CopyMixin):
         ds_builder.partitions = dataset.partitions
         return ds_builder
 
-    def modify_dataset_name(self, new_ds_name):
+    def modify_uuid(self, tgt_uuid):
         """
-        Modify the dataset name and change dependent fields, i.e. UUID and partitioning
-        information.
+        Modify the dataset uuid and depending metadata:
+        - paths to partitioning files
+        - path to index files
 
-        TODO: This will atm only work for cube datasets with a UUID like cube++dataset.
-        Which UUIDs are possible for non-cube datasets?
+        Parameters:
+            tgt_uuid: str
+                Modified dataset UUID.
         """
-        rx_transform_path = re.compile(r"(\w*)\+\+(\w*)/(.*)")
 
-        cube_name, old_ds_name = self.uuid.split("++")
-        self.uuid = cube_name + "++" + new_ds_name
+        # modify file names in partition metadata
         for p_key, p in self.partitions.items():
             pdict = p.to_dict()
-            for table_name, file_name in pdict["files"].items():
-                match = rx_transform_path.match(file_name)
-                if match:
-                    f_cube, f_ds, f_path = match.groups()
-                    pdict["files"][table_name] = f"{f_cube}++{new_ds_name}/{f_path}"
+            for table_key, table_file in pdict["files"].items():
+                if table_file.startswith(f"{self.uuid}/"):
+                    pdict["files"][table_key] = table_file.replace(
+                        self.uuid, tgt_uuid, 1
+                    )
             self.partitions[p_key] = Partition.from_dict(p_key, pdict)
+
+        for i_key, i in self.indices.items():
+            if hasattr(i, "index_storage_key"):
+                i.index_storage_key = i.index_storage_key.replace(
+                    self.uuid, tgt_uuid, 1
+                )
+        self.uuid = tgt_uuid
         return self
 
     def add_partition(self, name, partition):
