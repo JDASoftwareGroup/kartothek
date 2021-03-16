@@ -2,6 +2,24 @@
 Changelog
 =========
 
+Kartothek 4.0.0 (2021-03-XY)
+============================
+
+This is a major release of kartothek with breaking API changes.
+
+* Removal of complex user input (see gh427)
+* Removal of multi table feature
+* Removal of `kartothek.io.merge` module
+* class :class:`~kartothek.core.dataset.DatasetMetadata` now has an attribute called `schema` which replaces the previous attribute `table_meta` and returns only a single schema
+* All outputs which previously returned a sequence of dictionaries where each key-value pair would correspond to a table-data pair now returns only one :class:`pandas.DataFrame`
+* All read pipelines will now automatically infer the table to read such that it is no longer necessary to provide `table` or `table_name` as an input argument
+* All writing pipelines which previously supported a complex user input type now expose an argument `table_name` which can be used to continue usage of legacy datasets (i.e. datasets with an intrinsic, non-trivial table name). This usage is discouraged and we recommend users to migrate to a default table name (i.e. leave it None / `table`)
+* All pipelines which previously accepted an argument `tables` to select the subset of tables to load no longer accept this keyword. Instead the to-be-loaded table will be inferred
+* Trying to read a multi-tabled dataset will now cause an exception telling users that this is no longer supported with kartothek 4.0
+* The dict schema for :meth:`~kartothek.core.dataset.DatasetMetadataBase.to_dict` and :meth:`~kartothek.core.dataset.DatasetMetadata.from_dict` changed replacing a dictionary in `table_meta` with the simple `schema`
+* All pipeline arguments which previously accepted a dictionary of sequences to describe a table specific subset of columns now accept plain sequences (e.g. `columns`, `categoricals`)
+
+
 Version 3.20.0 (2021-03-15)
 ===========================
 

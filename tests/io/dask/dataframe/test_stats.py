@@ -6,8 +6,7 @@ from kartothek.io.eager import (
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
 )
-from kartothek.io_components.metapartition import _METADATA_SCHEMA, MetaPartition
-from kartothek.io_components.write import store_dataset_from_partitions
+from kartothek.io_components.metapartition import _METADATA_SCHEMA
 from kartothek.serialization import ParquetSerializer
 
 
@@ -190,21 +189,6 @@ def test_collect_dataset_metadata_frac_smoke(store_session_factory, dataset):
     assert set(df_stats.columns) == columns
 
 
-def test_collect_dataset_metadata_empty_dataset_mp(store_factory):
-    mp = MetaPartition(label="cluster_1")
-    store_dataset_from_partitions(
-        partition_list=[mp], store=store_factory, dataset_uuid="dataset_uuid"
-    )
-
-    df_stats = collect_dataset_metadata(
-        store=store_factory, dataset_uuid="dataset_uuid", table_name="table"
-    ).compute()
-
-    expected = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
-    expected = expected.astype(_METADATA_SCHEMA)
-    pd.testing.assert_frame_equal(expected, df_stats, check_index_type=False)
-
-
 def test_collect_dataset_metadata_empty_dataset(store_factory):
     df = pd.DataFrame(columns=["A", "b"], index=pd.RangeIndex(start=0, stop=0))
     store_dataframes_as_dataset(
@@ -284,46 +268,6 @@ def test_collect_dataset_metadata_at_least_one_partition(store_factory):
         store=store_factory, dataset_uuid="dataset_uuid", frac=0.005
     ).compute()
     assert len(df_stats) == 1
-
-
-def test_collect_dataset_metadata_table_without_partition(store_factory):
-    """
-    df2 doesn't have files for all partition (specifically `A==2`).
-    Make sure that we still collect the right metadata
-    """
-    df1 = pd.DataFrame(data={"A": [1, 1, 2, 2], "b": [1, 1, 2, 2]})
-    df2 = pd.DataFrame(data={"A": [1, 1], "b": [1, 1]})
-
-    store_dataframes_as_dataset(
-        store=store_factory,
-        dataset_uuid="dataset_uuid",
-        dfs=[{"table1": df1, "table2": df2}],
-        partition_on=["A"],
-    )
-
-    df_stats = collect_dataset_metadata(
-        store=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
-    ).compute()
-    actual = df_stats.drop(
-        columns=[
-            "partition_label",
-            "row_group_compressed_size",
-            "row_group_uncompressed_size",
-            "serialized_size",
-        ],
-        axis=1,
-    )
-    expected = pd.DataFrame(
-        data={
-            "row_group_id": [0],
-            "number_rows_total": [2],
-            "number_row_groups": [1],
-            "number_rows_per_row_group": [2],
-        }
-    )
-    pd.testing.assert_frame_equal(actual, expected)
-    assert len(df_stats) == 1
-    assert df_stats.iloc[0]["partition_label"].startswith("A=1/")
 
 
 def test_collect_dataset_metadata_invalid_frac(store_session_factory, dataset):

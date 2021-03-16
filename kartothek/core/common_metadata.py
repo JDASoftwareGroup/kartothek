@@ -16,6 +16,7 @@ from simplekv import KeyValueStore
 
 from kartothek.core import naming
 from kartothek.core._compat import load_json
+from kartothek.core.naming import SINGLE_TABLE
 from kartothek.core.utils import ensure_string_type
 
 _logger = logging.getLogger()
@@ -336,7 +337,7 @@ def _get_common_metadata_key(dataset_uuid, table):
 
 
 def read_schema_metadata(
-    dataset_uuid: str, store: KeyValueStore, table: str
+    dataset_uuid: str, store: KeyValueStore, table: str = SINGLE_TABLE
 ) -> SchemaWrapper:
     """
     Read schema and metadata from store.
@@ -360,7 +361,10 @@ def read_schema_metadata(
 
 
 def store_schema_metadata(
-    schema: SchemaWrapper, dataset_uuid: str, store: KeyValueStore, table: str
+    schema: SchemaWrapper,
+    dataset_uuid: str,
+    store: KeyValueStore,
+    table: str = SINGLE_TABLE,
 ) -> str:
     """
     Store schema and metadata to store.
@@ -446,7 +450,7 @@ def _determine_schemas_to_compare(
     reference = None
     null_cols_in_reference = set()
 
-    for schema in schemas:
+    for schema in set(schemas):
         if not isinstance(schema, SchemaWrapper):
             schema = SchemaWrapper(schema, "__unknown__")
 

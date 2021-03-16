@@ -6,6 +6,7 @@ from typing import (
     List,
     Mapping,
     Optional,
+    Sequence,
     SupportsFloat,
     Union,
     cast,
@@ -33,7 +34,6 @@ from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     InferredIndices,
     _ensure_compatible_indices,
-    check_single_table_dataset,
     normalize_arg,
     normalize_args,
     validate_partition_keys,
@@ -47,7 +47,7 @@ from kartothek.serialization import DataFrameSerializer, PredicatesType
 
 from ._shuffle import shuffle_store_dask_partitions
 from ._utils import _maybe_get_categoricals_from_index
-from .delayed import read_table_as_delayed
+from .delayed import read_dataset_as_delayed
 
 __all__ = (
     "read_dataset_as_ddf",
@@ -67,7 +67,7 @@ def read_dataset_as_ddf(
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
-    categoricals=None,
+    categoricals: Optional[Sequence[str]] = None,
     label_filter=None,
     dates_as_object=False,
     predicates=None,
@@ -120,20 +120,19 @@ def read_dataset_as_ddf(
     if isinstance(columns, dict):
         columns = columns[table]
     meta = _get_dask_meta_for_dataset(
-        ds_factory, table, columns, categoricals, dates_as_object
+        ds_factory, columns, categoricals, dates_as_object
     )
 
     if columns is None:
         columns = list(meta.columns)
 
     # that we can use factories instead of dataset_uuids
-    delayed_partitions = read_table_as_delayed(
+    delayed_partitions = read_dataset_as_delayed(
         factory=ds_factory,
-        table=table,
         columns=columns,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
-        categoricals={table: categoricals},
+        categoricals=categoricals,
         label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
@@ -151,13 +150,11 @@ def read_dataset_as_ddf(
         return dd.from_delayed(delayed_partitions, meta=meta)
 
 
-def _get_dask_meta_for_dataset(
-    ds_factory, table, columns, categoricals, dates_as_object
-):
+def _get_dask_meta_for_dataset(ds_factory, columns, categoricals, dates_as_object):
     """
     Calculate a schema suitable for the dask dataframe meta from the dataset.
     """
-    table_schema = ds_factory.table_meta[table]
+    table_schema = ds_factory.schema
     meta = empty_dataframe_from_schema(
         table_schema, columns=columns, date_as_object=dates_as_object
     )
@@ -167,10 +164,10 @@ def _get_dask_meta_for_dataset(
         meta = dd.utils.clear_known_categories(meta, categoricals)
 
     categoricals_from_index = _maybe_get_categoricals_from_index(
-        ds_factory, {table: categoricals}
+        ds_factory, categoricals
     )
     if categoricals_from_index:
-        meta = meta.astype(categoricals_from_index[table])
+        meta = meta.astype(categoricals_from_index)
     return meta
 
 
@@ -347,7 +344,11 @@ def _write_dataframe_partitions(
     if ddf is None:
         mps = dd.from_pandas(
             pd.Series(
-                [parse_input_to_metapartition(None, metadata_version=metadata_version)]
+                [
+                    parse_input_to_metapartition(
+                        None, metadata_version=metadata_version, table_name=table,
+                    )
+                ]
             ),
             npartitions=1,
         )
@@ -429,9 +430,6 @@ def update_dataset_from_ddf(
 
     inferred_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
     del secondary_indices
-
-    if ds_factory is not None:
-        check_single_table_dataset(ds_factory, table)
 
     mps = _write_dataframe_partitions(
         ddf=ddf,
@@ -533,7 +531,7 @@ def collect_dataset_metadata(
         ddf = dd.from_delayed(
             [
                 dask.delayed(MetaPartition.get_parquet_metadata)(
-                    mp, store=dataset_factory.store_factory, table_name=table_name
+                    mp, store=dataset_factory.store_factory
                 )
                 for mp in mps
             ],

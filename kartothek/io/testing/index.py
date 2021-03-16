@@ -5,7 +5,6 @@ import pytest
 from toolz.dicttoolz import valmap
 
 from kartothek.core.factory import DatasetFactory
-from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.io.eager import store_dataframes_as_dataset
 
 
@@ -18,8 +17,8 @@ def assert_index_dct_equal(dict1, dict2):
 def test_build_indices(store_factory, metadata_version, bound_build_dataset_indices):
     dataset_uuid = "dataset_uuid"
     partitions = [
-        {"label": "cluster_1", "data": [("core", pd.DataFrame({"p": [1, 2]}))]},
-        {"label": "cluster_2", "data": [("core", pd.DataFrame({"p": [2, 3]}))]},
+        pd.DataFrame({"p": [1, 2]}),
+        pd.DataFrame({"p": [2, 3]}),
     ]
 
     dataset = store_dataframes_as_dataset(
@@ -36,8 +35,15 @@ def test_build_indices(store_factory, metadata_version, bound_build_dataset_indi
 
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
-    expected = {2: ["cluster_1", "cluster_2"], 3: ["cluster_2"], 1: ["cluster_1"]}
-    assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+    index_dct = dataset_factory.indices["p"].index_dct
+
+    assert len(index_dct[1]) == 1
+    assert len(index_dct[2]) == 2
+    assert len(index_dct[3]) == 1
+
+    assert len(set(index_dct[3]) & set(index_dct[2])) == 1
+    assert len(set(index_dct[1]) & set(index_dct[2])) == 1
+    assert len(set(index_dct[1]) & set(index_dct[3])) == 0
 
 
 def test_create_index_from_inexistent_column_fails(
@@ -45,8 +51,8 @@ def test_create_index_from_inexistent_column_fails(
 ):
     dataset_uuid = "dataset_uuid"
     partitions = [
-        {"label": "cluster_1", "data": [("core", pd.DataFrame({"p": [1, 2]}))]},
-        {"label": "cluster_2", "data": [("core", pd.DataFrame({"p": [2, 3]}))]},
+        pd.DataFrame({"p": [1, 2]}),
+        pd.DataFrame({"p": [2, 3]}),
     ]
 
     store_dataframes_as_dataset(
@@ -65,24 +71,8 @@ def test_add_column_to_existing_index(
 ):
     dataset_uuid = "dataset_uuid"
     partitions = [
-        {
-            "label": "cluster_1",
-            "data": [("core", pd.DataFrame({"p": [1, 2], "x": [100, 4500]}))],
-            "indices": {
-                "p": ExplicitSecondaryIndex(
-                    "p", index_dct={1: ["cluster_1"], 2: ["cluster_1"]}
-                )
-            },
-        },
-        {
-            "label": "cluster_2",
-            "data": [("core", pd.DataFrame({"p": [4, 3], "x": [500, 10]}))],
-            "indices": {
-                "p": ExplicitSecondaryIndex(
-                    "p", index_dct={4: ["cluster_2"], 3: ["cluster_2"]}
-                )
-            },
-        },
+        pd.DataFrame({"p": [1, 2], "x": [100, 4500]}),
+        pd.DataFrame({"p": [4, 3], "x": [500, 10]}),
     ]
 
     dataset = store_dataframes_as_dataset(
@@ -90,6 +80,7 @@ def test_add_column_to_existing_index(
         store=store_factory,
         dataset_uuid=dataset_uuid,
         metadata_version=metadata_version,
+        secondary_indices="p",
     )
     assert dataset.load_all_indices(store=store_factory()).indices.keys() == {"p"}
 
@@ -114,20 +105,17 @@ def test_indices_uints(store_factory, metadata_version, bound_build_dataset_indi
     p3 = 17128351978467489013
 
     partitions = [
-        {
-            "label": "cluster_1",
-            "data": [("core", pd.DataFrame({"p": pd.Series([p1], dtype=np.uint64)}))],
-        },
-        {
-            "label": "cluster_2",
-            "data": [("core", pd.DataFrame({"p": pd.Series([p2], dtype=np.uint64)}))],
-        },
-        {
-            "label": "cluster_3",
-            "data": [("core", pd.DataFrame({"p": pd.Series([p3], dtype=np.uint64)}))],
-        },
+        pd.DataFrame({"p": pd.Series([p1], dtype=np.uint64)}),
+        pd.DataFrame({"p": pd.Series([p2], dtype=np.uint64)}),
+        pd.DataFrame({"p": pd.Series([p3], dtype=np.uint64)}),
     ]
-    expected = {p1: ["cluster_1"], p2: ["cluster_2"], p3: ["cluster_3"]}
+
+    def assert_expected(index_dct):
+        assert len(index_dct) == 3
+        referenced_partitions = []
+        for val in index_dct.values():
+            referenced_partitions.extend(val)
+        assert len(referenced_partitions) == 3
 
     dataset = store_dataframes_as_dataset(
         dfs=partitions,
@@ -143,30 +131,24 @@ def test_indices_uints(store_factory, metadata_version, bound_build_dataset_indi
 
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
-    assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+    assert_expected(dataset_factory.indices["p"].index_dct)
+    first_run = dataset_factory.indices["p"].index_dct.copy()
 
     # Re-create indices
     bound_build_dataset_indices(store_factory, dataset_uuid, columns=["p"])
 
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
-    assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+    assert_index_dct_equal(first_run, dataset_factory.indices["p"].index_dct)
 
 
 def test_empty_partitions(store_factory, metadata_version, bound_build_dataset_indices):
     dataset_uuid = "dataset_uuid"
 
     partitions = [
-        {
-            "label": "cluster_1",
-            "data": [("core", pd.DataFrame({"p": pd.Series([], dtype=np.int8)}))],
-        },
-        {
-            "label": "cluster_2",
-            "data": [("core", pd.DataFrame({"p": pd.Series([1], dtype=np.int8)}))],
-        },
+        pd.DataFrame({"p": pd.Series([], dtype=np.int8)}),
+        pd.DataFrame({"p": pd.Series([1], dtype=np.int8)}),
     ]
-    expected = {1: ["cluster_2"]}
 
     dataset = store_dataframes_as_dataset(
         dfs=partitions,
@@ -182,4 +164,4 @@ def test_empty_partitions(store_factory, metadata_version, bound_build_dataset_i
 
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
-    assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+    assert len(dataset_factory.indices["p"].index_dct) == 1

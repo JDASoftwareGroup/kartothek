@@ -15,16 +15,13 @@ def test_dispatch_metapartitions(dataset, store_session):
     part_generator = dispatch_metapartitions(dataset.uuid, store_session)
 
     assert isinstance(part_generator, types.GeneratorType)
-    partitions = OrderedDict([(part.label, part) for part in part_generator])
+    partitions = list(part_generator)
 
     assert len(partitions) == 2
-    mp = partitions["cluster_1"]
-    assert isinstance(mp, MetaPartition)
-
-    mp = partitions["cluster_2"]
-    assert isinstance(mp, MetaPartition)
-
-    assert set(mp.table_meta.keys()) == {SINGLE_TABLE, "helper"}
+    assert len({mp.label for mp in partitions}) == 2
+    for mp in partitions:
+        assert isinstance(mp, MetaPartition)
+        assert mp.table_name == SINGLE_TABLE
 
 
 def test_dispatch_metapartitions_label_filter(dataset, store_session):
@@ -41,23 +38,6 @@ def test_dispatch_metapartitions_label_filter(dataset, store_session):
     assert len(partitions) == 1
     mp = partitions["cluster_1"]
     assert isinstance(mp, MetaPartition)
-
-
-def test_dispatch_metapartitions_without_dataset_metadata(dataset, store_session):
-    part_generator = dispatch_metapartitions(
-        dataset.uuid, store_session, load_dataset_metadata=False
-    )
-
-    assert isinstance(part_generator, types.GeneratorType)
-    partitions = list(part_generator)
-
-    assert len(partitions) == 2
-
-    mp = partitions[0]
-    assert mp.dataset_metadata == {}
-
-    mp = partitions[1]
-    assert mp.dataset_metadata == {}
 
 
 @pytest.mark.parametrize(
@@ -219,7 +199,7 @@ def test_dispatch_metapartitions_complex_or_predicates(store_factory):
             dataset_uuid, store_factory, predicates=predicates
         )
     ]
-    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = pd.concat([mp.data for mp in mps])
     actual = actual.sort_values(by="A", ignore_index=True)
     expected = pd.DataFrame(
         data={
@@ -237,7 +217,7 @@ def test_dispatch_metapartitions_complex_or_predicates(store_factory):
             dataset_uuid, store_factory, predicates=predicates
         )
     ]
-    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = pd.concat([mp.data for mp in mps])
     actual = actual.sort_values(by="A", ignore_index=True)
     expected = pd.DataFrame(
         data={"A": [0, 1, 2], "B": ["A", "B", "A"], "C": [-10, -9, -8]}
@@ -251,7 +231,7 @@ def test_dispatch_metapartitions_complex_or_predicates(store_factory):
             dataset_uuid, store_factory, predicates=predicates
         )
     ]
-    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = pd.concat([mp.data for mp in mps])
     actual = actual.sort_values(by="A", ignore_index=True)
     expected = pd.DataFrame(
         data={
@@ -269,7 +249,7 @@ def test_dispatch_metapartitions_complex_or_predicates(store_factory):
             dataset_uuid, store_factory, predicates=predicates
         )
     ]
-    actual = pd.concat([mp.data["table"] for mp in mps])
+    actual = pd.concat([mp.data for mp in mps])
     actual = actual.sort_values(by="A", ignore_index=True)
     expected = pd.DataFrame(
         data={

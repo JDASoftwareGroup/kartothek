@@ -21,7 +21,6 @@ from kartothek.io_components.cube.query._intention import (
     determine_intention,
 )
 from kartothek.io_components.cube.query._regroup import regroup
-from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.utils.ktk_adapters import get_dataset_columns
 
 __all__ = ("QueryGroup", "QueryIntention", "load_group", "plan_query", "quick_concat")
@@ -333,7 +332,7 @@ def plan_query(
     empty_df = {
         ktk_cube_dataset_id: _reduce_empty_dtype_sizes(
             empty_dataframe_from_schema(
-                schema=ds.table_meta[SINGLE_TABLE],
+                schema=ds.schema,
                 columns=sorted(
                     get_dataset_columns(ds) & set(load_columns[ktk_cube_dataset_id])
                 ),

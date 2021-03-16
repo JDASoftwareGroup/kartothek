@@ -14,25 +14,25 @@ def bound_update_dataset():
     return _update_dataset
 
 
-def _unwrap_partition(part):
-    return next(iter(dict(part["data"]).values()))
+def _id(part):
+    if isinstance(part, pd.DataFrame):
+        return part
+    else:
+        return part[0]
 
 
 def _update_dataset(partitions, *args, **kwargs):
     # TODO: Simplify once parse_input_to_metapartition is removed / obsolete
+
     if isinstance(partitions, pd.DataFrame):
-        table_name = "core"
         partitions = dd.from_pandas(partitions, npartitions=1)
-    elif any(partitions):
-        table_name = next(iter(dict(partitions[0]["data"]).keys()))
-        delayed_partitions = [
-            dask.delayed(_unwrap_partition)(part) for part in partitions
-        ]
+    elif partitions is not None:
+        delayed_partitions = [dask.delayed(_id)(part) for part in partitions]
         partitions = dd.from_delayed(delayed_partitions)
     else:
-        table_name = "core"
         partitions = None
-    ddf = update_dataset_from_ddf(partitions, *args, table=table_name, **kwargs)
+
+    ddf = update_dataset_from_ddf(partitions, *args, **kwargs)
 
     s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
     ddf = pickle.loads(s)

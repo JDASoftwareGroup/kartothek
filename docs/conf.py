@@ -129,8 +129,3 @@ reftarget_replace = {
     "kartothek.serialization._generic": "kartothek.serialization",
     "kartothek.serialization._parquet": "kartothek.serialization",
 }
-
-# In particular the deprecation warning in DatasetMetadata.table_schema is
-# raising too many warning to handle sensibly using ipython directive pseudo
-# decorators. Remove this with 4.X again
-ipython_warning_is_error = False

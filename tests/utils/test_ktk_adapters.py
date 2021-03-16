@@ -11,12 +11,11 @@ from kartothek.core.cube.constants import (
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.io.dask.bag import store_bag_as_dataset
-from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
+from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.read import dispatch_metapartitions
 from kartothek.utils.ktk_adapters import (
     get_dataset_columns,
     get_dataset_keys,
-    get_dataset_schema,
     get_partition_dataframe,
     get_physical_partition_stats,
     metadata_factory_from_dataset,
@@ -42,9 +41,7 @@ def ds(function_store, cube_has_ts_col):
 
     mps = [
         MetaPartition(
-            label="mp{}".format(i),
-            data={SINGLE_TABLE: df},
-            metadata_version=KTK_CUBE_METADATA_VERSION,
+            label="mp{}".format(i), data=df, metadata_version=KTK_CUBE_METADATA_VERSION,
         )
         .partition_on(["p"] + (["KLEE_TS"] if cube_has_ts_col else []))
         .build_indices(["i"])
@@ -60,10 +57,6 @@ def ds(function_store, cube_has_ts_col):
         metadata_version=KTK_CUBE_METADATA_VERSION,
         df_serializer=KTK_CUBE_DF_SERIALIZER,
     ).compute()
-
-
-def test_get_dataset_schema(ds):
-    assert get_dataset_schema(ds) == ds.table_meta[SINGLE_TABLE]
 
 
 def test_get_dataset_columns(ds):

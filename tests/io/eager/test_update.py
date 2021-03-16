@@ -28,7 +28,7 @@ def test_create_empty_header_from_pyarrow_schema(store_factory):
     dm = create_empty_dataset_header(
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        table_meta={"table": schema},
+        schema=schema,
         partition_on=["part"],
     )
 
@@ -36,7 +36,7 @@ def test_create_empty_header_from_pyarrow_schema(store_factory):
         write_single_partition(
             store=store_factory,
             dataset_uuid=dataset_uuid,
-            data=[{"table": df.loc[df["part"] == 1]}],
+            data=[df.loc[df["part"] == 1]],
             partition_on=["part"],
         )
     ]

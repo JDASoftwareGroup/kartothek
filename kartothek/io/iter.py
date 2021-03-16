@@ -9,6 +9,7 @@ from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import (
     DEFAULT_METADATA_STORAGE_FORMAT,
     DEFAULT_METADATA_VERSION,
+    SINGLE_TABLE,
 )
 from kartothek.core.uuid import gen_uuid
 from kartothek.io_components.metapartition import (
@@ -41,7 +42,6 @@ __all__ = (
 def read_dataset_as_metapartitions__iterator(
     dataset_uuid=None,
     store=None,
-    tables=None,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -75,15 +75,6 @@ def read_dataset_as_metapartitions__iterator(
         load_dataset_metadata=load_dataset_metadata,
     )
 
-    if len(ds_factory.tables) > 1:
-        warnings.warn(
-            "Trying to read a dataset with multiple internal tables. This functionality will be removed in the next "
-            "major release. If you require a multi tabled data format, we recommend to switch to the kartothek Cube "
-            "functionality. "
-            "https://kartothek.readthedocs.io/en/stable/guide/cube/kartothek_cubes.html",
-            DeprecationWarning,
-        )
-
     store = ds_factory.store
     mps = dispatch_metapartitions_from_factory(
         ds_factory,
@@ -100,7 +91,6 @@ def read_dataset_as_metapartitions__iterator(
                 [
                     mp_inner.load_dataframes(
                         store=store,
-                        tables=tables,
                         columns=columns,
                         categoricals=categoricals,
                         predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -113,7 +103,6 @@ def read_dataset_as_metapartitions__iterator(
             mp = cast(MetaPartition, mp)
             mp = mp.load_dataframes(
                 store=store,
-                tables=tables,
                 columns=columns,
                 categoricals=categoricals,
                 predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -128,7 +117,6 @@ def read_dataset_as_metapartitions__iterator(
 def read_dataset_as_dataframes__iterator(
     dataset_uuid=None,
     store=None,
-    tables=None,
     columns=None,
     concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
@@ -180,7 +168,6 @@ def read_dataset_as_dataframes__iterator(
     mp_iter = read_dataset_as_metapartitions__iterator(
         dataset_uuid=dataset_uuid,
         store=store,
-        tables=tables,
         columns=columns,
         concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
@@ -214,6 +201,7 @@ def update_dataset_from_dataframes__iter(
     sort_partitions_by=None,
     secondary_indices=None,
     factory=None,
+    table_name: str = SINGLE_TABLE,
 ):
     """
     Update a kartothek dataset in store iteratively, using a generator of dataframes.
@@ -260,9 +248,7 @@ def update_dataset_from_dataframes__iter(
     new_partitions = []
     for df in df_generator:
         mp = parse_input_to_metapartition(
-            df,
-            metadata_version=metadata_version,
-            expected_secondary_indices=secondary_indices,
+            df, metadata_version=metadata_version, table_name=table_name,
         )
 
         if sort_partitions_by:
@@ -305,6 +291,7 @@ def store_dataframes_as_dataset__iter(
     metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
     metadata_version=DEFAULT_METADATA_VERSION,
     secondary_indices=None,
+    table_name: str = SINGLE_TABLE,
 ):
     """
     Store `pd.DataFrame` s iteratively as a partitioned dataset with multiple tables (files).
@@ -331,7 +318,9 @@ def store_dataframes_as_dataset__iter(
 
     new_partitions = []
     for df in df_generator:
-        mp = parse_input_to_metapartition(df, metadata_version=metadata_version)
+        mp = parse_input_to_metapartition(
+            df, metadata_version=metadata_version, table_name=table_name
+        )
 
         if partition_on:
             mp = mp.partition_on(partition_on)

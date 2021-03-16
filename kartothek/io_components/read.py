@@ -21,7 +21,6 @@ def dispatch_metapartitions_from_factory(
     label_filter: Optional[Callable] = None,
     concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
-    store: Optional[StoreInput] = None,
     dispatch_by: None = None,
     dispatch_metadata: bool = False,
 ) -> Iterator[MetaPartition]:
@@ -34,7 +33,6 @@ def dispatch_metapartitions_from_factory(
     label_filter: Optional[Callable],
     concat_partitions_on_primary_index: bool,
     predicates: PredicatesType,
-    store: Optional[StoreInput],
     dispatch_by: List[str],
     dispatch_metadata: bool,
 ) -> Iterator[List[MetaPartition]]:
@@ -47,7 +45,6 @@ def dispatch_metapartitions_from_factory(
     label_filter: Optional[Callable] = None,
     concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
-    store: Optional[StoreInput] = None,
     dispatch_by: Optional[List[str]] = None,
     dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
@@ -133,12 +130,9 @@ def dispatch_metapartitions_from_factory(
                 mps.append(
                     MetaPartition.from_partition(
                         partition=dataset_factory.partitions[label],
-                        dataset_metadata=dataset_factory.metadata
-                        if dispatch_metadata
-                        else None,
                         indices=indices_to_dispatch if dispatch_metadata else None,
                         metadata_version=dataset_factory.metadata_version,
-                        table_meta=dataset_factory.table_meta,
+                        schema=dataset_factory.schema,
                         partition_keys=dataset_factory.partition_keys,
                         logical_conjunction=logical_conjunction,
                     )
@@ -150,12 +144,9 @@ def dispatch_metapartitions_from_factory(
 
             yield MetaPartition.from_partition(
                 partition=part,
-                dataset_metadata=dataset_factory.metadata
-                if dispatch_metadata
-                else None,
                 indices=indices_to_dispatch if dispatch_metadata else None,
                 metadata_version=dataset_factory.metadata_version,
-                table_meta=dataset_factory.table_meta,
+                schema=dataset_factory.schema,
                 partition_keys=dataset_factory.partition_keys,
             )
 
@@ -163,9 +154,6 @@ def dispatch_metapartitions_from_factory(
 def dispatch_metapartitions(
     dataset_uuid: str,
     store: StoreInput,
-    load_dataset_metadata: bool = True,
-    keep_indices: bool = True,
-    keep_table_meta: bool = True,
     label_filter: Optional[Callable] = None,
     concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
@@ -177,12 +165,11 @@ def dispatch_metapartitions(
         store_factory=store,
         load_schema=True,
         load_all_indices=False,
-        load_dataset_metadata=load_dataset_metadata,
+        load_dataset_metadata=False,
     )
 
     return dispatch_metapartitions_from_factory(
         dataset_factory=dataset_factory,
-        store=None,
         label_filter=label_filter,
         predicates=predicates,
         dispatch_by=dispatch_by,

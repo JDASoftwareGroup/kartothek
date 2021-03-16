@@ -32,8 +32,7 @@ def _read_as_ddf(
     **kwargs,
 ):
     table = tables or SINGLE_TABLE
-    if categoricals:
-        categoricals = categoricals[table]
+
     ddf = read_dataset_as_ddf(
         dataset_uuid=dataset_uuid,
         store=store,
