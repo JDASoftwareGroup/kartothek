@@ -31,7 +31,6 @@ from kartothek.io_components.metapartition import (
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
-    InferredIndices,
     _ensure_compatible_indices,
     normalize_arg,
     normalize_args,
@@ -307,7 +306,7 @@ def _write_dataframe_partitions(
     store: StoreFactory,
     dataset_uuid: str,
     table: str,
-    secondary_indices: Optional[InferredIndices],
+    secondary_indices: List[str],
     shuffle: bool,
     repartition_ratio: Optional[SupportsFloat],
     num_buckets: int,

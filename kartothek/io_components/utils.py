@@ -19,9 +19,6 @@ try:
 except ImportError:
     from typing import Literal  # type: ignore
 
-# Literal false is sentinel, see function body of `_ensure_compatible_indices` for details
-InferredIndices = Union[Literal[False], List[str]]
-
 signature = inspect.signature
 
 
@@ -113,10 +110,10 @@ def _combine_metadata(dataset_metadata, append_to_list):
 
 
 def _ensure_compatible_indices(
-    dataset: Optional[DatasetMetadataBase], secondary_indices: Optional[Iterable[str]],
-) -> InferredIndices:
+    dataset: Optional[DatasetMetadataBase], secondary_indices: Iterable[str],
+) -> List[str]:
     if dataset:
-        ds_secondary_indices = list(dataset.secondary_indices.keys())
+        ds_secondary_indices = sorted(dataset.secondary_indices.keys())
 
         if secondary_indices and not set(secondary_indices).issubset(
             ds_secondary_indices
@@ -126,15 +123,9 @@ def _ensure_compatible_indices(
                 f"Expected: {ds_secondary_indices}\n"
                 f"But got: {secondary_indices}"
             )
+
         return ds_secondary_indices
-    else:
-        # We return `False` if there is no dataset in storage and `secondary_indices` is undefined
-        # (`secondary_indices` is normalized to `[]` by default).
-        # In consequence, `parse_input_to_metapartition` will not check indices at the partition level.
-        if secondary_indices:
-            return list(secondary_indices)
-        else:
-            return False
+    return sorted(secondary_indices)
 
 
 def validate_partition_keys(

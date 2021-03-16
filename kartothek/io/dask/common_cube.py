@@ -73,8 +73,7 @@ def ensure_valid_cube_indices(
         dataset_columns = set(ds.schema.names)
         table_indices = cube.index_columns & dataset_columns
         compatible_indices = _ensure_compatible_indices(ds, table_indices)
-        if compatible_indices:
-            dataset_indices.append(set(compatible_indices))
+        dataset_indices.append(set(compatible_indices))
     required_indices = cube.index_columns.union(*dataset_indices)
     suppress_index_on = cube.suppress_index_on.difference(*dataset_indices)
 
