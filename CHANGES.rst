@@ -27,6 +27,7 @@ This is a major release of kartothek with breaking API changes.
 * Remove `output_dataset_uuid` and `df_serializer` from :func:`kartothek.io.eager.commit_dataset` since these arguments didn't have any effect
 * Remove `metadata`, `df_serializer`, `overwrite`, `metadata_merger` from :func:`kartothek.io.eager.write_single_partition`
 * :func:`~kartothek.io.eager.store_dataframes_as_dataset` now requires a list as an input
+* Default value for argument `date_as_object` is now universally set to ``True``. The behaviour for `False` will be deprecated and removed in the next major release
 
 Version 3.20.0 (2021-03-15)
 ===========================

@@ -54,7 +54,7 @@ def read_dataset_as_metapartitions_bag(
     columns=None,
     predicate_pushdown_to_io=True,
     categoricals=None,
-    dates_as_object=False,
+    dates_as_object: bool = True,
     predicates=None,
     factory=None,
     dispatch_by=None,
@@ -79,10 +79,10 @@ def read_dataset_as_metapartitions_bag(
     mps = dispatch_metapartitions_from_factory(
         dataset_factory=ds_factory, predicates=predicates, dispatch_by=dispatch_by,
     )
-    mps = db.from_sequence(mps, partition_size=partition_size)
+    mp_bag = db.from_sequence(mps, partition_size=partition_size)
 
     if dispatch_by is not None:
-        mps = mps.map(
+        mp_bag = mp_bag.map(
             _load_and_concat_metapartitions_inner,
             store=store,
             columns=columns,
@@ -92,7 +92,7 @@ def read_dataset_as_metapartitions_bag(
             predicates=predicates,
         )
     else:
-        mps = mps.map(
+        mp_bag = mp_bag.map(
             MetaPartition.load_dataframes,
             store=store,
             columns=columns,
@@ -108,14 +108,14 @@ def read_dataset_as_metapartitions_bag(
 
     if categoricals_from_index:
 
-        mps = mps.map(
+        mp_bag = mp_bag.map(
             MetaPartition.apply,
             func=partial(
                 _cast_categorical_to_index_cat, categories=categoricals_from_index
             ),
             type_safe=True,
         )
-    return mps
+    return mp_bag
 
 
 @default_docs
@@ -125,7 +125,7 @@ def read_dataset_as_dataframe_bag(
     columns=None,
     predicate_pushdown_to_io=True,
     categoricals=None,
-    dates_as_object=False,
+    dates_as_object: bool = True,
     predicates=None,
     factory=None,
     dispatch_by=None,
