@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-import warnings
 from functools import partial
 from typing import cast
 
@@ -43,16 +40,12 @@ def read_dataset_as_metapartitions__iterator(
     dataset_uuid=None,
     store=None,
     columns=None,
-    concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
     categoricals=None,
-    label_filter=None,
     dates_as_object=False,
-    load_dataset_metadata=False,
     predicates=None,
     factory=None,
     dispatch_by=None,
-    dispatch_metadata=True,
 ):
     """
 
@@ -69,24 +62,16 @@ def read_dataset_as_metapartitions__iterator(
     """
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=load_dataset_metadata,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     store = ds_factory.store
     mps = dispatch_metapartitions_from_factory(
-        ds_factory,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
-        label_filter=label_filter,
-        predicates=predicates,
-        dispatch_by=dispatch_by,
-        dispatch_metadata=dispatch_metadata,
+        ds_factory, predicates=predicates, dispatch_by=dispatch_by,
     )
 
     for mp in mps:
-        if concat_partitions_on_primary_index or dispatch_by is not None:
+        if dispatch_by is not None:
             mp = MetaPartition.concat_metapartitions(
                 [
                     mp_inner.load_dataframes(
@@ -118,10 +103,8 @@ def read_dataset_as_dataframes__iterator(
     dataset_uuid=None,
     store=None,
     columns=None,
-    concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
     categoricals=None,
-    label_filter=None,
     dates_as_object=False,
     predicates=None,
     factory=None,
@@ -169,16 +152,12 @@ def read_dataset_as_dataframes__iterator(
         dataset_uuid=dataset_uuid,
         store=store,
         columns=columns,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         categoricals=categoricals,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
-        load_dataset_metadata=False,
         predicates=predicates,
         factory=factory,
         dispatch_by=dispatch_by,
-        dispatch_metadata=False,
     )
     for mp in mp_iter:
         yield mp.data
@@ -194,10 +173,8 @@ def update_dataset_from_dataframes__iter(
     metadata=None,
     df_serializer=None,
     metadata_merger=None,
-    central_partition_metadata=True,
     default_metadata_version=DEFAULT_METADATA_VERSION,
     partition_on=None,
-    load_dynamic_metadata=True,
     sort_partitions_by=None,
     secondary_indices=None,
     factory=None,
@@ -219,17 +196,7 @@ def update_dataset_from_dataframes__iter(
     --------
     :ref:`mutating_datasets`
     """
-    if load_dynamic_metadata is not True:
-        warnings.warn(
-            "The keyword `load_dynamic_metadata` has no use and will be removed soon",
-            DeprecationWarning,
-        )
 
-    if central_partition_metadata is not True:
-        warnings.warn(
-            "The keyword `central_partition_metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,

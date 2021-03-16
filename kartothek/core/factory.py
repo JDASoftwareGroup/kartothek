@@ -28,7 +28,6 @@ class DatasetFactory(DatasetMetadataBase):
         store_factory: StoreInput,
         load_schema: bool = True,
         load_all_indices: bool = False,
-        load_dataset_metadata: bool = True,
     ) -> None:
         """
         A dataset factory object which can be used to cache dataset load operations. This class should be the primary user entry point when
@@ -59,8 +58,6 @@ class DatasetFactory(DatasetMetadataBase):
             Load the schema information immediately.
         load_all_indices
             Load all indices immediately.
-        load_dataset_metadata
-            Keep the user metadata in memory
         """
         self._cache_metadata: Optional[DatasetMetadata] = None
         self._cache_store = None
@@ -70,7 +67,6 @@ class DatasetFactory(DatasetMetadataBase):
         self.load_schema = load_schema
         self._ds_callable = None
         self.is_loaded = False
-        self.load_dataset_metadata = load_dataset_metadata
         self.load_all_indices_flag = load_all_indices
 
     def __repr__(self):
@@ -96,8 +92,6 @@ class DatasetFactory(DatasetMetadataBase):
                     load_schema=self.load_schema,
                     load_all_indices=self.load_all_indices_flag,
                 )
-            if not self.load_dataset_metadata:
-                self._cache_metadata.metadata = {}
         self.is_loaded = True
         return self
 
@@ -161,7 +155,6 @@ def _ensure_factory(
     dataset_uuid: Optional[str],
     store: Optional[StoreInput],
     factory: Optional[DatasetFactory],
-    load_dataset_metadata: bool,
     load_schema: bool = True,
 ) -> DatasetFactory:
 
@@ -171,7 +164,6 @@ def _ensure_factory(
         return DatasetFactory(
             dataset_uuid=dataset_uuid,
             store_factory=lazy_store(store),
-            load_dataset_metadata=load_dataset_metadata,
             load_schema=load_schema,
         )
 

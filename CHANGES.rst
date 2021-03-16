@@ -18,7 +18,15 @@ This is a major release of kartothek with breaking API changes.
 * Trying to read a multi-tabled dataset will now cause an exception telling users that this is no longer supported with kartothek 4.0
 * The dict schema for :meth:`~kartothek.core.dataset.DatasetMetadataBase.to_dict` and :meth:`~kartothek.core.dataset.DatasetMetadata.from_dict` changed replacing a dictionary in `table_meta` with the simple `schema`
 * All pipeline arguments which previously accepted a dictionary of sequences to describe a table specific subset of columns now accept plain sequences (e.g. `columns`, `categoricals`)
-
+* Remove the following list of deprecated arguments for io pipelines
+  * label_filter
+  * central_partition_metadata
+  * load_dynamic_metadata
+  * load_dataset_metadata
+  * concat_partitions_on_primary_index
+* Remove `output_dataset_uuid` and `df_serializer` from :func:`kartothek.io.eager.commit_dataset` since these arguments didn't have any effect
+* Remove `metadata`, `df_serializer`, `overwrite`, `metadata_merger` from :func:`kartothek.io.eager.write_single_partition`
+* :func:`~kartothek.io.eager.store_dataframes_as_dataset` now requires a list as an input
 
 Version 3.20.0 (2021-03-15)
 ===========================

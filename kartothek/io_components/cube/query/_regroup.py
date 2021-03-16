@@ -306,8 +306,8 @@ def _map_ktk_mps_to_groups(cube, datasets, label2gp):
         label2gp_sub = label2gp[ktk_cube_dataset_id]
         for mp in dispatch_metapartitions_from_factory(
             dataset_factory=metadata_factory_from_dataset(ds),
-            concat_partitions_on_primary_index=False,
         ):
+            # FIXME: can this be simplified?
             if mp.label not in label2gp_sub:
                 # filtered out by pre-condition
                 continue

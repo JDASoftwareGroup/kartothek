@@ -138,19 +138,11 @@ def _ensure_compatible_indices(
 
 
 def validate_partition_keys(
-    dataset_uuid,
-    store,
-    ds_factory,
-    default_metadata_version,
-    partition_on,
-    load_dataset_metadata=True,
+    dataset_uuid, store, ds_factory, default_metadata_version, partition_on,
 ):
     if ds_factory or DatasetMetadata.exists(dataset_uuid, ensure_store(store)):
         ds_factory = _ensure_factory(
-            dataset_uuid=dataset_uuid,
-            store=store,
-            factory=ds_factory,
-            load_dataset_metadata=load_dataset_metadata,
+            dataset_uuid=dataset_uuid, store=store, factory=ds_factory,
         )
 
         ds_metadata_version = ds_factory.metadata_version

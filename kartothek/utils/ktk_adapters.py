@@ -130,9 +130,6 @@ def get_physical_partition_stats(metapartitions, store):
     """
     Get statistics for partition.
 
-    .. hint::
-        To get the metapartitions pre-aligned, use ``concat_partitions_on_primary_index=True`` during dispatch.
-
     Parameters
     ----------
     metapartitions: Iterable[kartothek.io_components.metapartition.MetaPartition]

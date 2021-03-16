@@ -110,11 +110,6 @@ _PARAMETER_MAPPING = {
     "categoricals": """
     categoricals
         Load the provided subset of columns as a :class:`pandas.Categorical`.""",
-    "label_filter": """
-    label_filter: Callable
-        A callable taking a partition label as a parameter and returns a boolean. The callable will be applied
-        to the list of partitions during dispatch and will filter out all partitions for which the callable
-        evaluates to False.""",
     "dates_as_object": """
     dates_as_object: bool
         Load pyarrow.date{32,64} columns as ``object`` columns in Pandas
@@ -167,18 +162,9 @@ _PARAMETER_MAPPING = {
     "df_generator": """
     df_generator: Iterable[Union[pandas.DataFrame, Dict[str, pandas.DataFrame]]]
         The dataframe(s) to be stored""",
-    "central_partition_metadata": """
-    central_partition_metadata: bool
-        This has no use and will be removed in future releases""",
     "default_metadata_version": """
     default_metadata_version: int
         Default metadata version. (Note: Metadata version greater than 3 are only supported)""",
-    "load_dynamic_metadata": """
-    load_dynamic_metadata: bool
-        The keyword `load_dynamic_metadata` is deprecated and will be removed in the next major release.""",
-    "concat_partitions_on_primary_index": """
-    concat_partitions_on_primary_index: bool
-        Concatenate partition based on their primary index values.""",
     "delayed_tasks": """
     delayed_tasks
         A list of delayed objects where each element returns a :class:`pandas.DataFrame`.""",

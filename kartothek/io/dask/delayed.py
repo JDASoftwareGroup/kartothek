@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-import warnings
 from functools import partial
 from typing import List, Optional, Sequence
 
@@ -77,11 +75,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
     ----------
     """
     dataset_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_schema=False,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory, load_schema=False,
     )
 
     gc = garbage_collect_dataset__delayed(factory=dataset_factory)
@@ -124,10 +118,7 @@ def garbage_collect_dataset__delayed(
     """
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     nested_files = dispatch_files_to_gc(
@@ -150,23 +141,18 @@ def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
     )
 
 
-# FIXME: remove
 @default_docs
 @normalize_args
 def read_dataset_as_delayed_metapartitions(
     dataset_uuid=None,
     store=None,
     columns=None,
-    concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
     categoricals: Optional[Sequence[str]] = None,
-    label_filter=None,
     dates_as_object=False,
-    load_dataset_metadata=False,
     predicates=None,
     factory=None,
     dispatch_by=None,
-    dispatch_metadata=True,
 ):
     """
     A collection of dask.delayed objects to retrieve a dataset from store where each
@@ -181,32 +167,15 @@ def read_dataset_as_delayed_metapartitions(
 
     """
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=load_dataset_metadata,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
-
-    if len(ds_factory.tables) > 1:
-        warnings.warn(
-            "Trying to read a dataset with multiple internal tables. This functionality will be removed in the next "
-            "major release. If you require a multi tabled data format, we recommend to switch to the kartothek Cube "
-            "functionality. "
-            "https://kartothek.readthedocs.io/en/stable/guide/cube/kartothek_cubes.html",
-            DeprecationWarning,
-        )
 
     store = ds_factory.store_factory
     mps = dispatch_metapartitions_from_factory(
-        dataset_factory=ds_factory,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
-        label_filter=label_filter,
-        predicates=predicates,
-        dispatch_by=dispatch_by,
-        dispatch_metadata=dispatch_metadata,
+        dataset_factory=ds_factory, predicates=predicates, dispatch_by=dispatch_by,
     )
 
-    if concat_partitions_on_primary_index or dispatch_by is not None:
+    if dispatch_by is not None:
         mps = _load_and_concat_metapartitions(
             mps,
             store=store,
@@ -253,10 +222,8 @@ def read_dataset_as_delayed(
     dataset_uuid=None,
     store=None,
     columns=None,
-    concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
     categoricals=None,
-    label_filter=None,
     dates_as_object=False,
     predicates=None,
     factory=None,
@@ -274,12 +241,9 @@ def read_dataset_as_delayed(
         store=store,
         factory=factory,
         columns=columns,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         categoricals=categoricals,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
-        load_dataset_metadata=False,
         predicates=predicates,
         dispatch_by=dispatch_by,
     )

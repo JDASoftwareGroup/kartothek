@@ -1,4 +1,3 @@
-import warnings
 from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
 
@@ -45,7 +44,6 @@ from kartothek.io_components.utils import (
 )
 from kartothek.io_components.write import raise_if_dataset_exists
 from kartothek.serialization import DataFrameSerializer
-from kartothek.serialization._parquet import ParquetSerializer
 
 __all__ = (
     "delete_dataset",
@@ -72,11 +70,7 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
     """
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        load_schema=False,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, load_schema=False, store=store, factory=factory,
     )
 
     # Remove possibly unreferenced files
@@ -101,10 +95,8 @@ def read_dataset_as_dataframes(
     dataset_uuid: Optional[str] = None,
     store=None,
     columns: Dict[str, List[str]] = None,
-    concat_partitions_on_primary_index: bool = False,
     predicate_pushdown_to_io: bool = True,
     categoricals: List[str] = None,
-    label_filter: Callable = None,
     dates_as_object: bool = False,
     predicates: Optional[List[List[Tuple[str, str, Any]]]] = None,
     factory: Optional[DatasetFactory] = None,
@@ -139,23 +131,17 @@ def read_dataset_as_dataframes(
     """
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=True,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     mps = read_dataset_as_metapartitions(
         columns=columns,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         categoricals=categoricals,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
         factory=ds_factory,
         dispatch_by=dispatch_by,
-        dispatch_metadata=False,
     )
     return [mp.data for mp in mps]
 
@@ -165,15 +151,12 @@ def read_dataset_as_metapartitions(
     dataset_uuid=None,
     store=None,
     columns=None,
-    concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
     categoricals=None,
-    label_filter=None,
     dates_as_object=False,
     predicates=None,
     factory=None,
     dispatch_by=None,
-    dispatch_metadata=True,
 ):
     """
     Read a dataset as a list of :class:`kartothek.io_components.metapartition.MetaPartition`.
@@ -204,25 +187,19 @@ def read_dataset_as_metapartitions(
     """
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     from .iter import read_dataset_as_metapartitions__iterator
 
     ds_iter = read_dataset_as_metapartitions__iterator(
         columns=columns,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         categoricals=categoricals,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
         factory=ds_factory,
         dispatch_by=dispatch_by,
-        dispatch_metadata=dispatch_metadata,
     )
     return list(ds_iter)
 
@@ -232,10 +209,8 @@ def read_table(
     dataset_uuid: Optional[str] = None,
     store=None,
     columns: Dict[str, List[str]] = None,
-    concat_partitions_on_primary_index: bool = False,
     predicate_pushdown_to_io: bool = True,
     categoricals: List[str] = None,
-    label_filter: Callable = None,
     dates_as_object: bool = False,
     predicates: Optional[List[List[Tuple[str, str, Any]]]] = None,
     factory: Optional[DatasetFactory] = None,
@@ -268,24 +243,14 @@ def read_table(
         >>> df = read_table(store, 'dataset_uuid', 'core')
 
     """
-    if concat_partitions_on_primary_index is not False:
-        warnings.warn(
-            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release.",
-            DeprecationWarning,
-        )
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
     partitions = read_dataset_as_dataframes(
         columns=columns,
-        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
         categoricals=categoricals,
-        label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
         factory=ds_factory,
@@ -313,10 +278,8 @@ def commit_dataset(
     store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,
     new_partitions: Optional[Iterable[MetaPartition]] = None,
-    output_dataset_uuid: Optional[str] = None,
     delete_scope: Optional[Iterable[Dict[str, Any]]] = None,
     metadata: Dict = None,
-    df_serializer: DataFrameSerializer = None,
     metadata_merger: Callable[[List[Dict]], Dict] = None,
     default_metadata_version: int = DEFAULT_METADATA_VERSION,
     partition_on: Optional[Iterable[str]] = None,
@@ -394,17 +357,6 @@ def commit_dataset(
         Input partition to be committed.
 
     """
-    if output_dataset_uuid is not None:
-        warnings.warn(
-            "The keyword `output_dataset_uuid` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if df_serializer is not None:
-        warnings.warn(
-            "The keyword `df_serializer` is deprecated and will be removed in the next major release.",
-            DeprecationWarning,
-        )
 
     if not new_partitions and not metadata and not delete_scope:
         raise ValueError(
@@ -482,7 +434,7 @@ def store_dataframes_as_dataset(
     dfs: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
     metadata: Optional[Dict[str, Dict[str, Any]]] = None,
     partition_on: Optional[List[str]] = None,
-    df_serializer: Optional[ParquetSerializer] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
     overwrite: bool = False,
     secondary_indices=None,
     metadata_storage_format=DEFAULT_METADATA_STORAGE_FORMAT,
@@ -501,11 +453,8 @@ def store_dataframes_as_dataset(
 
     """
     if isinstance(dfs, pd.DataFrame):
-        dfs = [dfs]
-        warnings.warn(
-            "Passing a single dataframe instead of an iterable is deprecated and may "
-            "be removed in the next major release.",
-            DeprecationWarning,
+        raise TypeError(
+            f"Please pass a list of pandas.DataFrame as input. Instead got {type(dfs)}"
         )
 
     return store_dataframes_as_dataset__iter(
@@ -589,10 +538,7 @@ def write_single_partition(
     store: Optional[KeyValueStore] = None,
     dataset_uuid: Optional[str] = None,
     data=None,
-    metadata: Optional[Dict[str, Dict[str, Any]]] = None,
-    df_serializer: Optional[ParquetSerializer] = None,
-    overwrite: bool = False,
-    metadata_merger=None,
+    df_serializer: Optional[DataFrameSerializer] = None,
     metadata_version: int = DEFAULT_METADATA_VERSION,
     partition_on: Optional[List[str]] = None,
     factory=None,
@@ -628,24 +574,6 @@ def write_single_partition(
     -------
     An empty :class:`~kartothek.io_components.metapartition.MetaPartition` referencing the new files
     """
-    if metadata is not None:
-        warnings.warn(
-            "The keyword `metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if overwrite is not False:
-        warnings.warn(
-            "The keyword `overwrite` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if metadata_merger is not None:
-        warnings.warn(
-            "The keyword `metadata_merger` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
     if data is None:
         raise TypeError("The parameter `data` is not optional")
     dataset_factory, ds_metadata_version, partition_on = validate_partition_keys(
@@ -686,12 +614,10 @@ def update_dataset_from_dataframes(
     dataset_uuid: Optional[str] = None,
     delete_scope=None,
     metadata=None,
-    df_serializer: Optional[ParquetSerializer] = None,
+    df_serializer: Optional[DataFrameSerializer] = None,
     metadata_merger: Callable = None,
-    central_partition_metadata: bool = True,
     default_metadata_version: int = DEFAULT_METADATA_VERSION,
     partition_on: Optional[List[str]] = None,
-    load_dynamic_metadata: bool = True,
     sort_partitions_by: Optional[str] = None,
     secondary_indices: Optional[List[str]] = None,
     table_name: str = SINGLE_TABLE,
@@ -715,18 +641,6 @@ def update_dataset_from_dataframes(
     --------
     :ref:`mutating_datasets`
     """
-    if load_dynamic_metadata is not True:
-        warnings.warn(
-            "The keyword `load_dynamic_metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if central_partition_metadata is not True:
-        warnings.warn(
-            "The keyword `central_partition_metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -779,10 +693,7 @@ def build_dataset_indices(store, dataset_uuid, columns, factory=None):
     ----------
     """
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     cols_to_load = set(columns) & set(ds_factory.schema.names)
@@ -814,10 +725,7 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
     """
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid,
-        store=store,
-        factory=factory,
-        load_dataset_metadata=False,
+        dataset_uuid=dataset_uuid, store=store, factory=factory,
     )
 
     nested_files = dispatch_files_to_gc(
