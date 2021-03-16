@@ -2,7 +2,7 @@ import typing
 
 import attr
 
-from kartothek.core.cube.constants import KTK_CUBE_UUID_SEPERATOR
+from kartothek.core.cube.constants import KTK_CUBE_UUID_SEPARATOR
 from kartothek.core.dataset import _validate_uuid
 from kartothek.utils.converters import (
     converter_str,
@@ -102,10 +102,10 @@ def _validator_uuid_freestanding(name, value):
                 name=name, value=value
             )
         )
-    if value.find(KTK_CUBE_UUID_SEPERATOR) != -1:
+    if value.find(KTK_CUBE_UUID_SEPARATOR) != -1:
         raise ValueError(
             '{name} ("{value}") must not contain UUID separator {sep}'.format(
-                name=name, value=value, sep=KTK_CUBE_UUID_SEPERATOR
+                name=name, value=value, sep=KTK_CUBE_UUID_SEPARATOR
             )
         )
 
@@ -201,7 +201,7 @@ class Cube:
         _validator_uuid_freestanding("ktk_cube_dataset_id", ktk_cube_dataset_id)
         return "{uuid_prefix}{sep}{ktk_cube_dataset_id}".format(
             uuid_prefix=self.uuid_prefix,
-            sep=KTK_CUBE_UUID_SEPERATOR,
+            sep=KTK_CUBE_UUID_SEPARATOR,
             ktk_cube_dataset_id=ktk_cube_dataset_id,
         )
 

@@ -9,7 +9,7 @@ __all__ = (
     "KTK_CUBE_METADATA_KEY_IS_SEED",
     "KTK_CUBE_METADATA_STORAGE_FORMAT",
     "KTK_CUBE_METADATA_VERSION",
-    "KTK_CUBE_UUID_SEPERATOR",
+    "KTK_CUBE_UUID_SEPARATOR",
 )
 
 
@@ -45,4 +45,6 @@ KTK_CUBE_METADATA_PARTITION_COLUMNS = "ktk_cube_partition_columns"
 KTK_CUBE_METADATA_SUPPRESS_INDEX_ON = "ktk_cube_suppress_index_on"
 
 #: Character sequence used to seperate cube and dataset UUID
-KTK_CUBE_UUID_SEPERATOR = "++"
+KTK_CUBE_UUID_SEPARATOR = "++"
+# Alias for compat reasons
+KTK_CUBE_UUID_SEPERATOR = KTK_CUBE_UUID_SEPARATOR
