@@ -649,6 +649,9 @@ def update_dataset_from_dataframes(
         partition_on=partition_on,
     )
 
+    # ensured by normalize_args but mypy doesn't recognize it
+    assert secondary_indices is not None
+
     inferred_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
     del secondary_indices
 

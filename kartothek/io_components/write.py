@@ -1,5 +1,5 @@
 from functools import partial
-from typing import Dict, Iterable, Optional, Sequence, Union, cast
+from typing import Dict, Iterable, List, Optional, cast
 
 from simplekv import KeyValueStore
 
@@ -23,7 +23,6 @@ from kartothek.io_components.metapartition import (
     partition_labels_from_mps,
 )
 from kartothek.io_components.utils import (
-    InferredIndices,
     combine_metadata,
     extract_duplicates,
     sort_values_categorical,
@@ -35,10 +34,10 @@ SINGLE_CATEGORY = SINGLE_TABLE
 
 def write_partition(
     partition_df: MetaPartitionInput,
-    secondary_indices: Optional[InferredIndices],
-    sort_partitions_by: Optional[Union[str, Sequence[str]]],
+    secondary_indices: List[str],
+    sort_partitions_by: List[str],
     dataset_uuid: str,
-    partition_on: Optional[Union[str, Sequence[str]]],
+    partition_on: List[str],
     store_factory: StoreFactory,
     df_serializer: Optional[DataFrameSerializer],
     metadata_version: int,
