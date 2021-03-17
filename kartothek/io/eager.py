@@ -49,7 +49,7 @@ from kartothek.io_components.write import raise_if_dataset_exists
 from kartothek.serialization import DataFrameSerializer
 from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import get_dataset_keys
-from kartothek.utils.store import copy_keys
+from kartothek.utils.store import copy_rename_keys
 
 
 @default_docs
@@ -859,26 +859,28 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
     return delete_files(next(nested_files), store_factory=ds_factory.store_factory)
 
 
-def _transform_key(source_key: str, source_ds: str, target_ds: str) -> str:
+def _transform_key(source_key: str, source_uuid: str, target_uuid: str) -> str:
     """
     Modify a key: replace the source dataset UUID with the target dataset UUID
     Parameters:
         source_key: str
             Key to modify
-        source_ds: str
+        source_uuid: str
             Source dataset UUID
-        target_ds: str
+        target_uuid: str
             Target dataset UUID
     """
-    return source_key.replace(source_ds, target_ds)
+    return source_key.replace(source_uuid, target_uuid)
 
 
-def _transform_metadata(src_metadata: DatasetMetadata, tgt_ds: str) -> DatasetMetadata:
+def _transform_metadata(src_metadata: DatasetMetadata, tgt_ds: str) -> bytes:
     """
     Modify the metadata to reflect the changes of the copying process
 
-    src_metadata: Metadata to modify
-    tgt_ds: UUID of target dataset
+    :param src_metadata:
+        Metadata to modify
+    :param tgt_ds:
+        UUID of target dataset
     """
     return (
         DatasetMetadataBuilder.from_dataset(src_metadata)
@@ -897,18 +899,17 @@ def copy_dataset(
     Copies and optionally renames a dataset, either  from one store to another or
     within one store.
 
-    Parameters:
-        src_dataset_uuid: str
-            UUID of source dataset
-        store: KeyValueStore
-            Source store
-        target_dataset_uuid: Optional[str]
-            UUID of target dataset. May be the same as src_dataset_uuid, if store
-            and tgt_store are different. If empty, src_dataset_uuid is used
-        tgt_store: Optional[KeyValueStore]
-            Target Store. May be the same as store, if src_dataset_uuid and
-            target_dataset_uuid are different. If empty, value from parameter store is
-            used
+    :param src_dataset_uuid:
+        UUID of source dataset
+    :param store:
+        Source store
+    :param target_dataset_uuid:
+        UUID of target dataset. May be the same as src_dataset_uuid, if store
+        and tgt_store are different. If empty, src_dataset_uuid is used
+    :param tgt_store:
+        Target Store. May be the same as store, if src_dataset_uuid and
+        target_dataset_uuid are different. If empty, value from parameter store is
+        used
     """
     if target_dataset_uuid is None:
         target_dataset_uuid = src_dataset_uuid
@@ -929,17 +930,20 @@ def copy_dataset(
 
     # Create a dict of {source key: target key} entries
     keys = get_dataset_keys(ds_factory_source.dataset_metadata)
-    mapped_keys = {}
-    for key in keys:
-        mapped_keys[key] = _transform_key(key, src_dataset_uuid, target_dataset_uuid)
+    mapped_keys = {
+        source_key: source_key.replace(src_dataset_uuid, target_dataset_uuid)
+        for source_key in keys
+    }
 
-    # Create a dict of {source key: transformed metadata} entries for all metadata
-    # which must be changed (only uuid.by-dataset-metadata.json files)
+    # Create a dict of metadata which has to be changed. This is only the
+    # <uuid>.by-dataset-metadata.json file
     md_transformed = {
-        f"{src_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": _transform_metadata(
-            ds_factory_source.dataset_metadata, target_dataset_uuid
+        f"{src_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": DatasetMetadataBuilder.from_dataset(
+            ds_factory_source.dataset_metadata
         )
+        .modify_uuid(target_dataset_uuid)
+        .to_json()[1]
     }
 
     # Copy the keys from one store to another
-    copy_keys(mapped_keys, store, tgt_store, md_transformed)
+    copy_rename_keys(mapped_keys, store, tgt_store, md_transformed)
