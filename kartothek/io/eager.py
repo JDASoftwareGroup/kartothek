@@ -807,10 +807,7 @@ def copy_dataset(
         )
 
     ds_factory_source = _ensure_factory(
-        dataset_uuid=src_dataset_uuid,
-        store=store,
-        factory=None,
-        load_dataset_metadata=True,
+        dataset_uuid=src_dataset_uuid, store=store, factory=None,
     )
 
     # Create a dict of {source key: target key} entries
