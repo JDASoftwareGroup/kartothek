@@ -2,10 +2,11 @@
 Workarounds for limitations of the simplekv API.
 """
 import logging
-import re
 import time
+from typing import Callable, Dict, Iterable, Union
 from urllib.parse import quote
 
+from simplekv import KeyValueStore
 from simplekv.contrib import VALID_KEY_RE_EXTENDED
 
 try:
@@ -49,9 +50,6 @@ __all__ = ("copy_keys",)
 
 _logger = logging.getLogger(__name__)
 
-RX_TRANSFORM_KEY = re.compile(r"(\w*)\+\+(\w*)(.*)")
-RX_JSON_META = re.compile(r"\w*\+\+(\w*)\.by-dataset-metadata\.json")
-
 # Specialized implementation for azure-storage-blob < 12, using BlockBlobService (`bbs`):
 
 
@@ -75,23 +73,14 @@ def _azure_bbs_content_md5(block_blob_service, container, key, accept_missing=Fa
             raise KeyError(key)
 
 
-def _copy_azure_bbs(key_mappings, src_store, tgt_store, mapped_metadata=None):
+def _copy_azure_bbs(key_mappings, src_store, tgt_store):
     src_container = src_store.container
     tgt_container = tgt_store.container
     src_bbs = src_store.block_blob_service
     tgt_bbs = tgt_store.block_blob_service
 
-    # If metadata is to be modified while copying: put in manually in the target store
-    if mapped_metadata:
-        for src_key in mapped_metadata:
-            tgt_key = key_mappings[src_key]
-            tgt_store.put(tgt_key, mapped_metadata[src_key])
-
     cprops = {}
     for src_key, tgt_key in key_mappings.items():
-        # skip modified metadata which was already copied manually
-        if (mapped_metadata is not None) and (src_key in mapped_metadata):
-            continue
 
         source_md5 = _azure_bbs_content_md5(
             src_bbs, src_container, src_key, accept_missing=False
@@ -157,7 +146,7 @@ def _azure_cc_content_md5(cc, key, accept_missing=False):
             raise KeyError(key)
 
 
-def _copy_azure_cc(key_mappings, src_store, tgt_store, mapped_metadata=None):
+def _copy_azure_cc(key_mappings, src_store, tgt_store):
     """
     Copies a list of items from one Azure store to another.
 
@@ -170,24 +159,12 @@ def _copy_azure_cc(key_mappings, src_store, tgt_store, mapped_metadata=None):
         Source KV store
     tgt_store: KeyValueStore
         Target KV store
-    mapped_metadata: Optional[Dict[str, bytes]]
-        Mapping containing {key: modified metadata} entries with metadata which is
-        to be changed during copying
     """
     src_cc = src_store.blob_container_client
     tgt_cc = tgt_store.blob_container_client
 
-    # If metadata is to be modified while copying: put in manually in the target store
-    if mapped_metadata:
-        for src_key in mapped_metadata:
-            tgt_key = key_mappings[src_key]
-            tgt_store.put(tgt_key, mapped_metadata[src_key])
-
     copy_ids = {}
     for src_key, tgt_key in key_mappings.items():
-        # skip modified metadata which was already copied manually
-        if (mapped_metadata is not None) and (src_key in mapped_metadata):
-            continue
         source_md5 = _azure_cc_content_md5(src_cc, src_key, accept_missing=False)
 
         if source_md5 is None:
@@ -227,7 +204,12 @@ def _copy_azure_cc(key_mappings, src_store, tgt_store, mapped_metadata=None):
                 )
 
 
-def _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=None):
+def _copy_naive(
+    key_mappings: Dict[str, str],
+    src_store: KeyValueStore,
+    tgt_store: KeyValueStore,
+    mapped_metadata: Dict[str, bytes] = None,
+):
     """
     Copies a list of items from one KV store to another.
 
@@ -241,7 +223,8 @@ def _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=None):
     tgt_store: KeyValueStore
         Target KV store
     mapped_metadata: Dict[str, bytes]
-        Mapping containing {key: modified metadata} values to be changed
+        Mapping containing {key: modified metadata} values which will be written
+        directly instead of being copied
     """
     for src_key, tgt_key in key_mappings.items():
         if (mapped_metadata is not None) and (src_key in mapped_metadata):
@@ -251,38 +234,57 @@ def _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=None):
         tgt_store.put(tgt_key, item)
 
 
-def copy_keys(keys, src_store, tgt_store, md_transformed=None):
+def copy_rename_keys(
+    key_mappings: Dict[str, str],
+    src_store: KeyValueStore,
+    tgt_store: KeyValueStore,
+    mapped_metadata: Dict[str, bytes],
+):
     """
-    Copy keys from one store the another.
+    Copy keys between to stores or within one store, and rename them.
 
-    Parameters
-    ----------
-    keys: Union[Iterable[str], Dict[str, str]]
-        Either Iterable of Keys to copy; or Dict with {old key: new key} mappings
-        if keys are changed during copying
-    src_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    :param key_mappings:
+        Dict with {old key: new key} mappings to rename keys during copying
+    :param src_store:
         Source KV store.
-    tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    :param tgt_store:
         Target KV store.
-    md_transformed: Dict[str, str]
+    :param mapped_metadata:
+        Dict with {source key: modified data} entries; the objects corresponding to
+        the keys will not be copied. Instead, the modified data will directly be put
+        to the target store.
+    """
+    for k in key_mappings.keys():
+        if (k is None) or (not VALID_KEY_RE_EXTENDED.match(k)) or (k == "/"):
+            raise ValueError("Illegal key: {}".format(k))
+    _logger.debug("copy_rename_keys: Use naive slow-path.")
+    _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata)
 
+
+def copy_keys(
+    keys: Iterable[str],
+    src_store: Union[KeyValueStore, Callable[[], KeyValueStore]],
+    tgt_store: Union[KeyValueStore, Callable[[], KeyValueStore]],
+):
+    """
+    Copy keys between two stores or within one store.
+
+    :param keys:
+        Set of keys to copy without renaming;
+    :param src_store:
+        Source KV store.
+    :param tgt_store:
+        Target KV store.
     """
     if callable(src_store):
         src_store = src_store()
     if callable(tgt_store):
         tgt_store = tgt_store()
 
-    if isinstance(keys, dict):
-        # If a dict of keys was specified, i.e. the keys are to be renamed while
-        # copying: use this key mapping
-        src_keys = sorted(keys.keys())
-        key_mappings = keys
-    else:
-        # otherwise, create a identity mapping dict which does not change the key
-        src_keys = sorted(keys)
-        key_mappings = {src_key: src_key for src_key in src_keys}
+    # otherwise, create a identity mapping dict which does not change the key
+    key_mappings = {src_key: src_key for src_key in keys}
 
-    for k in src_keys:
+    for k in keys:
         if (k is None) or (not VALID_KEY_RE_EXTENDED.match(k)) or (k == "/"):
             raise ValueError("Illegal key: {}".format(k))
 
@@ -298,4 +300,4 @@ def copy_keys(keys, src_store, tgt_store, md_transformed=None):
         _copy_azure_cc(key_mappings, src_store, tgt_store)
     else:
         _logger.debug("Use naive slow-path.")
-        _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata=md_transformed)
+        _copy_naive(key_mappings, src_store, tgt_store)
