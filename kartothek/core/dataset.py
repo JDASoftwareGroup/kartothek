@@ -907,15 +907,15 @@ class DatasetMetadataBuilder(CopyMixin):
         ds_builder.partitions = dataset.partitions
         return ds_builder
 
-    def modify_uuid(self, tgt_uuid):
+    def modify_uuid(self, tgt_uuid: str):
         """
         Modify the dataset uuid and depending metadata:
         - paths to partitioning files
         - path to index files
 
-        Parameters:
-            tgt_uuid: str
-                Modified dataset UUID.
+        :param tgt_uuid:
+            Modified dataset UUID.
+        :return modified builder object
         """
 
         # modify file names in partition metadata
@@ -930,9 +930,8 @@ class DatasetMetadataBuilder(CopyMixin):
 
         for i_key, i in self.indices.items():
             if hasattr(i, "index_storage_key"):
-                i.index_storage_key = i.index_storage_key.replace(
-                    self.uuid, tgt_uuid, 1
-                )
+                i_mod = getattr(i, "index_storage_key").replace(self.uuid, tgt_uuid, 1)
+                i.index_storage_key = i_mod  # type: ignore
         self.uuid = tgt_uuid
         return self
 
