@@ -911,8 +911,11 @@ class DatasetMetadataBuilder(CopyMixin):
 
         for i_key, i in self.indices.items():
             if hasattr(i, "index_storage_key"):
-                i_mod = getattr(i, "index_storage_key").replace(self.uuid, tgt_uuid, 1)
-                i.index_storage_key = i_mod  # type: ignore
+                setattr(
+                    i,
+                    "index_storage_key",
+                    getattr(i, "index_storage_key").replace(self.uuid, tgt_uuid, 1),
+                )
         self.uuid = tgt_uuid
         return self
 
