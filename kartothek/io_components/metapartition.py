@@ -397,6 +397,7 @@ class MetaPartition(Iterable):
         schema: Optional[SchemaWrapper] = None,
         partition_keys: Optional[List[str]] = None,
         logical_conjunction: Optional[List[Tuple[Any, str, Any]]] = None,
+        table_name: str = SINGLE_TABLE,
     ):
         """
         Transform a kartothek :class:`~kartothek.core.partition.Partition` into a
@@ -422,13 +423,14 @@ class MetaPartition(Iterable):
         """
         return MetaPartition(
             label=partition.label,
-            file=partition.files[SINGLE_TABLE],
+            file=partition.files[table_name],
             data=data,
             indices=indices,
             metadata_version=metadata_version,
             schema=schema,
             partition_keys=partition_keys,
             logical_conjunction=logical_conjunction,
+            table_name=table_name,
         )
 
     def add_metapartition(

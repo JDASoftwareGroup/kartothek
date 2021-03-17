@@ -642,3 +642,19 @@ def test_extensiondtype_rountrip(store_factory, bound_load_dataframes):
         result_dfs = result
     result_df = pd.concat(result_dfs).reset_index(drop=True)
     pdt.assert_frame_equal(df, result_df)
+
+
+def test_non_default_table_name_roundtrip(store_factory, bound_load_dataframes):
+    df = pd.DataFrame({"A": [1]})
+    store_dataframes_as_dataset(
+        dfs=[df], store=store_factory, dataset_uuid="dataset_uuid", table_name="foo"
+    )
+    result = bound_load_dataframes(dataset_uuid="dataset_uuid", store=store_factory)
+
+    probe = result[0]
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data for mp in result]
+    else:
+        result_dfs = result
+    result_df = pd.concat(result_dfs).reset_index(drop=True)
+    pdt.assert_frame_equal(df, result_df)

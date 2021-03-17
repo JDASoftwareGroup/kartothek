@@ -91,6 +91,7 @@ def dispatch_metapartitions_from_factory(
                         schema=dataset_factory.schema,
                         partition_keys=dataset_factory.partition_keys,
                         logical_conjunction=logical_conjunction,
+                        table_name=dataset_factory.table_name,
                     )
                 )
             yield mps
@@ -103,6 +104,7 @@ def dispatch_metapartitions_from_factory(
                 metadata_version=dataset_factory.metadata_version,
                 schema=dataset_factory.schema,
                 partition_keys=dataset_factory.partition_keys,
+                table_name=dataset_factory.table_name,
             )
 
 
