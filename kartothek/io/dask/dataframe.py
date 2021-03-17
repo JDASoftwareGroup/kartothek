@@ -32,7 +32,6 @@ from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
     _ensure_compatible_indices,
-    normalize_arg,
     normalize_args,
     validate_partition_keys,
 )
@@ -239,8 +238,23 @@ def _shuffle_docs(func):
     return func
 
 
+def _id(x):
+    return x
+
+
+def _commit_update_from_reduction(df_mps, **kwargs):
+    partitions = pd.Series(df_mps.values.flatten()).dropna()
+    return update_dataset_from_partitions(partition_list=partitions, **kwargs,)
+
+
+def _commit_store_from_reduction(df_mps, **kwargs):
+    partitions = pd.Series(df_mps.values.flatten()).dropna()
+    return store_dataset_from_partitions(partition_list=partitions, **kwargs,)
+
+
 @default_docs
 @_shuffle_docs
+@normalize_args
 def store_dataset_from_ddf(
     ddf: dd.DataFrame,
     store: StoreInput,
@@ -251,7 +265,6 @@ def store_dataset_from_ddf(
     repartition_ratio: Optional[SupportsFloat] = None,
     num_buckets: int = 1,
     sort_partitions_by: Optional[Union[List[str], str]] = None,
-    delete_scope: Optional[Iterable[Mapping[str, str]]] = None,
     metadata: Optional[Mapping] = None,
     df_serializer: Optional[DataFrameSerializer] = None,
     metadata_merger: Optional[Callable] = None,
@@ -263,12 +276,11 @@ def store_dataset_from_ddf(
     """
     Store a dataset from a dask.dataframe.
     """
-    partition_on = normalize_arg("partition_on", partition_on)
-    secondary_indices = normalize_arg("secondary_indices", secondary_indices)
-    sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
-    bucket_by = normalize_arg("bucket_by", bucket_by)
-    store = normalize_arg("store", store)
-    delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
+    # normalization done by normalize_args but mypy doesn't recognize this
+    sort_partitions_by = cast(List[str], sort_partitions_by)
+    secondary_indices = cast(List[str], secondary_indices)
+    bucket_by = cast(List[str], bucket_by)
+    partition_on = cast(List[str], partition_on)
 
     if table is None:
         raise TypeError("The parameter `table` is not optional.")
@@ -277,9 +289,9 @@ def store_dataset_from_ddf(
 
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
-    mps = _write_dataframe_partitions(
+    mp_ser = _write_dataframe_partitions(
         ddf=ddf,
-        store=store,
+        store=ds_factory.store_factory,
         dataset_uuid=dataset_uuid,
         table=table,
         secondary_indices=secondary_indices,
@@ -292,12 +304,18 @@ def store_dataset_from_ddf(
         partition_on=partition_on,
         bucket_by=bucket_by,
     )
-    return dask.delayed(store_dataset_from_partitions)(
-        mps,
-        store=ds_factory.store_factory if ds_factory else store,
-        dataset_uuid=ds_factory.dataset_uuid if ds_factory else dataset_uuid,
-        dataset_metadata=metadata,
-        metadata_merger=metadata_merger,
+    return mp_ser.reduction(
+        chunk=_id,
+        aggregate=_commit_store_from_reduction,
+        split_every=False,
+        token="commit-dataset",
+        meta=object,
+        aggregate_kwargs={
+            "store": ds_factory.store_factory,
+            "dataset_uuid": ds_factory.dataset_uuid,
+            "dataset_metadata": metadata,
+            "metadata_merger": metadata_merger,
+        },
     )
 
 
@@ -365,6 +383,7 @@ def _write_dataframe_partitions(
 
 @default_docs
 @_shuffle_docs
+@normalize_args
 def update_dataset_from_ddf(
     ddf: dd.DataFrame,
     store: Optional[StoreInput] = None,
@@ -391,15 +410,15 @@ def update_dataset_from_ddf(
     --------
     :ref:`mutating_datasets`
     """
-    partition_on = normalize_arg("partition_on", partition_on)
-    secondary_indices = normalize_arg("secondary_indices", secondary_indices)
-    sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
-    bucket_by = normalize_arg("bucket_by", bucket_by)
-    store = normalize_arg("store", store)
-    delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
-
     if table is None:
         raise TypeError("The parameter `table` is not optional.")
+
+    # normalization done by normalize_args but mypy doesn't recognize this
+    sort_partitions_by = cast(List[str], sort_partitions_by)
+    secondary_indices = cast(List[str], secondary_indices)
+    bucket_by = cast(List[str], bucket_by)
+    partition_on = cast(List[str], partition_on)
+
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -411,9 +430,9 @@ def update_dataset_from_ddf(
     inferred_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
     del secondary_indices
 
-    mps = _write_dataframe_partitions(
+    mp_ser = _write_dataframe_partitions(
         ddf=ddf,
-        store=store,
+        store=ds_factory.store_factory if ds_factory else store,
         dataset_uuid=dataset_uuid or ds_factory.dataset_uuid,
         table=table,
         secondary_indices=inferred_indices,
@@ -426,14 +445,21 @@ def update_dataset_from_ddf(
         partition_on=cast(List[str], partition_on),
         bucket_by=bucket_by,
     )
-    return dask.delayed(update_dataset_from_partitions)(
-        mps,
-        store_factory=store,
-        dataset_uuid=dataset_uuid,
-        ds_factory=ds_factory,
-        delete_scope=delete_scope,
-        metadata=metadata,
-        metadata_merger=metadata_merger,
+
+    return mp_ser.reduction(
+        chunk=_id,
+        aggregate=_commit_update_from_reduction,
+        split_every=False,
+        token="commit-dataset",
+        meta=object,
+        aggregate_kwargs={
+            "store_factory": store,
+            "dataset_uuid": dataset_uuid,
+            "ds_factory": ds_factory,
+            "delete_scope": delete_scope,
+            "metadata": metadata,
+            "metadata_merger": metadata_merger,
+        },
     )
 
 
@@ -442,7 +468,6 @@ def update_dataset_from_ddf(
 def collect_dataset_metadata(
     store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,
-    table_name: str = SINGLE_TABLE,
     predicates: Optional[PredicatesType] = None,
     frac: float = 1.0,
     factory: Optional[DatasetFactory] = None,
