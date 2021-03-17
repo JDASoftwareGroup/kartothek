@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Kartothek 4.0.0 (2021-03-XY)
+Kartothek 4.0.0 (2021-03-17)
 ============================
 
 This is a major release of kartothek with breaking API changes.
