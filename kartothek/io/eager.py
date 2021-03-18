@@ -744,36 +744,6 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
     return delete_files(next(nested_files), store_factory=ds_factory.store_factory)
 
 
-def _transform_key(source_key: str, source_uuid: str, target_uuid: str) -> str:
-    """
-    Modify a key: replace the source dataset UUID with the target dataset UUID
-    Parameters:
-        source_key: str
-            Key to modify
-        source_uuid: str
-            Source dataset UUID
-        target_uuid: str
-            Target dataset UUID
-    """
-    return source_key.replace(source_uuid, target_uuid)
-
-
-def _transform_metadata(src_metadata: DatasetMetadata, tgt_ds: str) -> bytes:
-    """
-    Modify the metadata to reflect the changes of the copying process
-
-    :param src_metadata:
-        Metadata to modify
-    :param tgt_ds:
-        UUID of target dataset
-    """
-    return (
-        DatasetMetadataBuilder.from_dataset(src_metadata)
-        .modify_uuid(tgt_ds)
-        .to_json()[1]
-    )
-
-
 def copy_dataset(
     src_dataset_uuid: str,
     store: KeyValueStore,

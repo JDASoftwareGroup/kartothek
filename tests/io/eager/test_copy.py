@@ -110,3 +110,13 @@ def test_copy_eager_without_rename_different_store(dataset_to_copy, store, store
     )
     assert_target_keys(store, SRC_DS_UUID, store2, SRC_DS_UUID)
     assert_target_ktk_readable(store2, SRC_DS_UUID)
+
+
+def test_copy_same_source_and_target(dataset_to_copy, store):
+    with pytest.raises(ValueError):
+        copy_dataset(
+            src_dataset_uuid=SRC_DS_UUID,
+            target_dataset_uuid=SRC_DS_UUID,
+            store=store,
+            tgt_store=store,
+        )
