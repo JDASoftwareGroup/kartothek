@@ -517,9 +517,9 @@ def copy_cube(
     ----------
     cube: Cube
         Cube specification.
-    src_store: Union[KeyValueStore, Callable[[], KeyValueStore]]
+    src_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Source KV store.
-    tgt_store: Union[KeyValueStore, Callable[[], KeyValueStore]]
+    tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Target KV store.
     overwrite: bool
         If possibly existing datasets in the target store should be overwritten.
