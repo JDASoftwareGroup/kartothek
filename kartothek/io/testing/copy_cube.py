@@ -4,7 +4,7 @@ import pytest
 
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
-from kartothek.io.eager_cube import build_cube
+from kartothek.io.eager_cube import build_cube, query_cube
 from kartothek.utils.ktk_adapters import get_dataset_keys
 
 __all__ = (
@@ -33,6 +33,8 @@ __all__ = (
     "test_partial_copy_dataset_list",
     "test_read_only_source",
     "test_simple",
+    "test_simple_rename_dataset",
+    "test_simple_rename_cube",
 )
 
 
@@ -86,6 +88,137 @@ def assert_same_keys(store1, store2, keys):
 def test_simple(driver, function_store, function_store2, cube, simple_cube_1):
     driver(cube=cube, src_store=function_store, tgt_store=function_store2)
     assert_same_keys(function_store, function_store2, simple_cube_1)
+
+
+def test_simple_rename_dataset(
+    driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
+):
+    """
+    Rename a dataset while copying, but leave the cube name as is
+    """
+
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    ds_name_old = "enrich"
+    ds_name_new = "augmented"
+    driver(
+        cube=cube,
+        src_store=function_store,
+        tgt_store=function_store2,
+        renamed_datasets={ds_name_old: ds_name_new},
+    )
+
+    tgt_keys = function_store2().keys()
+    for src_key in sorted(simple_cube_1):
+        tgt_key = src_key.replace(ds_name_old, ds_name_new)
+        assert tgt_key in tgt_keys
+        b1 = function_store().get(src_key)
+        b2 = function_store2().get(tgt_key)
+        if tgt_key.endswith("by-dataset-metadata.json"):
+            b1_mod = (
+                b1.decode("utf-8").replace(ds_name_old, ds_name_new).encode("utf-8")
+            )
+            assert b1_mod == b2
+        else:
+            assert b1 == b2
+
+    assert_target_cube_readable("cube", function_store2, df_seed, df_enrich)
+
+
+def assert_target_cube_readable(tgt_cube_uuid, tgt_store, df_seed, df_enrich):
+    tgt_cube = Cube(
+        dimension_columns=["x"], partition_columns=["p"], uuid_prefix=tgt_cube_uuid
+    )
+    tgt_cube_res = query_cube(cube=tgt_cube, store=tgt_store)[0]
+    assert tgt_cube_res is not None
+    assert tgt_cube_res[["x", "p", "v1"]].equals(df_seed)
+    assert tgt_cube_res[["x", "p", "v2"]].equals(df_enrich)
+
+
+def test_simple_rename_cube(
+    driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
+):
+    """
+    Rename a cube while copying, but leave the dataset names as they are
+    """
+    old_cube_prefix = "cube"
+    new_cube_prefix = "my_target_cube"
+
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    driver(
+        cube=cube,
+        src_store=function_store,
+        tgt_store=function_store2,
+        renamed_cube_prefix=new_cube_prefix,
+    )
+
+    tgt_keys = function_store2().keys()
+    for src_key in sorted(simple_cube_1):
+        tgt_key = src_key.replace(f"{old_cube_prefix}++", f"{new_cube_prefix}++")
+        assert tgt_key in tgt_keys
+        b1 = function_store().get(src_key)
+        b2 = function_store2().get(tgt_key)
+        if tgt_key.endswith("by-dataset-metadata.json"):
+            b1_mod = (
+                b1.decode("utf-8")
+                .replace(f"{old_cube_prefix}++", f"{new_cube_prefix}++")
+                .encode("utf-8")
+            )
+            assert b1_mod == b2
+        else:
+            assert b1 == b2
+
+    assert_target_cube_readable(new_cube_prefix, function_store2, df_seed, df_enrich)
+
+
+def test_simple_rename_cube_dataset(
+    driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
+):
+    """
+    Rename a cube and a dataset while copying
+    """
+    old_cube_prefix = "cube"
+    new_cube_prefix = "my_target_cube"
+    ds_name_old = "enrich"
+    ds_name_new = "augmented"
+
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    driver(
+        cube=cube,
+        src_store=function_store,
+        tgt_store=function_store2,
+        renamed_cube_prefix=new_cube_prefix,
+        renamed_datasets={ds_name_old: ds_name_new},
+    )
+
+    tgt_keys = function_store2().keys()
+    for src_key in sorted(simple_cube_1):
+        tgt_key = src_key.replace(
+            f"{old_cube_prefix}++", f"{new_cube_prefix}++"
+        ).replace(f"++{ds_name_old}", f"++{ds_name_new}")
+        assert tgt_key in tgt_keys
+        b1 = function_store().get(src_key)
+        b2 = function_store2().get(tgt_key)
+        if tgt_key.endswith("by-dataset-metadata.json"):
+            b1_mod = (
+                b1.decode("utf-8")
+                .replace(f"{old_cube_prefix}++", f"{new_cube_prefix}++")
+                .replace(f"++{ds_name_old}", f"++{ds_name_new}")
+                .encode("utf-8")
+            )
+            assert b1_mod == b2
+        else:
+            assert b1 == b2
+
+    assert_target_cube_readable(new_cube_prefix, function_store2, df_seed, df_enrich)
 
 
 def test_overwrite_fail(
