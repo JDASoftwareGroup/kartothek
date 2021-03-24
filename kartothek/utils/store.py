@@ -247,9 +247,9 @@ def copy_rename_keys(
     ----------
     key_mappings: Dict[str, str]
         Dict with {old key: new key} mappings to rename keys during copying
-    src_store: KeyValueStore
+    src_store: simplekv.KeyValueStore
         Source KV store.
-    tgt_store: KeyValueStore
+    tgt_store: simplekv.KeyValueStore
         Target KV store.
     mapped_metadata: Dict[str, bytes]
         Dict with {source key: modified data} entries; the objects corresponding to
@@ -275,9 +275,9 @@ def copy_keys(
     ----------
     keys: Iterable[str]
         Set of keys to copy without renaming;
-    src_store: Union[KeyValueStore, Callable[[], KeyValueStore]]
+    src_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Source KV store.
-    tgt_store: Union[KeyValueStore, Callable[[], KeyValueStore]]
+    tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
         Target KV store.
     """
     if callable(src_store):
