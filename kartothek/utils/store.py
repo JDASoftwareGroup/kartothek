@@ -243,13 +243,15 @@ def copy_rename_keys(
     """
     Copy keys between to stores or within one store, and rename them.
 
-    :param key_mappings:
+    Parameters
+    ----------
+    key_mappings: Dict[str, str]
         Dict with {old key: new key} mappings to rename keys during copying
-    :param src_store:
+    src_store: KeyValueStore
         Source KV store.
-    :param tgt_store:
+    tgt_store: KeyValueStore
         Target KV store.
-    :param mapped_metadata:
+    mapped_metadata: Dict[str, bytes]
         Dict with {source key: modified data} entries; the objects corresponding to
         the keys will not be copied. Instead, the modified data will directly be put
         to the target store.
@@ -269,11 +271,13 @@ def copy_keys(
     """
     Copy keys between two stores or within one store.
 
-    :param keys:
+    Parameters
+    ----------
+    keys: Iterable[str]
         Set of keys to copy without renaming;
-    :param src_store:
+    src_store: Union[KeyValueStore, Callable[[], KeyValueStore]]
         Source KV store.
-    :param tgt_store:
+    tgt_store: Union[KeyValueStore, Callable[[], KeyValueStore]]
         Target KV store.
     """
     if callable(src_store):

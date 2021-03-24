@@ -745,52 +745,54 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
 
 
 def copy_dataset(
-    src_dataset_uuid: str,
+    source_dataset_uuid: str,
     store: KeyValueStore,
     target_dataset_uuid: Optional[str] = None,
-    tgt_store: Optional[KeyValueStore] = None,
+    target_store: Optional[KeyValueStore] = None,
 ):
     """
     Copies and optionally renames a dataset, either  from one store to another or
     within one store.
 
-    :param src_dataset_uuid:
+    Parameters
+    ----------
+    source_dataset_uuid: str
         UUID of source dataset
-    :param store:
+    store: KeyValueStore
         Source store
-    :param target_dataset_uuid:
+    target_dataset_uuid: Optional[str]
         UUID of target dataset. May be the same as src_dataset_uuid, if store
         and tgt_store are different. If empty, src_dataset_uuid is used
-    :param tgt_store:
+    target_store: Optional[KeyValueStore]
         Target Store. May be the same as store, if src_dataset_uuid and
         target_dataset_uuid are different. If empty, value from parameter store is
         used
     """
     if target_dataset_uuid is None:
-        target_dataset_uuid = src_dataset_uuid
-    if tgt_store is None:
-        tgt_store = store
+        target_dataset_uuid = source_dataset_uuid
+    if target_store is None:
+        target_store = store
 
-    if (src_dataset_uuid == target_dataset_uuid) & (store == tgt_store):
+    if (source_dataset_uuid == target_dataset_uuid) & (store == target_store):
         raise ValueError(
             "Cannot copy to a dataset with the same UUID within the same store!"
         )
 
     ds_factory_source = _ensure_factory(
-        dataset_uuid=src_dataset_uuid, store=store, factory=None,
+        dataset_uuid=source_dataset_uuid, store=store, factory=None,
     )
 
     # Create a dict of {source key: target key} entries
     keys = get_dataset_keys(ds_factory_source.dataset_metadata)
     mapped_keys = {
-        source_key: source_key.replace(src_dataset_uuid, target_dataset_uuid)
+        source_key: source_key.replace(source_dataset_uuid, target_dataset_uuid)
         for source_key in keys
     }
 
     # Create a dict of metadata which has to be changed. This is only the
     # <uuid>.by-dataset-metadata.json file
     md_transformed = {
-        f"{src_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": DatasetMetadataBuilder.from_dataset(
+        f"{source_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": DatasetMetadataBuilder.from_dataset(
             ds_factory_source.dataset_metadata
         )
         .modify_uuid(target_dataset_uuid)
@@ -798,4 +800,4 @@ def copy_dataset(
     }
 
     # Copy the keys from one store to another
-    copy_rename_keys(mapped_keys, store, tgt_store, md_transformed)
+    copy_rename_keys(mapped_keys, store, target_store, md_transformed)
