@@ -218,9 +218,9 @@ def _copy_naive(
     key_mappings: Dict[str, str]
         Mapping of source key names to target key names. May be equal if a key will
         not be renamed.
-    src_store: KeyValueStore
+    src_store: simplekv.KeyValueStore
         Source KV store
-    tgt_store: KeyValueStore
+    tgt_store: simplekv.KeyValueStore
         Target KV store
     mapped_metadata: Dict[str, bytes]
         Mapping containing {key: modified metadata} values which will be written
