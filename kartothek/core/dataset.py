@@ -907,35 +907,46 @@ class DatasetMetadataBuilder(CopyMixin):
         ds_builder.partitions = dataset.partitions
         return ds_builder
 
-    def modify_uuid(self, tgt_uuid: str):
+    def modify_uuid(self, target_uuid: str):
         """
         Modify the dataset uuid and depending metadata:
         - paths to partitioning files
         - path to index files
 
-        :param tgt_uuid:
+        Parameters
+        ----------
+        target_uuid: str
             Modified dataset UUID.
-        :return modified builder object
+
+        Returns
+        -------
+        DatasetMetadataBuilder
+            modified builder object
         """
 
         # modify file names in partition metadata
+        modified_partitions = {}
         for p_key, p in self.partitions.items():
             pdict = p.to_dict()
             for table_key, table_file in pdict["files"].items():
                 if table_file.startswith(f"{self.uuid}/"):
                     pdict["files"][table_key] = table_file.replace(
-                        self.uuid, tgt_uuid, 1
+                        self.uuid, target_uuid, 1
                     )
-            self.partitions[p_key] = Partition.from_dict(p_key, pdict)
+            modified_partitions[p_key] = Partition.from_dict(p_key, pdict)
+
+        self.partitions = modified_partitions
 
         for i_key, i in self.indices.items():
-            if hasattr(i, "index_storage_key"):
+            if (hasattr(i, "index_storage_key")) and (
+                getattr(i, "index_storage_key") is not None
+            ):
                 setattr(
                     i,
                     "index_storage_key",
-                    getattr(i, "index_storage_key").replace(self.uuid, tgt_uuid, 1),
+                    getattr(i, "index_storage_key").replace(self.uuid, target_uuid, 1),
                 )
-        self.uuid = tgt_uuid
+        self.uuid = target_uuid
         return self
 
     def add_partition(self, name, partition):
