@@ -2,18 +2,17 @@
 Changelog
 =========
 
-
 Kartothek 4.0.2 (2021-04-xx)
 ============================
 
 * Fix a bug in ``MetaPartition._reconstruct_index_columns`` that would raise an ``IndexError`` when loading few columns of a dataset with many primary indices.
-
+* Add :meth:`~kartothek.io.eager.copy_dataset` to copy and optionally rename datasets within one store or between stores (eager only)
+* Add renaming option to :meth:`~kartothek.io.eager_cube.copy_cube`
 
 Kartothek 4.0.1 (2021-04-13)
 ============================
 
 * Fixed dataset corruption after updates when table names other than "table" are used (#445).
-
 
 Kartothek 4.0.0 (2021-03-17)
 ============================
