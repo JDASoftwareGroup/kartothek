@@ -9,7 +9,6 @@ from kartothek.io.dask.bag import (
     read_dataset_as_metapartitions_bag,
 )
 from kartothek.io.iter import store_dataframes_as_dataset__iter
-from kartothek.io.testing.read import *  # noqa
 
 
 @pytest.fixture(params=["dataframe"])

@@ -1,3 +1,14 @@
+"""
+This test suite all reading tests which were formerly contained in the
+kartothek.io.testing package.
+All tests in this test program will be executed for different backends:
+eager, iter, dask.[bag, dataframe, delayed]
+and for other combinations of fixtures. This will be controlled in conftest.py.
+
+Since certain combinations of fixtures will not make sense, these tests will be skipped.
+This results in a relatively large number of tests which will be skipped in total.
+"""
+
 import datetime
 import pickle
 from functools import partial

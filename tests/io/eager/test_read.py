@@ -10,7 +10,6 @@ from kartothek.io.eager import (
     read_table,
     store_dataframes_as_dataset,
 )
-from kartothek.io.testing.read import *  # noqa
 
 
 @pytest.fixture(

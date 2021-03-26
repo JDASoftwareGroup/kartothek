@@ -9,11 +9,11 @@ import pytest
 from dask.dataframe.utils import assert_eq as assert_dask_eq
 from pandas import testing as pdt
 from pandas.testing import assert_frame_equal
+from tests.io.common.test_read import test_read_dataset_as_dataframes
 
 from kartothek.core.testing import get_dataframe_not_nested
 from kartothek.io.dask.dataframe import read_dataset_as_ddf
 from kartothek.io.eager import store_dataframes_as_dataset
-from kartothek.io.testing.read import *  # noqa
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
@@ -76,7 +76,7 @@ def bound_load_dataframes():
 
 def test_load_dataframe_categoricals_with_index(dataset_with_index_factory):
     func = partial(_read_as_ddf, dataset_has_index=True)
-    test_read_dataset_as_dataframes(  # noqa: F405
+    test_read_dataset_as_dataframes(
         dataset_factory=dataset_with_index_factory,
         dataset=dataset_with_index_factory,
         store_session_factory=dataset_with_index_factory.store_factory,
