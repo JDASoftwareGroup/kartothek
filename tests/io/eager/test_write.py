@@ -15,19 +15,12 @@ from kartothek.io.eager import (
 )
 from kartothek.io_components.metapartition import MetaPartition
 
-
-def _store_dataframes(dfs, **kwargs):
-    # Positional arguments in function but `None` is acceptable input
-    for kw in ("dataset_uuid", "store"):
-        if kw not in kwargs:
-            kwargs[kw] = None
-
-    return store_dataframes_as_dataset(dfs=dfs, **kwargs)
+from ..common.conftest import store_dataframes_eager
 
 
 @pytest.fixture()
 def bound_store_dataframes():
-    return _store_dataframes
+    return store_dataframes_eager
 
 
 def test_write_single_partition(store_factory, mock_uuid, metadata_version):

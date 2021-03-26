@@ -1,7 +1,3 @@
-# -*- coding: utf-8 -*-
-# pylint: disable=E1101
-
-
 from functools import partial
 
 import numpy as np

@@ -4,7 +4,6 @@ import dask
 import pytest
 
 from kartothek.io.dask.delayed import update_dataset_from_delayed
-from kartothek.io.testing.update import *  # noqa
 
 
 @pytest.fixture

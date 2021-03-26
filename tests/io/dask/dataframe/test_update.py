@@ -2,42 +2,15 @@ import pickle
 
 import dask
 import dask.dataframe as dd
-import pandas as pd
 import pytest
+from tests.io.common.conftest import update_dataset_dataframe
 
 from kartothek.io.dask.dataframe import update_dataset_from_ddf
-from kartothek.io.testing.update import *  # noqa
 
 
 @pytest.fixture
 def bound_update_dataset():
-    return _update_dataset
-
-
-def _id(part):
-    if isinstance(part, pd.DataFrame):
-        return part
-    else:
-        return part[0]
-
-
-def _update_dataset(partitions, *args, **kwargs):
-    # TODO: Simplify once parse_input_to_metapartition is removed / obsolete
-
-    if isinstance(partitions, pd.DataFrame):
-        partitions = dd.from_pandas(partitions, npartitions=1)
-    elif partitions is not None:
-        delayed_partitions = [dask.delayed(_id)(part) for part in partitions]
-        partitions = dd.from_delayed(delayed_partitions)
-    else:
-        partitions = None
-
-    ddf = update_dataset_from_ddf(partitions, *args, **kwargs)
-
-    s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
-    ddf = pickle.loads(s)
-
-    return ddf.compute()
+    return update_dataset_dataframe
 
 
 def _return_none():
