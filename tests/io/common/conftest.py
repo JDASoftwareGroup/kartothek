@@ -1,7 +1,62 @@
+import pickle
+from functools import partial
+
+import dask.bag as db
+import numpy as np
 import pandas as pd
 import pytest
+from storefact import get_store_from_url
 
-from kartothek.io.iter import store_dataframes_as_dataset__iter
+from kartothek.io.dask.bag import (
+    read_dataset_as_dataframe_bag,
+    read_dataset_as_metapartitions_bag,
+    store_bag_as_dataset,
+)
+from kartothek.io.dask.dataframe import read_dataset_as_ddf
+from kartothek.io.dask.delayed import read_dataset_as_delayed, store_delayed_as_dataset
+from kartothek.io.eager import (
+    read_dataset_as_dataframes,
+    read_table,
+    store_dataframes_as_dataset,
+)
+from kartothek.io.iter import (
+    read_dataset_as_dataframes__iterator,
+    store_dataframes_as_dataset__iter,
+)
+from kartothek.io_components.metapartition import SINGLE_TABLE
+
+
+class NoPickle:
+    def __getstate__(self):
+        raise RuntimeError("do NOT pickle this object!")
+
+
+def mark_nopickle(obj):
+    setattr(obj, "_nopickle", NoPickle())
+
+
+def no_pickle_factory(url):
+    return partial(no_pickle_store, url)
+
+
+def no_pickle_store(url):
+    store = get_store_from_url(url)
+    mark_nopickle(store)
+    return store
+
+
+@pytest.fixture(params=["URL", "KeyValue", "Callable"])
+def store_input_types(request, tmpdir):
+    url = f"hfs://{tmpdir}"
+
+    if request.param == "URL":
+        return url
+    elif request.param == "KeyValue":
+        return get_store_from_url(url)
+    elif request.param == "Callable":
+        return no_pickle_factory(url)
+    else:
+        raise RuntimeError(f"Encountered unknown store type {type(request.param)}")
 
 
 @pytest.fixture(params=["eager", "iter", "dask.bag", "dask.delayed", "dask.dataframe"])
@@ -52,3 +107,171 @@ def dataset_dispatch_by(
         secondary_indices=["C"],
     )
     return pd.concat(clusters).sort_values(["A", "B", "C"]).reset_index(drop=True)
+
+
+def _read_table(*args, **kwargs):
+    kwargs.pop("dispatch_by", None)
+    res = read_table(*args, **kwargs)
+
+    if len(res):
+        # Array split conserves dtypes
+        return np.array_split(res, len(res))
+    else:
+        return [res]
+
+
+def _load_dataframes_iter(output_type, *args, **kwargs):
+    if output_type == "dataframe":
+        func = read_dataset_as_dataframes__iterator
+    else:
+        raise ValueError("Unknown output type {}".format(output_type))
+    return list(func(*args, **kwargs))
+
+
+# FIXME: handle removal of metparittion function properly.
+# FIXME: consolidate read_Dataset_as_dataframes (replaced by iter)
+def _read_dataset_eager(output_type, *args, **kwargs):
+    if output_type == "table":
+        return _read_table
+    elif output_type == "dataframe":
+        return read_dataset_as_dataframes
+    else:
+        raise NotImplementedError()
+
+
+def _load_dataframes_bag(output_type, *args, **kwargs):
+    if output_type == "dataframe":
+        func = read_dataset_as_dataframe_bag
+    elif output_type == "metapartition":
+        func = read_dataset_as_metapartitions_bag
+    tasks = func(*args, **kwargs)
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
+    result = tasks.compute()
+    return result
+
+
+def _load_dataframes_delayed(output_type, *args, **kwargs):
+    if "tables" in kwargs:
+        param_tables = kwargs.pop("tables")
+        kwargs["table"] = param_tables
+    func = partial(read_dataset_as_delayed)
+    tasks = func(*args, **kwargs)
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
+    result = [task.compute() for task in tasks]
+    return result
+
+
+def _read_as_ddf(
+    dataset_uuid,
+    store,
+    factory=None,
+    categoricals=None,
+    tables=None,
+    dataset_has_index=False,
+    **kwargs,
+):
+    table = tables or SINGLE_TABLE
+
+    ddf = read_dataset_as_ddf(
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        categoricals=categoricals,
+        table=table,
+        **kwargs,
+    )
+    if categoricals:
+        assert ddf._meta.dtypes["P"] == pd.api.types.CategoricalDtype(
+            categories=["__UNKNOWN_CATEGORIES__"], ordered=False
+        )
+        if dataset_has_index:
+            assert ddf._meta.dtypes["L"] == pd.api.types.CategoricalDtype(
+                categories=[1, 2], ordered=False
+            )
+        else:
+            assert ddf._meta.dtypes["L"] == pd.api.types.CategoricalDtype(
+                categories=["__UNKNOWN_CATEGORIES__"], ordered=False
+            )
+
+    s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
+    ddf = pickle.loads(s)
+
+    ddf = ddf.compute().reset_index(drop=True)
+
+    def extract_dataframe(ix):
+        df = ddf.iloc[[ix]].copy()
+        for col in df.columns:
+            if pd.api.types.is_categorical_dtype(df[col]):
+                df[col] = df[col].cat.remove_unused_categories()
+        return df.reset_index(drop=True)
+
+    return [extract_dataframe(ix) for ix in ddf.index]
+
+
+@pytest.fixture()
+def bound_load_dataframes(output_type, backend_identifier):
+    if backend_identifier == "eager":
+        return _read_dataset_eager(output_type)
+    elif backend_identifier == "iter":
+        return partial(_load_dataframes_iter, output_type)
+    elif backend_identifier == "dask.bag":
+        return partial(_load_dataframes_bag, output_type)
+    elif backend_identifier == "dask.delayed":
+        return partial(_load_dataframes_delayed, output_type)
+    elif backend_identifier == "dask.dataframe":
+        return _read_as_ddf
+    else:
+        raise NotImplementedError
+
+
+def _store_dataframes_eager(dfs, **kwargs):
+    # Positional arguments in function but `None` is acceptable input
+    for kw in ("dataset_uuid", "store"):
+        if kw not in kwargs:
+            kwargs[kw] = None
+
+    return store_dataframes_as_dataset(dfs=dfs, **kwargs)
+
+
+def _store_dataframes_iter(df_list, *args, **kwargs):
+    df_generator = (x for x in df_list)
+    return store_dataframes_as_dataset__iter(df_generator, *args, **kwargs)
+
+
+def _store_dataframes_dask_bag(df_list, *args, **kwargs):
+    bag = store_bag_as_dataset(db.from_sequence(df_list), *args, **kwargs)
+    s = pickle.dumps(bag, pickle.HIGHEST_PROTOCOL)
+    bag = pickle.loads(s)
+    return bag.compute()
+
+
+def _store_dataframes_dask_delayed(df_list, *args, **kwargs):
+    tasks = store_delayed_as_dataset(df_list, *args, **kwargs)
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
+    return tasks.compute()
+
+
+@pytest.fixture()
+def bound_store_dataframes(backend_identifier):
+    if backend_identifier == "eager":
+        return _store_dataframes_eager
+    elif backend_identifier == "iter":
+        return _store_dataframes_iter
+    elif backend_identifier == "dask.bag":
+        return _store_dataframes_dask_bag
+    elif backend_identifier == "dask.delayed":
+        return _store_dataframes_dask_delayed
+    elif backend_identifier == "dask.dataframe":
+        # not implemented for dask.dataframe
+        pytest.skip()
+    else:
+        raise NotImplementedError
