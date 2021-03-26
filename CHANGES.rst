@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Kartothek 4.1.0 (2021-03-26)
+============================
+* Introduces :meth:`~kartothek.io.eager.copy_dataset` to copy and optionally rename datasets within one store or between stores (eager only)
+* Extends :meth:`~kartothek.io.eager_cube.copy_cube` to allow renaming a cube while copying
+
 Kartothek 4.0.0 (2021-03-XY)
 ============================
 
