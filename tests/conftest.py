@@ -539,3 +539,18 @@ def evaluation_dataset(meta_partitions_evaluation_files_only, store_session):
             dataset_uuid="evaluation_uuid",
             store=store_session,
         )
+
+
+@pytest.fixture(params=[True, False], ids=["use_categoricals", "no_categoricals"])
+def use_categoricals(request):
+    return request.param
+
+
+@pytest.fixture(params=[True, False], ids=["use_factory", "no_factory"])
+def use_dataset_factory(request, dates_as_object):
+    return request.param
+
+
+@pytest.fixture(params=[True, False], ids=["dates_as_object", "datest_as_datetime"])
+def dates_as_object(request):
+    return request.param
