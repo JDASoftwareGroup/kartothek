@@ -15,61 +15,13 @@ from kartothek.io.dask.bag import (
 )
 from kartothek.io.dask.dataframe import read_dataset_as_ddf
 from kartothek.io.dask.delayed import read_dataset_as_delayed
-from kartothek.io.eager import read_dataset_as_dataframes, read_table
-from kartothek.io.iter import (
-    read_dataset_as_dataframes__iterator,
-    store_dataframes_as_dataset__iter,
+from kartothek.io.eager import (
+    read_dataset_as_dataframes,
+    read_table,
+    store_dataframes_as_dataset,
 )
+from kartothek.io.iter import read_dataset_as_dataframes__iterator
 from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
-
-
-@pytest.fixture(scope="session")
-def dataset_dispatch_by_uuid():
-    import uuid
-
-    return uuid.uuid1().hex
-
-
-@pytest.fixture(scope="session")
-def dataset_dispatch_by(
-    metadata_version, store_session_factory, dataset_dispatch_by_uuid
-):
-    cluster1 = pd.DataFrame(
-        {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
-    )
-    cluster2 = pd.DataFrame(
-        {"A": [1, 1], "B": [10, 10], "C": [2, 3], "Content": ["cluster2", "cluster2"]}
-    )
-    cluster3 = pd.DataFrame({"A": [1], "B": [20], "C": [1], "Content": ["cluster3"]})
-    cluster4 = pd.DataFrame(
-        {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
-    )
-    clusters = [cluster1, cluster2, cluster3, cluster4]
-
-    store_dataframes_as_dataset__iter(
-        df_generator=clusters,
-        store=store_session_factory,
-        dataset_uuid=dataset_dispatch_by_uuid,
-        metadata_version=metadata_version,
-        partition_on=["A", "B"],
-        secondary_indices=["C"],
-    )
-    return pd.concat(clusters).sort_values(["A", "B", "C"]).reset_index(drop=True)
-
-
-@pytest.fixture(params=[True, False], ids=["use_factory", "no_factory"])
-def use_dataset_factory(request, dates_as_object):
-    return request.param
-
-
-@pytest.fixture(params=[True, False], ids=["dates_as_object", "datest_as_datetime"])
-def dates_as_object(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False], ids=["use_categoricals", "no_categoricals"])
-def use_categoricals(request):
-    return request.param
 
 
 class NoPickle:
@@ -211,16 +163,16 @@ def _read_as_ddf(
 
 
 @pytest.fixture()
-def bound_load_dataframes(output_type, implementation_type):
-    if implementation_type == "eager":
+def bound_load_dataframes(output_type, backend_identifier):
+    if backend_identifier == "eager":
         return _read_dataset_eager(output_type)
-    elif implementation_type == "iter":
+    elif backend_identifier == "iter":
         return partial(_load_dataframes_iter, output_type)
-    elif implementation_type == "bag":
+    elif backend_identifier == "dask.bag":
         return partial(_load_dataframes_bag, output_type)
-    elif implementation_type == "delayed":
+    elif backend_identifier == "dask.delayed":
         return partial(_load_dataframes_delayed, output_type)
-    elif implementation_type == "dataframe":
+    elif backend_identifier == "dask.dataframe":
         return _read_as_ddf
     else:
         raise NotImplementedError
@@ -569,3 +521,189 @@ def test_store_input_types(store_input_types, bound_load_dataframes):
         result = result[SINGLE_TABLE]
 
     pdt.assert_frame_equal(result, df.head(1), check_dtype=False)
+
+
+def test_read_dataset_as_dataframes_columns_projection(
+    store_factory, bound_load_dataframes, metadata_version
+):
+    def _f(b_c):
+        b, c = b_c
+        df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
+        return df
+
+    in_partitions = [_f([1, 100])]
+    dataset_uuid = "partitioned_uuid"
+    store_dataframes_as_dataset(
+        dfs=in_partitions,
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        metadata_version=metadata_version,
+        partition_on=["a", "b"],
+    )
+
+    result = bound_load_dataframes(
+        dataset_uuid=dataset_uuid, store=store_factory, columns=["a", "b", "c"],
+    )
+    probe = result[0]
+
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data for mp in result]
+    else:
+        result_dfs = result
+    result_df = pd.concat(result_dfs).reset_index(drop=True)
+
+    expected_df = pd.DataFrame({"a": [1, 1], "b": [1, 1], "c": [100, 100]})
+    pdt.assert_frame_equal(expected_df, result_df, check_like=True)
+
+
+def test_read_dataset_as_dataframes_columns_primary_index_only(
+    store_factory, bound_load_dataframes, metadata_version
+):
+    def _f(b_c):
+        b, c = b_c
+        df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
+        return df
+
+    in_partitions = [_f([1, 100])]
+    dataset_uuid = "partitioned_uuid"
+
+    store_dataframes_as_dataset(
+        dfs=in_partitions,
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        metadata_version=metadata_version,
+        partition_on=["a", "b"],
+    )
+    result = bound_load_dataframes(
+        dataset_uuid=dataset_uuid, store=store_factory, columns=["a", "b"]
+    )
+    probe = result[0]
+
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data for mp in result]
+    else:
+        result_dfs = result
+    result_df = pd.concat(result_dfs).reset_index(drop=True)
+
+    expected_df = pd.DataFrame({"a": [1, 1], "b": [1, 1]})
+    pdt.assert_frame_equal(expected_df, result_df, check_like=True)
+
+
+def test_empty_predicate_pushdown_empty_col_projection(
+    dataset, store_session_factory, bound_load_dataframes, backend_identifier
+):
+    result = bound_load_dataframes(
+        dataset_uuid=dataset.uuid,
+        store=store_session_factory,
+        columns=[],
+        predicates=[[("P", "==", 12345678)]],  # this product doesn't exist
+    )
+
+    if backend_identifier.startswith("dask"):
+        pytest.xfail("Output of dask for empty results is currently inconsistent")
+    probe = result[0]
+
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data for mp in result]
+    else:
+        result_dfs = result
+    res = pd.concat(result_dfs).reset_index(drop=True)
+    pdt.assert_frame_equal(res, pd.DataFrame(index=pd.RangeIndex(start=0, stop=0)))
+
+
+@pytest.mark.parametrize("partition_on", [["a", "b"], ["c"], ["a", "b", "c"]])
+@pytest.mark.parametrize("datetype", [datetime.datetime, datetime.date])
+@pytest.mark.parametrize("comp", ["==", ">="])
+def test_datetime_predicate_with_dates_as_object(
+    dataset,
+    store_factory,
+    bound_load_dataframes,
+    metadata_version,
+    output_type,
+    partition_on,
+    datetype,
+    comp,
+):
+    def _f(b_c):
+        b, c = b_c
+        df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
+        return df
+
+    in_partitions = [_f([1, datetype(2000, 1, 1)])]
+    dataset_uuid = "partitioned_uuid"
+    store_dataframes_as_dataset(
+        dfs=in_partitions,
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        metadata_version=metadata_version,
+        partition_on=partition_on,
+    )
+
+    result = bound_load_dataframes(
+        dataset_uuid="partitioned_uuid",
+        store=store_factory,
+        predicates=[[("c", comp, datetype(2000, 1, 1))]],
+        dates_as_object=True,
+    )
+    if output_type != "dataframe":
+        return
+
+    assert len(result) == 1
+    df_actual = result[0]
+
+    df_expected = in_partitions[0]
+    pdt.assert_frame_equal(df_actual, df_expected, check_like=True)
+
+
+def test_binary_column_metadata(store_factory, bound_load_dataframes):
+    df = pd.DataFrame({b"int_col": [1], "🙈".encode(): [2]})
+
+    store_dataframes_as_dataset(
+        dfs=[df], store=store_factory, dataset_uuid="dataset_uuid"
+    )
+
+    result = bound_load_dataframes(dataset_uuid="dataset_uuid", store=store_factory)
+
+    probe = result[0]
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data for mp in result]
+    else:
+        result_dfs = result
+    df = pd.concat(result_dfs).reset_index(drop=True)
+
+    # Assert column names are of type `str`, instead of `bytes` objects
+    assert set(df.columns.map(type)) == {str}
+
+
+def test_extensiondtype_rountrip(store_factory, bound_load_dataframes):
+    df = pd.DataFrame({"str": pd.Series(["a", "b"], dtype="string")})
+
+    store_dataframes_as_dataset(
+        dfs=[df], store=store_factory, dataset_uuid="dataset_uuid"
+    )
+
+    result = bound_load_dataframes(dataset_uuid="dataset_uuid", store=store_factory)
+
+    probe = result[0]
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data for mp in result]
+    else:
+        result_dfs = result
+    result_df = pd.concat(result_dfs).reset_index(drop=True)
+    pdt.assert_frame_equal(df, result_df)
+
+
+def test_non_default_table_name_roundtrip(store_factory, bound_load_dataframes):
+    df = pd.DataFrame({"A": [1]})
+    store_dataframes_as_dataset(
+        dfs=[df], store=store_factory, dataset_uuid="dataset_uuid", table_name="foo"
+    )
+    result = bound_load_dataframes(dataset_uuid="dataset_uuid", store=store_factory)
+
+    probe = result[0]
+    if isinstance(probe, MetaPartition):
+        result_dfs = [mp.data for mp in result]
+    else:
+        result_dfs = result
+    result_df = pd.concat(result_dfs).reset_index(drop=True)
+    pdt.assert_frame_equal(df, result_df)
