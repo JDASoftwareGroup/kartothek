@@ -1,7 +1,9 @@
 import pickle
 from functools import partial
 
+import dask
 import dask.bag as db
+import dask.dataframe as dd
 import numpy as np
 import pandas as pd
 import pytest
@@ -12,16 +14,22 @@ from kartothek.io.dask.bag import (
     read_dataset_as_metapartitions_bag,
     store_bag_as_dataset,
 )
-from kartothek.io.dask.dataframe import read_dataset_as_ddf
-from kartothek.io.dask.delayed import read_dataset_as_delayed, store_delayed_as_dataset
+from kartothek.io.dask.dataframe import read_dataset_as_ddf, update_dataset_from_ddf
+from kartothek.io.dask.delayed import (
+    read_dataset_as_delayed,
+    store_delayed_as_dataset,
+    update_dataset_from_delayed,
+)
 from kartothek.io.eager import (
     read_dataset_as_dataframes,
     read_table,
     store_dataframes_as_dataset,
+    update_dataset_from_dataframes,
 )
 from kartothek.io.iter import (
     read_dataset_as_dataframes__iterator,
     store_dataframes_as_dataset__iter,
+    update_dataset_from_dataframes__iter,
 )
 from kartothek.io_components.metapartition import SINGLE_TABLE
 
@@ -230,7 +238,7 @@ def bound_load_dataframes(output_type, backend_identifier):
         raise NotImplementedError
 
 
-def _store_dataframes_eager(dfs, **kwargs):
+def store_dataframes_eager(dfs, **kwargs):
     # Positional arguments in function but `None` is acceptable input
     for kw in ("dataset_uuid", "store"):
         if kw not in kwargs:
@@ -263,7 +271,7 @@ def _store_dataframes_dask_delayed(df_list, *args, **kwargs):
 @pytest.fixture()
 def bound_store_dataframes(backend_identifier):
     if backend_identifier == "eager":
-        return _store_dataframes_eager
+        return store_dataframes_eager
     elif backend_identifier == "iter":
         return _store_dataframes_iter
     elif backend_identifier == "dask.bag":
@@ -273,5 +281,70 @@ def bound_store_dataframes(backend_identifier):
     elif backend_identifier == "dask.dataframe":
         # not implemented for dask.dataframe
         pytest.skip()
+    else:
+        raise NotImplementedError
+
+
+def _update_dataset_iter(df_list, *args, **kwargs):
+    if isinstance(df_list, pd.DataFrame):
+        df_list = [df_list]
+    df_generator = (x for x in df_list)
+    return update_dataset_from_dataframes__iter(df_generator, *args, **kwargs)
+
+
+def _update_dataset_delayed(partitions, *args, **kwargs):
+    if not isinstance(partitions, list):
+        partitions = [partitions]
+    tasks = update_dataset_from_delayed(partitions, *args, **kwargs)
+
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+
+    return tasks.compute()
+
+
+def _id(part):
+    if isinstance(part, pd.DataFrame):
+        return part
+    else:
+        return part[0]
+
+
+def update_dataset_dataframe(partitions, *args, **kwargs):
+    # TODO: Simplify once parse_input_to_metapartition is removed / obsolete
+
+    if isinstance(partitions, pd.DataFrame):
+        partitions = dd.from_pandas(partitions, npartitions=1)
+    elif partitions is not None:
+        delayed_partitions = [dask.delayed(_id)(part) for part in partitions]
+        partitions = dd.from_delayed(delayed_partitions)
+    else:
+        partitions = None
+
+    ddf = update_dataset_from_ddf(partitions, *args, **kwargs)
+
+    s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
+    ddf = pickle.loads(s)
+
+    return ddf.compute()
+
+
+def _return_none():
+    return None
+
+
+@pytest.fixture()
+def bound_update_dataset(backend_identifier):
+    if backend_identifier == "eager":
+        return update_dataset_from_dataframes
+    elif backend_identifier == "iter":
+        return _update_dataset_iter
+    elif backend_identifier == "dask.bag":
+        # no tests impleme ted for update and dask.bag
+        pytest.skip()
+    elif backend_identifier == "dask.delayed":
+        return _update_dataset_delayed
+    elif backend_identifier == "dask.dataframe":
+        return update_dataset_dataframe
     else:
         raise NotImplementedError

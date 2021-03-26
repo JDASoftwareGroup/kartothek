@@ -9,7 +9,6 @@ from kartothek.io.eager import (
     update_dataset_from_dataframes,
     write_single_partition,
 )
-from kartothek.io.testing.update import *  # noqa: F40
 
 
 @pytest.fixture()
