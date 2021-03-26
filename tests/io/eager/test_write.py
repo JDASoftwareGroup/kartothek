@@ -13,7 +13,6 @@ from kartothek.io.eager import (
     store_dataframes_as_dataset,
     write_single_partition,
 )
-from kartothek.io.testing.write import *  # noqa: F40
 from kartothek.io_components.metapartition import MetaPartition
 
 
