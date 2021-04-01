@@ -27,7 +27,7 @@ def test_store_single_dataframe_as_partition(store, metadata_version):
     mp = MetaPartition(label="test_label", data=df, metadata_version=metadata_version)
 
     meta_partition = mp.store_dataframes(
-        store=store, df_serializer=ParquetSerializer(), dataset_uuid="dataset_uuid",
+        store=store, df_serializer=ParquetSerializer(), dataset_uuid="dataset_uuid"
     )
 
     assert meta_partition.data is None
@@ -58,7 +58,7 @@ def test_load_dataframe_logical_conjunction(store, metadata_version):
         logical_conjunction=[("P", ">", 4)],
     )
     meta_partition = mp.store_dataframes(
-        store=store, df_serializer=None, dataset_uuid="dataset_uuid",
+        store=store, df_serializer=None, dataset_uuid="dataset_uuid"
     )
     predicates = None
     loaded_mp = meta_partition.load_dataframes(store=store, predicates=predicates)
@@ -1331,3 +1331,17 @@ def test_get_parquet_metadata_row_group_size(store):
         }
     )
     pd.testing.assert_frame_equal(actual, expected)
+
+
+def test__reconstruct_index_columns():
+    df = pd.DataFrame({"x": [0], "a": [-1], "b": [-2], "c": [-3]})
+    mp = MetaPartition(label="test_label", data=df)
+    df_with_index_columns = mp._reconstruct_index_columns(
+        df=df[["x"]],
+        key_indices=[("a", 1), ("b", 2), ("c", 3)],
+        columns=["x", "c"],
+        categories=None,
+        date_as_object=False,
+    )
+    # Index columns first
+    pdt.assert_frame_equal(df_with_index_columns, pd.DataFrame({"c": [3], "x": [0]}))
