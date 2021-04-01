@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Kartothek 4.0.1 (2021-04-xx)
+============================
+* Fix a bug in :meth:`~kartothek.io_components.metapartition.MetaPartition._reconstruct_index_columns` that would raise an ``IndexError`` when loading few columns of a dataset with many primary indices.
+
+
 Kartothek 4.0.0 (2021-03-17)
 ============================
 
