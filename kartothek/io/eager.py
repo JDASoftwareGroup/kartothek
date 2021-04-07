@@ -60,6 +60,7 @@ __all__ = (
     "update_dataset_from_dataframes",
     "build_dataset_indices",
     "garbage_collect_dataset",
+    "copy_dataset",
 )
 
 
@@ -756,14 +757,14 @@ def copy_dataset(
 
     Parameters
     ----------
-    source_dataset_uuid: str
+    source_dataset_uuid:
         UUID of source dataset
-    store: KeyValueStore
+    store:
         Source store
-    target_dataset_uuid: Optional[str]
+    target_dataset_uuid:
         UUID of target dataset. May be the same as src_dataset_uuid, if store
         and tgt_store are different. If empty, src_dataset_uuid is used
-    target_store: Optional[KeyValueStore]
+    target_store:
         Target Store. May be the same as store, if src_dataset_uuid and
         target_dataset_uuid are different. If empty, value from parameter store is
         used
