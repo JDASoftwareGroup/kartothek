@@ -2,6 +2,12 @@
 Changelog
 =========
 
+Kartothek 4.0.1 (2021-04-XX)
+============================
+
+* Fixed dataset corruption after updates when table names other than "table" are used (#445).
+
+
 Kartothek 4.0.0 (2021-03-17)
 ============================
 
