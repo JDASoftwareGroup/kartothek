@@ -471,6 +471,7 @@ class MetaPartition(Iterable):
             schema=schema,
             partition_keys=metapartition.partition_keys or None,
             logical_conjunction=metapartition.logical_conjunction or None,
+            table_name=metapartition.table_name,
         )
 
         # Add metapartition information to the new object
@@ -1109,6 +1110,7 @@ class MetaPartition(Iterable):
                     f"{label}"
                 ),
                 partition_keys=partition_on,
+                table_name=self.table_name,
             )
             new_mp = new_mp.add_metapartition(tmp_mp, schema_validation=False)
         if self.indices:
