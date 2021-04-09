@@ -656,7 +656,7 @@ def test_update_of_dataset_with_non_default_table_name(
         [df_update],
         store=store_factory,
         dataset_uuid=dataset_uuid,
-        table="non-default-name",
+        table_name="non-default-name",
         partition_on=["date"],
     )
     dm = DatasetMetadata.load_from_store(dataset_uuid, store_factory())

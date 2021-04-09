@@ -264,6 +264,7 @@ def update_dataset_from_delayed(
     sort_partitions_by=None,
     secondary_indices=None,
     factory=None,
+    table_name=SINGLE_TABLE,
 ):
     """
     A dask.delayed graph to add and store a list of dictionaries containing
@@ -304,6 +305,7 @@ def update_dataset_from_delayed(
         df_serializer=df_serializer,
         dataset_uuid=dataset_uuid,
         sort_partitions_by=sort_partitions_by,
+        dataset_table_name=table_name,
     )
 
     return dask.delayed(update_dataset_from_partitions)(
