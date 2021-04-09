@@ -2,12 +2,14 @@
 # pylint: disable=E1101
 
 
+from datetime import date
 from functools import partial
 
 import numpy as np
 import pandas as pd
 import pytest
 
+from kartothek.api.dataset import read_dataset_as_ddf
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.core.testing import TIME_TO_FREEZE_ISO
@@ -621,3 +623,50 @@ def test_update_raises_incompatible_inidces(
             store=store_factory,
             secondary_indices=df_not_nested.columns[1],
         )
+
+
+def test_update_of_dataset_with_non_default_table_name(
+    store_factory, bound_update_dataset
+):
+    """
+    Tests that datasets with table names other than "table" can be created,
+    updated and read successfully (regression test for issue #445).
+    """
+
+    # Create initial dataset
+    dataset_uuid = "dataset_uuid"
+    df_create = pd.DataFrame(
+        {"date": [date(2021, 1, 1), date(2021, 1, 2)], "value": range(2)}
+    )
+    store_dataframes_as_dataset(
+        dfs=[df_create],
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        table_name="non-default-name",
+        partition_on=["date"],
+    )
+    dm = DatasetMetadata.load_from_store(dataset_uuid, store_factory())
+    assert dm.table_name == "non-default-name"
+
+    # Update dataset
+    df_update = pd.DataFrame(
+        {"date": [date(2021, 1, 3), date(2021, 1, 4)], "value": range(2)}
+    )
+    bound_update_dataset(
+        [df_update],
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        table="non-default-name",
+        partition_on=["date"],
+    )
+    dm = DatasetMetadata.load_from_store(dataset_uuid, store_factory())
+    assert dm.table_name == "non-default-name"
+
+    # Assert equality of dataframe
+    df_read = (
+        read_dataset_as_ddf(dataset_uuid, store_factory(), "table")
+        .compute()
+        .reset_index(drop=True)
+    )
+    df_expected = df_create.append(df_update).reset_index(drop=True)
+    pd.testing.assert_frame_equal(df_read, df_expected)
