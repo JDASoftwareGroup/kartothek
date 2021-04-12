@@ -16,11 +16,13 @@ from kartothek.io.dask.bag import (
 )
 from kartothek.io.dask.dataframe import read_dataset_as_ddf, update_dataset_from_ddf
 from kartothek.io.dask.delayed import (
+    delete_dataset__delayed,
     read_dataset_as_delayed,
     store_delayed_as_dataset,
     update_dataset_from_delayed,
 )
 from kartothek.io.eager import (
+    delete_dataset,
     read_dataset_as_dataframes,
     read_table,
     store_dataframes_as_dataset,
@@ -346,5 +348,31 @@ def bound_update_dataset(backend_identifier):
         return _update_dataset_delayed
     elif backend_identifier == "dask.dataframe":
         return update_dataset_dataframe
+    else:
+        raise NotImplementedError
+
+
+def _delete_delayed(*args, **kwargs):
+    tasks = delete_dataset__delayed(*args, **kwargs)
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+    dask.compute(tasks)
+
+
+@pytest.fixture()
+def bound_delete_dataset(backend_identifier):
+    if backend_identifier == "eager":
+        return delete_dataset
+    elif backend_identifier == "iter":
+        # no tests implemented for delete and iter
+        pytest.skip()
+    elif backend_identifier == "dask.bag":
+        # no tests implemented for update and dask.bag
+        pytest.skip()
+    elif backend_identifier == "dask.delayed":
+        return _delete_delayed
+    elif backend_identifier == "dask.dataframe":
+        # no tests implemented for update and dask.dataframe
+        pytest.skip()
     else:
         raise NotImplementedError
