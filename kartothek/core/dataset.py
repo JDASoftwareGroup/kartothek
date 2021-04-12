@@ -938,13 +938,12 @@ class DatasetMetadataBuilder(CopyMixin):
         self.partitions = modified_partitions
 
         for i_key, i in self.indices.items():
-            if (hasattr(i, "index_storage_key")) and (
-                getattr(i, "index_storage_key") is not None
+            if (
+                isinstance(i, ExplicitSecondaryIndex)
+                and i.index_storage_key is not None
             ):
-                setattr(
-                    i,
-                    "index_storage_key",
-                    getattr(i, "index_storage_key").replace(self.uuid, target_uuid, 1),
+                i.index_storage_key = i.index_storage_key.replace(
+                    self.uuid, target_uuid, 1
                 )
         self.uuid = target_uuid
         return self
