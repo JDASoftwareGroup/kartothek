@@ -479,16 +479,17 @@ def _transform_metadata(
     all_datasets = discover_datasets_unchecked(
         uuid_prefix=cube_prefix, store=src_store,
     )
+    if renamed_datasets is None:
+        renamed_datasets = {}
+
     md_transformed = {}
     tgt_cube_prefix = renamed_cube or cube_prefix
+
     for ds, ds_meta in all_datasets.items():
         # build new cube uuid for each dataset: <new prefix>++<new dataset name>
-        if (renamed_datasets is not None) and (ds in renamed_datasets.keys()):
-            tgt_uuid = (
-                f"{tgt_cube_prefix}{KTK_CUBE_UUID_SEPARATOR}{renamed_datasets[ds]}"
-            )
-        else:
-            tgt_uuid = f"{tgt_cube_prefix}{KTK_CUBE_UUID_SEPARATOR}{ds}"
+        tgt_uuid = (
+            f"{tgt_cube_prefix}{KTK_CUBE_UUID_SEPARATOR}{renamed_datasets.get(ds, ds)}"
+        )
 
         # transform metadata for this dataset
         md_ds_transformed = (
@@ -496,7 +497,7 @@ def _transform_metadata(
             .modify_uuid(tgt_uuid)
             .to_json()[1]
         )
-        md_ds_key = f"{cube_prefix}{KTK_CUBE_UUID_SEPARATOR}{ds}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}"
+        md_ds_key = f"{ds_meta.uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}"
         md_transformed[md_ds_key] = md_ds_transformed
     return md_transformed
 
