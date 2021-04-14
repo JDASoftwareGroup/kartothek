@@ -10,6 +10,7 @@ import pytest
 from storefact import get_store_from_url
 
 from kartothek.io.dask.bag import (
+    build_dataset_indices__bag,
     read_dataset_as_dataframe_bag,
     read_dataset_as_metapartitions_bag,
     store_bag_as_dataset,
@@ -22,6 +23,7 @@ from kartothek.io.dask.delayed import (
     update_dataset_from_delayed,
 )
 from kartothek.io.eager import (
+    build_dataset_indices,
     delete_dataset,
     read_dataset_as_dataframes,
     read_table,
@@ -373,6 +375,35 @@ def bound_delete_dataset(backend_identifier):
         return _delete_delayed
     elif backend_identifier == "dask.dataframe":
         # no tests implemented for update and dask.dataframe
+        pytest.skip()
+    else:
+        raise NotImplementedError
+
+
+def _build_indices_bag(*args, **kwargs):
+    bag = build_dataset_indices__bag(*args, **kwargs)
+
+    # pickle roundtrip to ensure we don't need the inefficient cloudpickle fallback
+    s = pickle.dumps(bag, pickle.HIGHEST_PROTOCOL)
+    bag = pickle.loads(s)
+
+    bag.compute()
+
+
+@pytest.fixture()
+def bound_build_dataset_indices(backend_identifier):
+    if backend_identifier == "eager":
+        return build_dataset_indices
+    elif backend_identifier == "iter":
+        # no tests implemented for index and iter
+        pytest.skip()
+    elif backend_identifier == "dask.bag":
+        return _build_indices_bag
+    elif backend_identifier == "dask.delayed":
+        # no tests implemented for index and dask.delayed
+        pytest.skip()
+    elif backend_identifier == "dask.dataframe":
+        # no tests implemented for index and dask.dataframe
         pytest.skip()
     else:
         raise NotImplementedError
