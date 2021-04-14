@@ -1345,3 +1345,13 @@ def test__reconstruct_index_columns():
     )
     # Index columns first
     pdt.assert_frame_equal(df_with_index_columns, pd.DataFrame({"c": [3], "x": [0]}))
+
+
+def test_partition_on_keeps_table_name():
+    mp = MetaPartition(
+        label="label_1",
+        data=pd.DataFrame({"P": [1, 2, 1, 2], "L": [1, 1, 2, 2]}),
+        table_name="non-default-name",
+    )
+    repartitioned_mp = mp.partition_on(["P"])
+    assert repartitioned_mp.table_name == "non-default-name"
