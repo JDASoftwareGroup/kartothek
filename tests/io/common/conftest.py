@@ -18,6 +18,7 @@ from kartothek.io.dask.bag import (
 from kartothek.io.dask.dataframe import read_dataset_as_ddf, update_dataset_from_ddf
 from kartothek.io.dask.delayed import (
     delete_dataset__delayed,
+    garbage_collect_dataset__delayed,
     read_dataset_as_delayed,
     store_delayed_as_dataset,
     update_dataset_from_delayed,
@@ -25,6 +26,7 @@ from kartothek.io.dask.delayed import (
 from kartothek.io.eager import (
     build_dataset_indices,
     delete_dataset,
+    garbage_collect_dataset,
     read_dataset_as_dataframes,
     read_table,
     store_dataframes_as_dataset,
@@ -404,6 +406,32 @@ def bound_build_dataset_indices(backend_identifier):
         pytest.skip()
     elif backend_identifier == "dask.dataframe":
         # no tests implemented for index and dask.dataframe
+        pytest.skip()
+    else:
+        raise NotImplementedError
+
+
+def _run_garbage_collect_delayed(*args, **kwargs):
+    tasks = garbage_collect_dataset__delayed(*args, **kwargs)
+    s = pickle.dumps(tasks, pickle.HIGHEST_PROTOCOL)
+    tasks = pickle.loads(s)
+    dask.compute(tasks)
+
+
+@pytest.fixture()
+def garbage_collect_callable(backend_identifier):
+    if backend_identifier == "eager":
+        return garbage_collect_dataset
+    elif backend_identifier == "iter":
+        # no tests implemented for gc and iter
+        pytest.skip()
+    elif backend_identifier == "dask.bag":
+        # no tests implemented for gc and dask.bag
+        pytest.skip()
+    elif backend_identifier == "dask.delayed":
+        return _run_garbage_collect_delayed
+    elif backend_identifier == "dask.dataframe":
+        # no tests implemented for gc and dask.dataframe
         pytest.skip()
     else:
         raise NotImplementedError
