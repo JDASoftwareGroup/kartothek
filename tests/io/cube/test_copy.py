@@ -6,6 +6,7 @@ from tests.io.cube.utils import wrap_bag_copy
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
 from kartothek.io.dask.bag_cube import copy_cube_bag
+from kartothek.io.eager import copy_dataset
 from kartothek.io.eager_cube import build_cube, copy_cube, query_cube
 from kartothek.utils.ktk_adapters import get_dataset_keys
 
@@ -99,7 +100,6 @@ def test_simple_copy_cube_rename_dataset(
 
     ds_name_old = "enrich"
     ds_name_new = "augmented"
-
     driver(
         cube=cube,
         src_store=function_store,
@@ -212,6 +212,7 @@ def test_simple_copy_cube_rename_cube_prefix_and_dataset(
 
     assert_target_cube_readable(new_cube_prefix, function_store2, df_seed, df_enrich)
 
+
 def test_simple_rename_cube_same_stores(
     driver, function_store, cube, simple_cube_1, df_seed, df_enrich
 ):
@@ -231,6 +232,7 @@ def test_simple_rename_cube_same_stores(
             renamed_cube_prefix=new_cube_prefix,
             renamed_datasets={ds_name_old: ds_name_new},
         )
+
 
 def test_copy_fail_overwrite_true(
     driver, mocker, cube, simple_cube_1, function_store, function_store2
@@ -278,7 +280,6 @@ def test_copy_fail_overwrite_false(
         )
 
     assert len(function_store2().keys()) == 0
-
 
 
 def test_overwrite_fail(

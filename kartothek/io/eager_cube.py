@@ -434,7 +434,6 @@ def _transform_uuid(
     """
     Transform a uuid from <old cube prefix>++<old dataset> to
     <new cube prefix>++<new dataset>
-
     :param src_uuid:
         Uuid to transform
     :param cube_prefix:
