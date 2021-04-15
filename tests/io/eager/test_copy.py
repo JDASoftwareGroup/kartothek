@@ -98,6 +98,28 @@ def test_copy_eager_with_rename_different_store(dataset_to_copy, store, store2):
     assert_target_ktk_readable(store2, TGT_DS_UUID)
 
 
+def test_copy_eager_no_target_uuid(dataset_to_copy, store, store2):
+    copy_dataset(
+        source_dataset_uuid=SRC_DS_UUID,
+        target_dataset_uuid=None,
+        store=store,
+        target_store=store2,
+    )
+    assert_target_keys(store, SRC_DS_UUID, store2, SRC_DS_UUID)
+    assert_target_ktk_readable(store2, SRC_DS_UUID)
+
+
+def test_copy_eager_no_target_store(dataset_to_copy, store, store2):
+    copy_dataset(
+        source_dataset_uuid=SRC_DS_UUID,
+        target_dataset_uuid=TGT_DS_UUID,
+        store=store,
+        target_store=None,
+    )
+    assert_target_keys(store, SRC_DS_UUID, store, TGT_DS_UUID)
+    assert_target_ktk_readable(store, TGT_DS_UUID)
+
+
 def test_copy_eager_without_rename_different_store(dataset_to_copy, store, store2):
     """
     Copies DS between stores while keeping the name
