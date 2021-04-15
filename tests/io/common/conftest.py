@@ -327,6 +327,12 @@ def update_dataset_dataframe(partitions, *args, **kwargs):
     else:
         partitions = None
 
+    # Replace `table_name` with `table` keyword argument to enable shared test code
+    # via `bound_update_dataset` fixture
+    if "table_name" in kwargs:
+        kwargs["table"] = kwargs["table_name"]
+        del kwargs["table_name"]
+
     ddf = update_dataset_from_ddf(partitions, *args, **kwargs)
 
     s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
