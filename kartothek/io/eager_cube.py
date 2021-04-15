@@ -1,6 +1,7 @@
 """
 Eager IO aka "everything is done locally and immediately".
 """
+import logging
 from collections import defaultdict
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 
@@ -18,17 +19,18 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_UUID_SEPARATOR,
 )
 from kartothek.core.cube.cube import Cube
-from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBuilder
-from kartothek.core.naming import METADATA_BASE_SUFFIX, METADATA_FORMAT_JSON
+from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.typing import StoreFactory
 from kartothek.io.eager import (
+    copy_dataset,
+    delete_dataset,
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
 )
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.cleanup import get_keys_to_clean
 from kartothek.io_components.cube.common import assert_stores_different
-from kartothek.io_components.cube.copy import get_copy_keys
+from kartothek.io_components.cube.copy import get_copy_keys, get_datasets_to_copy
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
 from kartothek.io_components.cube.remove import (
     prepare_metapartitions_for_removal_action,
@@ -53,7 +55,9 @@ from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import get_dataset_keys, metadata_factory_from_dataset
 from kartothek.utils.pandas import concat_dataframes
-from kartothek.utils.store import copy_keys, copy_rename_keys
+from kartothek.utils.store import copy_keys
+
+logger = logging.getLogger()
 
 __all__ = (
     "append_to_cube",
@@ -421,18 +425,18 @@ def delete_cube(cube, store, datasets=None):
         store.delete(k)
 
 
-def _transform_key(
-    src_key: str,
+def _transform_uuid(
+    src_uuid: str,
     cube_prefix: str,
     renamed_cube_prefix: Optional[str],
     renamed_datasets: Optional[Dict[str, str]],
 ):
     """
-    Transform a key from <old cube prefix>++<old dataset><path> to
-    <new cube prefix>++<new dataset><path>
+    Transform a uuid from <old cube prefix>++<old dataset> to
+    <new cube prefix>++<new dataset>
 
-    :param src_key:
-        Key to transform
+    :param src_uuid:
+        Uuid to transform
     :param cube_prefix:
         Cube prefix before renaming
     :param renamed_cube:
@@ -440,66 +444,21 @@ def _transform_key(
     :param renamed_datasets:
         Optional dict of {old dataset name: new dataset name} entries to rename datasets
     """
-
-    tgt_key = src_key
+    tgt_uuid = src_uuid
     if renamed_cube_prefix:
-        tgt_key = src_key.replace(
+        tgt_uuid = src_uuid.replace(
             f"{cube_prefix}{KTK_CUBE_UUID_SEPARATOR}",
             f"{renamed_cube_prefix}{KTK_CUBE_UUID_SEPARATOR}",
         )
 
     if renamed_datasets:
         for ds_old, ds_new in renamed_datasets.items():
-            if f"{KTK_CUBE_UUID_SEPARATOR}{ds_old}" in tgt_key:
-                tgt_key = tgt_key.replace(
+            if f"{KTK_CUBE_UUID_SEPARATOR}{ds_old}" in tgt_uuid:
+                tgt_uuid = tgt_uuid.replace(
                     f"{KTK_CUBE_UUID_SEPARATOR}{ds_old}",
                     f"{KTK_CUBE_UUID_SEPARATOR}{ds_new}",
                 )
-    return tgt_key
-
-
-def _transform_metadata(
-    cube_prefix: str,
-    src_store: KeyValueStore,
-    renamed_cube: Optional[str] = None,
-    renamed_datasets: Optional[Dict[str, str]] = None,
-):
-    """
-    Create a dict of transformed metadata which contains the renamed cube and datasets.
-
-    :param cube_prefix:
-        Cube prefix before renaming
-    :param src_store:
-        Source Store (used to retrieve source datasets)
-    :param renamed_cube:
-        Optional new cube prefix
-    :param renamed_datasets:
-        Optional dict of {old dataset name: new dataset name} entries to rename datasets
-    """
-    all_datasets = discover_datasets_unchecked(
-        uuid_prefix=cube_prefix, store=src_store,
-    )
-    if renamed_datasets is None:
-        renamed_datasets = {}
-
-    md_transformed = {}
-    tgt_cube_prefix = renamed_cube or cube_prefix
-
-    for ds, ds_meta in all_datasets.items():
-        # build new cube uuid for each dataset: <new prefix>++<new dataset name>
-        tgt_uuid = (
-            f"{tgt_cube_prefix}{KTK_CUBE_UUID_SEPARATOR}{renamed_datasets.get(ds, ds)}"
-        )
-
-        # transform metadata for this dataset
-        md_ds_transformed = (
-            DatasetMetadataBuilder.from_dataset(ds_meta)
-            .modify_uuid(tgt_uuid)
-            .to_json()[1]
-        )
-        md_ds_key = f"{ds_meta.uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}"
-        md_transformed[md_ds_key] = md_ds_transformed
-    return md_transformed
+    return tgt_uuid
 
 
 def copy_cube(
@@ -513,6 +472,10 @@ def copy_cube(
 ):
     """
     Copy cube from one store to another.
+
+    .. warning::
+        A failing copy operation can not be rolled back if the `overwrite` flag is enabled
+        and might leave the overwritten dataset in an inconsistent state.
 
     Parameters
     ----------
@@ -543,32 +506,59 @@ def copy_cube(
         src_store, tgt_store, cube.ktk_dataset_uuid(cube.seed_dataset)
     )
 
-    # get the keys to copy for the cube
-    keys = get_copy_keys(
-        cube=cube,
-        src_store=src_store,
-        tgt_store=tgt_store,
-        overwrite=overwrite,
-        datasets=datasets,
-    )
     if (renamed_cube_prefix is None) and (renamed_datasets is None):
-        copy_keys(keys, src_store, tgt_store)
-    else:
-        mapped_keys = {
-            src_key: _transform_key(
-                src_key, cube.uuid_prefix, renamed_cube_prefix, renamed_datasets
-            )
-            for src_key in keys
-        }
-        mapped_metadata = _transform_metadata(
-            cube.uuid_prefix, src_store, renamed_cube_prefix, renamed_datasets
-        )
-        copy_rename_keys(
-            key_mappings=mapped_keys,
+        # If we don't rename the datasets, we can perform an optimized copy operation.
+        keys = get_copy_keys(
+            cube=cube,
             src_store=src_store,
             tgt_store=tgt_store,
-            mapped_metadata=mapped_metadata,
+            overwrite=overwrite,
+            datasets=datasets,
         )
+        copy_keys(keys, src_store, tgt_store)
+    else:
+        datasets_to_copy = get_datasets_to_copy(
+            cube=cube,
+            src_store=src_store,
+            tgt_store=tgt_store,
+            overwrite=overwrite,
+            datasets=datasets,
+        )
+        copied = []  # type: List[str]
+        for src_ds_name, src_ds_meta in datasets_to_copy.items():
+            tgt_ds_uuid = _transform_uuid(
+                src_uuid=src_ds_meta.uuid,
+                cube_prefix=cube.uuid_prefix,
+                renamed_cube_prefix=renamed_cube_prefix,
+                renamed_datasets=renamed_datasets,
+            )
+            try:
+                copy_dataset(
+                    source_dataset_uuid=src_ds_meta.uuid,
+                    store=src_store,
+                    target_dataset_uuid=tgt_ds_uuid,
+                    target_store=tgt_store,
+                )
+            except Exception as e:
+                if overwrite:
+                    # We can't roll back safely if the target dataset has been partially overwritten.
+                    raise RuntimeError(e)
+                else:
+                    logger.exception(
+                        f"Copying datasets from source dataset {src_ds_meta.uuid} to target {tgt_ds_uuid} failed."
+                    )
+
+                    # Roll back the unsuccesful copy operation by deleting all datasets that have been copied so far from the target store.
+                    for ds_uuid in copied:
+                        delete_dataset(dataset_uuid=ds_uuid, store=tgt_store)
+
+                    logger.info(
+                        "Deleted the copied datasets {} from target store.".format(
+                            ", ".join(copied)
+                        )
+                    )
+            else:
+                copied.append(tgt_ds_uuid)
 
 
 def collect_stats(cube, store, datasets=None):
