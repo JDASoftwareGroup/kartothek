@@ -1,7 +1,4 @@
-import pickle
-
 import dask
-import dask.dataframe as dd
 import pytest
 from tests.io.common.conftest import update_dataset_dataframe
 
