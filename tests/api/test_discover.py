@@ -2,7 +2,7 @@ from collections import Counter
 
 import pandas as pd
 import pytest
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.api.discover import (
     discover_cube,

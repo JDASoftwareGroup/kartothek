@@ -16,9 +16,9 @@ def get_copy_keys(cube, src_store, tgt_store, overwrite, datasets=None):
     ----------
     cube: kartothek.core.cube.cube.Cube
         Cube specification.
-    src_store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    src_store: Union[Callable[[], minimalkv.KeyValueStore], minimalkv.KeyValueStore]
         Source KV store.
-    tgt_store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    tgt_store: Union[Callable[[], minimalkv.KeyValueStore], minimalkv.KeyValueStore]
         Target KV store.
     overwrite: bool
         If possibly existing datasets in the target store should be overwritten.

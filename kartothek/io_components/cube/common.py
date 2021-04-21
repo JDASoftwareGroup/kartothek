@@ -29,13 +29,13 @@ def assert_stores_different(store1, store2, prefix):
     """
     Check that given stores are different.
 
-    This is a workaround for tha fact that simplekv stores normally do not implemenent some sane equality check.
+    This is a workaround for tha fact that minimalkv stores normally do not implemenent some sane equality check.
 
     Parameters
     ----------
-    store1: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store1: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         First store.
-    store2: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store2: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Second store, will be used to write a test key to.
     prefix: str
         Prefix to be used for the temporary key used for the equality check.

@@ -8,7 +8,7 @@ from kartothek.core.typing import StoreInput
 from kartothek.core.utils import lazy_store
 
 if TYPE_CHECKING:
-    from simplekv import KeyValueStore
+    from minimalkv import KeyValueStore
 
 __all__ = ("DatasetFactory",)
 
@@ -38,7 +38,7 @@ class DatasetFactory(DatasetMetadataBase):
         .. code::
 
             from functools import partial
-            from storefact import get_store_from_url
+            from minimalkv import get_store_from_url
             from kartothek.io.eager import read_table
 
             ds_factory = DatasetFactory(

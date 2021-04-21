@@ -1,4 +1,4 @@
-from storefact import get_store_from_url
+from minimalkv import get_store_from_url
 
 from kartothek.serialization import ParquetSerializer
 from kartothek.serialization.testing import get_dataframe_not_nested

@@ -4,7 +4,7 @@ Kartothek CLI code.
 .. important::
     This module does not contain any public APIs.
 
-Kartothek comes with a CLI tool named ``kartothek_cube``. To use it, create an YAML file that contains a dictionary of `storefact`_
+Kartothek comes with a CLI tool named ``kartothek_cube``. To use it, create an YAML file that contains a dictionary of `minimalkv`_
 stores (keys are names of the store and the values are dicts that contain the store config). ``Kartothek`` uses a `YAML`_
 file called ``skv.yml`` and a store called ``dataset`` by default, but you may pass ``--skv`` and ``--store`` to change
 these. An example file could look like:
@@ -30,7 +30,7 @@ In the following section you find a list description of all ``kartothek_cube`` o
 
 
 .. _Dask: https://docs.dask.org/
-.. _storefact: https://github.com/blue-yonder/storefact
+.. _minimalkv: https://github.com/data-engineering-collective/minimalkv
 .. _YAML: https://yaml.org/
 """
 import logging

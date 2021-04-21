@@ -4,7 +4,7 @@
 import tempfile
 import uuid
 
-from storefact import get_store_from_url
+from minimalkv import get_store_from_url
 
 from kartothek.core.common_metadata import make_meta
 from kartothek.core.testing import get_dataframe_alltypes

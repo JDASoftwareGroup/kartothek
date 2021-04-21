@@ -10,8 +10,8 @@ from typing import Any, Dict, Iterable, Optional
 
 import pandas as pd
 import pyarrow as pa
+from minimalkv import KeyValueStore
 from pandas.errors import EmptyDataError
-from simplekv import KeyValueStore
 
 from ._generic import (
     DataFrameSerializer,

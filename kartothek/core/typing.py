@@ -1,6 +1,6 @@
 from typing import Callable, Union
 
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 StoreFactory = Callable[[], KeyValueStore]
 StoreInput = Union[str, KeyValueStore, StoreFactory]

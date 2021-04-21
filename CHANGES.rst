@@ -2,6 +2,10 @@
 Changelog
 =========
 
+Kartothek 4.1.0 (2021-04-xx)
+============================
+
+* Switch from ``simplekv`` and ``storefact`` to their successor ``minimalkv`` as the library providing the store implementations.
 
 Kartothek 4.0.2 (2021-04-xx)
 ============================

@@ -34,7 +34,7 @@ from itertools import permutations
 import pandas as pd
 import pandas.testing as pdt
 import pytest
-from storefact import get_store_from_url
+from minimalkv import get_store_from_url
 
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io.iter import store_dataframes_as_dataset__iter

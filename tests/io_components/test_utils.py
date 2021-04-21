@@ -6,7 +6,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
-from storefact import get_store_from_url
+from minimalkv import get_store_from_url
 
 from kartothek.io_components.utils import (
     align_categories,
@@ -92,7 +92,7 @@ def test_normalize_args(test_input, expected):
     assert (expected[0], expected[1], []) == func(test_arg1, test_partition_on)
 
 
-@pytest.mark.parametrize("_type", ["callable", "url", "simplekv"])
+@pytest.mark.parametrize("_type", ["callable", "url", "minimalkv"])
 def test_normalize_store(tmpdir, _type):
 
     store_url = f"hfs://{tmpdir}"
@@ -108,7 +108,7 @@ def test_normalize_store(tmpdir, _type):
         store_test = partial(get_store_from_url, store_url)
     elif _type == "url":
         store_test = store_url
-    elif _type == "simplekv":
+    elif _type == "minimalkv":
         store_test = store
     else:
         raise AssertionError(f"unknown parametrization {_type}")
