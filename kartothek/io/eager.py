@@ -750,7 +750,7 @@ def copy_dataset(
     store: KeyValueStore,
     target_dataset_uuid: Optional[str] = None,
     target_store: Optional[KeyValueStore] = None,
-):
+) -> Dict[str, DatasetMetadata]:
     """
     Copies and optionally renames a dataset, either  from one store to another or
     within one store.
@@ -792,13 +792,15 @@ def copy_dataset(
 
     # Create a dict of metadata which has to be changed. This is only the
     # <uuid>.by-dataset-metadata.json file
+
     md_transformed = {
-        f"{source_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": DatasetMetadataBuilder.from_dataset(
+        f"{target_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": DatasetMetadataBuilder.from_dataset(
             ds_factory_source.dataset_metadata
         )
         .modify_uuid(target_dataset_uuid)
-        .to_json()[1]
+        .to_dataset()
     }
-
     # Copy the keys from one store to another
     copy_rename_keys(mapped_keys, store, target_store, md_transformed)
+
+    return md_transformed

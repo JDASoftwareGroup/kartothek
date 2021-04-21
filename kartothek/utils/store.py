@@ -3,11 +3,13 @@ Workarounds for limitations of the simplekv API.
 """
 import logging
 import time
-from typing import Callable, Dict, Iterable, Union
+from typing import Callable, Dict, Iterable, Optional, Union
 from urllib.parse import quote
 
 from simplekv import KeyValueStore
 from simplekv.contrib import VALID_KEY_RE_EXTENDED
+
+from kartothek.core.dataset import DatasetMetadata
 
 try:
     # azure-storage-blob < 12
@@ -208,7 +210,7 @@ def _copy_naive(
     key_mappings: Dict[str, str],
     src_store: KeyValueStore,
     tgt_store: KeyValueStore,
-    mapped_metadata: Dict[str, bytes] = None,
+    md_transformed: Optional[Dict[str, DatasetMetadata]] = None,
 ):
     """
     Copies a list of items from one KV store to another.
@@ -219,16 +221,16 @@ def _copy_naive(
         Mapping of source key names to target key names. May be equal if a key will
         not be renamed.
     src_store: simplekv.KeyValueStore
-        Source KV store
+        Source KV store–
     tgt_store: simplekv.KeyValueStore
         Target KV store
-    mapped_metadata: Dict[str, bytes]
-        Mapping containing {key: modified metadata} values which will be written
+    md_transformed: Dict[str, DatasetMetadata]
+        Mapping containing {target dataset uuid: modified target metadata} values which will be written
         directly instead of being copied
     """
     for src_key, tgt_key in key_mappings.items():
-        if (mapped_metadata is not None) and (src_key in mapped_metadata):
-            item = mapped_metadata.get(src_key)
+        if (md_transformed is not None) and (tgt_key in md_transformed):
+            item = md_transformed.get(tgt_key).to_json()  # type: ignore
         else:
             item = src_store.get(src_key)
         tgt_store.put(tgt_key, item)
@@ -238,7 +240,7 @@ def copy_rename_keys(
     key_mappings: Dict[str, str],
     src_store: KeyValueStore,
     tgt_store: KeyValueStore,
-    mapped_metadata: Dict[str, bytes],
+    md_transformed: Dict[str, DatasetMetadata],
 ):
     """
     Copy keys between to stores or within one store, and rename them.
@@ -251,16 +253,14 @@ def copy_rename_keys(
         Source KV store.
     tgt_store: simplekv.KeyValueStore
         Target KV store.
-    mapped_metadata: Dict[str, bytes]
-        Dict with {source key: modified data} entries; the objects corresponding to
-        the keys will not be copied. Instead, the modified data will directly be put
-        to the target store.
+    md_transformed:
+        Mapping of the new target dataset uuid to the new and potentially renamed metadata of the copied dataset.
     """
     for k in key_mappings.keys():
         if (k is None) or (not VALID_KEY_RE_EXTENDED.match(k)) or (k == "/"):
             raise ValueError("Illegal key: {}".format(k))
     _logger.debug("copy_rename_keys: Use naive slow-path.")
-    _copy_naive(key_mappings, src_store, tgt_store, mapped_metadata)
+    _copy_naive(key_mappings, src_store, tgt_store, md_transformed)
 
 
 def copy_keys(

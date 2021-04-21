@@ -23,14 +23,13 @@ from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.typing import StoreFactory
 from kartothek.io.eager import (
     copy_dataset,
-    delete_dataset,
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
 )
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.cleanup import get_keys_to_clean
 from kartothek.io_components.cube.common import assert_stores_different
-from kartothek.io_components.cube.copy import get_copy_keys, get_datasets_to_copy
+from kartothek.io_components.cube.copy import get_datasets_to_copy
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
 from kartothek.io_components.cube.remove import (
     prepare_metapartitions_for_removal_action,
@@ -55,7 +54,6 @@ from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import get_dataset_keys, metadata_factory_from_dataset
 from kartothek.utils.pandas import concat_dataframes
-from kartothek.utils.store import copy_keys
 
 logger = logging.getLogger()
 
@@ -505,60 +503,58 @@ def copy_cube(
     assert_stores_different(
         src_store, tgt_store, cube.ktk_dataset_uuid(cube.seed_dataset)
     )
+    existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, tgt_store)
 
-    if (renamed_cube_prefix is None) and (renamed_datasets is None):
-        # If we don't rename the datasets, we can perform an optimized copy operation.
-        keys = get_copy_keys(
-            cube=cube,
-            src_store=src_store,
-            tgt_store=tgt_store,
-            overwrite=overwrite,
-            datasets=datasets,
-        )
-        copy_keys(keys, src_store, tgt_store)
+    if renamed_datasets is None:
+        new_seed_dataset = cube.seed_dataset
     else:
-        datasets_to_copy = get_datasets_to_copy(
-            cube=cube,
-            src_store=src_store,
-            tgt_store=tgt_store,
-            overwrite=overwrite,
-            datasets=datasets,
+        new_seed_dataset = renamed_datasets.get(cube.seed_dataset, cube.seed_dataset)
+
+    new_cube = Cube(
+        dimension_columns=cube.dimension_columns,
+        partition_columns=cube.partition_columns,
+        uuid_prefix=renamed_cube_prefix or cube.uuid_prefix,
+        seed_dataset=new_seed_dataset,
+        index_columns=cube.index_columns,
+        suppress_index_on=cube.suppress_index_on,
+    )
+
+    datasets_to_copy = get_datasets_to_copy(
+        cube=cube,
+        src_store=src_store,
+        tgt_store=tgt_store,
+        overwrite=overwrite,
+        datasets=datasets,
+    )
+
+    copied = {}  # type: Dict[str, DatasetMetadata]
+    for src_ds_name, src_ds_meta in datasets_to_copy.items():
+        tgt_ds_uuid = _transform_uuid(
+            src_uuid=src_ds_meta.uuid,
+            cube_prefix=cube.uuid_prefix,
+            renamed_cube_prefix=renamed_cube_prefix,
+            renamed_datasets=renamed_datasets,
         )
-        copied = []  # type: List[str]
-        for src_ds_name, src_ds_meta in datasets_to_copy.items():
-            tgt_ds_uuid = _transform_uuid(
-                src_uuid=src_ds_meta.uuid,
-                cube_prefix=cube.uuid_prefix,
-                renamed_cube_prefix=renamed_cube_prefix,
-                renamed_datasets=renamed_datasets,
+        try:
+            md_transformed = copy_dataset(
+                source_dataset_uuid=src_ds_meta.uuid,
+                store=src_store,
+                target_dataset_uuid=tgt_ds_uuid,
+                target_store=tgt_store,
             )
-            try:
-                copy_dataset(
-                    source_dataset_uuid=src_ds_meta.uuid,
-                    store=src_store,
-                    target_dataset_uuid=tgt_ds_uuid,
-                    target_store=tgt_store,
-                )
-            except Exception as e:
-                if overwrite:
-                    # We can't roll back safely if the target dataset has been partially overwritten.
-                    raise RuntimeError(e)
-                else:
-                    logger.exception(
-                        f"Copying datasets from source dataset {src_ds_meta.uuid} to target {tgt_ds_uuid} failed."
-                    )
-
-                    # Roll back the unsuccesful copy operation by deleting all datasets that have been copied so far from the target store.
-                    for ds_uuid in copied:
-                        delete_dataset(dataset_uuid=ds_uuid, store=tgt_store)
-
-                    logger.info(
-                        "Deleted the copied datasets {} from target store.".format(
-                            ", ".join(copied)
-                        )
-                    )
+        except Exception as e:
+            if overwrite:
+                # We can't roll back safely if the target dataset has been partially overwritten.
+                raise RuntimeError(e)
             else:
-                copied.append(tgt_ds_uuid)
+                apply_postwrite_checks(
+                    datasets=copied,
+                    cube=new_cube,
+                    store=tgt_store,
+                    existing_datasets=existing_datasets,
+                )
+        else:
+            copied.update(md_transformed)
 
 
 def collect_stats(cube, store, datasets=None):

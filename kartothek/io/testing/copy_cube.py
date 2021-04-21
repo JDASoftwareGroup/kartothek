@@ -290,15 +290,19 @@ def test_copy_fail_overwrite_false(
     side_effect.counter = 0
 
     with mocker.patch("kartothek.io.eager_cube.copy_dataset", side_effect=side_effect):
-        driver(
-            cube=cube,
-            src_store=function_store,
-            tgt_store=function_store2,
-            renamed_cube_prefix="new_cube",
-            overwrite=False,
-        )
+        from kartothek.io_components.cube.write import MultiTableCommitAborted
 
-    assert len(function_store2().keys()) == 0
+        with pytest.raises(MultiTableCommitAborted):
+            driver(
+                cube=cube,
+                src_store=function_store,
+                tgt_store=function_store2,
+                renamed_cube_prefix="new_cube",
+                overwrite=False,
+            )
+    # rollback transaction means that only the metadata file is deleted
+    # therefore we still have remaining parquet files
+    assert len(function_store2().keys()) == 3
 
 
 def test_overwrite_fail(
