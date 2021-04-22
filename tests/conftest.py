@@ -539,7 +539,7 @@ def dataset_alternative_table_name(
     with cm_frozen_time(TIME_TO_FREEZE):
         return store_dataset_from_partitions(
             partition_list=meta_partitions_files_only_alternative_table_name,
-            dataset_uuid="dataset_uuid",
+            dataset_uuid="dataset_uuid_alternative_name",
             store=store_session_factory(),
             dataset_metadata={"dataset": "metadata"},
         )
@@ -555,7 +555,7 @@ def dataset_two_table_names(
     with cm_frozen_time(TIME_TO_FREEZE):
         return store_dataset_from_partitions(
             partition_list=meta_partitions_files_only_two_table_names,
-            dataset_uuid="dataset_uuid",
+            dataset_uuid="dataset_uuid_two_table_names",
             store=store_session_factory(),
             dataset_metadata={"dataset": "metadata"},
         )
@@ -672,4 +672,17 @@ def use_dataset_factory(request, dates_as_object):
 
 @pytest.fixture(params=[True, False], ids=["dates_as_object", "datest_as_datetime"])
 def dates_as_object(request):
+    return request.param
+
+
+@pytest.fixture(params=["default", "alternative"])
+def dataset_one_name(request, dataset, dataset_alternative_table_name):
+    if request.param == "default":
+        return dataset
+    else:
+        return dataset_alternative_table_name
+
+
+@pytest.fixture(params=[True, False])
+def specify_name(request):
     return request.param
