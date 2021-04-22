@@ -52,6 +52,33 @@ def backend_identifier():
     return "eager"
 
 
+def test_read_table_eager_alternative_table_name(
+    dataset_alternative_table_name, store_session
+):
+    df = read_table(store=store_session, dataset_uuid="dataset_uuid")
+    expected_df = pd.DataFrame(
+        {
+            "P": [1, 2],
+            "L": [1, 2],
+            "TARGET": [1, 2],
+            "DATE": [datetime.date(2010, 1, 1), datetime.date(2009, 12, 31)],
+        }
+    )
+
+    # No stability of partitions
+    df = df.sort_values(by="P").reset_index(drop=True)
+
+    pdt.assert_frame_equal(df, expected_df, check_dtype=True, check_like=True)
+
+
+# We would expect this test to gracefully fail with a RuntimeError.
+# Instead, a KeyError is thrown.
+@pytest.mark.xfail
+def test_read_table_eager_two_table_names(dataset_two_table_names, store_session):
+    with pytest.raises(RuntimeError):
+        _ = read_table(store=store_session, dataset_uuid="dataset_uuid")
+
+
 def test_read_table_eager(dataset, store_session, use_categoricals):
     if use_categoricals:
         categories = ["P"]

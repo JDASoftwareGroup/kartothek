@@ -27,6 +27,7 @@ from kartothek.io_components.metapartition import (  # noqa: E402
     MetaPartition,
     gen_uuid,
     parse_input_to_metapartition,
+    SINGLE_TABLE,
 )
 from kartothek.core.utils import lazy_store  # noqa: E402
 from kartothek.io_components.write import store_dataset_from_partitions  # noqa: E402
@@ -282,7 +283,9 @@ def df_not_nested():
     return get_dataframe_not_nested()
 
 
-def _get_meta_partitions_with_dataframe(metadata_version):
+def _get_meta_partitions_with_dataframe(
+    metadata_version, table_name=SINGLE_TABLE, table_name_2=SINGLE_TABLE
+):
     df = pd.DataFrame(
         OrderedDict(
             [
@@ -293,7 +296,12 @@ def _get_meta_partitions_with_dataframe(metadata_version):
             ]
         )
     )
-    mp = MetaPartition(label="cluster_1", data=df, metadata_version=metadata_version)
+    mp = MetaPartition(
+        label="cluster_1",
+        data=df,
+        metadata_version=metadata_version,
+        table_name=table_name,
+    )
     df_2 = pd.DataFrame(
         OrderedDict(
             [
@@ -304,7 +312,12 @@ def _get_meta_partitions_with_dataframe(metadata_version):
             ]
         )
     )
-    mp2 = MetaPartition(label="cluster_2", data=df_2, metadata_version=metadata_version)
+    mp2 = MetaPartition(
+        label="cluster_2",
+        data=df_2,
+        metadata_version=metadata_version,
+        table_name=table_name_2,
+    )
     return [mp, mp2]
 
 
@@ -318,6 +331,30 @@ def meta_partitions_dataframe(metadata_version):
     """
     with cm_frozen_time(TIME_TO_FREEZE):
         return _get_meta_partitions_with_dataframe(metadata_version)
+
+
+@pytest.fixture(scope="session")
+def meta_partitions_dataframe_alternative_table_name(metadata_version):
+    """
+    Create a list of MetaPartitions for testing. The tables inside the
+    partitions have a non-standard table name.
+    """
+    with cm_frozen_time(TIME_TO_FREEZE):
+        return _get_meta_partitions_with_dataframe(
+            metadata_version, table_name="other_table", table_name_2="other_table"
+        )
+
+
+@pytest.fixture(scope="session")
+def meta_partitions_dataframe_two_table_names(metadata_version):
+    """
+    Create a list of MetaPartitions for testing. The tables inside the
+    partitions have a non-standard table name.
+    """
+    with cm_frozen_time(TIME_TO_FREEZE):
+        return _get_meta_partitions_with_dataframe(
+            metadata_version, table_name_2="other_table"
+        )
 
 
 @pytest.fixture(scope="function")
@@ -377,6 +414,24 @@ def meta_partitions_complete(meta_partitions_dataframe, store_session):
     return _store_metapartitions(meta_partitions_dataframe, store_session)
 
 
+@pytest.fixture(scope="session")
+def meta_partitions_complete_alternative_table_name(
+    meta_partitions_dataframe_alternative_table_name, store_session
+):
+    return _store_metapartitions(
+        meta_partitions_dataframe_alternative_table_name, store_session
+    )
+
+
+@pytest.fixture(scope="session")
+def meta_partitions_complete_two_table_names(
+    meta_partitions_dataframe_two_table_names, store_session
+):
+    return _store_metapartitions(
+        meta_partitions_dataframe_two_table_names, store_session
+    )
+
+
 @pytest.fixture(scope="function")
 def meta_partitions_complete_function(meta_partitions_dataframe_function, store):
     return _store_metapartitions(meta_partitions_dataframe_function, store)
@@ -391,6 +446,38 @@ def meta_partitions_files_only(meta_partitions_complete):
     """
     result = []
     for mp in meta_partitions_complete:
+        mp = mp.copy(data={})
+        result.append(mp)
+    return result
+
+
+@pytest.fixture(scope="session")
+def meta_partitions_files_only_alternative_table_name(
+    meta_partitions_complete_alternative_table_name,
+):
+    """
+    Create a list of MetaPartitions for testing. The partitions
+    only include external file references with data stored in store
+
+    """
+    result = []
+    for mp in meta_partitions_complete_alternative_table_name:
+        mp = mp.copy(data={})
+        result.append(mp)
+    return result
+
+
+@pytest.fixture(scope="session")
+def meta_partitions_files_only_two_table_names(
+    meta_partitions_complete_two_table_names,
+):
+    """
+    Create a list of MetaPartitions for testing. The partitions
+    only include external file references with data stored in store
+
+    """
+    result = []
+    for mp in meta_partitions_complete_two_table_names:
         mp = mp.copy(data={})
         result.append(mp)
     return result
@@ -436,6 +523,38 @@ def dataset(meta_partitions_files_only, store_session_factory):
     with cm_frozen_time(TIME_TO_FREEZE):
         return store_dataset_from_partitions(
             partition_list=meta_partitions_files_only,
+            dataset_uuid="dataset_uuid",
+            store=store_session_factory(),
+            dataset_metadata={"dataset": "metadata"},
+        )
+
+
+@pytest.fixture(scope="session")
+def dataset_alternative_table_name(
+    meta_partitions_files_only_alternative_table_name, store_session_factory
+):
+    """
+    Create a proper kartothek dataset in store with two partitions
+    """
+    with cm_frozen_time(TIME_TO_FREEZE):
+        return store_dataset_from_partitions(
+            partition_list=meta_partitions_files_only_alternative_table_name,
+            dataset_uuid="dataset_uuid",
+            store=store_session_factory(),
+            dataset_metadata={"dataset": "metadata"},
+        )
+
+
+@pytest.fixture(scope="session")
+def dataset_two_table_names(
+    meta_partitions_files_only_two_table_names, store_session_factory
+):
+    """
+    Create an invalid kartothek dataset with two tables with different names
+    """
+    with cm_frozen_time(TIME_TO_FREEZE):
+        return store_dataset_from_partitions(
+            partition_list=meta_partitions_files_only_two_table_names,
             dataset_uuid="dataset_uuid",
             store=store_session_factory(),
             dataset_metadata={"dataset": "metadata"},
