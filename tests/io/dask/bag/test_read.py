@@ -3,6 +3,7 @@ from functools import partial
 
 import pandas as pd
 import pytest
+from pandas import testing as pdt
 
 from kartothek.io.dask.bag import (
     read_dataset_as_dataframe_bag,
@@ -63,3 +64,52 @@ def test_read_dataset_as_dataframes_partition_size(store_factory, metadata_versi
             dataset_uuid="partitioned_uuid", store=store_factory, partition_size=2
         )
         assert bag.npartitions == 2
+
+
+@pytest.mark.parametrize("specify_name", [True, False])
+def test_read_table_dask_bag(dataset_one_name, store_session, specify_name):
+    """
+    Tests reading a dataset with either default or alternative table name as
+    Dask bag. Table name is either specified or mot specified.
+    """
+    if specify_name:
+        # Name specification not implemented for dask bag
+        pytest.skip()
+    else:
+        ddf = read_dataset_as_dataframe_bag(
+            dataset_uuid=dataset_one_name.uuid, store=store_session,
+        )
+
+    s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
+    ddf = pickle.loads(s)
+
+    result = ddf.compute()
+
+    import datetime
+
+    expected_df = pd.DataFrame(
+        {
+            "P": [1, 2],
+            "L": [1, 2],
+            "TARGET": [1, 2],
+            "DATE": [datetime.date(2010, 1, 1), datetime.date(2009, 12, 31)],
+        }
+    )
+
+    # No stability of partitions
+    df_actual = pd.concat(result).sort_values(by="P").reset_index(drop=True)
+    pdt.assert_frame_equal(df_actual, expected_df, check_dtype=True, check_like=True)
+
+
+# We would expect this test to gracefully fail with a RuntimeError.
+# Instead, a KeyError is thrown.
+@pytest.mark.xfail
+def test_read_table_dask_ddf_multitable(dataset_two_table_names, store_session):
+    """
+    Tests reading a dataset with two differing tables names as  Dask dataframe.
+    No table name is specified while reading.
+    """
+    with pytest.raises(RuntimeError):
+        _ = read_dataset_as_dataframe_bag(
+            dataset_uuid=dataset_two_table_names.uuid, store=store_session,
+        )

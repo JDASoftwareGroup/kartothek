@@ -114,7 +114,7 @@ def test_read_ddf_from_categorical_partition(store_factory):
 def test_read_table_dask_ddf(dataset_one_name, store_session, specify_name):
     """
     Tests reading a dataset with either default or alternative table name as
-    Dask dataframe. No table name is specified while reading.
+    Dask dataframe. Table name is either specified or mot specified.
     """
     if specify_name:
         ddf = read_dataset_as_ddf(
