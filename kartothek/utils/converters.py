@@ -7,6 +7,7 @@ from typing import Iterable, Optional, Tuple, Union
 
 import pandas as pd
 import pyarrow as pa
+from kartothek.core.cube.conditions import Condition
 
 __all__ = (
     "converter_str",
@@ -193,3 +194,64 @@ def get_str_to_python_converter(pa_type):
         return pd.Timestamp
     else:
         raise ValueError("Cannot handle type {pa_type}".format(pa_type=pa_type))
+
+
+def write_predicate_as_cube_condition(predicate):
+    """
+    Rewrites a single io.dask.dataset 'read_dataset_as_ddf' predicate condition as cube condition
+
+    Parameters
+    ----------
+    predicate_list: list
+        list containing single predicate definition
+
+    Returns
+    -------
+    condition: cube condition object
+        cube condition containing the predicate definition
+    """
+    parameter_format_dict = {}
+    if type(predicate[2]) == int:
+        condition_string = '{} {} {}'.format(predicate[0], predicate[1], str(predicate[2]))
+        parameter_format_dict[predicate[0]] = pa.int16()
+    if type(predicate[2]) == str:
+        condition_string = '{} {} {}'.format(predicate[0], predicate[1], predicate[2])
+        parameter_format_dict[predicate[0]] = pa.str()
+    if type(predicate[2]) == pd._libs.tslibs.timestamps.Timestamp:
+        condition_string = '{} {} {}'.format(predicate[0], predicate[1], predicate[2].strftime('%Y-%m-%d'))
+        parameter_format_dict[predicate[0]] = pa.timestamp('s')
+    if type(predicate[2]) == bool:
+        condition_string = '{} {} {}'.format(predicate[0], predicate[1], str(predicate[2]))
+        parameter_format_dict[predicate[0]] = pa.bool_()
+    if type(predicate[2]) == float:
+        condition_string = '{} {} {}'.format(predicate[0], predicate[1], str(predicate[2]))
+        parameter_format_dict[predicate[0]] = pa.float64()
+
+    if condition_string is not None:
+        condition = Condition.from_string(condition_string, parameter_format_dict)
+    else:
+        raise TypeError(
+            "Please enter only enter predicates for parameter values of the following type:"
+            " str, int, float, bool or pandas timestamp, "
+        )
+    return condition
+
+
+def convert_predicates_to_cube_conditions(predicates):
+    """
+    Converts a io.dask.dataset 'read_dataset_as_ddf' predicate to a cube condition
+
+    Parameters
+    ----------
+    predicates: list
+        list containing a list of single predicates
+
+    Returns
+    -------
+    condition: cube condition object
+        cube condition containing the combined predicate definitions
+    """
+    condition = ()
+    for predicate in predicates[0]:
+        condition = condition + (write_predicate_as_cube_condition(predicate),)
+    return condition
