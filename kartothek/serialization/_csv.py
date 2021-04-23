@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 This module contains functionality for persisting/serialising DataFrames.
 """
@@ -30,7 +29,7 @@ class CsvSerializer(DataFrameSerializer):
         return isinstance(other, CsvSerializer) and (self.compress == other.compress)
 
     def __repr__(self):
-        return "CsvSerializer(compress={compress!r})".format(compress=self.compress)
+        return f"CsvSerializer(compress={self.compress!r})"
 
     @staticmethod
     def restore_dataframe(
@@ -89,7 +88,7 @@ class CsvSerializer(DataFrameSerializer):
     def store(self, store, key_prefix, df):
         if isinstance(df, pa.Table):
             df = df.to_pandas()
-        key = "{}.csv".format(key_prefix)
+        key = f"{key_prefix}.csv"
         result_stream = BytesIO()
         if self.compress:
             iostream = gzip.GzipFile(fileobj=result_stream, mode="wb")

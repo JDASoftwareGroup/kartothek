@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from urllib.parse import quote as quote_python
 
 from kartothek.core.urlencode import quote as quote_ktk

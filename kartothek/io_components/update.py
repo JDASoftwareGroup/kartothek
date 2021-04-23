@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This module contains logic to update an existing dataset. Update means adding
 new partitions and deleting existing partitions. Kartothek does not allow an

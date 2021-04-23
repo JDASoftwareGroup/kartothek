@@ -63,8 +63,8 @@ def testcombine_metadata_lists():
     assert combine_metadata([d1], append_to_list=False) == d1
 
     combined_metadata = combine_metadata([d1, d1], append_to_list=False)
-    assert set(combined_metadata["a"]) == set([1, 2])
-    assert set(combined_metadata["b"]) == set([1, 2])
+    assert set(combined_metadata["a"]) == {1, 2}
+    assert set(combined_metadata["b"]) == {1, 2}
 
 
 @pytest.mark.parametrize(
@@ -167,17 +167,17 @@ def test_align_categories():
     out_dfs = align_categories(in_dfs, categoricals=["col_A", "col_B"])
 
     for prefix in ["A", "B"]:
-        col_name = "col_{}".format(prefix)
+        col_name = f"col_{prefix}"
         expected_categories = [
-            "{}1".format(prefix),
-            "{}3".format(prefix),
-            "{}2".format(prefix),
-            "{}4".format(prefix),
-            "{}5".format(prefix),
+            f"{prefix}1",
+            f"{prefix}3",
+            f"{prefix}2",
+            f"{prefix}4",
+            f"{prefix}5",
         ]
         expected_1 = pd.Series(
             pd.Categorical(
-                ["{}1".format(prefix), "{}3".format(prefix), "{}3".format(prefix)],
+                [f"{prefix}1", f"{prefix}3", f"{prefix}3"],
                 categories=expected_categories,
             ),
             name=col_name,
@@ -186,7 +186,7 @@ def test_align_categories():
 
         expected_2 = pd.Series(
             pd.Categorical(
-                ["{}2".format(prefix), "{}3".format(prefix), "{}4".format(prefix)],
+                [f"{prefix}2", f"{prefix}3", f"{prefix}4"],
                 categories=expected_categories,
             ),
             name=col_name,
@@ -195,7 +195,7 @@ def test_align_categories():
 
         expected_3 = pd.Series(
             pd.Categorical(
-                ["{}4".format(prefix), "{}5".format(prefix), "{}1".format(prefix)],
+                [f"{prefix}4", f"{prefix}5", f"{prefix}1"],
                 categories=expected_categories,
             ),
             name=col_name,

@@ -1,13 +1,10 @@
-# -*- coding: utf-8 -*-
-
-
 from kartothek.core import naming
 from kartothek.core.naming import metadata_key_from_uuid
 
 
 def delete_common_metadata(dataset_factory):
     for table in dataset_factory.tables:
-        key = "{}/{}/{}".format(dataset_factory.uuid, table, naming.TABLE_METADATA_FILE)
+        key = f"{dataset_factory.uuid}/{table}/{naming.TABLE_METADATA_FILE}"
         dataset_factory.store.delete(key)
     return dataset_factory
 

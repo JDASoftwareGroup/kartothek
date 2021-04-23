@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.naming import TABLE_METADATA_FILE
 
@@ -11,7 +8,7 @@ def dispatch_files_to_gc(dataset_uuid, store_factory, chunk_size, factory):
     )
     dataset_uuid = dataset_uuid or ds_factory.uuid
 
-    index_path = "{dataset_uuid}/indices/".format(dataset_uuid=dataset_uuid)
+    index_path = f"{dataset_uuid}/indices/"
     remove_index_files = set(ds_factory.store.iter_keys(prefix=index_path))
 
     for index in ds_factory.indices.values():

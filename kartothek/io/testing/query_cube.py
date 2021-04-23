@@ -607,7 +607,7 @@ def test_cube(
     elif testset == "other_part":
         return other_part_cube
     else:
-        raise ValueError("Unknown param {}".format(testset))
+        raise ValueError(f"Unknown param {testset}")
 
 
 @pytest.fixture(scope="module")
@@ -636,7 +636,7 @@ def test_df(
     elif testset in ("no_part", "other_part"):
         return no_part_df
     else:
-        raise ValueError("Unknown param {}".format(testset))
+        raise ValueError(f"Unknown param {testset}")
 
 
 def test_simple_roundtrip(driver, function_store, function_store_rwro):
@@ -681,7 +681,7 @@ def apply_condition_unsafe(df, cond):
             for part in conj.conditions:
                 if isinstance(part, IsInCondition):
                     part = IsInCondition(
-                        column=part.column, value=tuple((float(v) for v in part.value))
+                        column=part.column, value=tuple(float(v) for v in part.value)
                     )
                 elif isinstance(part, InIntervalCondition):
                     part = InIntervalCondition(
@@ -836,19 +836,19 @@ def test_stresstest_index_select_row(driver, function_store):
 
     data = {"x": np.arange(n_rows), "p": 0}
     for i in range(n_indices):
-        data["i{}".format(i)] = np.arange(n_rows)
+        data[f"i{i}"] = np.arange(n_rows)
     df = pd.DataFrame(data)
 
     cube = Cube(
         dimension_columns=["x"],
         partition_columns=["p"],
         uuid_prefix="cube",
-        index_columns=["i{}".format(i) for i in range(n_indices)],
+        index_columns=[f"i{i}" for i in range(n_indices)],
     )
 
     build_cube(data=df, cube=cube, store=function_store)
 
-    conditions = Conjunction([(C("i{}".format(i)) == 0) for i in range(n_indices)])
+    conditions = Conjunction([(C(f"i{i}") == 0) for i in range(n_indices)])
 
     result = driver(
         cube=cube,
@@ -951,22 +951,22 @@ def test_wrong_condition_type(driver, function_store, driver_name):
         "str": pd.Series(["foo"], dtype=object),
     }
     cube = Cube(
-        dimension_columns=["d_{}".format(t) for t in sorted(types.keys())],
-        partition_columns=["p_{}".format(t) for t in sorted(types.keys())],
+        dimension_columns=[f"d_{t}" for t in sorted(types.keys())],
+        partition_columns=[f"p_{t}" for t in sorted(types.keys())],
         uuid_prefix="typed_cube",
-        index_columns=["i_{}".format(t) for t in sorted(types.keys())],
+        index_columns=[f"i_{t}" for t in sorted(types.keys())],
     )
     data = {
         "seed": pd.DataFrame(
             {
-                "{}_{}".format(prefix, t): types[t]
+                f"{prefix}_{t}": types[t]
                 for t in sorted(types.keys())
                 for prefix in ["d", "p", "v1"]
             }
         ),
         "enrich": pd.DataFrame(
             {
-                "{}_{}".format(prefix, t): types[t]
+                f"{prefix}_{t}": types[t]
                 for t in sorted(types.keys())
                 for prefix in ["d", "p", "i", "v2"]
             }
@@ -976,7 +976,7 @@ def test_wrong_condition_type(driver, function_store, driver_name):
 
     df = pd.DataFrame(
         {
-            "{}_{}".format(prefix, t): types[t]
+            f"{prefix}_{t}": types[t]
             for t in sorted(types.keys())
             for prefix in ["d", "p", "i", "v1", "v2"]
         }
@@ -1382,7 +1382,7 @@ def _tuple_to_condition(t):
         return cond_type(col, vset)
     elif cond_type == InIntervalCondition:
         return cond_type(col, v1, v2)
-    raise ValueError("Unknown condition type {}".format(cond_type))
+    raise ValueError(f"Unknown condition type {cond_type}")
 
 
 st_columns = st.sampled_from(

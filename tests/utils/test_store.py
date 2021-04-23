@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import base64
 import hashlib
 
@@ -31,7 +30,7 @@ def _gen_store(store_type, tmpdir, suffix, azure_store_cfg_factory):
     elif store_type == "memory":
         cfg = {"type": "hmemory"}
     else:
-        raise ValueError("Unknown store type: {}".format(store_type))
+        raise ValueError(f"Unknown store type: {store_type}")
 
     store = storefact.get_store(**cfg)
     for k in store.keys():
@@ -51,14 +50,12 @@ def _gen_store(store_type, tmpdir, suffix, azure_store_cfg_factory):
 
 @pytest.fixture(params=STORE_TYPES)
 def store(request, tmpdir, azure_store_cfg_factory):
-    for s in _gen_store(request.param, tmpdir, "store", azure_store_cfg_factory):
-        yield s
+    yield from _gen_store(request.param, tmpdir, "store", azure_store_cfg_factory)
 
 
 @pytest.fixture(params=STORE_TYPES)
 def store2(request, tmpdir, azure_store_cfg_factory):
-    for s in _gen_store(request.param, tmpdir, "store2", azure_store_cfg_factory):
-        yield s
+    yield from _gen_store(request.param, tmpdir, "store2", azure_store_cfg_factory)
 
 
 @pytest.mark.skipif(

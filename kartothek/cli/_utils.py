@@ -36,7 +36,7 @@ def get_cube(store, uuid_prefix):
     try:
         return discover_cube(uuid_prefix, store)
     except ValueError as e:
-        raise click.UsageError("Could not load cube: {e}".format(e=e))
+        raise click.UsageError(f"Could not load cube: {e}")
 
 
 def get_store(skv, store):
@@ -63,15 +63,13 @@ def get_store(skv, store):
     try:
         with open(skv, "rb") as fp:
             store_cfg = yaml.safe_load(fp)
-    except IOError as e:
-        raise click.UsageError("Could not open load store YAML: {e}".format(e=e))
+    except OSError as e:
+        raise click.UsageError(f"Could not open load store YAML: {e}")
     except yaml.YAMLError as e:
-        raise click.UsageError("Could not parse provided YAML file: {e}".format(e=e))
+        raise click.UsageError(f"Could not parse provided YAML file: {e}")
 
     if store not in store_cfg:
-        raise click.UsageError(
-            "Could not find store {store} in {skv}".format(store=store, skv=skv)
-        )
+        raise click.UsageError(f"Could not find store {store} in {skv}")
 
     return partial(storefact.get_store, **store_cfg[store])
 
@@ -93,9 +91,7 @@ def _match_pattern(what, items, pattern):
     for part in pattern.split(","):
         found = set(fnmatch.filter(items, part.strip()))
         if not found:
-            raise click.UsageError(
-                "Could not find {what} {part}".format(what=what, part=part)
-            )
+            raise click.UsageError(f"Could not find {what} {part}")
         result |= found
     return result
 

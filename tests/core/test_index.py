@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import datetime
 import logging
 import pickle
@@ -333,14 +330,12 @@ def test_index_as_flat_series_highly_degenerated_sym():
     dim = 4
     index1 = ExplicitSecondaryIndex(
         column="col",
-        index_dct={
-            k: ["part_{}".format(i) for i in range(0, dim)] for k in range(0, dim)
-        },
+        index_dct={k: [f"part_{i}" for i in range(0, dim)] for k in range(0, dim)},
         dtype=pa.int64(),
     )
     ser = index1.as_flat_series()
     expected = pd.Series(
-        ["part_{}".format(i) for i in range(0, dim)] * dim,
+        [f"part_{i}" for i in range(0, dim)] * dim,
         index=pd.Index(
             np.array([[i] * dim for i in range(0, dim)]).ravel(), name="col"
         ),
@@ -354,7 +349,7 @@ def test_index_as_flat_series_highly_degenerated_asym():
     Ensure that the generation of the series is not bound by col numbers or nans in the matrix
     """
     dim = 4
-    ind_dct = {k: ["part_{}".format(i) for i in range(0, dim)] for k in range(0, dim)}
+    ind_dct = {k: [f"part_{i}" for i in range(0, dim)] for k in range(0, dim)}
     ind_dct[0] = ["part_1"]
     ind_dct[2] = ["part_2", "part_5"]
     index1 = ExplicitSecondaryIndex(column="col", index_dct=ind_dct, dtype=pa.int64())
@@ -533,7 +528,7 @@ def test_observed_values_date_as_object(date_as_object):
         (pa.string(), "x", "x"),
         (pa.string(), "ö", "ö"),
         (pa.string(), 1, "1"),
-        (pa.string(), "ö".encode("utf8"), "ö"),
+        (pa.string(), "ö".encode(), "ö"),
         (
             pa.timestamp("ns"),
             pd.Timestamp("2018-01-01"),

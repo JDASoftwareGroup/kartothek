@@ -25,7 +25,7 @@ def _store_dataframes(execution_mode, df_list, *args, **kwargs):
 
         return tasks.compute()
     else:
-        raise ValueError("Unknown execution mode: {}".format(execution_mode))
+        raise ValueError(f"Unknown execution mode: {execution_mode}")
 
 
 @pytest.fixture(params=["dask.delayed", "dask.bag"])

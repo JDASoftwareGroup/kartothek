@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import difflib
 import logging
 import pprint
@@ -262,7 +259,7 @@ def make_meta(obj, origin, partition_keys=None):
     pandas_metadata = schema.pandas_metadata
 
     # normalize types
-    fields = dict([(field.name, field.type) for field in schema])
+    fields = {field.name: field.type for field in schema}
     for cmd in pandas_metadata["columns"]:
         name = cmd.get("name")
         if name is None:
@@ -324,7 +321,7 @@ def normalize_type(
         t_pa2, t_pd2, t_np2, metadata2 = normalize_type(
             t_pa.value_type, t_pd[len("list[") : -1], None, None
         )
-        return pa.list_(t_pa2), "list[{}]".format(t_pd2), "object", None
+        return pa.list_(t_pa2), f"list[{t_pd2}]", "object", None
     elif pa.types.is_dictionary(t_pa):
         # downcast to dictionary content, `t_pd` is useless in that case
         return normalize_type(t_pa.value_type, t_np, t_np, None)
@@ -333,7 +330,7 @@ def normalize_type(
 
 
 def _get_common_metadata_key(dataset_uuid, table):
-    return "{}/{}/{}".format(dataset_uuid, table, naming.TABLE_METADATA_FILE)
+    return f"{dataset_uuid}/{table}/{naming.TABLE_METADATA_FILE}"
 
 
 def read_schema_metadata(
@@ -466,7 +463,7 @@ def _determine_schemas_to_compare(
 
             # we don't care about the pandas version, since we assume it's safe
             # to read datasets that were written by older or newer versions.
-            pandas_metadata["pandas_version"] = "{}".format(pd.__version__)
+            pandas_metadata["pandas_version"] = f"{pd.__version__}"
 
             metadata_clean = deepcopy(metadata)
             metadata_clean[b"pandas"] = _dict_to_binary(pandas_metadata)
@@ -639,7 +636,7 @@ def validate_compatible(schemas, ignore_pandas=False):
             ellipsis = "..."
             if len(inner_msg) > max_len + len(ellipsis):
                 inner_msg = inner_msg[:max_len] + ellipsis
-            return "{{{}}}".format(inner_msg)
+            return f"{{{inner_msg}}}"
 
         if reference_to_compare != current_to_compare:
             schema_diff = _diff_schemas(reference, current)

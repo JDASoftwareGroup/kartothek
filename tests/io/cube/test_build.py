@@ -25,12 +25,12 @@ def driver(driver_name):
     elif driver_name == "eager":
         return build_cube
     else:
-        raise ValueError("Unknown driver: {}".format(driver_name))
+        raise ValueError(f"Unknown driver: {driver_name}")
 
 
 def _count_execution_to_store(obj, store):
     store = store()
-    key = "counter.{}".format(uuid.uuid4().hex)
+    key = f"counter.{uuid.uuid4().hex}"
     store.put(key, b"")
     return obj
 
@@ -155,6 +155,6 @@ def test_function_executed_once(driver, function_store, driver_name, skip_eager)
         )
         bag.compute()
     else:
-        raise ValueError("Missing implementation for driver: {}".format(driver_name))
+        raise ValueError(f"Missing implementation for driver: {driver_name}")
 
     assert len(function_store().keys(prefix="counter.")) == 2

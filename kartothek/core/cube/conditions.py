@@ -37,7 +37,7 @@ __all__ = (
 def _validator_value(instance, attribute, value):
     if pd.isnull(value):
         raise ValueError(
-            'Cannot use NULL-value to compare w/ column "{}"'.format(instance.column)
+            f'Cannot use NULL-value to compare w/ column "{instance.column}"'
         )
     if isinstance(value, VirtualColumn):
         raise TypeError("Cannot compare two columns.")
@@ -210,16 +210,14 @@ class Condition:
             flags=re.VERBOSE,
         )
         if not m:
-            raise ValueError('Cannot parse condition "{s}"'.format(s=s))
+            raise ValueError(f'Cannot parse condition "{s}"')
         col, op, var = m.groups()
 
         col_obj = C(col)
 
         pa_type = all_types.get(col)
         if pa_type is None:
-            raise ValueError(
-                'Unknown column "{col}" in condition "{s}"'.format(col=col, s=s)
-            )
+            raise ValueError(f'Unknown column "{col}" in condition "{s}"')
         var_f = get_str_to_python_converter(pa_type)
         var_obj = var_f(var.strip())
 
@@ -480,7 +478,7 @@ class Conjunction:
         return Conjunction.from_two(self, other)
 
     def __str__(self):
-        return " & ".join("({})".format(cond) for cond in self.conditions)
+        return " & ".join(f"({cond})" for cond in self.conditions)
 
     @property
     def columns(self):

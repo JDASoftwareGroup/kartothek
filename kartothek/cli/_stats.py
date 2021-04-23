@@ -40,7 +40,7 @@ def stats(ctx, include, exclude):
             cube=cube, store=store, datasets=selected_datasets
         ).compute()
     except RuntimeError as e:
-        raise click.UsageError("Failed to collect stats: {e}".format(e=e))
+        raise click.UsageError(f"Failed to collect stats: {e}")
 
     data = result[0]
 
@@ -54,12 +54,12 @@ def stats(ctx, include, exclude):
             click.echo("")
         click.echo(h(ktk_cube_dataset_id))
         for what in sorted(stats.keys()):
-            click.echo(b("{}:".format(what)) + "  {:,}".format(stats[what]))
+            click.echo(b(f"{what}:") + "  {:,}".format(stats[what]))
 
         blobsize += stats["blobsize"]
         files += stats["files"]
 
     click.echo("")
     click.echo(h("__total__"))
-    click.echo(b("blobsize:") + "  {:,}".format(blobsize))
-    click.echo(b("files:") + "  {:,}".format(files))
+    click.echo(b("blobsize:") + f"  {blobsize:,}")
+    click.echo(b("files:") + f"  {files:,}")

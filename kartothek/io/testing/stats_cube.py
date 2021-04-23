@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import dask.bag as db
 import pandas as pd
 import pytest

@@ -86,7 +86,7 @@ class DatasetMetadataBase(CopyMixin):
         self._table_name = table_name
 
         _add_creation_time(self)
-        super(DatasetMetadataBase, self).__init__()
+        super().__init__()
 
     def __eq__(self, other: Any) -> bool:
         # Enforce dict comparison at the places where we only
@@ -183,7 +183,7 @@ class DatasetMetadataBase(CopyMixin):
 
         """
         store = ensure_store(store)
-        start_markers = ["{}.".format(uuid), "{}/".format(uuid)]
+        start_markers = [f"{uuid}.", f"{uuid}/"]
         return list(
             sorted(
                 k
@@ -285,7 +285,7 @@ class DatasetMetadataBase(CopyMixin):
             return self.load_partition_indices()
 
         if column not in self.indices:
-            raise KeyError("No index specified for column '{}'".format(column))
+            raise KeyError(f"No index specified for column '{column}'")
 
         index = self.indices[column]
         if index.loaded or not isinstance(index, ExplicitSecondaryIndex):
@@ -576,9 +576,7 @@ class DatasetMetadata(DatasetMetadataBase):
                 value = store.get(key2)
                 metadata = unpackb(value)
             except KeyError:
-                raise KeyError(
-                    "Dataset does not exist. Tried {} and {}".format(key1, key2)
-                )
+                raise KeyError(f"Dataset does not exist. Tried {key1} and {key2}")
 
         ds = DatasetMetadata.load_from_dict(metadata, store, load_schema=load_schema)
         if load_all_indices:
@@ -711,9 +709,7 @@ def _get_type_from_meta(
     if default is not None:
         return default
 
-    raise ValueError(
-        'Cannot find type information for partition column "{}"'.format(column)
-    )
+    raise ValueError(f'Cannot find type information for partition column "{column}"')
 
 
 def _empty_partition_indices(
@@ -888,7 +884,7 @@ class DatasetMetadataBuilder(CopyMixin):
         self.explicit_partitions = explicit_partitions
 
         _add_creation_time(self)
-        super(DatasetMetadataBuilder, self).__init__()
+        super().__init__()
 
     @staticmethod
     def from_dataset(dataset):
@@ -963,7 +959,7 @@ class DatasetMetadataBuilder(CopyMixin):
             The location where the external index should be stored.
         """
         if filename is None:
-            filename = "{uuid}.{column_name}".format(uuid=self.uuid, column_name=column)
+            filename = f"{self.uuid}.{column}"
             filename += naming.EXTERNAL_INDEX_SUFFIX
         self.indices[column] = ExplicitSecondaryIndex(
             column, index_storage_key=filename

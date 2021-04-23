@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 import copy
 
 from kartothek.io_components.read import dispatch_metapartitions_from_factory

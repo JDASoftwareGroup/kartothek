@@ -115,7 +115,7 @@ def _validator_not_empty(instance, attribute, value):
     Attr validator to validate that a list is not empty:
     """
     if len(value) == 0:
-        raise ValueError("{name} must not be empty".format(name=attribute.name))
+        raise ValueError(f"{attribute.name} must not be empty")
 
 
 @attr.s(frozen=True)

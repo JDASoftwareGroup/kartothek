@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
 This module contains functionality for persisting/serialising DataFrames.
 
@@ -125,9 +124,7 @@ class DataFrameSerializer:
                 return df
 
         # No serialiser matched
-        raise ValueError(
-            "The specified file format for '{}' is not supported".format(key)
-        )
+        raise ValueError(f"The specified file format for '{key}' is not supported")
 
     def store(self, store: KeyValueStore, key_prefix: str, df: pd.DataFrame) -> str:
         """

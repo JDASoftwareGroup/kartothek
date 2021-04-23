@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 def _check_contains_null(val):
     if isinstance(val, bytes):
         for byte in val:

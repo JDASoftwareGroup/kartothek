@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 from typing import List, Tuple, Union
 
 from urlquote import quote as urlquote_quote

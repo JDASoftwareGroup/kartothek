@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 This module contains functionality for persisting/serialising DataFrames.
 """
@@ -326,7 +325,7 @@ class ParquetSerializer(DataFrameSerializer):
         ) from raised_error
 
     def store(self, store, key_prefix, df):
-        key = "{}.parquet".format(key_prefix)
+        key = f"{key_prefix}.parquet"
         if isinstance(df, pa.Table):
             table = df
         else:

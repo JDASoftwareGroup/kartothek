@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Global naming constants for datasets
 """
@@ -22,7 +20,7 @@ METADATA_BASE_SUFFIX = ".by-dataset-metadata"
 
 # Object suffixes
 PARQUET_FILE_SUFFIX = ".parquet"
-EXTERNAL_INDEX_SUFFIX = ".by-dataset-index{}".format(PARQUET_FILE_SUFFIX)
+EXTERNAL_INDEX_SUFFIX = f".by-dataset-index{PARQUET_FILE_SUFFIX}"
 
 METADATA_VERSION_KEY = "dataset_metadata_version"
 UUID_KEY = "dataset_uuid"
@@ -47,7 +45,5 @@ def get_partition_file_prefix(
             dataset_uuid=dataset_uuid, table=table, partition_label=partition_label
         )
     else:
-        raise NotImplementedError(
-            "Metadata version {} not supported".format(metadata_version)
-        )
+        raise NotImplementedError(f"Metadata version {metadata_version} not supported")
     return file_prefix

@@ -81,7 +81,7 @@ def discover_ktk_cube_dataset_ids(uuid_prefix: str, store: StoreInput) -> Set[st
     """
     prefix = uuid_prefix + KTK_CUBE_UUID_SEPARATOR
     names = _discover_dataset_meta_files(prefix, store)
-    return set([name[len(prefix) :] for name in names])
+    return {name[len(prefix) :] for name in names}
 
 
 def discover_datasets_unchecked(
@@ -132,9 +132,7 @@ def discover_datasets_unchecked(
                 uuid=name, store=store, load_schema=True, load_all_indices=False
             )
         except KeyError as e:
-            _logger.warning(
-                'Ignore dataset "{name}" due to KeyError: {e}'.format(name=name, e=e)
-            )
+            _logger.warning(f'Ignore dataset "{name}" due to KeyError: {e}')
 
     return result
 

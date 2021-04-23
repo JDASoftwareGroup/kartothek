@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from kartothek.io.iter import store_dataframes_as_dataset__iter

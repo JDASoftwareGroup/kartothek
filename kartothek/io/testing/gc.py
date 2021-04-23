@@ -18,10 +18,10 @@ def _test_gc(uuid, store_factory, garbage_collect_callable):
     keys_before = set(store.keys())
 
     # Add a non-tracked table file
-    store.put("{}/table/trash.parquet".format(uuid), b"trash")
+    store.put(f"{uuid}/table/trash.parquet", b"trash")
 
     # Add a non-tracked index file
-    store.put("{}/indices/trash.parquet".format(uuid), b"trash")
+    store.put(f"{uuid}/indices/trash.parquet", b"trash")
 
     garbage_collect_callable(uuid, store_factory)
 

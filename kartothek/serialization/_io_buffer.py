@@ -268,4 +268,4 @@ class BlockBuffer(io.BufferedIOBase):
     def close(self):
         if not self.closed:
             self._raw.close()
-            super(BlockBuffer, self).close()
+            super().close()

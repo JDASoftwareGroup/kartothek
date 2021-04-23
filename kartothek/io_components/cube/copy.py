@@ -1,5 +1,3 @@
-from __future__ import absolute_import
-
 from copy import copy
 
 from kartothek.api.discover import check_datasets, discover_datasets_unchecked
@@ -46,7 +44,7 @@ def get_copy_keys(cube, src_store, tgt_store, overwrite, datasets=None):
 
     if datasets is None:
         if not new_datasets:
-            raise RuntimeError("{} not found in source store".format(cube))
+            raise RuntimeError(f"{cube} not found in source store")
     else:
         unknown_datasets = set(datasets) - set(new_datasets)
         if unknown_datasets:

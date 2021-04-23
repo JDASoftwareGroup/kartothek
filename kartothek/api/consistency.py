@@ -303,7 +303,7 @@ def check_datasets(
         If sanity check failed.
     """
     if cube.seed_dataset not in datasets:
-        raise ValueError('Seed data ("{}") is missing.'.format(cube.seed_dataset))
+        raise ValueError(f'Seed data ("{cube.seed_dataset}") is missing.')
 
     _check_datasets(
         datasets=datasets,

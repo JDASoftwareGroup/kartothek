@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from kartothek.core._zmsgpack import packb, unpackb
 
 

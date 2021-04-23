@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 # pylint: disable=E1101
 
 
@@ -189,12 +188,12 @@ def test_update_dataset_with_partitions__reducer_partitions(
     assert len(cluster_3_label) == 1
     cluster_3_label = cluster_3_label.pop()
     exp_partitions = [
-        "P=1/{}".format(cluster_1_label),
-        "P=1/{}".format(cluster_3_label),
-        "P=2/{}".format(cluster_1_label),
-        "P=2/{}".format(cluster_3_label),
-        "P=3/{}".format(cluster_1_label),
-        "P=3/{}".format(cluster_3_label),
+        f"P=1/{cluster_1_label}",
+        f"P=1/{cluster_3_label}",
+        f"P=2/{cluster_1_label}",
+        f"P=2/{cluster_3_label}",
+        f"P=3/{cluster_1_label}",
+        f"P=3/{cluster_3_label}",
     ]
     assert sorted(exp_partitions) == sorted(dataset_updated.partitions.keys())
     updated_idx_keys = sorted(dataset_updated.indices.keys())

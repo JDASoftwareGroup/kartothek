@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import logging
 from copy import copy
 from typing import Any, Dict, Iterable, List, Optional, Set, TypeVar, Union, cast
@@ -123,10 +121,10 @@ class IndexBase(CopyMixin):
                 # use the fast path and don't re-normalize the values
                 self.index_dct = index_dct
 
-        super(IndexBase, self).__init__()
+        super().__init__()
 
     def copy(self, **kwargs) -> "IndexBase":
-        return super(IndexBase, self).copy(normalize_dtype=False, **kwargs)
+        return super().copy(normalize_dtype=False, **kwargs)
 
     def __repr__(self) -> str:
         repr_str = []
@@ -202,12 +200,10 @@ class IndexBase(CopyMixin):
                 elif value.lower() == "true":
                     return True
                 else:
-                    return ValueError('Cannot parse boolean value "{}"'.format(value))
+                    return ValueError(f'Cannot parse boolean value "{value}"')
             return bool(value)
         else:
-            raise NotImplementedError(
-                "Cannot normalize index value for type {}".format(dtype)
-            )
+            raise NotImplementedError(f"Cannot normalize index value for type {dtype}")
 
     @property
     def loaded(self) -> bool:
@@ -391,9 +387,9 @@ class IndexBase(CopyMixin):
         inplace:
             If `True` the operation is performed inplace and will return the same object
         """
-        set_of_values = set(
+        set_of_values = {
             IndexBase.normalize_value(self.dtype, v) for v in list_of_values
-        )
+        }
 
         if not set_of_values:
             return self
@@ -571,9 +567,9 @@ class PartitionIndex(IndexBase):
     ):
         if dtype is None:
             raise ValueError(
-                'PartitionIndex dtype of column "{}" cannot be None!'.format(column)
+                f'PartitionIndex dtype of column "{column}" cannot be None!'
             )
-        super(PartitionIndex, self).__init__(
+        super().__init__(
             column=column,
             index_dct=index_dct,
             dtype=dtype,
@@ -583,7 +579,7 @@ class PartitionIndex(IndexBase):
     def __eq__(self, other):
         if not isinstance(other, PartitionIndex):
             return False
-        return super(PartitionIndex, self).__eq__(other)
+        return super().__eq__(other)
 
 
 class ExplicitSecondaryIndex(IndexBase):
@@ -607,7 +603,7 @@ class ExplicitSecondaryIndex(IndexBase):
         if not index_storage_key and not index_dct and dtype is None:
             raise ValueError("Trying to create non-typesafe index")
         self.index_storage_key = index_storage_key
-        super(ExplicitSecondaryIndex, self).__init__(
+        super().__init__(
             column=column,
             index_dct=index_dct,
             dtype=dtype,
@@ -638,7 +634,7 @@ class ExplicitSecondaryIndex(IndexBase):
         if self.index_storage_key != other.index_storage_key:
             return False
         try:
-            return super(ExplicitSecondaryIndex, self).__eq__(other)
+            return super().__eq__(other)
         except TypeError:  # an `index_dct == None`
             if self.index_dct != other.index_dct:
                 return False

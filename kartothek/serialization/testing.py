@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from datetime import date, datetime
 
 import numpy as np
@@ -19,7 +17,7 @@ BINARY_COLUMNS = [
     "4".encode("utf-32"),
     # this is a type1 UUID
     b"\x8f\xb6\xe5@\x90\xdc\x11\xe8\xa0\xae\x02B\xac\x12\x01\x06",
-    "🙈".encode("utf-8"),
+    "🙈".encode(),
     _to_binary(chr(128)),
 ]
 

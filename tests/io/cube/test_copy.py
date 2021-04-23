@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import pytest
 from tests.io.cube.utils import wrap_bag_copy
 
@@ -18,4 +17,4 @@ def driver(driver_name):
     elif driver_name == "eager":
         return copy_cube
     else:
-        raise ValueError("Unknown driver: {}".format(driver_name))
+        raise ValueError(f"Unknown driver: {driver_name}")

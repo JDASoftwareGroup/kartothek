@@ -90,4 +90,4 @@ def copy(ctx, tgt_store, overwrite, cleanup, include, exclude):
             datasets=selected_datasets,
         ).compute()
     except (RuntimeError, ValueError) as e:
-        raise click.UsageError("Failed to copy cube: {e}".format(e=e))
+        raise click.UsageError(f"Failed to copy cube: {e}")

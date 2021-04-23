@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 import datetime
 
 import numpy as np
@@ -38,7 +35,7 @@ def test_roundtrip_empty_with_store(store, metadata_version):
     dataset_uuid = "dataset_uuid"
     dataset = DatasetMetadata(uuid=dataset_uuid, metadata_version=metadata_version)
     store.put(
-        "{}.by-dataset-metadata.json".format(dataset_uuid),
+        f"{dataset_uuid}.by-dataset-metadata.json",
         simplejson.dumps(dataset.to_dict()).encode("utf-8"),
     )
     assert dataset == DatasetMetadata.load_from_store(dataset_uuid, store)
@@ -294,8 +291,7 @@ def test_load_partition_indices_types(store):
         },
     }
     store.put(
-        "{dataset_uuid}.by-dataset-metadata.json".format(dataset_uuid=dataset_uuid),
-        simplejson.dumps(meta_dct).encode(),
+        f"{dataset_uuid}.by-dataset-metadata.json", simplejson.dumps(meta_dct).encode(),
     )
     store_schema_metadata(
         make_meta(

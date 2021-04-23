@@ -484,7 +484,7 @@ def check_datasets_prebuild(ktk_cube_dataset_ids, cube, existing_datasets):
         In case of an error.
     """
     if cube.seed_dataset not in ktk_cube_dataset_ids:
-        raise ValueError('Seed data ("{}") is missing.'.format(cube.seed_dataset))
+        raise ValueError(f'Seed data ("{cube.seed_dataset}") is missing.')
 
     missing_overwrites = set(existing_datasets.keys()) - set(ktk_cube_dataset_ids)
     if missing_overwrites:

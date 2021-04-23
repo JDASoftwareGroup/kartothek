@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import pytest
 
 from kartothek.io.eager import garbage_collect_dataset

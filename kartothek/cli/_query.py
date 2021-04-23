@@ -74,7 +74,7 @@ def _get_ipython():
 
         return IPython
     except Exception as e:
-        raise click.UsageError("Could not load IPython: {e}".format(e=e))
+        raise click.UsageError(f"Could not load IPython: {e}")
 
 
 def _shell(df, ipython):
@@ -89,7 +89,7 @@ def _shell(df, ipython):
 
 class _ValidatorFromParse(Validator):
     def __init__(self, f_parse):
-        super(_ValidatorFromParse, self).__init__()
+        super().__init__()
         self.f_parse = f_parse
 
     def validate(self, document):

@@ -18,7 +18,7 @@ def _load_dataframes(output_type, *args, **kwargs):
     if output_type == "dataframe":
         func = read_dataset_as_dataframes__iterator
     else:
-        raise ValueError("Unknown output type {}".format(output_type))
+        raise ValueError(f"Unknown output type {output_type}")
     return list(func(*args, **kwargs))
 
 

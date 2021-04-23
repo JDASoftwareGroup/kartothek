@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
@@ -113,7 +112,7 @@ class TestSimpleCondition:
         cond = f(c)
         assert isinstance(cond, t)
         assert cond.OP == op
-        assert str(cond) == "foö {} {}".format(op, value)
+        assert str(cond) == f"foö {op} {value}"
         assert cond.predicate_part == [("foö", op, value)]
         assert cond.active
         hash(cond)

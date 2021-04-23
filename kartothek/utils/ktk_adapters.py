@@ -1,7 +1,6 @@
 """
 Methods to make working with Kartothek easier.
 """
-from __future__ import absolute_import
 
 import pandas as pd
 import pyarrow.parquet as pq
@@ -68,7 +67,7 @@ def get_dataset_keys(dataset):
 
     # common metadata
     for table in dataset.tables:
-        keys.add("{}/{}/{}".format(dataset.uuid, table, TABLE_METADATA_FILE))
+        keys.add(f"{dataset.uuid}/{table}/{TABLE_METADATA_FILE}")
 
     # indices
     for index in dataset.indices.values():

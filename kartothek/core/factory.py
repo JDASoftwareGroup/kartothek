@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 import copy
 from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
 

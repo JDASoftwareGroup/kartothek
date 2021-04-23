@@ -1,7 +1,6 @@
 """
 Helper module to convert user inputs into normalized forms.
 """
-from __future__ import absolute_import
 
 from typing import Iterable, Optional, Tuple, Union
 
@@ -172,7 +171,7 @@ def get_str_to_python_converter(pa_type):
             elif x.lower() in ("1", "t", "y", "true", "yes"):
                 return True
             else:
-                raise ValueError("Cannot parse bool: {}".format(x))
+                raise ValueError(f"Cannot parse bool: {x}")
 
         return var_f
     elif pa.types.is_floating(pa_type):
@@ -192,4 +191,4 @@ def get_str_to_python_converter(pa_type):
     elif pa.types.is_timestamp(pa_type):
         return pd.Timestamp
     else:
-        raise ValueError("Cannot handle type {pa_type}".format(pa_type=pa_type))
+        raise ValueError(f"Cannot handle type {pa_type}")

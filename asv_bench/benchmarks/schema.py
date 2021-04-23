@@ -1,6 +1,3 @@
-# -*- coding: utf-8 -*-
-
-
 from copy import deepcopy
 
 from kartothek.core.common_metadata import (

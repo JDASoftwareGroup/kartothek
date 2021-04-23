@@ -303,7 +303,7 @@ class MetaPartition(Iterable):
         for mp in self:
             if mp.label == label:
                 return mp
-        raise KeyError("Metapartition doesn't contain partition `{}`".format(label))
+        raise KeyError(f"Metapartition doesn't contain partition `{label}`")
 
     @property
     def data(self):
@@ -1138,9 +1138,7 @@ class MetaPartition(Iterable):
             )
 
     def _partition_data(self, partition_on):
-        existing_indices, base_label = decode_key("uuid/table/{}".format(self.label))[
-            2:
-        ]
+        existing_indices, base_label = decode_key(f"uuid/table/{self.label}")[2:]
         dct = dict()
         df = self.data
 

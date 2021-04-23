@@ -85,14 +85,14 @@ def _copy_azure_bbs(keys, src_store, tgt_store):
         )
 
         if source_md5 is None:
-            _logger.debug("Missing hash for {}".format(k))
+            _logger.debug(f"Missing hash for {k}")
         else:
             tgt_md5 = _azure_bbs_content_md5(
                 tgt_bbs, tgt_container, k, accept_missing=True
             )
 
             if source_md5 == tgt_md5:
-                _logger.debug("Omitting copy to {} (checksum match)".format(k))
+                _logger.debug(f"Omitting copy to {k} (checksum match)")
                 continue
 
         copy_source = src_bbs.make_blob_url(
@@ -104,13 +104,13 @@ def _copy_azure_bbs(keys, src_store, tgt_store):
         while True:
             blob = tgt_bbs.get_blob_properties(tgt_container, k)
             cprop_current = blob.properties.copy
-            assert cprop.id == cprop_current.id, "Concurrent copy to {}".format(k)
+            assert cprop.id == cprop_current.id, f"Concurrent copy to {k}"
             if cprop_current.status == "pending":
-                _logger.debug("Waiting for pending copy to {}...".format(k))
+                _logger.debug(f"Waiting for pending copy to {k}...")
                 time.sleep(0.1)
                 continue
             elif cprop_current.status == "success":
-                _logger.debug("Copy to {} completed".format(k))
+                _logger.debug(f"Copy to {k} completed")
                 break  # break from while, continue in for-loop
             else:
                 raise RuntimeError(
@@ -149,12 +149,12 @@ def _copy_azure_cc(keys, src_store, tgt_store):
         source_md5 = _azure_cc_content_md5(src_cc, k, accept_missing=False)
 
         if source_md5 is None:
-            _logger.debug("Missing hash for {}".format(k))
+            _logger.debug(f"Missing hash for {k}")
         else:
             tgt_md5 = _azure_cc_content_md5(tgt_cc, k, accept_missing=True)
 
             if source_md5 == tgt_md5:
-                _logger.debug("Omitting copy to {} (checksum match)".format(k))
+                _logger.debug(f"Omitting copy to {k} (checksum match)")
                 continue
 
         copy_source = src_cc.get_blob_client(k).url
@@ -165,13 +165,13 @@ def _copy_azure_cc(keys, src_store, tgt_store):
     for k, copy_id in copy_ids.items():
         while True:
             cprop_current = tgt_cc.get_blob_client(k).get_blob_properties().copy
-            assert copy_id == cprop_current.id, "Concurrent copy to {}".format(k)
+            assert copy_id == cprop_current.id, f"Concurrent copy to {k}"
             if cprop_current.status == "pending":
-                _logger.debug("Waiting for pending copy to {}...".format(k))
+                _logger.debug(f"Waiting for pending copy to {k}...")
                 time.sleep(0.1)
                 continue
             elif cprop_current.status == "success":
-                _logger.debug("Copy to {} completed".format(k))
+                _logger.debug(f"Copy to {k} completed")
                 break  # break from while, continue in for-loop
             else:
                 raise RuntimeError(
@@ -207,7 +207,7 @@ def copy_keys(keys, src_store, tgt_store):
     keys = sorted(keys)
     for k in keys:
         if (k is None) or (not VALID_KEY_RE_EXTENDED.match(k)) or (k == "/"):
-            raise ValueError("Illegal key: {}".format(k))
+            raise ValueError(f"Illegal key: {k}")
 
     if _has_azure_bbs(src_store) and _has_azure_bbs(tgt_store):
         _logger.debug(

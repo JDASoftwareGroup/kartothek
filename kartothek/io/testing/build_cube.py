@@ -235,11 +235,11 @@ def test_parquet(driver, function_store):
             "x": [10, 1, 1, 0, 0],
             "y": [10, 0, 1, 1, 0],
             "p": [0, 1, 1, 1, 1],
-            "föö".encode("utf8"): [100, 10, 11, 12, 13],
+            "föö".encode(): [100, 10, 11, 12, 13],
             "v": np.nan,
         },
         index=[0, 1000, 1001, 1002, 1003],
-        columns=["x", "y", "p", "föö".encode("utf8"), "v"],
+        columns=["x", "y", "p", "föö".encode(), "v"],
     )
 
     cube = Cube(
@@ -264,7 +264,7 @@ def test_parquet(driver, function_store):
             .sort_values(["x", "y"])
             .reset_index(drop=True)
             .drop(columns=["p"])
-            .rename(columns={"föö".encode("utf8"): "föö"})
+            .rename(columns={"föö".encode(): "föö"})
         )
 
         pdt.assert_frame_equal(df_actual.reset_index(drop=True), df_expected)

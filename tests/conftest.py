@@ -69,21 +69,21 @@ def df_serializer():
 def store_session_factory(tmpdir_factory):
     path = tmpdir_factory.mktemp("fsstore_test")
     path = path.realpath()
-    url = "hfs://{}".format(path)
+    url = f"hfs://{path}"
     return lazy_store(url)
 
 
 @pytest.fixture
 def store_factory(tmpdir):
     path = tmpdir.join("store").strpath
-    url = "hfs://{}".format(path)
+    url = f"hfs://{path}"
     return lazy_store(url)
 
 
 @pytest.fixture
 def store_factory2(tmpdir):
     path = tmpdir.join("store2").strpath
-    url = "hfs://{}".format(path)
+    url = f"hfs://{path}"
     return lazy_store(url)
 
 
@@ -113,7 +113,7 @@ def _refuse_write(*args, **kwargs):
 
 
 def _get_store(path):
-    url = "hfs://{}".format(path)
+    url = f"hfs://{path}"
     store = storefact.get_store_from_url(url)
     store.delete = partial(_check_and_delete, store=store, delete_orig=store.delete)
     return store
@@ -156,10 +156,10 @@ def function_store2(tmpdir):
 def azure_store_cfg_factory(caplog):
     def _f(suffix):
         account_name = "qe72nmjyy6mbi"
-        env_name = "AZURE_BLOB_KEY_{}".format(account_name.upper())
+        env_name = f"AZURE_BLOB_KEY_{account_name.upper()}"
         account_key = os.environ.get(env_name)
         if not account_key:
-            pytest.skip("{} not provided".format(env_name))
+            pytest.skip(f"{env_name} not provided")
 
         container = "tests-{component}-{py_major}-{py_minor}-{suffix}".format(
             component="kartothek",
@@ -223,7 +223,7 @@ def mock_default_metadata_version(mocker, backend_identifier):
             # Raise a "custom" error to distinguish this error from the error raised
             # by `parse_input_to_metapartition` when the object has not previously
             # passed through this mock function
-            raise AssertionError("Traversed through mock. Original error: {}".format(e))
+            raise AssertionError(f"Traversed through mock. Original error: {e}")
 
     mocker.patch(
         "kartothek.io.{backend_identifier}.parse_input_to_metapartition".format(

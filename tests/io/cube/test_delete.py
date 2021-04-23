@@ -17,4 +17,4 @@ def driver(driver_name):
     elif driver_name == "eager":
         return delete_cube
     else:
-        raise ValueError("Unknown driver: {}".format(driver_name))
+        raise ValueError(f"Unknown driver: {driver_name}")

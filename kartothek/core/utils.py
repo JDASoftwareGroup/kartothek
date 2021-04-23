@@ -23,7 +23,7 @@ def _verify_metadata_version(metadata_version):
         )
     elif metadata_version > MAX_METADATA_VERSION:
         raise NotImplementedError(
-            "Future metadata version `{}` encountered.".format(metadata_version)
+            f"Future metadata version `{metadata_version}` encountered."
         )
 
 

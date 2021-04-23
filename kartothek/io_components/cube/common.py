@@ -85,4 +85,4 @@ def check_blocksize(blocksize):
             "blocksize must be an integer but is {}".format(type(blocksize).__name__)
         )
     if blocksize <= 0:
-        raise ValueError("blocksize must be > 0 but is {}".format(blocksize))
+        raise ValueError(f"blocksize must be > 0 but is {blocksize}")

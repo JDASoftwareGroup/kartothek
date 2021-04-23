@@ -27,7 +27,7 @@ def reference_store():
         "reference-data",
         "pyarrow-bugs",
     )
-    return storefact.get_store_from_url("hfs://{}".format(path))
+    return storefact.get_store_from_url(f"hfs://{path}")
 
 
 def test_timestamp_us(store):
@@ -480,7 +480,7 @@ def test_retry_on_IOError(monkeypatch, caplog, store):
 
         if not retry_count > 1:
             # fail for the first try
-            raise IOError()
+            raise OSError()
         elif retry_count > 1:
             # simulate a successful retry
             return df
@@ -503,7 +503,7 @@ def test_retries_on_IOError_logs(monkeypatch, caplog, store):
 
     def patched__restore_dataframe(**kwargs):
         # This kind of exception should be captured by the retry mechanism.
-        raise IOError()
+        raise OSError()
 
     df = pd.DataFrame({"A": [0, 1, 2, 3]})
     monkeypatch.setattr(

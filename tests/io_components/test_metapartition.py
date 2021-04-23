@@ -567,7 +567,7 @@ def test_partition_on_one_level():
         # try to be agnostic about the order
         assert len(df) == 1
         assert "test" not in df
-    expected_labels = set(["test=1/label_1", "test=2/label_1", "test=3/label_1"])
+    expected_labels = {"test=1/label_1", "test=2/label_1", "test=3/label_1"}
     assert labels == expected_labels
 
 
@@ -601,13 +601,11 @@ def test_partition_on_one_level_ts():
         # try to be agnostic about the order
         assert len(df) == 1
         assert "test" not in df
-    expected_labels = set(
-        [
-            "test=2001-01-01%2000%3A00%3A00/label_1",
-            "test=2001-01-02%2000%3A00%3A00/label_1",
-            "test=2001-01-03%2000%3A00%3A00/label_1",
-        ]
-    )
+    expected_labels = {
+        "test=2001-01-01%2000%3A00%3A00/label_1",
+        "test=2001-01-02%2000%3A00%3A00/label_1",
+        "test=2001-01-03%2000%3A00%3A00/label_1",
+    }
     assert labels == expected_labels
 
 
@@ -689,13 +687,11 @@ def test_partition_urlencode():
         # try to be agnostic about the order
         assert len(df) == 1
         assert "ÖŒå" not in df
-    expected_labels = set(
-        [
-            "%C3%96%C5%92%C3%A5=1/label_1",
-            "%C3%96%C5%92%C3%A5=2/label_1",
-            "%C3%96%C5%92%C3%A5=3/label_1",
-        ]
-    )
+    expected_labels = {
+        "%C3%96%C5%92%C3%A5=1/label_1",
+        "%C3%96%C5%92%C3%A5=2/label_1",
+        "%C3%96%C5%92%C3%A5=3/label_1",
+    }
     assert labels == expected_labels
 
 
@@ -890,7 +886,7 @@ def test_reconstruct_index_duplicates(store):
     df = pd.DataFrame({"index_col": [1, 1], "column": list("ab")})
 
     label = "dontcare"
-    key_prefix = "uuid/table/index_col=2/{}".format(label)
+    key_prefix = f"uuid/table/index_col=2/{label}"
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")
@@ -918,7 +914,7 @@ def test_reconstruct_index_categories(store):
     )
 
     label = "dontcare"
-    key_prefix = "uuid/table/index_col=2/second_index_col=2/{}".format(label)
+    key_prefix = f"uuid/table/index_col=2/second_index_col=2/{label}"
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")
@@ -954,7 +950,7 @@ def test_reconstruct_index_empty_df(store, categoricals):
     df = df[0:0]
 
     label = "dontcare"
-    key_prefix = "uuid/table/index_col=2/{}".format(label)
+    key_prefix = f"uuid/table/index_col=2/{label}"
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")
@@ -990,7 +986,7 @@ def test_reconstruct_date_index(store, metadata_version, dates_as_object):
     )
 
     label = "dontcare"
-    key_prefix = "uuid/table/index_col=2018-06-02/{}".format(label)
+    key_prefix = f"uuid/table/index_col=2018-06-02/{label}"
     key = ser.store(store, key_prefix, df)
 
     schema = make_meta(df, origin="1", partition_keys="index_col")

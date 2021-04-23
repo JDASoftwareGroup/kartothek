@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 import os
 
@@ -27,7 +26,7 @@ def setup_package():
             "Programming Language :: Python :: 3.8",
         ],
         use_scm_version=True,
-        long_description=open("README.md", "r").read(),
+        long_description=open("README.md").read(),
         long_description_content_type="text/markdown",
         python_requires=">=3.6",
         entry_points={"console_scripts": ["kartothek_cube=kartothek.cli:cli"]},
