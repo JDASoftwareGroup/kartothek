@@ -2,8 +2,6 @@
 Helper module to convert kartothek dataset load predicates into cube conditions.
 """
 
-from __future__ import absolute_import
-
 import pandas as pd
 import pyarrow as pa
 
