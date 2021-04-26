@@ -28,7 +28,7 @@ def write_predicate_as_cube_condition(predicate):
         condition_string = "{} {} {}".format(
             predicate[0], predicate[1], str(predicate[2])
         )
-        parameter_format_dict[predicate[0]] = pa.int16()
+        parameter_format_dict[predicate[0]] = pa.int64()
     if type(predicate[2]) == str:
         condition_string = "{} {} {}".format(predicate[0], predicate[1], predicate[2])
         parameter_format_dict[predicate[0]] = pa.string()
