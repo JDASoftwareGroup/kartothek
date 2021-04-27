@@ -1,3 +1,4 @@
+import os
 from datetime import timedelta
 from functools import partial
 from itertools import permutations
@@ -96,6 +97,47 @@ def fullrange_cube(module_store, fullrange_data):
         index_columns=["i1", "i2", "i3"],
     )
     build_cube(data=fullrange_data, store=module_store, cube=cube)
+    return cube
+
+
+def _change_cube_table_name(
+    src_dir, ds_uuid, old_table="table", new_table="other_table"
+):
+    os.rename(f"{src_dir}/{ds_uuid}/{old_table}", f"{src_dir}/{ds_uuid}/{new_table}")
+    with open(f"{src_dir}/{ds_uuid}.by-dataset-metadata.json") as js, open(
+        f"{src_dir}/{ds_uuid}.by-dataset-metadata.json.new", "w"
+    ) as js_new:
+        txt = js.readline()
+        txt = txt.replace(f'"{old_table}"', f'"{new_table}"').replace(
+            f"/{old_table}/", f"/{new_table}/"
+        )
+        js_new.write(txt)
+    os.remove(f"{src_dir}/{ds_uuid}.by-dataset-metadata.json")
+    os.rename(
+        f"{src_dir}/{ds_uuid}.by-dataset-metadata.json.new",
+        f"{src_dir}/{ds_uuid}.by-dataset-metadata.json",
+    )
+
+
+@pytest.fixture(scope="module")
+def different_table_name_cube(module_store, fullrange_data):
+    """
+    This simulates a cube which uses a different table name then the standard cube
+    (for downward compatibility reasons)
+    """
+    cube_prefix = "different_table_name_cube"
+    cube = Cube(
+        dimension_columns=["x", "y", "z"],
+        partition_columns=["p", "q"],
+        uuid_prefix=cube_prefix,
+        index_columns=["i1", "i2", "i3"],
+    )
+    build_cube(data=fullrange_data, store=module_store, cube=cube)
+    # modify table names on system level
+    src_dir = module_store().root
+    _change_cube_table_name(src_dir=src_dir, ds_uuid=f"{cube_prefix}++seed")
+    _change_cube_table_name(src_dir=src_dir, ds_uuid=f"{cube_prefix}++enrich_sparse")
+    _change_cube_table_name(src_dir=src_dir, ds_uuid=f"{cube_prefix}++enrich_dense")
     return cube
 
 
@@ -267,6 +309,12 @@ def fullrange_df():
         .sort_values(["x", "y", "z", "p", "q"])
         .reset_index(drop=True)
     )
+
+
+@pytest.fixture(scope="module")
+def different_table_name_df(fullrange_df):
+    # data for table with different name does not differ from standard data
+    return fullrange_df
 
 
 @pytest.fixture(scope="module")
@@ -538,6 +586,7 @@ def no_part_df():
         "updated",
         "no_part",
         "other_part",
+        "different_table_name",
     ],
     scope="module",
 )
@@ -556,6 +605,7 @@ def test_cube(
     updated_cube,
     no_part_cube,
     other_part_cube,
+    different_table_name_cube,
 ):
     if testset == "fullrange":
         return fullrange_cube
@@ -573,6 +623,19 @@ def test_cube(
         return no_part_cube
     elif testset == "other_part":
         return other_part_cube
+    elif testset == "different_table_name":
+        """
+        TODO: At the moment, KTK fails if a cube contains datasets with table with non-
+        default names. It is not completely clear if such datasets shall be supported
+        or not.
+        Therefore, these tests are marked as xfails at the moment. If support for
+        datasets with non-standard names inside cubes shall be added, remove xfail
+        statement to execute tests with such a cube as well.
+        If support for such datasets is not longer needed, remove the corresponding
+        fixture.
+        """
+        pytest.xfail()
+        return different_table_name_cube
     else:
         raise ValueError("Unknown param {}".format(testset))
 
@@ -587,6 +650,7 @@ def test_df(
     massive_partitions_df,
     updated_df,
     no_part_df,
+    different_table_name_df,
 ):
     if testset == "fullrange":
         return fullrange_df
@@ -602,6 +666,8 @@ def test_df(
         return updated_df
     elif testset in ("no_part", "other_part"):
         return no_part_df
+    elif testset == "different_table_name":
+        return different_table_name_df
     else:
         raise ValueError("Unknown param {}".format(testset))
 
