@@ -2,13 +2,15 @@
 Helper module to convert kartothek dataset load predicates into cube conditions.
 """
 
+from typing import Any, List, Tuple
+
 import pandas as pd
 import pyarrow as pa
 
 from kartothek.core.cube.conditions import Condition
 
 
-def write_predicate_as_cube_condition(predicate):
+def write_predicate_as_cube_condition(predicate: Tuple[str, str, Any]) -> Any:
     """
     Rewrites a single io.dask.dataset 'read_dataset_as_ddf' predicate condition as cube condition
 
@@ -58,7 +60,7 @@ def write_predicate_as_cube_condition(predicate):
     return condition
 
 
-def convert_predicates_to_cube_conditions(predicates):
+def convert_predicates_to_cube_conditions(predicates: List[List],) -> Any:
     """
     Converts a io.dask.dataset 'read_dataset_as_ddf' predicate to a cube condition
 
@@ -72,7 +74,7 @@ def convert_predicates_to_cube_conditions(predicates):
     condition: cube condition object
         cube condition containing the combined predicate definitions
     """
-    condition = ()
+    condition: Any = ()
     for predicate in predicates[0]:
         condition = condition + (write_predicate_as_cube_condition(predicate),)
     return condition
