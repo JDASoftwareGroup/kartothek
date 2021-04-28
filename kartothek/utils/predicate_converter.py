@@ -61,7 +61,7 @@ def write_predicate_as_cube_condition(predicate: Tuple[str, str, Any]) -> Condit
 
 
 def convert_predicates_to_cube_conditions(
-    predicates: List[List],
+    predicates: List[List[Tuple[str, str, Any]]],
 ) -> Sequence[Condition]:
     """
     Converts a io.dask.dataset 'read_dataset_as_ddf' predicate to a cube condition
