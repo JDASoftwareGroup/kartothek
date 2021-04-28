@@ -1,12 +1,13 @@
 # coding: utf-8 -*-
 # pylint: disable=E1101
 
-
+import datetime
 from datetime import date
 from functools import partial
 
 import numpy as np
 import pandas as pd
+import pandas.testing as pdt
 import pytest
 
 from kartothek.api.dataset import read_dataset_as_ddf
@@ -15,6 +16,7 @@ from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.core.testing import TIME_TO_FREEZE_ISO
 from kartothek.io.eager import (
     read_dataset_as_metapartitions,
+    read_table,
     store_dataframes_as_dataset,
 )
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
@@ -670,3 +672,45 @@ def test_update_of_dataset_with_non_default_table_name(
     )
     df_expected = df_create.append(df_update).reset_index(drop=True)
     pd.testing.assert_frame_equal(df_read, df_expected)
+
+
+def test_update_different_table_name(
+    meta_partitions_dataframe_alternative_table_name,
+    bound_update_dataset,
+    metadata_version,
+    store,
+    backend_identifier,
+):
+    if backend_identifier == "dask.dataframe":
+        # dedicated test exists for dask.dataframe
+        pytest.skip()
+
+    first_partition = meta_partitions_dataframe_alternative_table_name[0]
+    dataset = bound_update_dataset(
+        [first_partition],
+        store=store,
+        metadata={"dataset": "metadata"},
+        dataset_uuid="dataset_uuid",
+        default_metadata_version=metadata_version,
+        secondary_indices=["P"],
+    )
+    assert dataset is not None
+
+    second_partition = meta_partitions_dataframe_alternative_table_name[1]
+    dataset_updated = bound_update_dataset(
+        [second_partition],
+        store=store,
+        delete_scope=[{"P": 1}],
+        metadata={"extra": "metadata"},
+        dataset_uuid="dataset_uuid",
+        default_metadata_version=metadata_version,
+        secondary_indices=["P"],
+    )
+    assert dataset_updated is not None
+    df = read_table(store=store, dataset_uuid="dataset_uuid",)
+    assert df is not None
+    expected_df = pd.DataFrame(
+        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
+    )
+
+    pdt.assert_frame_equal(df, expected_df, check_dtype=True, check_like=True)
