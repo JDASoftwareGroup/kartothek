@@ -141,7 +141,7 @@ class SchemaWrapper:
             {s + "__no_metadata" for s in self.__origin},
         )
 
-    remove_metadata.__doc__ = pa.Schema.remove_metadata.__doc__
+    # remove_metadata.__doc__ = pa.Schema.remove_metadata.__doc__
 
     def set(self, i, field):
         return SchemaWrapper(self.__schema.set(i, field), self.__origin)
