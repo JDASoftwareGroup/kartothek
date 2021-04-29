@@ -12,6 +12,7 @@ Kartothek 4.0.2 (2021-04-xx)
 * moved testing code from `~kartothek.io.testing`to `tests`
 * added additional tests for table_name features
 
+
 Kartothek 4.0.1 (2021-04-13)
 ============================
 
