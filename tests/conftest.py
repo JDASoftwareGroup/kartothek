@@ -683,6 +683,6 @@ def dataset_one_name(request, dataset, dataset_alternative_table_name):
         return dataset_alternative_table_name
 
 
-@pytest.fixture(params=[True, False])
+@pytest.fixture(params=["No", "Default", "Other"])
 def specify_name(request):
     return request.param

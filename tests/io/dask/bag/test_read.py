@@ -72,7 +72,7 @@ def test_read_table_dask_bag(dataset_one_name, store_session, specify_name):
     Tests reading a dataset with either default or alternative table name as
     Dask bag. Table name is either specified or mot specified.
     """
-    if specify_name:
+    if specify_name != "No":
         # Name specification not implemented for dask bag
         pytest.skip()
     else:

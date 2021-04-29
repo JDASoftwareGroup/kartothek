@@ -714,3 +714,45 @@ def test_update_different_table_name(
     )
 
     pdt.assert_frame_equal(df, expected_df, check_dtype=True, check_like=True)
+
+
+"""
+This tests the situation that a table with one dataset is updatesd with another dataset
+with a different name. This should fail gracefully, but instead, the program crashes.
+"""
+
+
+@pytest.mark.xfail()
+def test_update_two_table_names(
+    meta_partitions_dataframe_two_table_names,
+    bound_update_dataset,
+    metadata_version,
+    store,
+    backend_identifier,
+):
+    if backend_identifier == "dask.dataframe":
+        # dedicated test exists for dask.dataframe
+        pytest.skip()
+
+    first_partition = meta_partitions_dataframe_two_table_names[0]
+    dataset = bound_update_dataset(
+        [first_partition],
+        store=store,
+        metadata={"dataset": "metadata"},
+        dataset_uuid="dataset_uuid",
+        default_metadata_version=metadata_version,
+        secondary_indices=["P"],
+    )
+    assert dataset is not None
+
+    second_partition = meta_partitions_dataframe_two_table_names[1]
+    with pytest.raises(RuntimeError):
+        _ = bound_update_dataset(
+            [second_partition],
+            store=store,
+            delete_scope=[{"P": 1}],
+            metadata={"extra": "metadata"},
+            dataset_uuid="dataset_uuid",
+            default_metadata_version=metadata_version,
+            secondary_indices=["P"],
+        )

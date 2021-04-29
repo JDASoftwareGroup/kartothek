@@ -59,7 +59,7 @@ def test_read_table_eager(
         categories = ["P"]
     else:
         categories = None
-    if specify_name:
+    if specify_name != "No":
         # the read_table() API does not allow to specify table names at the moment.
         pytest.skip()
 
