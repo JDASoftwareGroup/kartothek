@@ -33,8 +33,18 @@ def test_write_predicate_as_cube_condition():
         "following type: str, int, float, bool or pandas timestamp, ",
     ):
         write_predicate_as_cube_condition(
-            ["date", "==", pd.to_datetime("2020-01-01").date()]
+            ("date", "==", pd.to_datetime("2020-01-01").date())
         )
+
+    with pytest.raises(
+        ValueError, match="Please use predicates consisting of exactly 3 entries"
+    ):
+        write_predicate_as_cube_condition(("date", "=="))
+
+    with pytest.raises(
+        ValueError, match="Please use predicates consisting of exactly 3 entries"
+    ):
+        write_predicate_as_cube_condition(("date", "==", "date", "=="))
 
 
 def test_convert_predicates_to_cube_conditions():
@@ -44,3 +54,12 @@ def test_convert_predicates_to_cube_conditions():
     assert convert_predicates_to_cube_conditions(
         [[("column", "==", 1), ("column2", "==", "1")]]
     ) == (C("column") == 1, C("column2") == "1")
+
+    with pytest.raises(
+        ValueError,
+        match="Cube conditions cannot handle 'or' operators, therefore, "
+        "please pass a predicate list with one element.",
+    ):
+        convert_predicates_to_cube_conditions(
+            [[("column", "==", 1)], [("column2", "==", 2)]]
+        )
