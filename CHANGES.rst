@@ -7,13 +7,15 @@ Kartothek 4.0.2 (2021-04-xx)
 ============================
 
 * Fix a bug in ``MetaPartition._reconstruct_index_columns`` that would raise an ``IndexError`` when loading few columns of a dataset with many primary indices.
+* Add :meth:`~kartothek.io.eager.copy_dataset` to copy and optionally rename datasets within one store or between stores (eager only)
+* Add renaming option to :meth:`~kartothek.io.eager_cube.copy_cube`
+* moved testing code from `~kartothek.io.testing`to `tests`
 
 
 Kartothek 4.0.1 (2021-04-13)
 ============================
 
 * Fixed dataset corruption after updates when table names other than "table" are used (#445).
-
 
 Kartothek 4.0.0 (2021-03-17)
 ============================
@@ -476,7 +478,7 @@ Version 3.1.0 (2019-07-10)
 - Ensure binary column names are read as type ``str``:
 
     - Ensure dataframe columns are of type ``str`` in :func:`~kartothek.core.common_metadata.empty_dataframe_from_schema`
-    - Testing: create :func:`~kartothek.io.testing.read.test_binary_column_metadata` which checks column names stored as
+    - Testing: create `~kartothek.io.testing.read.test_binary_column_metadata` which checks column names stored as
       ``bytes`` objects are read as type ``str``
 
 - fix issue where it was possible to add an index to an existing dataset by using update functions and partition indices

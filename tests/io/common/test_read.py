@@ -1,135 +1,215 @@
 """
-This module is a collection of tests which should be implemented by all kartothek
-**read** backends. The tests are not subject to the semantic versioning scheme and may change with minor or even patch releases.
+This test suite all reading tests which were formerly contained in the
+kartothek.io.testing package.
+All tests in this test program will be executed for different backends:
+eager, iter, dask.[bag, dataframe, delayed]
+and for other combinations of fixtures. This will be controlled in conftest.py.
 
-To use the tests of this module, add the following import statement to your test module and ensure that the following fixtures are available in your test environment.
-
-```
-from kartothek.io.testing.read import *  # noqa
-```
-
-Fixtures required to be implemented:
-
-* ``output_type`` - One of {`dataframe`, `metpartition`, `table`} to define the outptu type of the returned result.
-* ``bound_load_dataframes`` - A callable which will retrieve the partitions in the format specified by ``output_type``. The callable should accept all keyword arguments expected for a kartothek reader.
-
-Source test data
-
-* ``dataset`` - A fixture generating test data (TODO: Expose this as a testing function)
-* ``store_factory`` - A function scoped store factory
-* ``store_session_factory`` - A session scoped store factory
-
-Feature toggles (optional):
-
-The following fixtures should be present (see tests.read.conftest)
-* ``use_categoricals`` - Whether or not the call retrievs categorical data.
-* ``dates_as_object`` - Whether or not the call retrievs date columns as objects.
-
+Since certain combinations of fixtures will not make sense, these tests will be skipped.
+This results in a relatively large number of tests which will be skipped in total.
 """
 
 import datetime
-from functools import partial
 from itertools import permutations
 
 import pandas as pd
 import pandas.testing as pdt
 import pytest
-from storefact import get_store_from_url
 
 from kartothek.io.eager import store_dataframes_as_dataset
-from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
 
 
-@pytest.fixture(params=[True, False], ids=["use_categoricals", "no_categoricals"])
-def use_categoricals(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False], ids=["dates_as_object", "datest_as_datetime"])
-def dates_as_object(request):
-    return request.param
-
-
-@pytest.fixture(params=[True, False], ids=["use_factory", "no_factory"])
-def use_dataset_factory(request, dates_as_object):
-    return request.param
-
-
-class NoPickle:
-    def __getstate__(self):
-        raise RuntimeError("do NOT pickle this object!")
-
-
-def mark_nopickle(obj):
-    setattr(obj, "_nopickle", NoPickle())
-
-
-def no_pickle_store(url):
-    store = get_store_from_url(url)
-    mark_nopickle(store)
-    return store
-
-
-def no_pickle_factory(url):
-
-    return partial(no_pickle_store, url)
-
-
-@pytest.fixture(params=["URL", "KeyValue", "Callable"])
-def store_input_types(request, tmpdir):
-    url = f"hfs://{tmpdir}"
-
-    if request.param == "URL":
-        return url
-    elif request.param == "KeyValue":
-        return get_store_from_url(url)
-    elif request.param == "Callable":
-        return no_pickle_factory(url)
-    else:
-        raise RuntimeError(f"Encountered unknown store type {type(request.param)}")
-
-
-def test_store_input_types(store_input_types, bound_load_dataframes):
-    from kartothek.io.eager import store_dataframes_as_dataset
-    from kartothek.serialization.testing import get_dataframe_not_nested
-
-    dataset_uuid = "dataset_uuid"
-    df = get_dataframe_not_nested(10)
-
-    store_dataframes_as_dataset(
-        dfs=[df],
-        dataset_uuid=dataset_uuid,
-        store=store_input_types,
-        partition_on=[df.columns[0]],
-        secondary_indices=[df.columns[1]],
-    )
-
-    # Use predicates to trigger partition pruning with indices
-    predicates = [
-        [
-            (df.columns[0], "==", df.loc[0, df.columns[0]]),
-            (df.columns[1], "==", df.loc[0, df.columns[1]]),
-        ]
-    ]
-
+@pytest.mark.parametrize(
+    "predicates",
+    [
+        [[("P", "==", 2)]],
+        [[("P", "in", [2])]],
+        [[("P", "!=", 1)]],
+        [[("P", ">", 1)]],
+        [[("P", ">=", 2)]],
+    ],
+)
+def test_read_dataset_as_dataframes_predicate(
+    dataset, store_session_factory, bound_load_dataframes, predicates, output_type
+):
+    if output_type != "dataframe":
+        pytest.skip()
     result = bound_load_dataframes(
-        dataset_uuid=dataset_uuid,
-        store=store_input_types,
-        predicates=predicates,
-        dates_as_object=True,
+        dataset_uuid=dataset.uuid, store=store_session_factory, predicates=predicates,
+    )
+    core_result = pd.concat(result)
+
+    expected_core = pd.DataFrame(
+        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
+    )
+    pdt.assert_frame_equal(
+        core_result, expected_core, check_dtype=False, check_like=True
     )
 
-    if isinstance(result, list):
-        result = result[0]
 
-    if isinstance(result, MetaPartition):
-        result = result.data
+@pytest.mark.parametrize(
+    "predicates",
+    [
+        [[("P", "==", 2), ("TARGET", "==", 2)]],
+        [[("P", "in", [2]), ("TARGET", "==", 2)]],
+        [[("P", "!=", 1), ("L", "==", 2)]],
+        [[("P", "!=", 1), ("L", "in", [2])]],
+        [[("P", ">", 2)], [("TARGET", ">=", 2)]],
+        [[("P", ">=", 2)], [("TARGET", ">=", 2)]],
+    ],
+)
+def test_read_dataset_as_dataframes_predicate_with_partition_keys(
+    dataset_partition_keys,
+    store_session_factory,
+    bound_load_dataframes,
+    predicates,
+    output_type,
+):
+    if output_type != "dataframe":
+        pytest.skip()
+    result = bound_load_dataframes(
+        dataset_uuid=dataset_partition_keys.uuid,
+        store=store_session_factory,
+        predicates=predicates,
+    )
 
-    if isinstance(result, dict):
-        result = result[SINGLE_TABLE]
+    core_result = pd.concat(result)
 
-    pdt.assert_frame_equal(result, df.head(1), check_dtype=False)
+    expected_core = pd.DataFrame(
+        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
+    )
+    pdt.assert_frame_equal(
+        core_result, expected_core, check_dtype=False, check_like=True
+    )
+
+
+def test_read_dataset_as_dataframes_predicate_empty(
+    dataset_partition_keys, store_session_factory, output_type, bound_load_dataframes,
+):
+    if output_type != "dataframe":
+        pytest.skip()
+    result = bound_load_dataframes(
+        dataset_uuid=dataset_partition_keys.uuid,
+        store=store_session_factory,
+        predicates=[[("P", "==", -42)]],
+        columns={SINGLE_TABLE: ["P", "L", "TARGET"]},
+    )
+    assert len(result) == 0
+
+
+def test_read_dataset_as_dataframes_dispatch_by_empty(
+    store_session_factory,
+    dataset_dispatch_by,
+    bound_load_dataframes,
+    backend_identifier,
+    output_type,
+    metadata_version,
+    dataset_dispatch_by_uuid,
+):
+    if output_type == "table":
+        pytest.skip()
+    # Dispatch by primary index "A"
+    dispatched = bound_load_dataframes(
+        dataset_uuid=dataset_dispatch_by_uuid,
+        store=store_session_factory,
+        dispatch_by=[],
+    )
+
+    assert len(dispatched) == 1
+
+
+@pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
+def test_read_dataset_as_dataframes_dispatch_by_single_col(
+    store_session_factory,
+    dataset_dispatch_by,
+    bound_load_dataframes,
+    backend_identifier,
+    dispatch_by,
+    output_type,
+    metadata_version,
+    dataset_dispatch_by_uuid,
+):
+    if output_type == "table":
+        pytest.skip()
+    # Dispatch by primary index "A"
+    dispatched_a = bound_load_dataframes(
+        dataset_uuid=dataset_dispatch_by_uuid,
+        store=store_session_factory,
+        dispatch_by=[dispatch_by],
+    )
+
+    unique_a = set()
+    for data in dispatched_a:
+        unique_dispatch = data[dispatch_by].unique()
+        assert len(unique_dispatch) == 1
+        assert unique_dispatch[0] not in unique_a
+        unique_a.add(unique_dispatch[0])
+
+
+def test_read_dataset_as_dataframes_dispatch_by_multi_col(
+    store_session_factory,
+    bound_load_dataframes,
+    output_type,
+    dataset_dispatch_by,
+    dataset_dispatch_by_uuid,
+):
+    if output_type == "table":
+        pytest.skip()
+    for dispatch_by in permutations(("A", "B", "C"), 2):
+        dispatched = bound_load_dataframes(
+            dataset_uuid=dataset_dispatch_by_uuid,
+            store=store_session_factory,
+            dispatch_by=dispatch_by,
+        )
+        uniques = pd.DataFrame(columns=dispatch_by)
+        for part in dispatched:
+            if isinstance(part, MetaPartition):
+                data = part.data
+            else:
+                data = part
+            unique_dispatch = data[list(dispatch_by)].drop_duplicates()
+            assert len(unique_dispatch) == 1
+            row = unique_dispatch
+            uniques.append(row)
+        assert not any(uniques.duplicated())
+
+
+@pytest.mark.parametrize(
+    "dispatch_by, predicates, expected_dispatches",
+    [
+        # This should only dispatch one partition since there is only
+        # one file with valid data points
+        (["A"], [[("C", ">", 2)]], 1),
+        # We dispatch and restrict to one valie, i.e. one dispatch
+        (["B"], [[("B", "==", 10)]], 1),
+        # The same is true for a non-partition index col
+        (["C"], [[("C", "==", 1)]], 1),
+        # A condition where both primary and secondary indices need to work together
+        (["A", "C"], [[("A", ">", 1), ("C", "<", 3)]], 2),
+    ],
+)
+def test_read_dispatch_by_with_predicates(
+    store_session_factory,
+    dataset_dispatch_by_uuid,
+    bound_load_dataframes,
+    dataset_dispatch_by,
+    dispatch_by,
+    output_type,
+    expected_dispatches,
+    predicates,
+):
+    if output_type == "table":
+        pytest.skip()
+
+    dispatched = bound_load_dataframes(
+        dataset_uuid=dataset_dispatch_by_uuid,
+        store=store_session_factory,
+        dispatch_by=dispatch_by,
+        predicates=predicates,
+    )
+
+    assert len(dispatched) == expected_dispatches, dispatched
 
 
 def _perform_read_test(
@@ -213,237 +293,6 @@ def _perform_read_test(
         )
 
 
-@pytest.mark.parametrize(
-    "predicates",
-    [
-        [[("P", "==", 2)]],
-        [[("P", "in", [2])]],
-        [[("P", "!=", 1)]],
-        [[("P", ">", 1)]],
-        [[("P", ">=", 2)]],
-    ],
-)
-def test_read_dataset_as_dataframes_predicate(
-    dataset, store_session_factory, bound_load_dataframes, predicates, output_type
-):
-    if output_type != "dataframe":
-        pytest.skip()
-    result = bound_load_dataframes(
-        dataset_uuid=dataset.uuid, store=store_session_factory, predicates=predicates,
-    )
-    core_result = pd.concat(result)
-
-    expected_core = pd.DataFrame(
-        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
-    )
-    pdt.assert_frame_equal(
-        core_result, expected_core, check_dtype=False, check_like=True
-    )
-
-
-@pytest.mark.parametrize(
-    "predicates",
-    [
-        [[("P", "==", 2), ("TARGET", "==", 2)]],
-        [[("P", "in", [2]), ("TARGET", "==", 2)]],
-        [[("P", "!=", 1), ("L", "==", 2)]],
-        [[("P", "!=", 1), ("L", "in", [2])]],
-        [[("P", ">", 2)], [("TARGET", ">=", 2)]],
-        [[("P", ">=", 2)], [("TARGET", ">=", 2)]],
-    ],
-)
-def test_read_dataset_as_dataframes_predicate_with_partition_keys(
-    dataset_partition_keys,
-    store_session_factory,
-    bound_load_dataframes,
-    predicates,
-    output_type,
-):
-    if output_type != "dataframe":
-        pytest.skip()
-    result = bound_load_dataframes(
-        dataset_uuid=dataset_partition_keys.uuid,
-        store=store_session_factory,
-        predicates=predicates,
-    )
-
-    core_result = pd.concat(result)
-
-    expected_core = pd.DataFrame(
-        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
-    )
-    pdt.assert_frame_equal(
-        core_result, expected_core, check_dtype=False, check_like=True
-    )
-
-
-def test_read_dataset_as_dataframes_predicate_empty(
-    dataset_partition_keys, store_session_factory, output_type, bound_load_dataframes,
-):
-    if output_type != "dataframe":
-        pytest.skip()
-    result = bound_load_dataframes(
-        dataset_uuid=dataset_partition_keys.uuid,
-        store=store_session_factory,
-        predicates=[[("P", "==", -42)]],
-        columns={SINGLE_TABLE: ["P", "L", "TARGET"]},
-    )
-    assert len(result) == 0
-
-
-def _gen_partition(b_c):
-    b, c = b_c
-    return pd.DataFrame({"a": [1], "b": [b], "c": c})
-
-
-def test_read_dataset_as_dataframes_dispatch_by_empty(
-    store_session_factory,
-    dataset_dispatch_by,
-    bound_load_dataframes,
-    backend_identifier,
-    output_type,
-    metadata_version,
-    dataset_dispatch_by_uuid,
-):
-    if output_type == "table":
-        pytest.skip()
-    # Dispatch by primary index "A"
-    dispatched = bound_load_dataframes(
-        dataset_uuid=dataset_dispatch_by_uuid,
-        store=store_session_factory,
-        dispatch_by=[],
-    )
-
-    assert len(dispatched) == 1
-
-
-@pytest.mark.parametrize("dispatch_by", ["A", "B", "C"])
-def test_read_dataset_as_dataframes_dispatch_by_single_col(
-    store_session_factory,
-    dataset_dispatch_by,
-    bound_load_dataframes,
-    backend_identifier,
-    dispatch_by,
-    output_type,
-    metadata_version,
-    dataset_dispatch_by_uuid,
-):
-    if output_type == "table":
-        pytest.skip()
-    # Dispatch by primary index "A"
-    dispatched_a = bound_load_dataframes(
-        dataset_uuid=dataset_dispatch_by_uuid,
-        store=store_session_factory,
-        dispatch_by=[dispatch_by],
-    )
-
-    unique_a = set()
-    for data in dispatched_a:
-        unique_dispatch = data[dispatch_by].unique()
-        assert len(unique_dispatch) == 1
-        assert unique_dispatch[0] not in unique_a
-        unique_a.add(unique_dispatch[0])
-
-
-@pytest.fixture(scope="session")
-def dataset_dispatch_by_uuid():
-    import uuid
-
-    return uuid.uuid1().hex
-
-
-@pytest.fixture(scope="session")
-def dataset_dispatch_by(
-    metadata_version, store_session_factory, dataset_dispatch_by_uuid
-):
-    cluster1 = pd.DataFrame(
-        {"A": [1, 1], "B": [10, 10], "C": [1, 2], "Content": ["cluster1", "cluster1"]}
-    )
-    cluster2 = pd.DataFrame(
-        {"A": [1, 1], "B": [10, 10], "C": [2, 3], "Content": ["cluster2", "cluster2"]}
-    )
-    cluster3 = pd.DataFrame({"A": [1], "B": [20], "C": [1], "Content": ["cluster3"]})
-    cluster4 = pd.DataFrame(
-        {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
-    )
-    clusters = [cluster1, cluster2, cluster3, cluster4]
-
-    store_dataframes_as_dataset__iter(
-        df_generator=clusters,
-        store=store_session_factory,
-        dataset_uuid=dataset_dispatch_by_uuid,
-        metadata_version=metadata_version,
-        partition_on=["A", "B"],
-        secondary_indices=["C"],
-    )
-    return pd.concat(clusters).sort_values(["A", "B", "C"]).reset_index(drop=True)
-
-
-def test_read_dataset_as_dataframes_dispatch_by_multi_col(
-    store_session_factory,
-    bound_load_dataframes,
-    output_type,
-    dataset_dispatch_by,
-    dataset_dispatch_by_uuid,
-):
-    if output_type == "table":
-        pytest.skip()
-    for dispatch_by in permutations(("A", "B", "C"), 2):
-        dispatched = bound_load_dataframes(
-            dataset_uuid=dataset_dispatch_by_uuid,
-            store=store_session_factory,
-            dispatch_by=dispatch_by,
-        )
-        uniques = pd.DataFrame(columns=dispatch_by)
-        for part in dispatched:
-            if isinstance(part, MetaPartition):
-                data = part.data
-            else:
-                data = part
-            unique_dispatch = data[list(dispatch_by)].drop_duplicates()
-            assert len(unique_dispatch) == 1
-            row = unique_dispatch
-            uniques.append(row)
-        assert not any(uniques.duplicated())
-
-
-@pytest.mark.parametrize(
-    "dispatch_by, predicates, expected_dispatches",
-    [
-        # This should only dispatch one partition since there is only
-        # one file with valid data points
-        (["A"], [[("C", ">", 2)]], 1),
-        # We dispatch and restrict to one valie, i.e. one dispatch
-        (["B"], [[("B", "==", 10)]], 1),
-        # The same is true for a non-partition index col
-        (["C"], [[("C", "==", 1)]], 1),
-        # A condition where both primary and secondary indices need to work together
-        (["A", "C"], [[("A", ">", 1), ("C", "<", 3)]], 2),
-    ],
-)
-def test_read_dispatch_by_with_predicates(
-    store_session_factory,
-    dataset_dispatch_by_uuid,
-    bound_load_dataframes,
-    dataset_dispatch_by,
-    dispatch_by,
-    output_type,
-    expected_dispatches,
-    predicates,
-):
-    if output_type == "table":
-        pytest.skip()
-
-    dispatched = bound_load_dataframes(
-        dataset_uuid=dataset_dispatch_by_uuid,
-        store=store_session_factory,
-        dispatch_by=dispatch_by,
-        predicates=predicates,
-    )
-
-    assert len(dispatched) == expected_dispatches, dispatched
-
-
 def test_read_dataset_as_dataframes(
     dataset,
     store_session_factory,
@@ -472,6 +321,48 @@ def test_read_dataset_as_dataframes(
         output_type=output_type,
         dates_as_object=dates_as_object,
     )
+
+
+def test_store_input_types(store_input_types, bound_load_dataframes):
+    from kartothek.io.eager import store_dataframes_as_dataset
+    from kartothek.serialization.testing import get_dataframe_not_nested
+
+    dataset_uuid = "dataset_uuid"
+    df = get_dataframe_not_nested(10)
+
+    store_dataframes_as_dataset(
+        dfs=[df],
+        dataset_uuid=dataset_uuid,
+        store=store_input_types,
+        partition_on=[df.columns[0]],
+        secondary_indices=[df.columns[1]],
+    )
+
+    # Use predicates to trigger partition pruning with indices
+    predicates = [
+        [
+            (df.columns[0], "==", df.loc[0, df.columns[0]]),
+            (df.columns[1], "==", df.loc[0, df.columns[1]]),
+        ]
+    ]
+
+    result = bound_load_dataframes(
+        dataset_uuid=dataset_uuid,
+        store=store_input_types,
+        predicates=predicates,
+        dates_as_object=True,
+    )
+
+    if isinstance(result, list):
+        result = result[0]
+
+    if isinstance(result, MetaPartition):
+        result = result.data
+
+    if isinstance(result, dict):
+        result = result[SINGLE_TABLE]
+
+    pdt.assert_frame_equal(result, df.head(1), check_dtype=False)
 
 
 def test_read_dataset_as_dataframes_columns_projection(
