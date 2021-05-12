@@ -61,7 +61,7 @@ jobs:
           key: ${{ runner.os }}-${{ matrix.python }}-${{ matrix.pyarrow }}-${{ hashFiles('conda-requirements.txt', 'conda-test-requirements.txt')}}
 
       - name: Conda Bootstrap
-        uses: conda-incubator/setup-miniconda@v2
+        uses: conda-incubator/setup-miniconda@v2.1.1
         with:
           auto-update-conda: true
           channel-priority: strict
