@@ -10,6 +10,7 @@ from prompt_toolkit.validation import ValidationError, Validator
 
 from kartothek.core.cube.conditions import Conjunction
 from kartothek.io.dask.bag_cube import query_cube_bag
+from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.utils.ktk_adapters import get_dataset_columns
 
 __all__ = ("query",)
@@ -41,7 +42,7 @@ def query(ctx):
         cols = get_dataset_columns(ds)
         all_columns |= cols
         for col in cols:
-            all_types[col] = ds.schema.field(col).type
+            all_types[col] = ds.table_meta[SINGLE_TABLE].field(col).type
 
     ipython = _get_ipython()
 

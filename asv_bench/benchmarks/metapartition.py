@@ -33,7 +33,7 @@ class TimeMetaPartition(AsvBenchmarkConfig):
         self.mp = MetaPartition(
             label="primary_key={}/base_label".format(dtype[0]),
             metadata_version=4,
-            schema=self.schema,
+            table_meta={"table": self.schema},
         )
 
     def time_reconstruct_index(self, num_rows, dtype):
@@ -41,6 +41,7 @@ class TimeMetaPartition(AsvBenchmarkConfig):
         self.mp._reconstruct_index_columns(
             df=self.df,
             key_indices=[("primary_key", str(dtype[1]))],
+            table="table",
             columns=None,
             categories=None,
             date_as_object=False,
@@ -50,7 +51,8 @@ class TimeMetaPartition(AsvBenchmarkConfig):
         self.mp._reconstruct_index_columns(
             df=self.df,
             key_indices=[("primary_key", str(dtype[1]))],
+            table="table",
             columns=None,
-            categories="primary_key",
+            categories={"table": ["primary_key"]},
             date_as_object=False,
         )

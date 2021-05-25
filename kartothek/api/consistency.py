@@ -314,14 +314,14 @@ def check_datasets(
     datasets = {name: ds.load_partition_indices() for name, ds in datasets.items()}
     _check_datasets(
         datasets=datasets,
-        f=lambda ds: {ds.table_name},
+        f=lambda ds: set(ds.table_meta.keys()),
         expected={SINGLE_TABLE},
         what="table",
     )
     _check_overlap(datasets, cube)
 
     # check column types
-    validate_shared_columns([ds.schema for ds in datasets.values()])
+    validate_shared_columns([ds.table_meta[SINGLE_TABLE] for ds in datasets.values()])
 
     _check_partition_columns(datasets, cube)
     _check_dimension_columns(datasets, cube)

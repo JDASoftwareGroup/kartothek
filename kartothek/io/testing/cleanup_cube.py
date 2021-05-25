@@ -2,7 +2,7 @@
 import pandas as pd
 import pytest
 
-from kartothek.core.cube.constants import KTK_CUBE_UUID_SEPARATOR
+from kartothek.core.cube.constants import KTK_CUBE_UUID_SEPERATOR
 from kartothek.core.cube.cube import Cube
 from kartothek.io.eager_cube import build_cube, copy_cube
 
@@ -185,7 +185,7 @@ def test_additional_files(driver, function_store):
     key_in_ds = cube.ktk_dataset_uuid(cube.seed_dataset) + "/foo"
     key_with_ds_prefix = cube.ktk_dataset_uuid(cube.seed_dataset) + ".foo"
     key_with_cube_prefix = cube.uuid_prefix + ".foo"
-    key_with_cube_prefix_separator = cube.uuid_prefix + KTK_CUBE_UUID_SEPARATOR + ".foo"
+    key_with_cube_prefix_separator = cube.uuid_prefix + KTK_CUBE_UUID_SEPERATOR + ".foo"
 
     function_store().put(key_in_ds, b"")
     function_store().put(key_with_ds_prefix, b"")

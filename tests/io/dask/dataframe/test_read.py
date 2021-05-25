@@ -32,7 +32,8 @@ def _read_as_ddf(
     **kwargs,
 ):
     table = tables or SINGLE_TABLE
-
+    if categoricals:
+        categoricals = categoricals[table]
     ddf = read_dataset_as_ddf(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -84,6 +85,7 @@ def test_load_dataframe_categoricals_with_index(dataset_with_index_factory):
         bound_load_dataframes=func,
         use_categoricals=True,
         output_type="table",
+        label_filter=None,
         dates_as_object=False,
     )
 

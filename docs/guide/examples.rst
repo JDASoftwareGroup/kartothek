@@ -36,7 +36,7 @@ Setup a store
 
     # Load your data
     # By default the single dataframe is stored in the 'core' table
-    df_from_store = read_table(store=store_url, dataset_uuid=dataset_uuid)
+    df_from_store = read_table(store=store_url, dataset_uuid=dataset_uuid, table="table")
     df_from_store
 
 
@@ -58,8 +58,14 @@ Write
 
     # We'll define two partitions which both have two tables
     input_list_of_partitions = [
-        pd.DataFrame({"A": range(10)}),
-        pd.DataFrame({"A": range(10, 20)}),
+        {
+            "label": "FirstPartition",
+            "data": [("FirstCategory", pd.DataFrame()), ("SecondCategory", pd.DataFrame())],
+        },
+        {
+            "label": "SecondPartition",
+            "data": [("FirstCategory", pd.DataFrame()), ("SecondCategory", pd.DataFrame())],
+        },
     ]
 
     # The pipeline will return a :class:`~kartothek.core.dataset.DatasetMetadata` object
@@ -90,10 +96,17 @@ Read
     # In case you were using the dataset created in the Write example
     for d1, d2 in zip(
         list_of_partitions,
-        [pd.DataFrame({"A": range(10)}), pd.DataFrame({"A": range(10, 20)}),],
+        [
+            # FirstPartition
+            {"FirstCategory": pd.DataFrame(), "SecondCategory": pd.DataFrame()},
+            # SecondPartition
+            {"FirstCategory": pd.DataFrame(), "SecondCategory": pd.DataFrame()},
+        ],
     ):
-        for k1, k2 in zip(d1, d2):
-            assert k1 == k2
+        for kv1, kv2 in zip(d1.items(), d2.items()):
+            k1, v1 = kv1
+            k2, v2 = kv2
+            assert k1 == k2 and all(v1 == v2)
 
 
 Iter
@@ -107,8 +120,14 @@ Write
     from kartothek.api.dataset import store_dataframes_as_dataset__iter
 
     input_list_of_partitions = [
-        pd.DataFrame({"A": range(10)}),
-        pd.DataFrame({"A": range(10, 20)}),
+        {
+            "label": "FirstPartition",
+            "data": [("FirstCategory", pd.DataFrame()), ("SecondCategory", pd.DataFrame())],
+        },
+        {
+            "label": "SecondPartition",
+            "data": [("FirstCategory", pd.DataFrame()), ("SecondCategory", pd.DataFrame())],
+        },
     ]
 
     # The pipeline will return a :class:`~kartothek.core.dataset.DatasetMetadata` object
@@ -141,10 +160,17 @@ Read
     # In case you were using the dataset created in the Write example
     for d1, d2 in zip(
         list_of_partitions,
-        [pd.DataFrame({"A": range(10)}), pd.DataFrame({"A": range(10, 20)}),],
+        [
+            # FirstPartition
+            {"FirstCategory": pd.DataFrame(), "SecondCategory": pd.DataFrame()},
+            # SecondPartition
+            {"FirstCategory": pd.DataFrame(), "SecondCategory": pd.DataFrame()},
+        ],
     ):
-        for k1, k2 in zip(d1, d2):
-            assert k1 == k2
+        for kv1, kv2 in zip(d1.items(), d2.items()):
+            k1, v1 = kv1
+            k2, v2 = kv2
+            assert k1 == k2 and all(v1 == v2)
 
 Dask
 ````
@@ -158,8 +184,14 @@ Write
     from kartothek.api.dataset import store_delayed_as_dataset
 
     input_list_of_partitions = [
-        pd.DataFrame({"A": range(10)}),
-        pd.DataFrame({"A": range(10, 20)}),
+        {
+            "label": "FirstPartition",
+            "data": [("FirstCategory", pd.DataFrame()), ("SecondCategory", pd.DataFrame())],
+        },
+        {
+            "label": "SecondPartition",
+            "data": [("FirstCategory", pd.DataFrame()), ("SecondCategory", pd.DataFrame())],
+        },
     ]
 
     # This will return a :class:`~dask.delayed`. The figure below

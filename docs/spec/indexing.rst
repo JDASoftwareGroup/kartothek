@@ -15,7 +15,7 @@ All currently supported kartothek index types are inverted indices and are mappi
 
     index_dct = {1: ["table/12345"], 2: ["table/12345", "table/6789"]}
 
-Where, in this example, the value ``1`` is found in exactly one partition which is labeled ``table/12345``.
+Where, in this example, the value ``42`` is found in exactly one partition which is labeled ``table/partitionA=42/12345``.
 
 Users typically do not interact with indices directly since querying a dataset will automatically load and interact with the indices. For some applications it is still quite useful to interact with them directly.
 
@@ -87,7 +87,7 @@ For data with high cardinality this kind of index is not well suited since it wo
 Secondary indices
 -----------------
 
-Secondary indices are the most powerful type of indices which allow us to reference files without having to encode any kind of values in the keys. They can be created by supplying the `secondary_indices` keyword argument as shown above.
+Secondary indices are the most powerful type of indices which allow us to reference files without having to encode any kind of values in the keys. They can be created by supplying the `secondary_indices` keyword argument as shown above. The user interaction works similarly to the
 
 
 Persistence

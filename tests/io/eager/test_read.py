@@ -7,14 +7,17 @@ import pytest
 
 from kartothek.io.eager import (
     read_dataset_as_dataframes,
+    read_dataset_as_metapartitions,
     read_table,
     store_dataframes_as_dataset,
 )
 from kartothek.io.testing.read import *  # noqa
+from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
 @pytest.fixture(
-    params=["dataframe", "table"], ids=["dataframe", "table"],
+    params=["dataframe", "metapartition", "table"],
+    ids=["dataframe", "metapartition", "table"],
 )
 def output_type(request):
     # TODO: get rid of this parametrization and split properly into two functions
@@ -22,7 +25,9 @@ def output_type(request):
 
 
 def _read_table(*args, **kwargs):
-    kwargs.pop("dispatch_by", None)
+    if "tables" in kwargs:
+        param_tables = kwargs.pop("tables")
+        kwargs["table"] = param_tables
     res = read_table(*args, **kwargs)
 
     if len(res):
@@ -32,13 +37,13 @@ def _read_table(*args, **kwargs):
         return [res]
 
 
-# FIXME: handle removal of metparittion function properly.
-# FIXME: consolidate read_Dataset_as_dataframes (replaced by iter)
 def _read_dataset(output_type, *args, **kwargs):
     if output_type == "table":
         return _read_table
     elif output_type == "dataframe":
         return read_dataset_as_dataframes
+    elif output_type == "metapartition":
+        return read_dataset_as_metapartitions
     else:
         raise NotImplementedError()
 
@@ -55,19 +60,24 @@ def backend_identifier():
 
 def test_read_table_eager(dataset, store_session, use_categoricals):
     if use_categoricals:
-        categories = ["P"]
+        categories = {SINGLE_TABLE: ["P"]}
     else:
         categories = None
 
     df = read_table(
-        store=store_session, dataset_uuid="dataset_uuid", categoricals=categories,
+        store=store_session,
+        dataset_uuid="dataset_uuid",
+        table=SINGLE_TABLE,
+        categoricals=categories,
     )
     expected_df = pd.DataFrame(
         {
             "P": [1, 2],
             "L": [1, 2],
             "TARGET": [1, 2],
-            "DATE": [datetime.date(2010, 1, 1), datetime.date(2009, 12, 31)],
+            "DATE": pd.to_datetime(
+                [datetime.date(2010, 1, 1), datetime.date(2009, 12, 31)]
+            ),
         }
     )
     if categories:
@@ -78,10 +88,46 @@ def test_read_table_eager(dataset, store_session, use_categoricals):
 
     pdt.assert_frame_equal(df, expected_df, check_dtype=True, check_like=True)
 
+    df_2 = read_table(store=store_session, dataset_uuid="dataset_uuid", table="helper")
+    expected_df_2 = pd.DataFrame({"P": [1, 2], "info": ["a", "b"]})
+
+    assert isinstance(df_2, pd.DataFrame)
+
+    # No stability of partitions
+    df_2 = df_2.sort_values(by="P").reset_index(drop=True)
+
+    pdt.assert_frame_equal(df_2, expected_df_2, check_dtype=True, check_like=True)
+
+    df_3 = read_table(
+        store=store_session,
+        dataset_uuid="dataset_uuid",
+        table="helper",
+        predicates=[[("P", "==", 2)]],
+    )
+    expected_df_3 = pd.DataFrame({"P": [2], "info": ["b"]})
+
+    assert isinstance(df_3, pd.DataFrame)
+    pdt.assert_frame_equal(df_3, expected_df_3, check_dtype=True, check_like=True)
+
+    df_4 = read_table(
+        store=store_session,
+        dataset_uuid="dataset_uuid",
+        table="helper",
+        predicates=[[("info", "==", "a")]],
+    )
+    expected_df_4 = pd.DataFrame({"P": [1], "info": ["a"]})
+
+    assert isinstance(df_4, pd.DataFrame)
+
+    pdt.assert_frame_equal(df_4, expected_df_4, check_dtype=True, check_like=True)
+
 
 def test_read_table_with_columns(dataset, store_session):
     df = read_table(
-        store=store_session, dataset_uuid="dataset_uuid", columns=["P", "L"],
+        store=store_session,
+        dataset_uuid="dataset_uuid",
+        table=SINGLE_TABLE,
+        columns=["P", "L"],
     )
 
     expected_df = pd.DataFrame({"P": [1, 2], "L": [1, 2]})
@@ -97,6 +143,7 @@ def test_read_table_simple_list_for_cols_cats(dataset, store_session):
     df = read_table(
         store=store_session,
         dataset_uuid="dataset_uuid",
+        table=SINGLE_TABLE,
         columns=["P", "L"],
         categoricals=["P", "L"],
     )
@@ -121,7 +168,7 @@ def test_write_and_read_default_table_name(store_session):
     df_read_as_dfs = read_dataset_as_dataframes(
         "test_default_table_name", store_session
     )
-    pd.testing.assert_frame_equal(df_write, df_read_as_dfs[0])
+    pd.testing.assert_frame_equal(df_write, df_read_as_dfs[0]["table"])
 
 
 @pytest.mark.parametrize("partition_on", [None, ["A", "B"]])

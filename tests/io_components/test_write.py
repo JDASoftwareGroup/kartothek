@@ -35,7 +35,7 @@ def test_store_dataset_from_partitions(meta_partitions_files_only, store, frozen
     # Dataset metadata: 1 file
     expected_number_files = 1
     # common metadata for v4 datasets
-    expected_number_files += 1
+    expected_number_files += 2
     assert len(store_files) == expected_number_files
 
     # Ensure the dataset can be loaded properly
@@ -46,15 +46,15 @@ def test_store_dataset_from_partitions(meta_partitions_files_only, store, frozen
 def test_store_dataset_from_partitions_update(store, metadata_version, frozen_time):
     mp1 = MetaPartition(
         label="cluster_1",
-        data=pd.DataFrame({"p": [1]}),
-        file="1.parquet",
+        data={"df": pd.DataFrame({"p": [1]})},
+        files={"df": "1.parquet"},
         indices={"p": ExplicitSecondaryIndex("p", index_dct={1: ["cluster_1"]})},
         metadata_version=metadata_version,
     )
     mp2 = MetaPartition(
         label="cluster_2",
-        data=pd.DataFrame({"p": [2]}),
-        file="2.parquet",
+        data={"df": pd.DataFrame({"p": [2]})},
+        files={"df": "2.parquet"},
         indices={"p": ExplicitSecondaryIndex("p", index_dct={2: ["cluster_2"]})},
         metadata_version=metadata_version,
     )
@@ -68,8 +68,8 @@ def test_store_dataset_from_partitions_update(store, metadata_version, frozen_ti
 
     mp3 = MetaPartition(
         label="cluster_3",
-        data=pd.DataFrame({"p": [3]}),
-        file="3.parquet",
+        data={"df": pd.DataFrame({"p": [3]})},
+        files={"df": "3.parquet"},
         indices={"p": ExplicitSecondaryIndex("p", index_dct={3: ["cluster_3"]})},
         metadata_version=metadata_version,
     )

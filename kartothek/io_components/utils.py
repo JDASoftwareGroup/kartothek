@@ -4,7 +4,7 @@ This module is a collection of helper functions
 import collections
 import inspect
 import logging
-from typing import Dict, Iterable, List, Optional, Union, overload
+from typing import Dict, Iterable, List, Optional, TypeVar, Union, overload
 
 import decorator
 import pandas as pd
@@ -18,6 +18,9 @@ try:
     from typing_extensions import Literal  # type: ignore
 except ImportError:
     from typing import Literal  # type: ignore
+
+# Literal false is sentinel, see function body of `_ensure_compatible_indices` for details
+InferredIndices = Union[Literal[False], List[str]]
 
 signature = inspect.signature
 
@@ -110,10 +113,10 @@ def _combine_metadata(dataset_metadata, append_to_list):
 
 
 def _ensure_compatible_indices(
-    dataset: Optional[DatasetMetadataBase], secondary_indices: Iterable[str],
-) -> List[str]:
+    dataset: Optional[DatasetMetadataBase], secondary_indices: Optional[Iterable[str]],
+) -> InferredIndices:
     if dataset:
-        ds_secondary_indices = sorted(dataset.secondary_indices.keys())
+        ds_secondary_indices = list(dataset.secondary_indices.keys())
 
         if secondary_indices and not set(secondary_indices).issubset(
             ds_secondary_indices
@@ -123,17 +126,53 @@ def _ensure_compatible_indices(
                 f"Expected: {ds_secondary_indices}\n"
                 f"But got: {secondary_indices}"
             )
-
         return ds_secondary_indices
-    return sorted(secondary_indices)
+    else:
+        # We return `False` if there is no dataset in storage and `secondary_indices` is undefined
+        # (`secondary_indices` is normalized to `[]` by default).
+        # In consequence, `parse_input_to_metapartition` will not check indices at the partition level.
+        if secondary_indices:
+            return list(secondary_indices)
+        else:
+            return False
+
+
+def _ensure_valid_indices(mp_indices, secondary_indices=None, data=None):
+    # TODO (Kshitij68): Behavior is closely matches `_ensure_compatible_indices`. Refactoring can prove to be helpful
+    if data:
+        for table_name in data:
+            for index in mp_indices.keys():
+                if index not in data[table_name].columns:
+                    raise ValueError(
+                        f"In table {table_name}, no column corresponding to index {index}"
+                    )
+    if secondary_indices not in (False, None):
+        secondary_indices = set(secondary_indices)
+        # If the dataset has `secondary_indices` defined, then these indices will be build later so there is no need to
+        # ensure that they are also defined here (on a partition level).
+        # Hence,  we just check that no new indices are defined on the partition level.
+        if not secondary_indices.issuperset(mp_indices.keys()):
+            raise ValueError(
+                "Incorrect indices provided for dataset.\n"
+                f"Expected index columns: {secondary_indices}"
+                f"Provided index: {mp_indices}"
+            )
 
 
 def validate_partition_keys(
-    dataset_uuid, store, ds_factory, default_metadata_version, partition_on,
+    dataset_uuid,
+    store,
+    ds_factory,
+    default_metadata_version,
+    partition_on,
+    load_dataset_metadata=True,
 ):
     if ds_factory or DatasetMetadata.exists(dataset_uuid, ensure_store(store)):
         ds_factory = _ensure_factory(
-            dataset_uuid=dataset_uuid, store=store, factory=ds_factory,
+            dataset_uuid=dataset_uuid,
+            store=store,
+            factory=ds_factory,
+            load_dataset_metadata=load_dataset_metadata,
         )
 
         ds_metadata_version = ds_factory.metadata_version
@@ -165,20 +204,7 @@ _NORMALIZE_ARGS_LIST = [
 
 _NORMALIZE_ARGS = _NORMALIZE_ARGS_LIST + ["store", "dispatch_by"]
 
-
-@overload
-def normalize_arg(
-    arg_name: Literal[
-        "partition_on",
-        "delete_scope",
-        "secondary_indices",
-        "bucket_by",
-        "sort_partitions_by",
-        "dispatch_by",
-    ],
-    old_value: None,
-) -> None:
-    ...
+T = TypeVar("T")
 
 
 @overload
@@ -191,8 +217,8 @@ def normalize_arg(
         "sort_partitions_by",
         "dispatch_by",
     ],
-    old_value: Union[str, List[str]],
-) -> List[str]:
+    old_value: Optional[Union[T, List[T]]],
+) -> List[T]:
     ...
 
 
@@ -378,6 +404,32 @@ def sort_values_categorical(
                 sorted(cat_accesor.categories), ordered=True
             )
     return df.sort_values(by=columns).reset_index(drop=True)
+
+
+def check_single_table_dataset(dataset, expected_table=None):
+    """
+    Raise if the given dataset is not a single-table dataset.
+
+    Parameters
+    ----------
+    dataset: kartothek.core.dataset.DatasetMetadata
+        The dataset to be validated
+    expected_table: Optional[str]
+        Ensure that the table in the dataset is the same as the given one.
+    """
+
+    if len(dataset.tables) > 1:
+        raise TypeError(
+            "Expected single table dataset but found dataset with tables: `{}`".format(
+                dataset.tables
+            )
+        )
+    if expected_table and dataset.tables != [expected_table]:
+        raise TypeError(
+            "Unexpected table in dataset:\nFound:\t{}\nExpected:\t{}".format(
+                dataset.tables, expected_table
+            )
+        )
 
 
 def raise_if_indices_overlap(partition_on, secondary_indices):

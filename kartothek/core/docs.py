@@ -29,20 +29,18 @@ _PARAMETER_MAPPING = {
     "table": """
     table: Optional[str]
         The table to be loaded. If none is specified, the default 'table' is used.""",
-    "table_name": """
-    table_name:
-        The table name of the dataset to be loaded. This creates a namespace for
-        the partitioning like
-
-        `dataset_uuid/table_name/*`
-
-        This is to support legacy workflows. We recommend not to use this and use the default wherever possible.""",
-    "schema": """
-    schema: SchemaWrapper
-        The dataset table schema""",
+    "tables": """
+    tables : List[str]
+        A list of tables to be loaded. If None is given, all tables of
+        a partition are loaded""",
+    "table_meta": """
+    table_meta: Dict[str, SchemaWrapper]
+        The dataset table schemas""",
     "columns": """
-    columns
-        A subset of columns to be loaded.""",
+    columns : Optional[List[Dict[str]]]
+        A dictionary mapping tables to list of columns. Only the specified
+        columns are loaded for the corresponding table. If a specfied table or column is
+        not present in the dataset, a ValueError is raised.""",
     "dispatch_by": """
     dispatch_by: Optional[List[str]]
         List of index columns to group and partition the jobs by.
@@ -108,8 +106,14 @@ _PARAMETER_MAPPING = {
         For `kartothek.io.dask.update.update_dataset.*` a delayed object resolving to
         a list of dicts is also accepted.""",
     "categoricals": """
-    categoricals
-        Load the provided subset of columns as a :class:`pandas.Categorical`.""",
+    categoricals : Dict[str, List[str]]
+        A dictionary mapping tables to list of columns that should be
+        loaded as `category` dtype instead of the inferred one.""",
+    "label_filter": """
+    label_filter: Callable
+        A callable taking a partition label as a parameter and returns a boolean. The callable will be applied
+        to the list of partitions during dispatch and will filter out all partitions for which the callable
+        evaluates to False.""",
     "dates_as_object": """
     dates_as_object: bool
         Load pyarrow.date{32,64} columns as ``object`` columns in Pandas
@@ -162,12 +166,22 @@ _PARAMETER_MAPPING = {
     "df_generator": """
     df_generator: Iterable[Union[pandas.DataFrame, Dict[str, pandas.DataFrame]]]
         The dataframe(s) to be stored""",
+    "central_partition_metadata": """
+    central_partition_metadata: bool
+        This has no use and will be removed in future releases""",
     "default_metadata_version": """
     default_metadata_version: int
         Default metadata version. (Note: Metadata version greater than 3 are only supported)""",
+    "load_dynamic_metadata": """
+    load_dynamic_metadata: bool
+        The keyword `load_dynamic_metadata` is deprecated and will be removed in the next major release.""",
+    "concat_partitions_on_primary_index": """
+    concat_partitions_on_primary_index: bool
+        Concatenate partition based on their primary index values.""",
     "delayed_tasks": """
-    delayed_tasks
-        A list of delayed objects where each element returns a :class:`pandas.DataFrame`.""",
+    delayed_tasks: List[dask.delayed.Delayed]
+        Every delayed object represents a partition and should be accepted by
+        :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition`""",
     "load_dataset_metadata": """
     load_dataset_metadata: bool
         Optional argument on whether to load the metadata or not""",

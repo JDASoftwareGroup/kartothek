@@ -3,8 +3,6 @@ from typing import Any, Dict, Optional, Union
 PartitionDictType = Dict[str, Dict[str, str]]
 
 
-# TODO: purge this. This is just slowing us down by creating many python objects we don't actual
-# Changing the partition class needs to be done with are since it's to_dict is used for the storage metadata spec
 class Partition:
     def __init__(
         self, label: str, files: Optional[Dict[str, str]] = None, metadata: Dict = None

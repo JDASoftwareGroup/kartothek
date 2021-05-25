@@ -91,12 +91,91 @@ previous contents.
 
     from kartothek.api.dataset import read_table
 
-    updated_df = read_table(dataset_uuid=dm.uuid, store=store_url)
+    updated_df = read_table(dataset_uuid=dm.uuid, store=store_url, table="table")
     updated_df
 
 
 The way dataset updates work is that new partitions are added to a dataset
-as long as they have the same tables as the existing partitions.
+as long as they have the same tables as the existing partitions. A `different`
+table **cannot** be introduced into an existing dataset with an update.
+
+To illustrate this point better, let's first create a dataset with two tables:
+
+.. ipython:: python
+
+    df2 = pd.DataFrame(
+        {
+            "G": "foo",
+            "H": pd.Categorical(["test", "train", "test", "train"]),
+            "I": np.array([9] * 4, dtype="int32"),
+            "J": pd.Series(3, index=list(range(4)), dtype="float32"),
+            "K": pd.Timestamp("20190604"),
+            "L": 2.0,
+        }
+    )
+    df2
+
+    dm_two_tables = store_dataframes_as_dataset(
+        store_url, "two_tables", dfs=[{"data": {"table1": df, "table2": df2}}]
+    )
+    dm_two_tables.tables
+    sorted(dm_two_tables.partitions.keys())
+
+
+.. admonition:: Partition identifiers
+
+   In the previous example a dictionary was used to pass the desired data to the store function. To label each
+   partition, by default Kartothek uses UUIDs to ensure that each partition is named uniquely. This is
+   necessary so that the update can properly work using `copy-on-write <https://en.wikipedia.org/wiki/Copy-on-write>`_
+   principles.
+
+Below is an example where we update the existing dataset ``another_unique_dataset_identifier``
+with new data for ``table1`` and ``table2``:
+
+.. ipython:: python
+
+    another_df2 = pd.DataFrame(
+        {
+            "G": "bar",
+            "H": pd.Categorical(["prod", "dev", "prod", "dev"]),
+            "I": np.array([12] * 4, dtype="int32"),
+            "J": pd.Series(4, index=list(range(4)), dtype="float32"),
+            "K": pd.Timestamp("20190614"),
+            "L": 10.0,
+        }
+    )
+    another_df2
+
+    dm_two_tables = update_dataset_from_dataframes(
+        {"data": {"table1": another_df, "table2": another_df2}},
+        store=store_url,
+        dataset_uuid=dm_two_tables.uuid,
+    )
+    dm_two_tables.tables
+    sorted(dm_two_tables.partitions.keys())
+
+
+Trying to update only a subset of tables throws a ``ValueError``:
+
+.. ipython::
+
+    @verbatim
+    In [45]: update_dataset_from_dataframes(
+       ....:        {
+       ....:           "data":
+       ....:           {
+       ....:              "table2": another_df2
+       ....:           }
+       ....:        },
+       ....:        store=store_url,
+       ....:        dataset_uuid=dm_two_tables.uuid
+       ....:        )
+       ....:
+    ---------------------------------------------------------------------------
+    ValueError: Input partitions for update have different tables than dataset:
+    Input partition tables: {'table2'}
+    Tables of existing dataset: ['table1', 'table2']
+
 
 Deleting Data
 -------------
@@ -199,7 +278,7 @@ with one update:
     )
     sorted(dm.partitions.keys())
 
-    read_table(dm.uuid, store_url)
+    read_table(dm.uuid, store_url, table="table")
 
 
 As can be seen in the example above, the resultant dataframe from :func:`~kartothek.io.eager.read_table`

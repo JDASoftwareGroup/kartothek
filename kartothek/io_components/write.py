@@ -1,18 +1,19 @@
+from collections import defaultdict
 from functools import partial
-from typing import Dict, Iterable, List, Optional, cast
+from typing import Dict, Optional, Sequence, Union, cast
 
-from simplekv import KeyValueStore
+import pandas as pd
 
 from kartothek.core import naming
 from kartothek.core.common_metadata import (
-    SchemaWrapper,
     read_schema_metadata,
     store_schema_metadata,
     validate_compatible,
+    validate_shared_columns,
 )
 from kartothek.core.dataset import DatasetMetadataBuilder
-from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex, IndexBase, PartitionIndex
+from kartothek.core.partition import Partition
 from kartothek.core.typing import StoreFactory, StoreInput
 from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import (
@@ -23,6 +24,7 @@ from kartothek.io_components.metapartition import (
     partition_labels_from_mps,
 )
 from kartothek.io_components.utils import (
+    InferredIndices,
     combine_metadata,
     extract_duplicates,
     sort_values_categorical,
@@ -34,24 +36,32 @@ SINGLE_CATEGORY = SINGLE_TABLE
 
 def write_partition(
     partition_df: MetaPartitionInput,
-    secondary_indices: List[str],
-    sort_partitions_by: List[str],
+    secondary_indices: Optional[InferredIndices],
+    sort_partitions_by: Optional[Union[str, Sequence[str]]],
     dataset_uuid: str,
-    partition_on: List[str],
+    partition_on: Optional[Union[str, Sequence[str]]],
     store_factory: StoreFactory,
     df_serializer: Optional[DataFrameSerializer],
     metadata_version: int,
-    dataset_table_name: str = SINGLE_TABLE,
+    dataset_table_name: Optional[str] = None,
 ) -> MetaPartition:
     """
     Write a dataframe to store, performing all necessary preprocessing tasks
     like partitioning, bucketing (NotImplemented), indexing, etc. in the correct order.
     """
     store = ensure_store(store_factory)
-
+    parse_input: MetaPartitionInput
+    if isinstance(partition_df, pd.DataFrame) and dataset_table_name:
+        parse_input = [{"data": {dataset_table_name: partition_df}}]
+    else:
+        parse_input = partition_df
+    # delete reference to enable release after partition_on; before index build
+    del partition_df
     # I don't have access to the group values
     mps = parse_input_to_metapartition(
-        partition_df, metadata_version=metadata_version, table_name=dataset_table_name,
+        parse_input,
+        metadata_version=metadata_version,
+        expected_secondary_indices=secondary_indices,
     )
     if sort_partitions_by:
         mps = mps.apply(partial(sort_values_categorical, columns=sort_partitions_by))
@@ -87,39 +97,49 @@ def persist_indices(
     return output_filenames
 
 
-def persist_common_metadata(
-    schemas: Iterable[SchemaWrapper],
-    update_dataset: Optional[DatasetFactory],
-    store: KeyValueStore,
-    dataset_uuid: str,
-    table_name: str,
-):
-
-    if not schemas:
-        return None
-    schemas_set = set(schemas)
-    del schemas
+def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid):
+    # hash the schemas for quick equality check with possible false negatives
+    # (e.g. other pandas version or null schemas)
+    tm_dct = defaultdict(set)
+    for mp in partition_list:
+        for tab, tm in mp.table_meta.items():
+            tm_dct[tab].add(tm)
 
     if update_dataset:
-        schemas_set.add(
-            read_schema_metadata(
-                dataset_uuid=dataset_uuid, store=store, table=table_name
+        if set(tm_dct.keys()) and set(update_dataset.tables) != set(tm_dct.keys()):
+            raise ValueError(
+                (
+                    "Input partitions for update have different tables than dataset:\n"
+                    "Input partition tables: {}\n"
+                    "Tables of existing dataset: {}"
+                ).format(set(tm_dct.keys()), update_dataset.tables)
             )
-        )
-
-    schemas_sorted = sorted(schemas_set, key=lambda s: sorted(s.origin))
-
-    try:
-        result = validate_compatible(schemas_sorted)
-    except ValueError as e:
-        raise ValueError(
-            "Schemas for dataset '{dataset_uuid}' are not compatible!\n\n{e}".format(
-                dataset_uuid=dataset_uuid, e=e
+        for table in update_dataset.tables:
+            tm_dct[table].add(
+                read_schema_metadata(
+                    dataset_uuid=dataset_uuid, store=store, table=table
+                )
             )
-        )
-    if result:
+
+    result = {}
+
+    # sort tables and schemas to have reproducible error messages
+    for table in sorted(tm_dct.keys()):
+        schemas = sorted(tm_dct[table], key=lambda s: sorted(s.origin))
+        try:
+            result[table] = validate_compatible(schemas)
+        except ValueError as e:
+            raise ValueError(
+                "Schemas for table '{table}' of dataset '{dataset_uuid}' are not compatible!\n\n{e}".format(
+                    table=table, dataset_uuid=dataset_uuid, e=e
+                )
+            )
+
+    validate_shared_columns(list(result.values()))
+
+    for table, schema in result.items():
         store_schema_metadata(
-            schema=result, dataset_uuid=dataset_uuid, store=store, table=table_name
+            schema=schema, dataset_uuid=dataset_uuid, store=store, table=table
         )
     return result
 
@@ -136,20 +156,16 @@ def store_dataset_from_partitions(
 ):
     store = ensure_store(store)
 
-    schemas = set()
     if update_dataset:
         dataset_builder = DatasetMetadataBuilder.from_dataset(update_dataset)
         metadata_version = dataset_builder.metadata_version
-        table_name = update_dataset.table_name
-        schemas.add(update_dataset.schema)
     else:
         mp = next(iter(partition_list), None)
-
         if mp is None:
             raise ValueError(
                 "Cannot store empty datasets, partition_list must not be empty if in store mode."
             )
-        table_name = mp.table_name
+
         metadata_version = mp.metadata_version
         dataset_builder = DatasetMetadataBuilder(
             uuid=dataset_uuid,
@@ -157,25 +173,16 @@ def store_dataset_from_partitions(
             partition_keys=mp.partition_keys,
         )
 
-    for mp in partition_list:
-        if mp.schema:
-            schemas.add(mp.schema)
+    dataset_builder.explicit_partitions = True
 
-    dataset_builder.schema = persist_common_metadata(
-        schemas=schemas,
-        update_dataset=update_dataset,
-        store=store,
-        dataset_uuid=dataset_uuid,
-        table_name=table_name,
+    dataset_builder.table_meta = persist_common_metadata(
+        partition_list, update_dataset, store, dataset_uuid
     )
 
     # We can only check for non unique partition labels here and if they occur we will
     # fail hard. The resulting dataset may be corrupted or file may be left in the store
     # without dataset metadata
     partition_labels = partition_labels_from_mps(partition_list)
-
-    # This could be safely removed since we do not allow to set this by the user
-    # anymore. It has implications on tests if mocks are used
     non_unique_labels = extract_duplicates(partition_labels)
 
     if non_unique_labels:
@@ -192,7 +199,7 @@ def store_dataset_from_partitions(
         metadata_merger = combine_metadata
 
     dataset_builder = update_metadata(
-        dataset_builder, metadata_merger, dataset_metadata
+        dataset_builder, metadata_merger, partition_list, dataset_metadata
     )
     dataset_builder = update_partitions(
         dataset_builder, partition_list, remove_partitions
@@ -214,9 +221,10 @@ def store_dataset_from_partitions(
     return dataset
 
 
-def update_metadata(dataset_builder, metadata_merger, dataset_metadata):
+def update_metadata(dataset_builder, metadata_merger, add_partitions, dataset_metadata):
 
     metadata_list = [dataset_builder.metadata]
+    metadata_list += [mp.dataset_metadata for mp in add_partitions]
     new_dataset_metadata = metadata_merger(metadata_list)
 
     dataset_metadata = dataset_metadata or {}
@@ -233,10 +241,13 @@ def update_metadata(dataset_builder, metadata_merger, dataset_metadata):
 def update_partitions(dataset_builder, add_partitions, remove_partitions):
 
     for mp in add_partitions:
-        for mmp in mp:
-            if mmp.label is not None:
-                dataset_builder.explicit_partitions = True
-                dataset_builder.add_partition(mmp.label, mmp.partition)
+        for sub_mp_dct in mp.metapartitions:
+            # label is None in case of an empty partition
+            if sub_mp_dct["label"] is not None:
+                partition = Partition(
+                    label=sub_mp_dct["label"], files=sub_mp_dct["files"]
+                )
+                dataset_builder.add_partition(sub_mp_dct["label"], partition)
 
     for partition_name in remove_partitions:
         del dataset_builder.partitions[partition_name]

@@ -24,6 +24,7 @@ from kartothek.core.testing import (  # noqa: E402
     get_dataframe_not_nested,
 )
 from kartothek.io_components.metapartition import (  # noqa: E402
+    SINGLE_TABLE,
     MetaPartition,
     gen_uuid,
     parse_input_to_metapartition,
@@ -206,19 +207,15 @@ def mock_default_metadata_version(mocker, backend_identifier):
 
     # Mock `kartothek.io_components.metapartition.parse_input_to_metapartition`
     def patched__parse_input_to_metapartition(
-        obj, table_name, metadata_version=None, *args, **kwargs
+        obj, metadata_version=None, *args, **kwargs
     ):
         if metadata_version == mock_metadata_version:
+            table, data = obj  # Tuple
             return MetaPartition(
-                label=gen_uuid(),
-                data=obj,
-                metadata_version=metadata_version,
-                table_name=table_name,
+                label=gen_uuid(), data={table: data}, metadata_version=metadata_version
             )
         try:
-            return parse_input_to_metapartition(
-                obj, table_name, metadata_version, *args, **kwargs
-            )
+            return parse_input_to_metapartition(obj, metadata_version, *args, **kwargs)
         except ValueError as e:
             # Raise a "custom" error to distinguish this error from the error raised
             # by `parse_input_to_metapartition` when the object has not previously
@@ -293,8 +290,13 @@ def _get_meta_partitions_with_dataframe(metadata_version):
             ]
         )
     )
-    mp = MetaPartition(label="cluster_1", data=df, metadata_version=metadata_version)
-    df_2 = pd.DataFrame(
+    df_2 = pd.DataFrame(OrderedDict([("P", [1]), ("info", ["a"])]))
+    mp = MetaPartition(
+        label="cluster_1",
+        data={SINGLE_TABLE: df, "helper": df_2},
+        metadata_version=metadata_version,
+    )
+    df_3 = pd.DataFrame(
         OrderedDict(
             [
                 ("P", [2]),
@@ -304,7 +306,12 @@ def _get_meta_partitions_with_dataframe(metadata_version):
             ]
         )
     )
-    mp2 = MetaPartition(label="cluster_2", data=df_2, metadata_version=metadata_version)
+    df_4 = pd.DataFrame(OrderedDict([("P", [2]), ("info", ["b"])]))
+    mp2 = MetaPartition(
+        label="cluster_2",
+        data={SINGLE_TABLE: df_3, "helper": df_4},
+        metadata_version=metadata_version,
+    )
     return [mp, mp2]
 
 
@@ -342,24 +349,26 @@ def meta_partitions_evaluation_dataframe(metadata_version):
     df = pd.DataFrame(
         OrderedDict([("P", [1]), ("L", [1]), ("HORIZON", [1]), ("PRED", [10])])
     )
-    mp = MetaPartition(label="cluster_1_1", data=df, metadata_version=metadata_version)
+    mp = MetaPartition(
+        label="cluster_1_1", data={"PRED": df}, metadata_version=metadata_version
+    )
     df_2 = pd.DataFrame(
         OrderedDict([("P", [1]), ("L", [1]), ("HORIZON", [2]), ("PRED", [20])])
     )
     mp2 = MetaPartition(
-        label="cluster_1_2", data=df_2, metadata_version=metadata_version
+        label="cluster_1_2", data={"PRED": df_2}, metadata_version=metadata_version
     )
     df_3 = pd.DataFrame(
         OrderedDict([("P", [2]), ("L", [2]), ("HORIZON", [1]), ("PRED", [10])])
     )
     mp3 = MetaPartition(
-        label="cluster_2_1", data=df_3, metadata_version=metadata_version
+        label="cluster_2_1", data={"PRED": df_3}, metadata_version=metadata_version
     )
     df_4 = pd.DataFrame(
         OrderedDict([("P", [2]), ("L", [2]), ("HORIZON", [2]), ("PRED", [20])])
     )
     mp4 = MetaPartition(
-        label="cluster_2_2", data=df_4, metadata_version=metadata_version
+        label="cluster_2_2", data={"PRED": df_4}, metadata_version=metadata_version
     )
     return [mp, mp2, mp3, mp4]
 
@@ -367,7 +376,9 @@ def meta_partitions_evaluation_dataframe(metadata_version):
 def _store_metapartitions(meta_partitions_dataframe, store):
     result = []
     for mp in meta_partitions_dataframe:
-        mp = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid")
+        mp = mp.store_dataframes(
+            store=store, dataset_uuid="dataset_uuid", store_metadata=True
+        )
         result.append(mp)
     return result
 
@@ -449,6 +460,7 @@ def dataset_factory(dataset, store_session_factory):
         store_factory=store_session_factory,
         load_schema=True,
         load_all_indices=False,
+        load_dataset_metadata=True,
     )
 
 
@@ -479,6 +491,7 @@ def dataset_partition_keys_factory(dataset_partition_keys, store_session_factory
         store_factory=store_session_factory,
         load_schema=True,
         load_all_indices=False,
+        load_dataset_metadata=True,
     )
 
 
@@ -513,6 +526,7 @@ def dataset_with_index_factory(dataset_with_index, store_session_factory):
         store_factory=store_session_factory,
         load_schema=True,
         load_all_indices=False,
+        load_dataset_metadata=True,
     )
 
 

@@ -22,7 +22,7 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadataBuilder
 from kartothek.core.naming import metadata_key_from_uuid
 from kartothek.core.uuid import gen_uuid
-from kartothek.io_components.metapartition import MetaPartition
+from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
 from kartothek.utils.converters import converter_str
 from kartothek.utils.pandas import mask_sorted_duplicates_keep_last, sort_dataframe
 
@@ -130,7 +130,6 @@ def prepare_ktk_metadata(cube, ktk_cube_dataset_id, metadata):
     return ds_metadata
 
 
-# XXX: This is not consistent with plain kartothek datasets (indices are accepted on nullable columns there)
 def assert_dimesion_index_cols_notnull(
     df: pd.DataFrame, ktk_cube_dataset_id: str, cube: Cube, partition_on: Sequence[str]
 ) -> pd.DataFrame:
@@ -358,7 +357,9 @@ def prepare_data_for_ktk(
 
     # create MetaPartition object for easier handling
     mp = MetaPartition(
-        label=gen_uuid(), data=df, metadata_version=KTK_CUBE_METADATA_VERSION,
+        label=gen_uuid(),
+        data={SINGLE_TABLE: df},
+        metadata_version=KTK_CUBE_METADATA_VERSION,
     )
     del df
 
@@ -366,8 +367,8 @@ def prepare_data_for_ktk(
     mp = mp.partition_on(list(partition_on))
 
     # reset indices again (because partition_on breaks it)
-    for mp2 in mp:
-        mp2.data.reset_index(drop=True, inplace=True)
+    for mp2 in mp.metapartitions:
+        mp2["data"][SINGLE_TABLE].reset_index(drop=True, inplace=True)
         del mp2
 
     # calculate indices
@@ -435,7 +436,7 @@ def apply_postwrite_checks(datasets, cube, store, existing_datasets):
         empty_datasets = {
             ktk_cube_dataset_id
             for ktk_cube_dataset_id, ds in datasets.items()
-            if len(ds.partitions) == 0
+            if SINGLE_TABLE not in ds.table_meta or len(ds.partitions) == 0
         }
 
         if empty_datasets:
@@ -552,9 +553,10 @@ def _rollback_transaction(existing_datasets, new_datasets, store):
         ds = existing_datasets[ktk_cube_dataset_id]
         builder = DatasetMetadataBuilder.from_dataset(ds)
         store.put(*builder.to_json())
-        store_schema_metadata(
-            schema=ds.schema, dataset_uuid=ds.uuid, store=store, table=ds.table_name
-        )
+        for table, schema in ds.table_meta.items():
+            store_schema_metadata(
+                schema=schema, dataset_uuid=ds.uuid, store=store, table=table
+            )
 
 
 def prepare_ktk_partition_on(

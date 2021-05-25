@@ -35,7 +35,6 @@ from kartothek.io_components.cube.write import (
     prepare_ktk_partition_on,
 )
 from kartothek.io_components.metapartition import (
-    SINGLE_TABLE,
     MetaPartition,
     parse_input_to_metapartition,
 )
@@ -61,7 +60,7 @@ def ensure_valid_cube_indices(
 ) -> Cube:
     """
     Parse all existing datasets and infer the required set of indices. We do not
-    allow indices to be removed or added in update steps at the moment and
+    allow indices to be removed or added in update steps at the momenent and
     need to make sure that existing ones are updated properly.
     The returned `Cube` instance will be a copy of the input with
     `index_columns` and `suppress_index_on` fields adjusted to reflect the
@@ -69,14 +68,14 @@ def ensure_valid_cube_indices(
     """
     dataset_indices = []
     for ds in existing_datasets.values():
-        assert ds.schema is not None
-        dataset_columns = set(ds.schema.names)
-        table_indices = cube.index_columns & dataset_columns
-        compatible_indices = _ensure_compatible_indices(ds, table_indices)
-        dataset_indices.append(set(compatible_indices))
+        for internal_table in ds.table_meta:
+            dataset_columns = set(ds.table_meta[internal_table].names)
+            table_indices = cube.index_columns & dataset_columns
+            compatible_indices = _ensure_compatible_indices(ds, table_indices)
+            if compatible_indices:
+                dataset_indices.append(set(compatible_indices))
     required_indices = cube.index_columns.union(*dataset_indices)
     suppress_index_on = cube.suppress_index_on.difference(*dataset_indices)
-
     # Need to remove dimension columns since they *are* technically indices but
     # the cube interface class declares them as not indexed just to add them
     # later on, assuming it is not blacklisted
@@ -645,7 +644,7 @@ def _multiplex_parse_input_to_metapartition(data):
     for k in sorted(data.keys()):
         v = data.pop(k)
         result[k] = parse_input_to_metapartition(
-            v, metadata_version=KTK_CUBE_METADATA_VERSION, table_name=SINGLE_TABLE
+            v, metadata_version=KTK_CUBE_METADATA_VERSION
         )
         del v
     return result

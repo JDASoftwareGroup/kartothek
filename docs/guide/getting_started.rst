@@ -5,6 +5,10 @@ Getting Started
 ===============
 
 
+Kartothek manages datasets that consist of files that contain tables. It does so by offering
+a metadata definition to handle these datasets efficiently.
+
+Datasets in Kartothek are made up of one or more ``tables``, each with a unique schema.
 When working with Kartothek tables as a Python user, we will use :class:`~pandas.DataFrame`
 as the user-facing type.
 
@@ -127,25 +131,33 @@ This class holds information about the structure and schema of the dataset.
 
 .. ipython:: python
 
-    dm.table_name
+    dm.tables
     sorted(dm.partitions.keys())
-    dm.schema.remove_metadata()
+    dm.table_meta["table"].remove_metadata()  # Arrow schema
 
 
-For this guide we want to take a closer look at the ``partitions`` attribute.
-``partitions`` are the physical "pieces" of data which together constitute the
-contents of a dataset. Data is written to storage on a per-partition basis. See
-the section on partitioning for further details: :ref:`partitioning_section`.
+For this guide, two attributes that are noteworthy are ``tables`` and ``partitions``:
 
-The attribute ``schema`` can be accessed to see the underlying schema of the dataset.
+- Each dataset has one or more ``tables``, where each table is a logical collection of data,
+  bound together by a common schema.
+- ``partitions`` are the physical "pieces" of data which together constitute the
+  contents of a dataset. Data is written to storage on a per-partition basis.
+  See the section on partitioning for further details: :ref:`partitioning_section`.
+
+The attribute ``table_meta`` can be accessed to see the underlying schema of the dataset.
 See :ref:`type_system` for more information.
 
 To store multiple dataframes into a dataset, it is possible to pass a collection of
 dataframes; the exact format will depend on the I/O backend used.
 
-Kartothek assumes these dataframes are different chunks of the same table and
-will therefore be required to have the same schema. A ``ValueError`` will be
-thrown otherwise.
+Additionally, Kartothek supports several data input formats,
+it does not need to always be a plain ``pd.DataFrame``.
+See :func:`~kartothek.io_components.metapartition.parse_input_to_metapartition` for
+further details.
+
+If table names are not specified when passing an iterator of dataframes,
+Kartothek assumes these dataframes are different chunks of the same table
+and expects their schemas to be identical. A ``ValueError`` will be thrown otherwise.
 For example,
 
 .. ipython:: python
@@ -182,6 +194,39 @@ For example,
 .. note:: Read these sections for more details: :ref:`type_system`, :ref:`dataset_spec`
 
 
+When we do not explicitly define the name of the table and partition, Kartothek uses the
+default table name ``table`` and generates a UUID for the partition name.
+
+.. admonition:: A more complex example: multiple named tables
+
+    Sometimes it may be useful to write multiple dataframes with different schemas into
+    a single dataset. This can be achieved by creating a dataset with multiple tables.
+
+    In this example, we create a dataset with two tables: ``core-table`` and ``aux-table``.
+    The schemas of the tables are identical across partitions (each dictionary in the
+    ``dfs`` list argument represents a partition).
+
+    .. ipython:: python
+
+        dfs = [
+            {
+                "data": {
+                    "core-table": pd.DataFrame({"id": [22, 23], "f": [1.1, 2.4]}),
+                    "aux-table": pd.DataFrame({"id": [22], "col1": ["x"]}),
+                }
+            },
+            {
+                "data": {
+                    "core-table": pd.DataFrame({"id": [29, 31], "f": [3.2, 0.6]}),
+                    "aux-table": pd.DataFrame({"id": [31], "col1": ["y"]}),
+                }
+            },
+        ]
+
+        dm = store_dataframes_as_dataset(store_url, dataset_uuid="two-tables", dfs=dfs)
+        dm.tables
+
+
 Reading data from storage
 =========================
 
@@ -193,24 +238,24 @@ table of the dataset as a pandas DataFrame.
 
     from kartothek.api.dataset import read_table
 
-    read_table("a_unique_dataset_identifier", store_url)
+    read_table("a_unique_dataset_identifier", store_url, table="table")
 
 
 We can also read a dataframe iteratively, using
-:func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`. This will return a generator of :class:`pandas.DataFrame` where every element represents one file. For example,
+:func:`~kartothek.io.iter.read_dataset_as_dataframes__iterator`. This will return a generator
+of dictionaries (one dictionary for each `partition`), where the keys of each dictionary
+represent the `tables` of the dataset. For example,
 
 .. ipython:: python
 
     from kartothek.api.dataset import read_dataset_as_dataframes__iterator
 
-    for partition_index, df in enumerate(
-        read_dataset_as_dataframes__iterator(
-            dataset_uuid="a_unique_dataset_identifier", store=store_url
-        )
+    for partition_index, df_dict in enumerate(
+        read_dataset_as_dataframes__iterator(dataset_uuid="two-tables", store=store_url)
     ):
-        # Note: There is no guarantee on the ordering
         print(f"Partition #{partition_index}")
-        print(f"Data: \n{df}")
+        for table_name, table_df in df_dict.items():
+            print(f"Table: {table_name}. Data: \n{table_df}")
 
 Respectively, the ``dask.delayed`` back-end provides the function
 :func:`~kartothek.io.dask.delayed.read_dataset_as_delayed`, which has a very similar
@@ -230,7 +275,8 @@ function but returns a collection of ``dask.delayed`` objects.
 
     .. ipython:: python
 
-        read_table("a_unique_dataset_identifier", store_url, predicates=[[("A", "<", 2.5)]])
+        # Read only values table `core-table` where `f` < 2.5
+        read_table("two-tables", store_url, table="core-table", predicates=[[("f", "<", 2.5)]])
 
 .. _storefact: https://github.com/blue-yonder/storefact
 .. _dask: https://docs.dask.org/en/latest/

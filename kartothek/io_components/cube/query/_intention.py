@@ -12,7 +12,7 @@ import pyarrow as pa
 from kartothek.core.cube.conditions import Conjunction
 from kartothek.serialization._parquet import _normalize_value
 from kartothek.utils.converters import converter_str_set, converter_str_tupleset
-from kartothek.utils.ktk_adapters import get_dataset_columns
+from kartothek.utils.ktk_adapters import get_dataset_columns, get_dataset_schema
 
 __all__ = ("QueryIntention", "determine_intention")
 
@@ -120,7 +120,7 @@ def _test_condition_types(conditions, datasets):
 
             for ktk_cube_dataset_id in sorted(datasets.keys()):
                 dataset = datasets[ktk_cube_dataset_id]
-                meta = dataset.schema
+                meta = get_dataset_schema(dataset)
                 if col not in meta.names:
                     continue
                 pa_type = meta.field(col).type
