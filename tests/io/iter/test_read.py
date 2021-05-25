@@ -9,7 +9,7 @@ from kartothek.io.iter import (
 from kartothek.io.testing.read import *  # noqa
 
 
-@pytest.fixture(params=["dataframe"])
+@pytest.fixture(params=["dataframe", "metapartition"])
 def output_type(request):
     return request.param
 
@@ -17,6 +17,8 @@ def output_type(request):
 def _load_dataframes(output_type, *args, **kwargs):
     if output_type == "dataframe":
         func = read_dataset_as_dataframes__iterator
+    elif output_type == "metapartition":
+        func = read_dataset_as_metapartitions__iterator
     else:
         raise ValueError("Unknown output type {}".format(output_type))
     return list(func(*args, **kwargs))

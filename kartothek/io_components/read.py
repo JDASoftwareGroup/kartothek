@@ -1,8 +1,10 @@
-from typing import Iterator, List, Optional, Set, Union, cast, overload
+import warnings
+from typing import Callable, Iterator, List, Optional, Set, Union, cast, overload
 
 import pandas as pd
 
 from kartothek.core.factory import DatasetFactory
+from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.typing import StoreInput
 from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.utils import normalize_args
@@ -16,15 +18,25 @@ from kartothek.serialization import (
 @overload
 def dispatch_metapartitions_from_factory(
     dataset_factory: DatasetFactory,
+    label_filter: Optional[Callable] = None,
+    concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
+    store: Optional[StoreInput] = None,
     dispatch_by: None = None,
+    dispatch_metadata: bool = False,
 ) -> Iterator[MetaPartition]:
     ...
 
 
 @overload
 def dispatch_metapartitions_from_factory(
-    dataset_factory: DatasetFactory, predicates: PredicatesType, dispatch_by: List[str],
+    dataset_factory: DatasetFactory,
+    label_filter: Optional[Callable],
+    concat_partitions_on_primary_index: bool,
+    predicates: PredicatesType,
+    store: Optional[StoreInput],
+    dispatch_by: List[str],
+    dispatch_metadata: bool,
 ) -> Iterator[List[MetaPartition]]:
     ...
 
@@ -32,13 +44,38 @@ def dispatch_metapartitions_from_factory(
 @normalize_args
 def dispatch_metapartitions_from_factory(
     dataset_factory: DatasetFactory,
+    label_filter: Optional[Callable] = None,
+    concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
+    store: Optional[StoreInput] = None,
     dispatch_by: Optional[List[str]] = None,
+    dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     """
 
     :meta private:
     """
+    if dispatch_metadata:
+
+        warnings.warn(
+            "The dispatch of metadata and index information as part of the MetaPartition instance is deprecated. "
+            "The future behaviour will be that this metadata is not dispatched. To set the future behaviour, "
+            "specifiy ``dispatch_metadata=False``",
+            DeprecationWarning,
+        )
+
+    if dispatch_by is not None and concat_partitions_on_primary_index:
+        raise ValueError(
+            "Both `dispatch_by` and `concat_partitions_on_primary_index` are provided, "
+            "`concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. "
+            "Please only provide the `dispatch_by` argument. "
+        )
+    if concat_partitions_on_primary_index:
+        warnings.warn(
+            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. Use `dispatch_by=dataset_factory.partition_keys` to achieve the same behavior instead.",
+            DeprecationWarning,
+        )
+        dispatch_by = dataset_factory.partition_keys
 
     if dispatch_by is not None and not set(dispatch_by).issubset(
         set(dataset_factory.index_columns)
@@ -65,6 +102,15 @@ def dispatch_metapartitions_from_factory(
         list(index_cols), predicates=predicates
     )
 
+    if label_filter:
+        base_df = base_df[base_df.index.map(label_filter)]
+
+    indices_to_dispatch = {
+        name: ix.unload()
+        for name, ix in dataset_factory.indices.items()
+        if isinstance(ix, ExplicitSecondaryIndex)
+    }
+
     if dispatch_by is not None:
         base_df = cast(pd.DataFrame, base_df)
 
@@ -87,11 +133,14 @@ def dispatch_metapartitions_from_factory(
                 mps.append(
                     MetaPartition.from_partition(
                         partition=dataset_factory.partitions[label],
+                        dataset_metadata=dataset_factory.metadata
+                        if dispatch_metadata
+                        else None,
+                        indices=indices_to_dispatch if dispatch_metadata else None,
                         metadata_version=dataset_factory.metadata_version,
-                        schema=dataset_factory.schema,
+                        table_meta=dataset_factory.table_meta,
                         partition_keys=dataset_factory.partition_keys,
                         logical_conjunction=logical_conjunction,
-                        table_name=dataset_factory.table_name,
                     )
                 )
             yield mps
@@ -101,26 +150,42 @@ def dispatch_metapartitions_from_factory(
 
             yield MetaPartition.from_partition(
                 partition=part,
+                dataset_metadata=dataset_factory.metadata
+                if dispatch_metadata
+                else None,
+                indices=indices_to_dispatch if dispatch_metadata else None,
                 metadata_version=dataset_factory.metadata_version,
-                schema=dataset_factory.schema,
+                table_meta=dataset_factory.table_meta,
                 partition_keys=dataset_factory.partition_keys,
-                table_name=dataset_factory.table_name,
             )
 
 
 def dispatch_metapartitions(
     dataset_uuid: str,
     store: StoreInput,
+    load_dataset_metadata: bool = True,
+    keep_indices: bool = True,
+    keep_table_meta: bool = True,
+    label_filter: Optional[Callable] = None,
+    concat_partitions_on_primary_index: bool = False,
     predicates: PredicatesType = None,
     dispatch_by: Optional[List[str]] = None,
+    dispatch_metadata: bool = False,
 ) -> Union[Iterator[MetaPartition], Iterator[List[MetaPartition]]]:
     dataset_factory = DatasetFactory(
         dataset_uuid=dataset_uuid,
         store_factory=store,
         load_schema=True,
         load_all_indices=False,
+        load_dataset_metadata=load_dataset_metadata,
     )
 
     return dispatch_metapartitions_from_factory(
-        dataset_factory=dataset_factory, predicates=predicates, dispatch_by=dispatch_by,
+        dataset_factory=dataset_factory,
+        store=None,
+        label_filter=label_filter,
+        predicates=predicates,
+        dispatch_by=dispatch_by,
+        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
+        dispatch_metadata=dispatch_metadata,
     )

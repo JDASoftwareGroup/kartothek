@@ -2,10 +2,22 @@
 Changelog
 =========
 
+Version 5.0.0 (2021-05-xx)
+==========================
+
+This release rolls all the changes introduced with 4.x back to 3.20.0.
+
+As the incompatibility between 4.0 and 5.0 will be an issue for some customers, we encourage you to use the very stable
+kartothek 3.20.0 and not version 4.x.
+
+Please refer the Issue #471 for further information.
+
 
 Kartothek 4.0.3 (2021-06-10)
 ============================
+
 * Pin dask to not use 2021.5.1 and 2020.6.0 (#475)
+
 
 Kartothek 4.0.2 (2021-06-07)
 ============================

@@ -1,11 +1,11 @@
 import random
+import warnings
 from typing import (
     Callable,
     Iterable,
     List,
     Mapping,
     Optional,
-    Sequence,
     SupportsFloat,
     Union,
     cast,
@@ -31,7 +31,10 @@ from kartothek.io_components.metapartition import (
 from kartothek.io_components.read import dispatch_metapartitions_from_factory
 from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.io_components.utils import (
+    InferredIndices,
     _ensure_compatible_indices,
+    check_single_table_dataset,
+    normalize_arg,
     normalize_args,
     validate_partition_keys,
 )
@@ -44,7 +47,7 @@ from kartothek.serialization import DataFrameSerializer, PredicatesType
 
 from ._shuffle import shuffle_store_dask_partitions
 from ._utils import _maybe_get_categoricals_from_index
-from .delayed import read_dataset_as_delayed
+from .delayed import read_table_as_delayed
 
 __all__ = (
     "read_dataset_as_ddf",
@@ -62,9 +65,11 @@ def read_dataset_as_ddf(
     store=None,
     table=SINGLE_TABLE,
     columns=None,
+    concat_partitions_on_primary_index=False,
     predicate_pushdown_to_io=True,
-    categoricals: Optional[Sequence[str]] = None,
-    dates_as_object: bool = True,
+    categoricals=None,
+    label_filter=None,
+    dates_as_object=False,
     predicates=None,
     factory=None,
     dask_index_on=None,
@@ -97,24 +102,39 @@ def read_dataset_as_ddf(
         )
 
     ds_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid, store=store, factory=factory,
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
     )
+
+    if len(ds_factory.tables) > 1:
+        warnings.warn(
+            "Trying to read a dataset with multiple internal tables. This functionality will be removed in the next "
+            "major release. If you require a multi tabled data format, we recommend to switch to the kartothek Cube "
+            "functionality. "
+            "https://kartothek.readthedocs.io/en/stable/guide/cube/kartothek_cubes.html",
+            DeprecationWarning,
+        )
 
     if isinstance(columns, dict):
         columns = columns[table]
     meta = _get_dask_meta_for_dataset(
-        ds_factory, columns, categoricals, dates_as_object
+        ds_factory, table, columns, categoricals, dates_as_object
     )
 
     if columns is None:
         columns = list(meta.columns)
 
     # that we can use factories instead of dataset_uuids
-    delayed_partitions = read_dataset_as_delayed(
+    delayed_partitions = read_table_as_delayed(
         factory=ds_factory,
+        table=table,
         columns=columns,
+        concat_partitions_on_primary_index=concat_partitions_on_primary_index,
         predicate_pushdown_to_io=predicate_pushdown_to_io,
-        categoricals=categoricals,
+        categoricals={table: categoricals},
+        label_filter=label_filter,
         dates_as_object=dates_as_object,
         predicates=predicates,
         dispatch_by=dask_index_on if dask_index_on else dispatch_by,
@@ -131,11 +151,13 @@ def read_dataset_as_ddf(
         return dd.from_delayed(delayed_partitions, meta=meta)
 
 
-def _get_dask_meta_for_dataset(ds_factory, columns, categoricals, dates_as_object):
+def _get_dask_meta_for_dataset(
+    ds_factory, table, columns, categoricals, dates_as_object
+):
     """
     Calculate a schema suitable for the dask dataframe meta from the dataset.
     """
-    table_schema = ds_factory.schema
+    table_schema = ds_factory.table_meta[table]
     meta = empty_dataframe_from_schema(
         table_schema, columns=columns, date_as_object=dates_as_object
     )
@@ -145,10 +167,10 @@ def _get_dask_meta_for_dataset(ds_factory, columns, categoricals, dates_as_objec
         meta = dd.utils.clear_known_categories(meta, categoricals)
 
     categoricals_from_index = _maybe_get_categoricals_from_index(
-        ds_factory, categoricals
+        ds_factory, {table: categoricals}
     )
     if categoricals_from_index:
-        meta = meta.astype(categoricals_from_index)
+        meta = meta.astype(categoricals_from_index[table])
     return meta
 
 
@@ -238,23 +260,8 @@ def _shuffle_docs(func):
     return func
 
 
-def _id(x):
-    return x
-
-
-def _commit_update_from_reduction(df_mps, **kwargs):
-    partitions = pd.Series(df_mps.values.flatten()).dropna()
-    return update_dataset_from_partitions(partition_list=partitions, **kwargs,)
-
-
-def _commit_store_from_reduction(df_mps, **kwargs):
-    partitions = pd.Series(df_mps.values.flatten()).dropna()
-    return store_dataset_from_partitions(partition_list=partitions, **kwargs,)
-
-
 @default_docs
 @_shuffle_docs
-@normalize_args
 def store_dataset_from_ddf(
     ddf: dd.DataFrame,
     store: StoreInput,
@@ -265,6 +272,7 @@ def store_dataset_from_ddf(
     repartition_ratio: Optional[SupportsFloat] = None,
     num_buckets: int = 1,
     sort_partitions_by: Optional[Union[List[str], str]] = None,
+    delete_scope: Optional[Iterable[Mapping[str, str]]] = None,
     metadata: Optional[Mapping] = None,
     df_serializer: Optional[DataFrameSerializer] = None,
     metadata_merger: Optional[Callable] = None,
@@ -276,22 +284,25 @@ def store_dataset_from_ddf(
     """
     Store a dataset from a dask.dataframe.
     """
-    # normalization done by normalize_args but mypy doesn't recognize this
-    sort_partitions_by = cast(List[str], sort_partitions_by)
-    secondary_indices = cast(List[str], secondary_indices)
-    bucket_by = cast(List[str], bucket_by)
-    partition_on = cast(List[str], partition_on)
+    partition_on = normalize_arg("partition_on", partition_on)
+    secondary_indices = normalize_arg("secondary_indices", secondary_indices)
+    sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
+    bucket_by = normalize_arg("bucket_by", bucket_by)
+    store = normalize_arg("store", store)
+    delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
 
     if table is None:
         raise TypeError("The parameter `table` is not optional.")
 
-    ds_factory = _ensure_factory(dataset_uuid=dataset_uuid, store=store, factory=None)
+    ds_factory = _ensure_factory(
+        dataset_uuid=dataset_uuid, store=store, factory=None, load_dataset_metadata=True
+    )
 
     if not overwrite:
         raise_if_dataset_exists(dataset_uuid=dataset_uuid, store=store)
-    mp_ser = _write_dataframe_partitions(
+    mps = _write_dataframe_partitions(
         ddf=ddf,
-        store=ds_factory.store_factory,
+        store=store,
         dataset_uuid=dataset_uuid,
         table=table,
         secondary_indices=secondary_indices,
@@ -304,18 +315,12 @@ def store_dataset_from_ddf(
         partition_on=partition_on,
         bucket_by=bucket_by,
     )
-    return mp_ser.reduction(
-        chunk=_id,
-        aggregate=_commit_store_from_reduction,
-        split_every=False,
-        token="commit-dataset",
-        meta=object,
-        aggregate_kwargs={
-            "store": ds_factory.store_factory,
-            "dataset_uuid": ds_factory.dataset_uuid,
-            "dataset_metadata": metadata,
-            "metadata_merger": metadata_merger,
-        },
+    return dask.delayed(store_dataset_from_partitions)(
+        mps,
+        store=ds_factory.store_factory if ds_factory else store,
+        dataset_uuid=ds_factory.dataset_uuid if ds_factory else dataset_uuid,
+        dataset_metadata=metadata,
+        metadata_merger=metadata_merger,
     )
 
 
@@ -324,7 +329,7 @@ def _write_dataframe_partitions(
     store: StoreFactory,
     dataset_uuid: str,
     table: str,
-    secondary_indices: List[str],
+    secondary_indices: Optional[InferredIndices],
     shuffle: bool,
     repartition_ratio: Optional[SupportsFloat],
     num_buckets: int,
@@ -342,11 +347,7 @@ def _write_dataframe_partitions(
     if ddf is None:
         mps = dd.from_pandas(
             pd.Series(
-                [
-                    parse_input_to_metapartition(
-                        None, metadata_version=metadata_version, table_name=table,
-                    )
-                ]
+                [parse_input_to_metapartition(None, metadata_version=metadata_version)]
             ),
             npartitions=1,
         )
@@ -383,7 +384,6 @@ def _write_dataframe_partitions(
 
 @default_docs
 @_shuffle_docs
-@normalize_args
 def update_dataset_from_ddf(
     ddf: dd.DataFrame,
     store: Optional[StoreInput] = None,
@@ -410,15 +410,15 @@ def update_dataset_from_ddf(
     --------
     :ref:`mutating_datasets`
     """
+    partition_on = normalize_arg("partition_on", partition_on)
+    secondary_indices = normalize_arg("secondary_indices", secondary_indices)
+    sort_partitions_by = normalize_arg("sort_partitions_by", sort_partitions_by)
+    bucket_by = normalize_arg("bucket_by", bucket_by)
+    store = normalize_arg("store", store)
+    delete_scope = dask.delayed(normalize_arg)("delete_scope", delete_scope)
+
     if table is None:
         raise TypeError("The parameter `table` is not optional.")
-
-    # normalization done by normalize_args but mypy doesn't recognize this
-    sort_partitions_by = cast(List[str], sort_partitions_by)
-    secondary_indices = cast(List[str], secondary_indices)
-    bucket_by = cast(List[str], bucket_by)
-    partition_on = cast(List[str], partition_on)
-
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,
@@ -430,9 +430,12 @@ def update_dataset_from_ddf(
     inferred_indices = _ensure_compatible_indices(ds_factory, secondary_indices)
     del secondary_indices
 
-    mp_ser = _write_dataframe_partitions(
+    if ds_factory is not None:
+        check_single_table_dataset(ds_factory, table)
+
+    mps = _write_dataframe_partitions(
         ddf=ddf,
-        store=ds_factory.store_factory if ds_factory else store,
+        store=store,
         dataset_uuid=dataset_uuid or ds_factory.dataset_uuid,
         table=table,
         secondary_indices=inferred_indices,
@@ -445,21 +448,14 @@ def update_dataset_from_ddf(
         partition_on=cast(List[str], partition_on),
         bucket_by=bucket_by,
     )
-
-    return mp_ser.reduction(
-        chunk=_id,
-        aggregate=_commit_update_from_reduction,
-        split_every=False,
-        token="commit-dataset",
-        meta=object,
-        aggregate_kwargs={
-            "store_factory": store,
-            "dataset_uuid": dataset_uuid,
-            "ds_factory": ds_factory,
-            "delete_scope": delete_scope,
-            "metadata": metadata,
-            "metadata_merger": metadata_merger,
-        },
+    return dask.delayed(update_dataset_from_partitions)(
+        mps,
+        store_factory=store,
+        dataset_uuid=dataset_uuid,
+        ds_factory=ds_factory,
+        delete_scope=delete_scope,
+        metadata=metadata,
+        metadata_merger=metadata_merger,
     )
 
 
@@ -468,6 +464,7 @@ def update_dataset_from_ddf(
 def collect_dataset_metadata(
     store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,
+    table_name: str = SINGLE_TABLE,
     predicates: Optional[PredicatesType] = None,
     frac: float = 1.0,
     factory: Optional[DatasetFactory] = None,
@@ -519,7 +516,10 @@ def collect_dataset_metadata(
             "Please make sure to provide a value larger than 0.0 and smaller than or equal to 1.0 ."
         )
     dataset_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid, store=store, factory=factory,
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
     )
 
     mps = list(
@@ -533,7 +533,7 @@ def collect_dataset_metadata(
         ddf = dd.from_delayed(
             [
                 dask.delayed(MetaPartition.get_parquet_metadata)(
-                    mp, store=dataset_factory.store_factory
+                    mp, store=dataset_factory.store_factory, table_name=table_name
                 )
                 for mp in mps
             ],
@@ -595,7 +595,10 @@ def hash_dataset(
         If provided, calculate hash per group instead of per partition
     """
     dataset_factory = _ensure_factory(
-        dataset_uuid=dataset_uuid, store=store, factory=factory,
+        dataset_uuid=dataset_uuid,
+        store=store,
+        factory=factory,
+        load_dataset_metadata=False,
     )
 
     columns = subset

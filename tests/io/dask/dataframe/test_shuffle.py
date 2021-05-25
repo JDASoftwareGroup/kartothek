@@ -183,7 +183,7 @@ def test_update_shuffle_buckets(
         range(unique_secondaries)
     )
 
-    assert set(dataset.schema.names) == {
+    assert set(dataset.table_meta["core"].names) == {
         "primary",
         "secondary",
         "sorted_column",
@@ -197,8 +197,9 @@ def test_update_shuffle_buckets(
 
         assert not ind_df.duplicated().any()
 
-    for df in read_dataset_as_dataframes__iterator(
+    for data_dct in read_dataset_as_dataframes__iterator(
         dataset_uuid=dataset.uuid, store=store_factory
     ):
+        df = data_dct["core"]
         assert len(df.primary.unique()) == 1
         assert df.sorted_column.is_monotonic

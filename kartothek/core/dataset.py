@@ -1,6 +1,7 @@
 import copy
 import logging
 import re
+import warnings
 from collections import OrderedDict, defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
@@ -21,11 +22,7 @@ from kartothek.core.index import (
     PartitionIndex,
     filter_indices,
 )
-from kartothek.core.naming import (
-    EXTERNAL_INDEX_SUFFIX,
-    PARQUET_FILE_SUFFIX,
-    SINGLE_TABLE,
-)
+from kartothek.core.naming import EXTERNAL_INDEX_SUFFIX, PARQUET_FILE_SUFFIX
 from kartothek.core.partition import Partition
 from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import decode_key, quote_indices
@@ -66,8 +63,7 @@ class DatasetMetadataBase(CopyMixin):
         metadata_version: int = naming.DEFAULT_METADATA_VERSION,
         explicit_partitions: bool = True,
         partition_keys: Optional[List[str]] = None,
-        schema: Optional[SchemaWrapper] = None,
-        table_name: Optional[str] = SINGLE_TABLE,
+        table_meta: Optional[Dict[str, SchemaWrapper]] = None,
     ):
         if not _validate_uuid(uuid):
             raise ValueError("UUID contains illegal character")
@@ -82,8 +78,7 @@ class DatasetMetadataBase(CopyMixin):
         self.explicit_partitions = explicit_partitions
 
         self.partition_keys = partition_keys or []
-        self.schema = schema
-        self._table_name = table_name
+        self._table_meta = table_meta if table_meta else {}
 
         _add_creation_time(self)
         super(DatasetMetadataBase, self).__init__()
@@ -103,9 +98,30 @@ class DatasetMetadataBase(CopyMixin):
             return False
         if self.partition_keys != other.partition_keys:
             return False
-        if self.schema != other.schema:
+        if self.table_meta != other.table_meta:
             return False
         return True
+
+    @property
+    def table_meta(self) -> Dict[str, SchemaWrapper]:
+        warnings.warn(
+            "The attribute `DatasetMetadataBase.table_meta` will be removed in "
+            "kartothek 4.0 in favour of `DatasetMetadataBase.schema`.",
+            DeprecationWarning,
+        )
+        return self._table_meta
+
+    @table_meta.setter
+    def table_meta(self, value):
+        self._table_meta = value
+
+    @property
+    def schema(self) -> SchemaWrapper:
+        if len(self.tables) > 1:
+            raise AttributeError(
+                "Attribute schema can only be accessed for a single tabled dataset"
+            )
+        return self._table_meta[self.tables[0]]
 
     @property
     def primary_indices_loaded(self) -> bool:
@@ -117,23 +133,13 @@ class DatasetMetadataBase(CopyMixin):
         return True
 
     @property
-    def table_name(self) -> str:
-        if self._table_name:
-            return self._table_name
-        elif self.partitions:
-            tables = self.tables
-            if tables:
-                return self.tables[0]
-        return "<Unknown Table>"
-
-    @property
     def tables(self) -> List[str]:
-        tables = list(iter(next(iter(self.partitions.values())).files.keys()))
-        if len(tables) > 1:
-            raise RuntimeError(
-                f"Dataset {self.uuid} has tables {tables} but read support for multi tabled dataset was dropped with kartothek 4.0."
-            )
-        return tables
+        if self.table_meta:
+            return list(self.table_meta.keys())
+        elif self.partitions:
+            return [tab for tab in list(self.partitions.values())[0].files]
+        else:
+            return []
 
     @property
     def index_columns(self) -> Set[str]:
@@ -218,6 +224,7 @@ class DatasetMetadataBase(CopyMixin):
 
         if self.partition_keys is not None:
             dct["partition_keys"] = self.partition_keys
+        # don't preserve table_meta, since there is no JSON-compatible way (yet)
 
         return dct
 
@@ -226,42 +233,6 @@ class DatasetMetadataBase(CopyMixin):
 
     def to_msgpack(self) -> bytes:
         return packb(self.to_dict())
-
-    def load_partition_indices(self: T) -> T:
-        """
-        Load all filename encoded indices into RAM. File encoded indices can be extracted from datasets with partitions
-        stored in a format like
-
-        .. code::
-
-            `dataset_uuid/table/IndexCol=IndexValue/SecondIndexCol=Value/partition_label.parquet`
-
-        Which results in an in-memory index holding the information
-
-        .. code::
-
-            {
-                "IndexCol": {
-                    IndexValue: ["partition_label"]
-                },
-                "SecondIndexCol": {
-                    Value: ["partition_label"]
-                }
-            }
-
-        """
-        if self.primary_indices_loaded:
-            return self
-
-        indices = _construct_dynamic_index_from_partitions(
-            partitions=self.partitions,
-            schema=self.schema,
-            default_dtype=pa.string() if self.metadata_version == 3 else None,
-            partition_keys=self.partition_keys,
-        )
-        combined_indices = self.indices.copy()
-        combined_indices.update(indices)
-        return self.copy(indices=combined_indices)
 
     def load_index(self: T, column: str, store: StoreInput) -> T:
         """
@@ -301,7 +272,9 @@ class DatasetMetadataBase(CopyMixin):
         indices = dict(self.indices, **col_loaded_index)
         return self.copy(indices=indices)
 
-    def load_all_indices(self: T, store: StoreInput) -> T:
+    def load_all_indices(
+        self: T, store: StoreInput, load_partition_indices: bool = True
+    ) -> T:
         """
         Load all registered indices into memory.
 
@@ -311,6 +284,8 @@ class DatasetMetadataBase(CopyMixin):
         ----------
         store
             Object that implements the .get method for file/object loading.
+        load_partition_indices
+            Flag if filename indices should be loaded. Default is True.
 
         Returns
         -------
@@ -325,7 +300,9 @@ class DatasetMetadataBase(CopyMixin):
         }
         ds = self.copy(indices=indices)
 
-        return ds.load_partition_indices()
+        if load_partition_indices:
+            ds = ds.load_partition_indices()
+        return ds
 
     def query(self, indices: List[IndexBase] = None, **kwargs) -> List[str]:
         """
@@ -359,6 +336,42 @@ class DatasetMetadataBase(CopyMixin):
 
         return list(candidate_set)
 
+    def load_partition_indices(self: T) -> T:
+        """
+        Load all filename encoded indices into RAM. File encoded indices can be extracted from datasets with partitions
+        stored in a format like
+
+        .. code::
+
+            `dataset_uuid/table/IndexCol=IndexValue/SecondIndexCol=Value/partition_label.parquet`
+
+        Which results in an in-memory index holding the information
+
+        .. code::
+
+            {
+                "IndexCol": {
+                    IndexValue: ["partition_label"]
+                },
+                "SecondIndexCol": {
+                    Value: ["partition_label"]
+                }
+            }
+
+        """
+        if self.primary_indices_loaded:
+            return self
+
+        indices = _construct_dynamic_index_from_partitions(
+            partitions=self.partitions,
+            table_meta=self.table_meta,
+            default_dtype=pa.string() if self.metadata_version == 3 else None,
+            partition_keys=self.partition_keys,
+        )
+        combined_indices = self.indices.copy()
+        combined_indices.update(indices)
+        return self.copy(indices=combined_indices)
+
     @default_docs
     def get_indices_as_dataframe(
         self,
@@ -382,13 +395,7 @@ class DatasetMetadataBase(CopyMixin):
         Parameters
         ----------
         """
-        if self.partition_keys and (
-            columns is None
-            or (
-                self.partition_keys is not None
-                and set(columns) & set(self.partition_keys)
-            )
-        ):
+        if not self.primary_indices_loaded and columns != []:
             # self.load_partition_indices is not inplace
             dm = self.load_partition_indices()
         else:
@@ -500,14 +507,14 @@ class DatasetMetadata(DatasetMetadataBase):
     def __repr__(self):
         return (
             "DatasetMetadata(uuid={uuid}, "
-            "table_name={table_name}, "
+            "tables={tables}, "
             "partition_keys={partition_keys}, "
             "metadata_version={metadata_version}, "
             "indices={indices}, "
             "explicit_partitions={explicit_partitions})"
         ).format(
             uuid=self.uuid,
-            table_name=self.table_name,
+            tables=self.tables,
             partition_keys=self.partition_keys,
             metadata_version=self.metadata_version,
             indices=list(self.indices.keys()),
@@ -631,29 +638,23 @@ class DatasetMetadata(DatasetMetadataBase):
                     table_set.add(key.split("/")[1])
             tables = list(table_set)
 
-        schema = None
-        table_name = None
-        if tables:
-            table_name = tables[0]
-
-            if load_schema:
-                schema = read_schema_metadata(
-                    dataset_uuid=dataset_uuid, store=store, table=table_name
+        table_meta = {}
+        if load_schema:
+            for table in tables:
+                table_meta[table] = read_schema_metadata(
+                    dataset_uuid=dataset_uuid, store=store, table=table
                 )
 
-        metadata["schema"] = schema
+        metadata["table_meta"] = table_meta
 
         if "partition_keys" not in metadata:
             metadata["partition_keys"] = _get_partition_keys_from_partitions(
                 metadata["partitions"]
             )
 
-        ds = DatasetMetadata.from_dict(
+        return DatasetMetadata.from_dict(
             metadata, explicit_partitions=explicit_partitions
         )
-        if table_name:
-            ds._table_name = table_name
-        return ds
 
     @staticmethod
     def from_buffer(buf: str, format: str = "json", explicit_partitions: bool = True):
@@ -680,7 +681,7 @@ class DatasetMetadata(DatasetMetadataBase):
             metadata_version=dct[naming.METADATA_VERSION_KEY],
             explicit_partitions=explicit_partitions,
             partition_keys=dct.get("partition_keys", None),
-            schema=dct.get("schema"),
+            table_meta=dct.get("table_meta", None),
         )
 
         for key, value in dct.get("metadata", {}).items():
@@ -700,13 +701,18 @@ class DatasetMetadata(DatasetMetadataBase):
 
 
 def _get_type_from_meta(
-    schema: Optional[SchemaWrapper], column: str, default: Optional[pa.DataType],
+    table_meta: Optional[Dict[str, SchemaWrapper]],
+    column: str,
+    default: Optional[pa.DataType],
 ) -> pa.DataType:
     # use first schema that provides type information, since write path should ensure that types are normalized and
     # equal
-    if schema is not None:
-        idx = schema.get_field_index(column)
-        return schema[idx].type
+    if table_meta is not None:
+        for schema in table_meta.values():
+            if column not in schema.names:
+                continue
+            idx = schema.get_field_index(column)
+            return schema[idx].type
 
     if default is not None:
         return default
@@ -717,25 +723,23 @@ def _get_type_from_meta(
 
 
 def _empty_partition_indices(
-    partition_keys: List[str],
-    schema: Optional[SchemaWrapper],
-    default_dtype: pa.DataType,
+    partition_keys: List[str], table_meta: TableMetaType, default_dtype: pa.DataType
 ):
     indices = {}
     for col in partition_keys:
-        arrow_type = _get_type_from_meta(schema, col, default_dtype)
+        arrow_type = _get_type_from_meta(table_meta, col, default_dtype)
         indices[col] = PartitionIndex(column=col, index_dct={}, dtype=arrow_type)
     return indices
 
 
 def _construct_dynamic_index_from_partitions(
     partitions: Dict[str, Partition],
-    schema: Optional[SchemaWrapper],
+    table_meta: TableMetaType,
     default_dtype: pa.DataType,
     partition_keys: List[str],
 ) -> Dict[str, PartitionIndex]:
     if len(partitions) == 0:
-        return _empty_partition_indices(partition_keys, schema, default_dtype)
+        return _empty_partition_indices(partition_keys, table_meta, default_dtype)
 
     def _get_files(part):
         if isinstance(part, dict):
@@ -749,7 +753,7 @@ def _construct_dynamic_index_from_partitions(
     )  # partitions is NOT empty here, see check above
     first_partition_files = _get_files(first_partition)
     if not first_partition_files:
-        return _empty_partition_indices(partition_keys, schema, default_dtype)
+        return _empty_partition_indices(partition_keys, table_meta, default_dtype)
     key_table = next(iter(first_partition_files.keys()))
     storage_keys = (
         (key, _get_files(part)[key_table]) for key, part in partitions.items()
@@ -769,7 +773,7 @@ def _construct_dynamic_index_from_partitions(
                 _key_indices[column][value].add(partition_label)
     new_indices = {}
     for col, index_dct in _key_indices.items():
-        arrow_type = _get_type_from_meta(schema, col, default_dtype)
+        arrow_type = _get_type_from_meta(table_meta, col, default_dtype)
 
         # convert defaultdicts into dicts
         new_indices[col] = PartitionIndex(
@@ -874,7 +878,7 @@ class DatasetMetadataBuilder(CopyMixin):
         metadata_version=naming.DEFAULT_METADATA_VERSION,
         explicit_partitions=True,
         partition_keys=None,
-        schema=None,
+        table_meta=None,
     ):
         verify_metadata_version(metadata_version)
 
@@ -884,7 +888,7 @@ class DatasetMetadataBuilder(CopyMixin):
         self.metadata_version = metadata_version
         self.partitions: Dict[str, Partition] = OrderedDict()
         self.partition_keys = partition_keys
-        self.schema = schema
+        self.table_meta = table_meta
         self.explicit_partitions = explicit_partitions
 
         _add_creation_time(self)
@@ -899,12 +903,13 @@ class DatasetMetadataBuilder(CopyMixin):
             metadata_version=dataset.metadata_version,
             explicit_partitions=dataset.explicit_partitions,
             partition_keys=dataset.partition_keys,
-            schema=dataset.schema,
+            table_meta=dataset.table_meta,
         )
 
         ds_builder.metadata = dataset.metadata
         ds_builder.indices = dataset.indices
         ds_builder.partitions = dataset.partitions
+        ds_builder.tables = dataset.tables
         return ds_builder
 
     def add_partition(self, name, partition):
@@ -918,12 +923,6 @@ class DatasetMetadataBuilder(CopyMixin):
         partition: :class:`kartothek.core.partition.Partition`
             The partition to add.
         """
-
-        if len(partition.files) > 1:
-            raise RuntimeError(
-                f"Dataset {self.uuid} has tables {sorted(partition.files.keys())} but read support for multi tabled dataset was dropped with kartothek 4.0."
-            )
-
         self.partitions[name] = partition
         return self
 
@@ -1016,6 +1015,7 @@ class DatasetMetadataBuilder(CopyMixin):
 
         if self.partition_keys is not None:
             dct["partition_keys"] = self.partition_keys
+        # don't preserve table_meta, since there is no JSON-compatible way (yet)
         return dct
 
     def to_json(self):
@@ -1059,7 +1059,7 @@ class DatasetMetadataBuilder(CopyMixin):
             metadata_version=self.metadata_version,
             explicit_partitions=self.explicit_partitions,
             partition_keys=self.partition_keys,
-            schema=self.schema,
+            table_meta=self.table_meta,
         )
 
 

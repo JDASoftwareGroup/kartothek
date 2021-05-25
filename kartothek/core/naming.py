@@ -4,9 +4,6 @@
 Global naming constants for datasets
 """
 
-
-# FIXME: move this constant somewhere else. Cannot import from its declaration due to cyclic imports
-SINGLE_TABLE = "table"
 DEFAULT_METADATA_VERSION = 4
 MIN_METADATA_VERSION = 4
 MAX_METADATA_VERSION = 4

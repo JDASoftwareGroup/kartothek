@@ -1,6 +1,6 @@
 from functools import reduce
 
-from kartothek.core.cube.constants import KTK_CUBE_UUID_SEPARATOR
+from kartothek.core.cube.constants import KTK_CUBE_UUID_SEPERATOR
 from kartothek.utils.ktk_adapters import get_dataset_keys
 
 __all__ = ("get_keys_to_clean",)
@@ -27,7 +27,7 @@ def get_keys_to_clean(cube_uuid_prefix, datasets, store):
     )
 
     keys_present = {
-        k for k in store.iter_keys(cube_uuid_prefix + KTK_CUBE_UUID_SEPARATOR)
+        k for k in store.iter_keys(cube_uuid_prefix + KTK_CUBE_UUID_SEPERATOR)
     }
 
     return keys_present - keys_should

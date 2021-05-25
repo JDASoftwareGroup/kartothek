@@ -12,7 +12,7 @@ from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io.testing.read import *  # noqa
 
 
-@pytest.fixture(params=["dataframe"])
+@pytest.fixture(params=["dataframe", "metapartition"])
 def output_type(request):
     return request.param
 
@@ -47,7 +47,8 @@ def test_read_dataset_as_dataframes_partition_size(store_factory, metadata_versi
     cluster4 = pd.DataFrame(
         {"A": [2, 2], "B": [10, 10], "C": [1, 2], "Content": ["cluster4", "cluster4"]}
     )
-    partitions = [cluster1, cluster2, cluster3, cluster4]
+    clusters = [cluster1, cluster2, cluster3, cluster4]
+    partitions = [{"data": [("data", c)]} for c in clusters]
 
     store_dataframes_as_dataset__iter(
         df_generator=partitions,

@@ -67,13 +67,25 @@ def test_dynamic_partitions(store):
         [("location", "L-1")],
         "{}.parquet".format(partition_suffix),
     )
+    partition0_ext = create_partition_key(
+        dataset_uuid,
+        "extension",
+        [("location", "L-0")],
+        "{}.parquet".format(partition_suffix),
+    )
+    partition1_ext = create_partition_key(
+        dataset_uuid,
+        "extension",
+        [("location", "L-1")],
+        "{}.parquet".format(partition_suffix),
+    )
     metadata = {"dataset_metadata_version": 4, "dataset_uuid": dataset_uuid}
     expected_partitions = {
         "location=L-0/{}".format(partition_suffix): {
-            "files": {"core": partition0_core}
+            "files": {"core": partition0_core, "extension": partition0_ext}
         },
         "location=L-1/{}".format(partition_suffix): {
-            "files": {"core": partition1_core}
+            "files": {"core": partition1_core, "extension": partition1_ext}
         },
     }
     expected_indices = {
@@ -90,6 +102,8 @@ def test_dynamic_partitions(store):
     )
     store.put(partition0_core, b"test")
     store.put(partition1_core, b"test")
+    store.put(partition0_ext, b"test")
+    store.put(partition1_ext, b"test")
     store_schema_metadata(
         make_meta(
             pd.DataFrame({"location": ["L-0/{}".format(partition_suffix)]}),
@@ -111,8 +125,20 @@ def test_dynamic_partitions(store):
         ),
         origin="core",
     )
+    extension_schema = make_meta(
+        pd.DataFrame(
+            {
+                "column_77": pd.Series([1], dtype=int),
+                "column_78": pd.Series([1], dtype=int),
+                "location": pd.Series(["str"]),
+            }
+        ),
+        origin="extension",
+    )
     store_schema_metadata(core_schema, dataset_uuid, store, "core")
-
+    store_schema_metadata(extension_schema, dataset_uuid, store, "extension")
+    dmd = DatasetMetadata.load_from_store(dataset_uuid, store)
+    # reload metadata to use table metadata
     dmd = DatasetMetadata.load_from_store(dataset_uuid, store)
     dmd = dmd.load_partition_indices()
 

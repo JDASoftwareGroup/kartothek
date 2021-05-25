@@ -21,21 +21,27 @@ Source test data
 
 Feature toggles (optional):
 
+* ``custom_read_parameters`` - Pass additional backend specific kwargs to the read function. The fixture should return a dict which can be passed using the double asterisks syntax to the callable.
+
 The following fixtures should be present (see tests.read.conftest)
 * ``use_categoricals`` - Whether or not the call retrievs categorical data.
 * ``dates_as_object`` - Whether or not the call retrievs date columns as objects.
+* ``label_filter`` - a callable to filter partitions by label.
 
 """
 
 import datetime
+from distutils.version import LooseVersion
 from functools import partial
 from itertools import permutations
 
 import pandas as pd
 import pandas.testing as pdt
+import pyarrow as pa
 import pytest
 from storefact import get_store_from_url
 
+from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io.iter import store_dataframes_as_dataset__iter
 from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
@@ -51,9 +57,34 @@ def dates_as_object(request):
     return request.param
 
 
+@pytest.fixture(
+    params=[True, False],
+    ids=["load_dataset_metadata_TRUE", "load_dataset_metadata_FALSE"],
+)
+def load_dataset_metadata(request):
+    return request.param
+
+
+@pytest.fixture(params=[None, lambda part_label: "cluster_1" in part_label])
+def label_filter(request):
+    return request.param
+
+
+@pytest.fixture
+def custom_read_parameters():
+    return {}
+
+
 @pytest.fixture(params=[True, False], ids=["use_factory", "no_factory"])
 def use_dataset_factory(request, dates_as_object):
     return request.param
+
+
+def _strip_unused_categoricals(df):
+    for col in df.columns:
+        if pd.api.types.is_categorical_dtype(df[col]):
+            df[col] = df[col].cat.remove_unused_categories()
+    return df
 
 
 class NoPickle:
@@ -138,6 +169,7 @@ def _perform_read_test(
     execute_read_callable,
     use_categoricals,
     output_type,
+    label_filter,
     dates_as_object,
     read_kwargs=None,
     ds_factory=None,
@@ -146,7 +178,7 @@ def _perform_read_test(
         read_kwargs = {}
     if use_categoricals:
         # dataset_with_index has an index on L but not on P
-        categoricals = ["P", "L"]
+        categoricals = {SINGLE_TABLE: ["P", "L"]}
     else:
         categoricals = None
 
@@ -155,11 +187,17 @@ def _perform_read_test(
         store=store_factory,
         factory=ds_factory,
         categoricals=categoricals,
+        label_filter=label_filter,
         dates_as_object=dates_as_object,
         **read_kwargs,
     )
 
-    assert len(result) == 2
+    # The filter should allow only a single partition
+    if not label_filter:
+        assert len(result) == 2
+    else:
+        # The filter should allow only a single partition
+        assert len(result) == 1
 
     if output_type == "metapartition":
         for res in result:
@@ -170,6 +208,7 @@ def _perform_read_test(
             return obj[SINGLE_TABLE].P.iloc[0]
 
     elif output_type == "table":
+
         assert isinstance(result[0], pd.DataFrame)
         assert "P" in result[0]
 
@@ -177,26 +216,30 @@ def _perform_read_test(
             return obj.P.iloc[0]
 
     else:
-        assert isinstance(result[0], pd.DataFrame)
-        assert "P" in result[0]
+        assert isinstance(result[0], dict)
+        assert SINGLE_TABLE in result[0]
+        assert "P" in result[0][SINGLE_TABLE]
 
         def sort_by(obj):
-            return obj.P.iloc[0]
+            return obj[SINGLE_TABLE].P.iloc[0]
 
     result = sorted(result, key=sort_by)
 
     expected_df_core_1 = pd.DataFrame(
         {"P": [1], "L": [1], "TARGET": [1], "DATE": [datetime.date(2010, 1, 1)]}
     )
+    expected_df_helper_1 = pd.DataFrame({"P": [1], "info": "a"})
     expected_df_core_2 = pd.DataFrame(
         {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
     )
+    expected_df_helper_2 = pd.DataFrame({"P": [2], "info": "b"})
+
     expected_dfs = [
-        expected_df_core_1,
-        expected_df_core_2,
+        (expected_df_core_1, expected_df_helper_1),
+        (expected_df_core_2, expected_df_helper_2),
     ]
 
-    for res, expected_df_core in zip(result, expected_dfs):
+    for res, (expected_df_core, expected_df_helper) in zip(result, expected_dfs):
         if not dates_as_object:
             expected_df_core["DATE"] = pd.to_datetime(expected_df_core["DATE"])
         if use_categoricals:
@@ -204,13 +247,24 @@ def _perform_read_test(
                 {"P": "category", "L": "category"}
             )
 
-        pdt.assert_frame_equal(
-            res.reset_index(drop=True),
-            expected_df_core.reset_index(drop=True),
-            check_dtype=False,
-            check_like=True,
-            check_categorical=False,
-        )
+        if output_type == "table":
+
+            pdt.assert_frame_equal(
+                _strip_unused_categoricals(res).reset_index(drop=True),
+                expected_df_core.reset_index(drop=True),
+                check_dtype=False,
+                check_like=True,
+            )
+        else:
+            actual_core = _strip_unused_categoricals(res[SINGLE_TABLE])
+            actual_helper = _strip_unused_categoricals(res["helper"])
+            assert len(res) == 2
+            pdt.assert_frame_equal(
+                actual_core, expected_df_core, check_dtype=False, check_like=True
+            )
+            pdt.assert_frame_equal(
+                actual_helper, expected_df_helper, check_dtype=False, check_like=True
+            )
 
 
 @pytest.mark.parametrize(
@@ -224,20 +278,39 @@ def _perform_read_test(
     ],
 )
 def test_read_dataset_as_dataframes_predicate(
-    dataset, store_session_factory, bound_load_dataframes, predicates, output_type
+    dataset,
+    store_session_factory,
+    custom_read_parameters,
+    bound_load_dataframes,
+    predicates,
+    output_type,
+    backend_identifier,
 ):
     if output_type != "dataframe":
         pytest.skip()
     result = bound_load_dataframes(
-        dataset_uuid=dataset.uuid, store=store_session_factory, predicates=predicates,
+        dataset_uuid=dataset.uuid,
+        store=store_session_factory,
+        predicates=predicates,
+        **custom_read_parameters,
     )
-    core_result = pd.concat(result)
+    core_result = pd.concat([data[SINGLE_TABLE] for data in result])
 
     expected_core = pd.DataFrame(
-        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
+        {
+            "P": [2],
+            "L": [2],
+            "TARGET": [2],
+            "DATE": pd.to_datetime([datetime.date(2009, 12, 31)]),
+        }
     )
     pdt.assert_frame_equal(
         core_result, expected_core, check_dtype=False, check_like=True
+    )
+    helper_result = pd.concat([data["helper"] for data in result])
+    expected_helper = pd.DataFrame({"P": [2], "info": "b"})
+    pdt.assert_frame_equal(
+        helper_result, expected_helper, check_dtype=False, check_like=True
     )
 
 
@@ -255,6 +328,7 @@ def test_read_dataset_as_dataframes_predicate(
 def test_read_dataset_as_dataframes_predicate_with_partition_keys(
     dataset_partition_keys,
     store_session_factory,
+    custom_read_parameters,
     bound_load_dataframes,
     predicates,
     output_type,
@@ -265,12 +339,19 @@ def test_read_dataset_as_dataframes_predicate_with_partition_keys(
         dataset_uuid=dataset_partition_keys.uuid,
         store=store_session_factory,
         predicates=predicates,
+        tables=[SINGLE_TABLE],
+        **custom_read_parameters,
     )
 
-    core_result = pd.concat(result)
+    core_result = pd.concat([data[SINGLE_TABLE] for data in result])
 
     expected_core = pd.DataFrame(
-        {"P": [2], "L": [2], "TARGET": [2], "DATE": [datetime.date(2009, 12, 31)]}
+        {
+            "P": [2],
+            "L": [2],
+            "TARGET": [2],
+            "DATE": pd.to_datetime([datetime.date(2009, 12, 31)]),
+        }
     )
     pdt.assert_frame_equal(
         core_result, expected_core, check_dtype=False, check_like=True
@@ -278,7 +359,11 @@ def test_read_dataset_as_dataframes_predicate_with_partition_keys(
 
 
 def test_read_dataset_as_dataframes_predicate_empty(
-    dataset_partition_keys, store_session_factory, output_type, bound_load_dataframes,
+    dataset_partition_keys,
+    store_session_factory,
+    custom_read_parameters,
+    output_type,
+    bound_load_dataframes,
 ):
     if output_type != "dataframe":
         pytest.skip()
@@ -286,14 +371,57 @@ def test_read_dataset_as_dataframes_predicate_empty(
         dataset_uuid=dataset_partition_keys.uuid,
         store=store_session_factory,
         predicates=[[("P", "==", -42)]],
+        tables=[SINGLE_TABLE],
         columns={SINGLE_TABLE: ["P", "L", "TARGET"]},
+        **custom_read_parameters,
     )
     assert len(result) == 0
 
 
 def _gen_partition(b_c):
     b, c = b_c
-    return pd.DataFrame({"a": [1], "b": [b], "c": c})
+    df = pd.DataFrame({"a": [1], "b": [b], "c": c})
+    return {"data": [("data", df)]}
+
+
+def test_read_dataset_as_dataframes_concat_primary(
+    store_factory,
+    custom_read_parameters,
+    bound_load_dataframes,
+    output_type,
+    metadata_version,
+):
+    if output_type != "dataframe":
+        pytest.skip()
+    partitions = []
+    for part_info in [["1", "H"], ["1", "G"], ["2", "H"], ["2", "G"]]:
+        partitions.append(_gen_partition(part_info))
+
+    store_dataframes_as_dataset(
+        dfs=partitions,
+        store=store_factory,
+        dataset_uuid="partitioned_uuid",
+        metadata_version=metadata_version,
+        partition_on=["a", "b"],
+    )
+
+    result = bound_load_dataframes(
+        dataset_uuid="partitioned_uuid",
+        store=store_factory,
+        concat_partitions_on_primary_index=True,
+        predicates=[[("b", "==", "1")]],
+        **custom_read_parameters,
+    )
+    result_df = result[0]["data"].sort_values(by="c")
+
+    expected_df = pd.DataFrame(
+        {"a": [1, 1], "b": ["1", "1"], "c": ["G", "H"]}
+    ).sort_values(by="c")
+    # Concatenated DataFrames have also a concatenated index.
+    # Reflect this in the test.
+    expected_df.index = [0, 0]
+
+    pdt.assert_frame_equal(expected_df, result_df, check_like=True)
 
 
 def test_read_dataset_as_dataframes_dispatch_by_empty(
@@ -338,7 +466,11 @@ def test_read_dataset_as_dataframes_dispatch_by_single_col(
     )
 
     unique_a = set()
-    for data in dispatched_a:
+    for part in dispatched_a:
+        if isinstance(part, MetaPartition):
+            data = part.data["data"]
+        else:
+            data = part["data"]
         unique_dispatch = data[dispatch_by].unique()
         assert len(unique_dispatch) == 1
         assert unique_dispatch[0] not in unique_a
@@ -368,8 +500,10 @@ def dataset_dispatch_by(
     )
     clusters = [cluster1, cluster2, cluster3, cluster4]
 
+    partitions = [{"data": [("data", c)]} for c in clusters]
+
     store_dataframes_as_dataset__iter(
-        df_generator=clusters,
+        df_generator=partitions,
         store=store_session_factory,
         dataset_uuid=dataset_dispatch_by_uuid,
         metadata_version=metadata_version,
@@ -397,9 +531,9 @@ def test_read_dataset_as_dataframes_dispatch_by_multi_col(
         uniques = pd.DataFrame(columns=dispatch_by)
         for part in dispatched:
             if isinstance(part, MetaPartition):
-                data = part.data
+                data = part.data["data"]
             else:
-                data = part
+                data = part["data"]
             unique_dispatch = data[list(dispatch_by)].drop_duplicates()
             assert len(unique_dispatch) == 1
             row = unique_dispatch
@@ -452,6 +586,7 @@ def test_read_dataset_as_dataframes(
     bound_load_dataframes,
     use_categoricals,
     output_type,
+    label_filter,
     dates_as_object,
 ):
     if use_dataset_factory:
@@ -470,6 +605,7 @@ def test_read_dataset_as_dataframes(
         execute_read_callable=bound_load_dataframes,
         use_categoricals=use_categoricals,
         output_type=output_type,
+        label_filter=label_filter,
         dates_as_object=dates_as_object,
     )
 
@@ -477,10 +613,12 @@ def test_read_dataset_as_dataframes(
 def test_read_dataset_as_dataframes_columns_projection(
     store_factory, bound_load_dataframes, metadata_version
 ):
+    table_name = SINGLE_TABLE
+
     def _f(b_c):
         b, c = b_c
         df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
-        return df
+        return {"label": str(c), "data": [(table_name, df)]}
 
     in_partitions = [_f([1, 100])]
     dataset_uuid = "partitioned_uuid"
@@ -493,12 +631,16 @@ def test_read_dataset_as_dataframes_columns_projection(
     )
 
     result = bound_load_dataframes(
-        dataset_uuid=dataset_uuid, store=store_factory, columns=["a", "b", "c"],
+        dataset_uuid=dataset_uuid,
+        store=store_factory,
+        columns={table_name: ["a", "b", "c"]},
     )
     probe = result[0]
 
     if isinstance(probe, MetaPartition):
-        result_dfs = [mp.data for mp in result]
+        result_dfs = [mp.data[table_name] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[table_name] for mp in result]
     else:
         result_dfs = result
     result_df = pd.concat(result_dfs).reset_index(drop=True)
@@ -510,10 +652,12 @@ def test_read_dataset_as_dataframes_columns_projection(
 def test_read_dataset_as_dataframes_columns_primary_index_only(
     store_factory, bound_load_dataframes, metadata_version
 ):
+    table_name = SINGLE_TABLE
+
     def _f(b_c):
         b, c = b_c
         df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
-        return df
+        return {"label": str(c), "data": [(table_name, df)]}
 
     in_partitions = [_f([1, 100])]
     dataset_uuid = "partitioned_uuid"
@@ -526,12 +670,14 @@ def test_read_dataset_as_dataframes_columns_primary_index_only(
         partition_on=["a", "b"],
     )
     result = bound_load_dataframes(
-        dataset_uuid=dataset_uuid, store=store_factory, columns=["a", "b"]
+        dataset_uuid=dataset_uuid, store=store_factory, columns={table_name: ["a", "b"]}
     )
     probe = result[0]
 
     if isinstance(probe, MetaPartition):
-        result_dfs = [mp.data for mp in result]
+        result_dfs = [mp.data[table_name] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[table_name] for mp in result]
     else:
         result_dfs = result
     result_df = pd.concat(result_dfs).reset_index(drop=True)
@@ -543,10 +689,12 @@ def test_read_dataset_as_dataframes_columns_primary_index_only(
 def test_empty_predicate_pushdown_empty_col_projection(
     dataset, store_session_factory, bound_load_dataframes, backend_identifier
 ):
+    table_name = SINGLE_TABLE
     result = bound_load_dataframes(
         dataset_uuid=dataset.uuid,
+        tables=table_name,
         store=store_session_factory,
-        columns=[],
+        columns={table_name: []},
         predicates=[[("P", "==", 12345678)]],  # this product doesn't exist
     )
 
@@ -555,7 +703,9 @@ def test_empty_predicate_pushdown_empty_col_projection(
     probe = result[0]
 
     if isinstance(probe, MetaPartition):
-        result_dfs = [mp.data for mp in result]
+        result_dfs = [mp.data[table_name] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[table_name] for mp in result]
     else:
         result_dfs = result
     res = pd.concat(result_dfs).reset_index(drop=True)
@@ -570,15 +720,18 @@ def test_datetime_predicate_with_dates_as_object(
     store_factory,
     bound_load_dataframes,
     metadata_version,
+    custom_read_parameters,
     output_type,
     partition_on,
     datetype,
     comp,
 ):
+    table_name = SINGLE_TABLE
+
     def _f(b_c):
         b, c = b_c
         df = pd.DataFrame({"a": [1, 1], "b": [b, b], "c": c, "d": [b, b + 1]})
-        return df
+        return {"label": gen_uuid(), "data": [(table_name, df)]}
 
     in_partitions = [_f([1, datetype(2000, 1, 1)])]
     dataset_uuid = "partitioned_uuid"
@@ -592,32 +745,44 @@ def test_datetime_predicate_with_dates_as_object(
 
     result = bound_load_dataframes(
         dataset_uuid="partitioned_uuid",
+        tables=table_name,
         store=store_factory,
         predicates=[[("c", comp, datetype(2000, 1, 1))]],
         dates_as_object=True,
+        **custom_read_parameters,
     )
     if output_type != "dataframe":
         return
 
     assert len(result) == 1
-    df_actual = result[0]
+    dct = result[0]
+    assert set(dct.keys()) == {table_name}
+    df_actual = dct[table_name]
 
-    df_expected = in_partitions[0]
+    df_expected = in_partitions[0]["data"][0][1]
     pdt.assert_frame_equal(df_actual, df_expected, check_like=True)
 
 
 def test_binary_column_metadata(store_factory, bound_load_dataframes):
-    df = pd.DataFrame({b"int_col": [1], "🙈".encode(): [2]})
+    table_name = SINGLE_TABLE
+    df = {
+        "label": "part1",
+        "data": [(table_name, pd.DataFrame({b"int_col": [1], "🙈".encode(): [2]}))],
+    }
 
     store_dataframes_as_dataset(
         dfs=[df], store=store_factory, dataset_uuid="dataset_uuid"
     )
 
-    result = bound_load_dataframes(dataset_uuid="dataset_uuid", store=store_factory)
+    result = bound_load_dataframes(
+        dataset_uuid="dataset_uuid", store=store_factory, tables=table_name
+    )
 
     probe = result[0]
     if isinstance(probe, MetaPartition):
-        result_dfs = [mp.data for mp in result]
+        result_dfs = [mp.data[table_name] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[table_name] for mp in result]
     else:
         result_dfs = result
     df = pd.concat(result_dfs).reset_index(drop=True)
@@ -626,35 +791,64 @@ def test_binary_column_metadata(store_factory, bound_load_dataframes):
     assert set(df.columns.map(type)) == {str}
 
 
+@pytest.mark.xfail(
+    LooseVersion(pa.__version__) < "0.16.1.dev308",
+    reason="pa.Schema.from_pandas cannot deal with ExtensionDtype",
+)
 def test_extensiondtype_rountrip(store_factory, bound_load_dataframes):
-    df = pd.DataFrame({"str": pd.Series(["a", "b"], dtype="string")})
+    table_name = SINGLE_TABLE
+    df = {
+        "label": "part1",
+        "data": [
+            (table_name, pd.DataFrame({"str": pd.Series(["a", "b"], dtype="string")}))
+        ],
+    }
 
     store_dataframes_as_dataset(
         dfs=[df], store=store_factory, dataset_uuid="dataset_uuid"
     )
 
-    result = bound_load_dataframes(dataset_uuid="dataset_uuid", store=store_factory)
-
-    probe = result[0]
-    if isinstance(probe, MetaPartition):
-        result_dfs = [mp.data for mp in result]
-    else:
-        result_dfs = result
-    result_df = pd.concat(result_dfs).reset_index(drop=True)
-    pdt.assert_frame_equal(df, result_df)
-
-
-def test_non_default_table_name_roundtrip(store_factory, bound_load_dataframes):
-    df = pd.DataFrame({"A": [1]})
-    store_dataframes_as_dataset(
-        dfs=[df], store=store_factory, dataset_uuid="dataset_uuid", table_name="foo"
+    result = bound_load_dataframes(
+        dataset_uuid="dataset_uuid", store=store_factory, tables=table_name
     )
-    result = bound_load_dataframes(dataset_uuid="dataset_uuid", store=store_factory)
 
     probe = result[0]
     if isinstance(probe, MetaPartition):
-        result_dfs = [mp.data for mp in result]
+        result_dfs = [mp.data[table_name] for mp in result]
+    elif isinstance(probe, dict):
+        result_dfs = [mp[table_name] for mp in result]
     else:
         result_dfs = result
     result_df = pd.concat(result_dfs).reset_index(drop=True)
-    pdt.assert_frame_equal(df, result_df)
+    pdt.assert_frame_equal(df["data"][0][1], result_df)
+
+
+def test_read_dataset_multi_table_warning(
+    store_factory, metadata_version, bound_load_dataframes
+):
+    dfs = [
+        {
+            "data": {
+                "core-table": pd.DataFrame({"id": [22, 23], "f": [1.1, 2.4]}),
+                "aux-table": pd.DataFrame({"id": [22], "col1": ["x"]}),
+            }
+        },
+        {
+            "data": {
+                "core-table": pd.DataFrame({"id": [29, 31], "f": [3.2, 0.6]}),
+                "aux-table": pd.DataFrame({"id": [31], "col1": ["y"]}),
+            }
+        },
+    ]
+
+    dm = store_dataframes_as_dataset(
+        dfs=dfs, store=store_factory, dataset_uuid="dataset_uuid"
+    )
+
+    with pytest.warns(
+        DeprecationWarning,
+        match="Trying to read a dataset with multiple internal tables.*",
+    ):
+        bound_load_dataframes(
+            dataset_uuid="dataset_uuid", store=store_factory, tables=dm.tables[1]
+        )

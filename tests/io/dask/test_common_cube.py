@@ -21,7 +21,7 @@ def test_cube_with_valid_indices_is_not_modified_by_validation():
         {
             "dataset_uuid": "source",
             "dataset_metadata_version": 4,
-            "schema": FakeSeedTableMetadata(),
+            "table_meta": {"table": FakeSeedTableMetadata()},
             "partition_keys": ["p"],
             "indices": {
                 "d1": {"1": ["part_1"]},
@@ -34,7 +34,7 @@ def test_cube_with_valid_indices_is_not_modified_by_validation():
         {
             "dataset_uuid": "extra",
             "dataset_metadata_version": 4,
-            "schema": FakeExtraTableMetadata(),
+            "table_meta": {"table": FakeExtraTableMetadata()},
             "partition_keys": ["p"],
             "indices": {"i1": {"1": ["part_1"]}},
         }
@@ -62,7 +62,7 @@ def test_existing_indices_are_added_when_missing_in_cube():
         {
             "dataset_uuid": "source",
             "dataset_metadata_version": 4,
-            "schema": FakeExtraTableMetadata(),
+            "table_meta": {"table": FakeSeedTableMetadata()},
             "partition_keys": ["p"],
             "indices": {
                 "d1": {"1": ["part_1"]},
@@ -76,7 +76,7 @@ def test_existing_indices_are_added_when_missing_in_cube():
         {
             "dataset_uuid": "extra",
             "dataset_metadata_version": 4,
-            "schema": FakeExtraTableMetadata(),
+            "table_meta": {"table": FakeExtraTableMetadata()},
             "partition_keys": ["p"],
             "indices": {"i1": {"1": ["part_1"]}},
         }
@@ -104,7 +104,7 @@ def test_raises_when_cube_defines_index_not_in_dataset():
         {
             "dataset_uuid": "source",
             "dataset_metadata_version": 4,
-            "schema": FakeSeedTableMetadata(),
+            "table_meta": {"table": FakeSeedTableMetadata()},
             "partition_keys": ["p"],
             "indices": {
                 "d1": {"1": ["part_1"]},
@@ -117,7 +117,7 @@ def test_raises_when_cube_defines_index_not_in_dataset():
         {
             "dataset_uuid": "extra",
             "dataset_metadata_version": 4,
-            "schema": FakeExtraTableMetadata(),
+            "table_meta": {"table": FakeExtraTableMetadata()},
             "partition_keys": ["p"],
             "indices": {"i1": {"1": ["part_1"]}},
         }
@@ -145,7 +145,7 @@ def test_no_indices_are_suppressed_when_they_already_exist():
         {
             "dataset_uuid": "source",
             "dataset_metadata_version": 4,
-            "schema": FakeSeedTableMetadata(),
+            "table_meta": {"table": FakeSeedTableMetadata()},
             "partition_keys": ["p"],
             "indices": {
                 "d1": {"1": ["part_1"]},
@@ -158,7 +158,7 @@ def test_no_indices_are_suppressed_when_they_already_exist():
         {
             "dataset_uuid": "extra",
             "dataset_metadata_version": 4,
-            "schema": FakeExtraTableMetadata(),
+            "table_meta": {"table": FakeExtraTableMetadata()},
             "partition_keys": ["p"],
             "indices": {"i1": {"1": ["part_1"]}},
         }

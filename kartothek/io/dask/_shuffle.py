@@ -9,6 +9,7 @@ import pandas as pd
 from kartothek.core.typing import StoreFactory
 from kartothek.io.dask.compression import pack_payload, unpack_payload_pandas
 from kartothek.io_components.metapartition import MetaPartition
+from kartothek.io_components.utils import InferredIndices
 from kartothek.io_components.write import write_partition
 from kartothek.serialization import DataFrameSerializer
 
@@ -35,7 +36,7 @@ def _hash_bucket(df: pd.DataFrame, subset: Optional[Sequence[str]], num_buckets:
 def shuffle_store_dask_partitions(
     ddf: dd.DataFrame,
     table: str,
-    secondary_indices: List[str],
+    secondary_indices: Optional[InferredIndices],
     metadata_version: int,
     partition_on: List[str],
     store_factory: StoreFactory,
@@ -131,11 +132,11 @@ def shuffle_store_dask_partitions(
 
 def _unpack_store_partition(
     df: pd.DataFrame,
-    secondary_indices: List[str],
+    secondary_indices: Optional[InferredIndices],
     sort_partitions_by: List[str],
     table: str,
     dataset_uuid: str,
-    partition_on: List[str],
+    partition_on: Optional[List[str]],
     store_factory: StoreFactory,
     df_serializer: DataFrameSerializer,
     metadata_version: int,

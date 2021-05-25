@@ -14,16 +14,35 @@ from kartothek.core.naming import (
     METADATA_FORMAT_JSON,
     TABLE_METADATA_FILE,
 )
+from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.serialization._io_buffer import BlockBuffer
 from kartothek.utils.converters import converter_str
 
 __all__ = (
     "get_dataset_columns",
     "get_dataset_keys",
+    "get_dataset_schema",
     "get_partition_dataframe",
     "get_physical_partition_stats",
     "metadata_factory_from_dataset",
 )
+
+
+def get_dataset_schema(dataset):
+    """
+    Get schema from a Kartothek_Cube-compatible Kartothek dataset.
+
+    Parameters
+    ----------
+    dataset: kartothek.core.dataset.DatasetMetadata
+        Dataset to get the schema from.
+
+    Returns
+    -------
+    schema: pyarrow.Schema
+        Schema data.
+    """
+    return dataset.table_meta[SINGLE_TABLE]
 
 
 def get_dataset_columns(dataset):
@@ -42,7 +61,7 @@ def get_dataset_columns(dataset):
     """
     return {
         converter_str(col)
-        for col in dataset.schema.names
+        for col in get_dataset_schema(dataset).names
         if not col.startswith("__") and col != "KLEE_TS"
     }
 
@@ -130,6 +149,9 @@ def get_physical_partition_stats(metapartitions, store):
     """
     Get statistics for partition.
 
+    .. hint::
+        To get the metapartitions pre-aligned, use ``concat_partitions_on_primary_index=True`` during dispatch.
+
     Parameters
     ----------
     metapartitions: Iterable[kartothek.io_components.metapartition.MetaPartition]
@@ -149,14 +171,15 @@ def get_physical_partition_stats(metapartitions, store):
     blobsize = 0
     rows = 0
     for mp in metapartitions:
-        files += 1
-        fp = BlockBuffer(store.open(mp.file))
-        try:
-            fp_parquet = pq.ParquetFile(fp)
-            rows += fp_parquet.metadata.num_rows
-            blobsize += fp.size
-        finally:
-            fp.close()
+        for f in mp.files.values():
+            files += 1
+            fp = BlockBuffer(store.open(f))
+            try:
+                fp_parquet = pq.ParquetFile(fp)
+                rows += fp_parquet.metadata.num_rows
+                blobsize += fp.size
+            finally:
+                fp.close()
 
     return {"blobsize": blobsize, "files": files, "partitions": 1, "rows": rows}
 
