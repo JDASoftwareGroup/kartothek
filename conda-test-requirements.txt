@@ -1,5 +1,5 @@
 # Test Code Dependencies
-distributed
+distributed!=2021.5.1,!=2021.6.0 # gh475 - 2021.5.1 and 2021.6.0 broke ci, omit those versions
 pytz
 cloudpickle
 freezegun
