@@ -1,13 +1,12 @@
 dask[dataframe]!=2021.5.1,!=2021.6.0  # gh475 - 2021.5.1 and 2021.6.0 broke ci, omit those versions
 decorator
+minimalkv>=1.2
 msgpack>=0.5.2
 # Currently dask and numpy==1.16.0 clash
 numpy!=1.15.0,!=1.16.0
 pandas>=0.23.0, !=1.0.0
 pyarrow>=0.17.1,!=1.0.0, <4
 simplejson
-simplekv
-storefact
 toolz
 typing_extensions; python_version<"3.8"  # Some backports of the py3.8 typing module
 urlquote>=1.1.3

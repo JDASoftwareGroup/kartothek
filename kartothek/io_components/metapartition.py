@@ -24,7 +24,7 @@ from typing import (
 import numpy as np
 import pandas as pd
 import pyarrow as pa
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.core import naming
 from kartothek.core.common_metadata import (

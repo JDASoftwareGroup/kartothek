@@ -1,9 +1,8 @@
 from functools import partial
 
 import pytest
-from simplekv import KeyValueStore
-from simplekv.decorator import PrefixDecorator
-from storefact import get_store_from_url
+from minimalkv import KeyValueStore, get_store_from_url
+from minimalkv.decorator import PrefixDecorator
 
 from kartothek.core.utils import ensure_store, lazy_store
 

@@ -2,8 +2,8 @@
 import base64
 import hashlib
 
+import minimalkv
 import pytest
-import storefact
 
 from kartothek.utils.store import (
     _azure_bbs_content_md5,
@@ -33,7 +33,7 @@ def _gen_store(store_type, tmpdir, suffix, azure_store_cfg_factory):
     else:
         raise ValueError("Unknown store type: {}".format(store_type))
 
-    store = storefact.get_store(**cfg)
+    store = minimalkv.get_store(**cfg)
     for k in store.keys():
         store.delete(k)
 
@@ -67,7 +67,7 @@ def store2(request, tmpdir, azure_store_cfg_factory):
 )
 def test_azure_implementation(azure_store_cfg_factory):
     cfg = azure_store_cfg_factory("ts")
-    store = storefact.get_store(**cfg)
+    store = minimalkv.get_store(**cfg)
     assert _has_azure_bbs(store)
     content = b"foo"
     store.put("key0", content)
@@ -85,7 +85,7 @@ def test_azure_implementation(azure_store_cfg_factory):
 )
 def test_azure12_implementation(azure_store_cfg_factory):
     cfg = azure_store_cfg_factory("ts")
-    store = storefact.get_store(**cfg)
+    store = minimalkv.get_store(**cfg)
     assert _has_azure_cc(store)
     content = b"foobar"
     store.put("key0", content)

@@ -2,8 +2,7 @@ import pickle
 from functools import partial
 from typing import Any, Union, cast
 
-from simplekv import KeyValueStore
-from storefact import get_store_from_url
+from minimalkv import KeyValueStore, get_store_from_url
 
 from kartothek.core.naming import MAX_METADATA_VERSION, MIN_METADATA_VERSION
 from kartothek.core.typing import StoreFactory, StoreInput
@@ -50,11 +49,11 @@ def ensure_string_type(obj: Union[bytes, str]) -> str:
         return str(obj)
 
 
-def _is_simplekv_key_value_store(obj: Any) -> bool:
+def _is_minimalkv_key_value_store(obj: Any) -> bool:
     """
-    Check whether ``obj`` is the ``simplekv.KeyValueStore``-like class.
+    Check whether ``obj`` is the ``minimalkv.KeyValueStore``-like class.
 
-    simplekv uses duck-typing, e.g. for decorators. Therefore,
+    minimalkv uses duck-typing, e.g. for decorators. Therefore,
     avoid `isinstance(store, KeyValueStore)`, as it would be unreliable. Instead,
     only roughly verify that `store` looks like a KeyValueStore.
     """
@@ -67,7 +66,7 @@ def ensure_store(store: StoreInput) -> KeyValueStore:
     """
     # This function is often used in an eager context where we may allow
     # non-serializable stores, so skip the pickle test.
-    if _is_simplekv_key_value_store(store):
+    if _is_minimalkv_key_value_store(store):
         return store
     return lazy_store(store)()
 
@@ -97,7 +96,7 @@ def lazy_store(store: StoreInput) -> StoreFactory:
         return ret_val
     else:
 
-        if not _is_simplekv_key_value_store(store):
+        if not _is_minimalkv_key_value_store(store):
             raise TypeError(
                 f"Provided incompatible store type. Got {type(store)} but expected {StoreInput}."
             )

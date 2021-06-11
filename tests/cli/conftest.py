@@ -3,10 +3,10 @@ import json
 import os
 from datetime import datetime
 
+import minimalkv
 import numpy as np
 import pandas as pd
 import pytest
-import storefact
 from click.testing import CliRunner
 from freezegun import freeze_time
 
@@ -67,7 +67,7 @@ def storecfg2():
 @pytest.fixture
 def azurestorecfg(azure_store_cfg_factory):
     cfg = azure_store_cfg_factory("cli")
-    store = storefact.get_store(**cfg)
+    store = minimalkv.get_store(**cfg)
     for k in list(store.keys()):
         store.delete(k)
     return cfg
@@ -76,7 +76,7 @@ def azurestorecfg(azure_store_cfg_factory):
 @pytest.fixture
 def azurestorecfg2(azure_store_cfg_factory):
     cfg = azure_store_cfg_factory("cli2")
-    store = storefact.get_store(**cfg)
+    store = minimalkv.get_store(**cfg)
     for k in list(store.keys()):
         store.delete(k)
     return cfg
@@ -84,17 +84,17 @@ def azurestorecfg2(azure_store_cfg_factory):
 
 @pytest.fixture
 def store(storecfg):
-    return storefact.get_store(**storecfg)
+    return minimalkv.get_store(**storecfg)
 
 
 @pytest.fixture
 def store2(storecfg2):
-    return storefact.get_store(**storecfg2)
+    return minimalkv.get_store(**storecfg2)
 
 
 @pytest.fixture
 def azurestore(azurestorecfg):
-    store = storefact.get_store(**azurestorecfg)
+    store = minimalkv.get_store(**azurestorecfg)
     yield store
     # prevent ResourceWarning
     gc.collect()
@@ -103,7 +103,7 @@ def azurestore(azurestorecfg):
 
 @pytest.fixture
 def azurestore2(azurestorecfg2):
-    store = storefact.get_store(**azurestorecfg2)
+    store = minimalkv.get_store(**azurestorecfg2)
     yield store
     # prevent ResourceWarning
     gc.collect()

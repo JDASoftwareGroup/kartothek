@@ -12,7 +12,7 @@ def get_keys_to_clean(cube_uuid_prefix, datasets, store):
 
     Parameters
     ----------
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         KV store.
     datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
         Datasets to scan for keys.

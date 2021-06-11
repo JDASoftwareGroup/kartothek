@@ -12,7 +12,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import simplejson
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.core import naming
 from kartothek.core._compat import load_json

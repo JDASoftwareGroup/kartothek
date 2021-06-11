@@ -1,11 +1,11 @@
 """
-Workarounds for limitations of the simplekv API.
+Workarounds for limitations of the minimalkv API.
 """
 import logging
 import time
 from urllib.parse import quote
 
-from simplekv.contrib import VALID_KEY_RE_EXTENDED
+from minimalkv.contrib import VALID_KEY_RE_EXTENDED
 
 try:
     # azure-storage-blob < 12
@@ -194,9 +194,9 @@ def copy_keys(keys, src_store, tgt_store):
     ----------
     keys: Iterable[str]
         Keys to copy.
-    src_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    src_store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Source KV store.
-    tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    tgt_store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Target KV store.
     """
     if callable(src_store):
