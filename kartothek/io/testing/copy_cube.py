@@ -4,7 +4,8 @@ import pytest
 
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
-from kartothek.io.eager_cube import build_cube
+from kartothek.io.eager import copy_dataset
+from kartothek.io.eager_cube import build_cube, query_cube
 from kartothek.utils.ktk_adapters import get_dataset_keys
 
 __all__ = (
@@ -33,6 +34,12 @@ __all__ = (
     "test_partial_copy_dataset_list",
     "test_read_only_source",
     "test_simple",
+    "test_simple_copy_cube_rename_dataset",
+    "test_simple_copy_cube_rename_cube_prefix",
+    "test_simple_copy_cube_rename_cube_prefix_and_dataset",
+    "test_copy_fail_overwrite_true",
+    "test_copy_fail_overwrite_false",
+    "test_simple_rename_cube_same_stores",
 )
 
 
@@ -71,6 +78,16 @@ def simple_cube_2(df_seed, df_enrich, cube, function_store2):
     return set(function_store2().keys())
 
 
+def assert_target_cube_readable(tgt_cube_uuid, tgt_store, df_seed, df_enrich):
+    tgt_cube = Cube(
+        dimension_columns=["x"], partition_columns=["p"], uuid_prefix=tgt_cube_uuid
+    )
+    tgt_cube_res = query_cube(cube=tgt_cube, store=tgt_store)[0]
+    assert tgt_cube_res is not None
+    assert tgt_cube_res[["x", "p", "v1"]].equals(df_seed)
+    assert tgt_cube_res[["x", "p", "v2"]].equals(df_enrich)
+
+
 def assert_same_keys(store1, store2, keys):
     k1 = set(store1().keys())
     k2 = set(store2().keys())
@@ -86,6 +103,205 @@ def assert_same_keys(store1, store2, keys):
 def test_simple(driver, function_store, function_store2, cube, simple_cube_1):
     driver(cube=cube, src_store=function_store, tgt_store=function_store2)
     assert_same_keys(function_store, function_store2, simple_cube_1)
+
+def test_simple_copy_cube_rename_dataset(
+    driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
+):
+    """
+    Rename a dataset while copying, but leave the cube name as is
+    """
+
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    ds_name_old = "enrich"
+    ds_name_new = "augmented"
+
+    driver(
+        cube=cube,
+        src_store=function_store,
+        tgt_store=function_store2,
+        renamed_datasets={ds_name_old: ds_name_new},
+    )
+
+    tgt_keys = function_store2().keys()
+    for src_key in sorted(simple_cube_1):
+        tgt_key = src_key.replace(ds_name_old, ds_name_new)
+        assert tgt_key in tgt_keys
+        src_blob = function_store().get(src_key)
+        tgt_blob = function_store2().get(tgt_key)
+        if tgt_key.endswith("by-dataset-metadata.json"):
+            src_blob_mod = (
+                src_blob.decode("utf-8")
+                .replace(ds_name_old, ds_name_new)
+                .encode("utf-8")
+            )
+            assert src_blob_mod == tgt_blob
+        else:
+            assert src_blob == tgt_blob
+
+    assert_target_cube_readable("cube", function_store2, df_seed, df_enrich)
+
+
+def test_simple_copy_cube_rename_cube_prefix(
+    driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
+):
+    """
+    Rename a cube while copying, but leave the dataset names as they are
+    """
+    old_cube_prefix = "cube"
+    new_cube_prefix = "my_target_cube"
+
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    driver(
+        cube=cube,
+        src_store=function_store,
+        tgt_store=function_store2,
+        renamed_cube_prefix=new_cube_prefix,
+    )
+
+    tgt_keys = function_store2().keys()
+    for src_key in sorted(simple_cube_1):
+        tgt_key = src_key.replace(f"{old_cube_prefix}++", f"{new_cube_prefix}++")
+        assert tgt_key in tgt_keys
+
+        src_blob = function_store().get(src_key)
+        tgt_blob = function_store2().get(tgt_key)
+        if tgt_key.endswith("by-dataset-metadata.json"):
+            src_blob_mod = (
+                src_blob.decode("utf-8")
+                .replace(f"{old_cube_prefix}++", f"{new_cube_prefix}++")
+                .encode("utf-8")
+            )
+            assert src_blob_mod == tgt_blob
+        else:
+            assert src_blob == tgt_blob
+
+    assert_target_cube_readable(new_cube_prefix, function_store2, df_seed, df_enrich)
+
+
+def test_simple_copy_cube_rename_cube_prefix_and_dataset(
+    driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
+):
+    """
+    Rename a cube and a dataset while copying
+    """
+    old_cube_prefix = "cube"
+    new_cube_prefix = "my_target_cube"
+    ds_name_old = "enrich"
+    ds_name_new = "augmented"
+
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    driver(
+        cube=cube,
+        src_store=function_store,
+        tgt_store=function_store2,
+        renamed_cube_prefix=new_cube_prefix,
+        renamed_datasets={ds_name_old: ds_name_new},
+    )
+
+    tgt_keys = function_store2().keys()
+    for src_key in sorted(simple_cube_1):
+        tgt_key = src_key.replace(
+            f"{old_cube_prefix}++", f"{new_cube_prefix}++"
+        ).replace(f"++{ds_name_old}", f"++{ds_name_new}")
+        assert tgt_key in tgt_keys
+
+        src_blob = function_store().get(src_key)
+        tgt_blob = function_store2().get(tgt_key)
+
+        if tgt_key.endswith("by-dataset-metadata.json"):
+            src_blob_mod = (
+                src_blob.decode("utf-8")
+                .replace(f"{old_cube_prefix}++", f"{new_cube_prefix}++")
+                .replace(f"++{ds_name_old}", f"++{ds_name_new}")
+                .encode("utf-8")
+            )
+            assert src_blob_mod == tgt_blob
+        else:
+            assert src_blob == tgt_blob
+
+    assert_target_cube_readable(new_cube_prefix, function_store2, df_seed, df_enrich)
+
+
+def test_simple_rename_cube_same_stores(
+    driver, function_store, cube, simple_cube_1, df_seed, df_enrich
+):
+    new_cube_prefix = "my_target_cube"
+    ds_name_old = "enrich"
+    ds_name_new = "augmented"
+
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    with pytest.raises(ValueError):
+        driver(
+            cube=cube,
+            src_store=function_store,
+            tgt_store=function_store,
+            renamed_cube_prefix=new_cube_prefix,
+            renamed_datasets={ds_name_old: ds_name_new},
+        )
+
+
+def test_copy_fail_overwrite_true(
+    driver, mocker, cube, simple_cube_1, function_store, function_store2
+):
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+    with pytest.raises(RuntimeError):
+        with mocker.patch(
+            "kartothek.io.eager_cube.copy_dataset",
+            side_effect=ValueError("Copying cube failed horribly."),
+        ):
+            driver(
+                cube=cube,
+                src_store=function_store,
+                tgt_store=function_store2,
+                renamed_cube_prefix="new_cube",
+                overwrite=True,
+            )
+
+
+def test_copy_fail_overwrite_false(
+    driver, mocker, cube, simple_cube_1, function_store, function_store2
+):
+    # NB: only implemented for eager copying so far
+    if "copy_cube" not in str(driver):
+        pytest.skip()
+
+    def side_effect(*args, **kwargs):
+        if side_effect.counter == 0:
+            side_effect.counter += 1
+            return copy_dataset(*args, **kwargs)
+        else:
+            raise ValueError("Something unexpected happened during cube copy.")
+
+    side_effect.counter = 0
+
+    with mocker.patch("kartothek.io.eager_cube.copy_dataset", side_effect=side_effect):
+        from kartothek.io_components.cube.write import MultiTableCommitAborted
+
+        with pytest.raises(MultiTableCommitAborted):
+            driver(
+                cube=cube,
+                src_store=function_store,
+                tgt_store=function_store2,
+                renamed_cube_prefix="new_cube",
+                overwrite=False,
+            )
+    # rollback transaction means that only the metadata file is deleted
+    # therefore we still have remaining parquet files
+    assert len(function_store2().keys()) == 3
 
 
 def test_overwrite_fail(

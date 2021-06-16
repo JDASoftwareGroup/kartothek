@@ -1,8 +1,9 @@
 """
 Eager IO aka "everything is done locally and immediately".
 """
+import logging
 from collections import defaultdict
-from typing import Any, Dict, Iterable, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 
 import pandas as pd
 import simplekv
@@ -15,18 +16,20 @@ from kartothek.core.cube.constants import (
     KTK_CUBE_DF_SERIALIZER,
     KTK_CUBE_METADATA_STORAGE_FORMAT,
     KTK_CUBE_METADATA_VERSION,
+    KTK_CUBE_UUID_SEPERATOR,
 )
 from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.typing import StoreFactory
 from kartothek.io.eager import (
+    copy_dataset,
     store_dataframes_as_dataset,
     update_dataset_from_dataframes,
 )
 from kartothek.io_components.cube.append import check_existing_datasets
 from kartothek.io_components.cube.cleanup import get_keys_to_clean
 from kartothek.io_components.cube.common import assert_stores_different
-from kartothek.io_components.cube.copy import get_copy_keys
+from kartothek.io_components.cube.copy import get_datasets_to_copy
 from kartothek.io_components.cube.query import load_group, plan_query, quick_concat
 from kartothek.io_components.cube.remove import (
     prepare_metapartitions_for_removal_action,
@@ -51,7 +54,8 @@ from kartothek.io_components.update import update_dataset_from_partitions
 from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import get_dataset_keys, metadata_factory_from_dataset
 from kartothek.utils.pandas import concat_dataframes
-from kartothek.utils.store import copy_keys
+
+logger = logging.getLogger()
 
 __all__ = (
     "append_to_cube",
@@ -419,9 +423,56 @@ def delete_cube(cube, store, datasets=None):
         store.delete(k)
 
 
-def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
+def _transform_uuid(
+    src_uuid: str,
+    cube_prefix: str,
+    renamed_cube_prefix: Optional[str],
+    renamed_datasets: Optional[Dict[str, str]],
+):
+    """
+    Transform a uuid from <old cube prefix>++<old dataset> to
+    <new cube prefix>++<new dataset>
+    :param src_uuid:
+        Uuid to transform
+    :param cube_prefix:
+        Cube prefix before renaming
+    :param renamed_cube:
+        Optional new cube prefix
+    :param renamed_datasets:
+        Optional dict of {old dataset name: new dataset name} entries to rename datasets
+    """
+    tgt_uuid = src_uuid
+    if renamed_cube_prefix:
+        tgt_uuid = src_uuid.replace(
+            f"{cube_prefix}{KTK_CUBE_UUID_SEPERATOR}",
+            f"{renamed_cube_prefix}{KTK_CUBE_UUID_SEPERATOR}",
+        )
+
+    if renamed_datasets:
+        for ds_old, ds_new in renamed_datasets.items():
+            if f"{KTK_CUBE_UUID_SEPERATOR}{ds_old}" in tgt_uuid:
+                tgt_uuid = tgt_uuid.replace(
+                    f"{KTK_CUBE_UUID_SEPERATOR}{ds_old}",
+                    f"{KTK_CUBE_UUID_SEPERATOR}{ds_new}",
+                )
+    return tgt_uuid
+
+
+def copy_cube(
+    cube: Cube,
+    src_store: Union[KeyValueStore, Callable[[], KeyValueStore]],
+    tgt_store: Union[KeyValueStore, Callable[[], KeyValueStore]],
+    overwrite: bool = False,
+    datasets: Union[None, Iterable[str], Dict[str, DatasetMetadata]] = None,
+    renamed_cube_prefix: Optional[str] = None,
+    renamed_datasets: Optional[Dict[str, str]] = None,
+):
     """
     Copy cube from one store to another.
+
+    .. warning::
+        A failing copy operation can not be rolled back if the `overwrite` flag is enabled
+        and might leave the overwritten dataset in an inconsistent state.
 
     Parameters
     ----------
@@ -433,9 +484,16 @@ def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
         Target KV store.
     overwrite: bool
         If possibly existing datasets in the target store should be overwritten.
-    datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
+    datasets: Union[None, Iterable[str], Dict[str, DatasetMetadata]]
         Datasets to copy, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
         of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
+    renamed_cube_prefix: Optional[str]
+        Optional new cube prefix. If specified, the cube will be renamed while copying.
+    renamed_datasets: Optional[Dict[str, str]]
+        Optional dict with {old dataset name: new dataset name} entries. If provided,
+        the datasets will be renamed accordingly during copying. When the parameter
+        datasets is specified, the datasets to rename must be a subset of the datasets
+        to copy.
     """
     if callable(src_store):
         src_store = src_store()
@@ -444,15 +502,58 @@ def copy_cube(cube, src_store, tgt_store, overwrite=False, datasets=None):
     assert_stores_different(
         src_store, tgt_store, cube.ktk_dataset_uuid(cube.seed_dataset)
     )
+    existing_datasets = discover_datasets_unchecked(cube.uuid_prefix, tgt_store)
 
-    keys = get_copy_keys(
+    if renamed_datasets is None:
+        new_seed_dataset = cube.seed_dataset
+    else:
+        new_seed_dataset = renamed_datasets.get(cube.seed_dataset, cube.seed_dataset)
+
+    new_cube = Cube(
+        dimension_columns=cube.dimension_columns,
+        partition_columns=cube.partition_columns,
+        uuid_prefix=renamed_cube_prefix or cube.uuid_prefix,
+        seed_dataset=new_seed_dataset,
+        index_columns=cube.index_columns,
+        suppress_index_on=cube.suppress_index_on,
+    )
+
+    datasets_to_copy = get_datasets_to_copy(
         cube=cube,
         src_store=src_store,
         tgt_store=tgt_store,
         overwrite=overwrite,
         datasets=datasets,
     )
-    copy_keys(keys, src_store, tgt_store)
+
+    copied = {}  # type: Dict[str, DatasetMetadata]
+    for src_ds_name, src_ds_meta in datasets_to_copy.items():
+        tgt_ds_uuid = _transform_uuid(
+            src_uuid=src_ds_meta.uuid,
+            cube_prefix=cube.uuid_prefix,
+            renamed_cube_prefix=renamed_cube_prefix,
+            renamed_datasets=renamed_datasets,
+        )
+        try:
+            md_transformed = copy_dataset(
+                source_dataset_uuid=src_ds_meta.uuid,
+                store=src_store,
+                target_dataset_uuid=tgt_ds_uuid,
+                target_store=tgt_store,
+            )
+        except Exception as e:
+            if overwrite:
+                # We can't roll back safely if the target dataset has been partially overwritten.
+                raise RuntimeError(e)
+            else:
+                apply_postwrite_checks(
+                    datasets=copied,
+                    cube=new_cube,
+                    store=tgt_store,
+                    existing_datasets=existing_datasets,
+                )
+        else:
+            copied.update(md_transformed)
 
 
 def collect_stats(cube, store, datasets=None):

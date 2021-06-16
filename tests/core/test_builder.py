@@ -69,6 +69,48 @@ def test_builder_to_dataset(metadata_version, frozen_time):
     assert result == expected_from_dict
 
 
+def test_builder_modify_uuid_embedded_index(metadata_version, frozen_time):
+    expected = {
+        "dataset_uuid": "uuid_new",
+        "dataset_metadata_version": metadata_version,
+        "partitions": {"part_2": {"files": {"core": "uuid_new/core/part_2.parquet"}}},
+        "metadata": {"key": "value", "creation_time": TIME_TO_FREEZE_ISO},
+        "indices": {"col1": {"a": ["part1"], "b": ["part2"]}},
+    }
+
+    builder = DatasetMetadataBuilder("uuid", metadata_version=metadata_version)
+    part_2 = Partition("part_2", {"core": "uuid/core/part_2.parquet"})
+    builder.add_partition("part_2", part_2)
+    builder.add_metadata("key", "value")
+    builder.add_embedded_index(
+        "col1", ExplicitSecondaryIndex("col1", {"a": ["part1"], "b": ["part2"]})
+    )
+    builder.modify_uuid("uuid_new")
+    result = builder.to_dataset()
+    expected_from_dict = DatasetMetadata.from_dict(expected)
+    assert result == expected_from_dict
+
+
+def test_builder_modify_uuid_external_index(metadata_version, frozen_time):
+    expected = {
+        "dataset_uuid": "uuid_new",
+        "dataset_metadata_version": metadata_version,
+        "partitions": {"part_2": {"files": {"core": "uuid_new/core/part_2.parquet"}}},
+        "metadata": {"key": "value", "creation_time": TIME_TO_FREEZE_ISO},
+        "indices": {"col1": "uuid_new.col1.by-dataset-index.parquet"},
+    }
+
+    builder = DatasetMetadataBuilder("uuid", metadata_version=metadata_version)
+    part_2 = Partition("part_2", {"core": "uuid/core/part_2.parquet"})
+    builder.add_partition("part_2", part_2)
+    builder.add_metadata("key", "value")
+    builder.add_external_index("col1")
+    builder.modify_uuid("uuid_new")
+    result = builder.to_dataset()
+    expected_from_dict = DatasetMetadata.from_dict(expected)
+    assert result == expected_from_dict
+
+
 def test_builder_full(metadata_version, frozen_time):
     expected = {
         "dataset_uuid": "uuid",
