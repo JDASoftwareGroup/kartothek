@@ -104,6 +104,7 @@ def test_simple(driver, function_store, function_store2, cube, simple_cube_1):
     driver(cube=cube, src_store=function_store, tgt_store=function_store2)
     assert_same_keys(function_store, function_store2, simple_cube_1)
 
+
 def test_simple_copy_cube_rename_dataset(
     driver, function_store, function_store2, cube, simple_cube_1, df_seed, df_enrich
 ):

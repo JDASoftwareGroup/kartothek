@@ -10,7 +10,10 @@ from kartothek.core.cube.cube import Cube
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.utils.ktk_adapters import get_dataset_keys
 
-__all__ = ("get_copy_keys", "get_datasets_to_copy",)
+__all__ = (
+    "get_copy_keys",
+    "get_datasets_to_copy",
+)
 
 
 def get_datasets_to_copy(
