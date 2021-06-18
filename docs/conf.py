@@ -92,9 +92,13 @@ nitpick_ignore = [
     ("py:class", "prefix"),
     # typing.TypeVars not working
     ("py:class", "LiteralValue"),
+    ("py:class", "kartothek.serialization.LiteralValue"),
     ("py:class", "T"),
+    ("py:class", "kartothek.core.dataset.T"),
+    ("py:class", "kartothek.core.factory.T"),
     ("py:class", ".."),
     ("py:class", "ValueType"),
+    ("py:class", "kartothek.core.index.ValueType"),
     # Caused by SchemaWrapper copying/overloading doc string of pyarrow
     ("py:class", "Field"),
     ("py:class", "Schema"),
