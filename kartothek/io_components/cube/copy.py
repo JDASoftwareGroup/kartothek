@@ -22,7 +22,7 @@ def get_datasets_to_copy(
     tgt_store: Union[Callable[[], KeyValueStore], KeyValueStore],
     overwrite: bool,
     datasets: Optional[Union[Iterable[str], Dict[str, DatasetMetadata]]] = None,
-):
+) -> Dict[str, DatasetMetadata]:
     """
     Determine all dataset names of a given cube that should be copied and apply addtional consistency checks.
     Copying only a specific set of datasets is possible by providing a list of dataset names via the parameter `datasets`.
@@ -41,9 +41,10 @@ def get_datasets_to_copy(
         Datasets to copy, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, an
         iterable of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
 
-    Return
-    -----
-    All datasets that should be copied.
+    Returns
+    -------
+    all_datasets: Dict[str, DatasetMetadata]
+        All datasets that should be copied.
     """
     if not isinstance(datasets, dict):
         new_datasets = discover_datasets_unchecked(
