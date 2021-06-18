@@ -882,16 +882,17 @@ def copy_dataset(
     """
     Copies and optionally renames a dataset, either  from one store to another or
     within one store.
+
     Parameters
     ----------
-    source_dataset_uuid:
+    source_dataset_uuid: str
         UUID of source dataset
-    store:
+    store: simplekv.KeyValueStore
         Source store
-    target_dataset_uuid:
+    target_dataset_uuid: Optional[str]
         UUID of target dataset. May be the same as src_dataset_uuid, if store
         and tgt_store are different. If empty, src_dataset_uuid is used
-    target_store:
+    target_store: Optional[simplekv.KeyValueStore]
         Target Store. May be the same as store, if src_dataset_uuid and
         target_dataset_uuid are different. If empty, value from parameter store is
         used
