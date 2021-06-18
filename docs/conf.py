@@ -98,6 +98,7 @@ nitpick_ignore = [
     ("py:class", "kartothek.core.factory.T"),
     ("py:class", ".."),
     ("py:class", "ValueType"),
+    ("py:class", "kartothek.core.index.ValueType"),
     # Caused by SchemaWrapper copying/overloading doc string of pyarrow
     ("py:class", "Field"),
     ("py:class", "Schema"),
