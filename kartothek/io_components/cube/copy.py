@@ -91,6 +91,7 @@ def get_copy_keys(
 ):
     """
     Get and check keys that should be copied from one store to another.
+
     Parameters
     ----------
     cube:
@@ -104,10 +105,12 @@ def get_copy_keys(
     datasets:
         Datasets to copy, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, an
         iterable of Ktk_cube dataset ID or ``None`` (in which case entire cube will be copied).
+
     Returns
     -------
     keys: Set[str]
         Set of keys to copy.
+
     Raises
     ------
     RuntimeError: In case the copy would not pass successfully or if there is no cube in ``src_store``.
