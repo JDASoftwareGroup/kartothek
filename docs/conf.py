@@ -92,6 +92,7 @@ nitpick_ignore = [
     ("py:class", "prefix"),
     # typing.TypeVars not working
     ("py:class", "LiteralValue"),
+    ("py:class", "kartothek.serialization.LiteralValue"),
     ("py:class", "T"),
     ("py:class", ".."),
     ("py:class", "ValueType"),
