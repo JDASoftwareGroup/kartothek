@@ -2,7 +2,7 @@
 Changelog
 =========
 
-Version 5.0.0 (2021-05-xx)
+Version 5.0.0 (2021-06-23)
 ==========================
 
 This release rolls all the changes introduced with 4.x back to 3.20.0.
