@@ -16,6 +16,8 @@ from kartothek.core.factory import DatasetFactory, _ensure_factory
 from kartothek.core.naming import (
     DEFAULT_METADATA_STORAGE_FORMAT,
     DEFAULT_METADATA_VERSION,
+    METADATA_BASE_SUFFIX,
+    METADATA_FORMAT_JSON,
     PARQUET_FILE_SUFFIX,
     get_partition_file_prefix,
 )
@@ -46,6 +48,8 @@ from kartothek.io_components.utils import (
 from kartothek.io_components.write import raise_if_dataset_exists
 from kartothek.serialization import DataFrameSerializer
 from kartothek.serialization._parquet import ParquetSerializer
+from kartothek.utils.ktk_adapters import get_dataset_keys
+from kartothek.utils.store import copy_rename_keys
 
 __all__ = (
     "delete_dataset",
@@ -58,6 +62,7 @@ __all__ = (
     "update_dataset_from_dataframes",
     "build_dataset_indices",
     "garbage_collect_dataset",
+    "copy_dataset",
 )
 
 
@@ -866,3 +871,67 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
     # Given that `nested_files` is a generator with a single element, just
     # return the output of `delete_files` on that element.
     return delete_files(next(nested_files), store_factory=ds_factory.store_factory)
+
+
+def copy_dataset(
+    source_dataset_uuid: str,
+    store: KeyValueStore,
+    target_dataset_uuid: Optional[str] = None,
+    target_store: Optional[KeyValueStore] = None,
+) -> Dict[str, DatasetMetadata]:
+    """
+    Copies and optionally renames a dataset, either  from one store to another or
+    within one store.
+
+    Parameters
+    ----------
+    source_dataset_uuid: str
+        UUID of source dataset
+    store: simplekv.KeyValueStore
+        Source store
+    target_dataset_uuid: Optional[str]
+        UUID of target dataset. May be the same as src_dataset_uuid, if store
+        and tgt_store are different. If empty, src_dataset_uuid is used
+    target_store: Optional[simplekv.KeyValueStore]
+        Target Store. May be the same as store, if src_dataset_uuid and
+        target_dataset_uuid are different. If empty, value from parameter store is
+        used
+    """
+    if target_dataset_uuid is None:
+        target_dataset_uuid = source_dataset_uuid
+    if target_store is None:
+        target_store = store
+
+    if (source_dataset_uuid == target_dataset_uuid) & (store == target_store):
+        raise ValueError(
+            "Cannot copy to a dataset with the same UUID within the same store!"
+        )
+
+    ds_factory_source = _ensure_factory(
+        dataset_uuid=source_dataset_uuid,
+        store=store,
+        factory=None,
+        load_dataset_metadata=True,
+    )
+
+    # Create a dict of {source key: target key} entries
+    keys = get_dataset_keys(ds_factory_source.dataset_metadata)
+    mapped_keys = {
+        source_key: source_key.replace(source_dataset_uuid, target_dataset_uuid)
+        for source_key in keys
+    }
+
+    # Create a dict of metadata which has to be changed. This is only the
+    # <uuid>.by-dataset-metadata.json file
+
+    md_transformed = {
+        f"{target_dataset_uuid}{METADATA_BASE_SUFFIX}{METADATA_FORMAT_JSON}": DatasetMetadataBuilder.from_dataset(
+            ds_factory_source.dataset_metadata
+        )
+        .modify_uuid(target_dataset_uuid)
+        .to_dataset()
+    }
+    # Copy the keys from one store to another
+    copy_rename_keys(mapped_keys, store, target_store, md_transformed)
+
+    return md_transformed

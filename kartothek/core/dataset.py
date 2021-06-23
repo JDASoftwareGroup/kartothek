@@ -912,6 +912,45 @@ class DatasetMetadataBuilder(CopyMixin):
         ds_builder.tables = dataset.tables
         return ds_builder
 
+    def modify_uuid(self, target_uuid: str):
+        """
+        Modify the dataset uuid and depending metadata:
+        - paths to partitioning files
+        - path to index files
+        Parameters
+        ----------
+        target_uuid: str
+            Modified dataset UUID.
+        Returns
+        -------
+        DatasetMetadataBuilder
+            modified builder object
+        """
+
+        # modify file names in partition metadata
+        modified_partitions = {}
+        for p_key, p in self.partitions.items():
+            pdict = p.to_dict()
+            for table_key, table_file in pdict["files"].items():
+                if table_file.startswith(f"{self.uuid}/"):
+                    pdict["files"][table_key] = table_file.replace(
+                        self.uuid, target_uuid, 1
+                    )
+            modified_partitions[p_key] = Partition.from_dict(p_key, pdict)
+
+        self.partitions = modified_partitions
+
+        for i_key, i in self.indices.items():
+            if (
+                isinstance(i, ExplicitSecondaryIndex)
+                and i.index_storage_key is not None
+            ):
+                i.index_storage_key = i.index_storage_key.replace(
+                    self.uuid, target_uuid, 1
+                )
+        self.uuid = target_uuid
+        return self
+
     def add_partition(self, name, partition):
         """
         Add an (embedded) Partition.
