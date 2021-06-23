@@ -62,7 +62,7 @@ def test_delayed_as_delete_scope(store_factory, df_all_types):
 
 @pytest.mark.parametrize("shuffle", [True, False])
 def test_update_dataset_from_ddf_empty(store_factory, shuffle):
-    with pytest.raises(ValueError, match="Cannot store empty datasets"):
+    with pytest.raises(ValueError) as exc_info:
         update_dataset_from_ddf(
             dask.dataframe.from_delayed([], meta=(("a", int),)),
             store_factory,
@@ -71,3 +71,8 @@ def test_update_dataset_from_ddf_empty(store_factory, shuffle):
             shuffle=shuffle,
             partition_on=["a"],
         ).compute()
+    assert str(exc_info.value) in [
+        "Cannot store empty datasets",  # dask <= 2021.5.0
+        "Cannot store empty datasets, partition_list must not be empty if in store mode.",  # dask > 2021.5.0 + shuffle == True
+        "No data left to save outside partition columns",  # dask > 2021.5.0 + shuffle == False
+    ]
