@@ -3,10 +3,11 @@ Changelog
 =========
 
 
-Version 5.0.1 (2021-06-xx)
+Version 5.1.0 (2021-06-xx)
 ==========================
 * Add :meth:`~kartothek.io.eager.copy_dataset` to copy and optionally rename datasets within one store or between stores (eager only)
 * Add renaming option to :meth:`~kartothek.io.eager_cube.copy_cube`
+* Add predicates to cube condition converter to :meth:`~kartothek.utils.predicate_converter`
 
 
 Version 5.0.0 (2021-06-23)
