@@ -24,7 +24,7 @@ def write_predicate_as_cube_condition(predicate: Tuple[str, str, Any]) -> Condit
 
     Returns
     -------
-    condition: cube condition object
+    condition: Condition
         cube condition containing the predicate definition
     """
     condition_string = None
