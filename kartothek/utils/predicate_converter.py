@@ -74,7 +74,7 @@ def convert_predicates_to_cube_conditions(
 
     Returns
     -------
-    condition: cube condition object
+    condition: Condition
         cube condition containing the combined predicate definitions
     """
     condition: Any = ()
