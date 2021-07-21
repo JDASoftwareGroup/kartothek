@@ -638,11 +638,17 @@ def test_read_dataset_alternative_table_name(
         store_factory = None
         ds_factory = dataset_factory_alternative_table_name
 
+    # the table to be read must be passed either as string or list
     if isinstance(bound_load_dataframes, functools.partial):
+        # iter
         read_kwargs = {"tables": [alternative_table_name]}
-    elif bound_load_dataframes.__name__ == "_read_table":
+    elif (bound_load_dataframes.__name__ == "_read_table") or (
+        bound_load_dataframes.__name__ == "_read_as_ddf"
+    ):
+        # eager table or dask dataframe
         read_kwargs = {"tables": alternative_table_name}
     else:
+        # eager dataframe
         read_kwargs = {"tables": [alternative_table_name]}
 
     _perform_read_test(
