@@ -31,6 +31,7 @@ The following fixtures should be present (see tests.read.conftest)
 """
 
 import datetime
+import functools
 from distutils.version import LooseVersion
 from functools import partial
 from itertools import permutations
@@ -173,12 +174,14 @@ def _perform_read_test(
     dates_as_object,
     read_kwargs=None,
     ds_factory=None,
+    table_name=SINGLE_TABLE,
+    test_helper=True,
 ):
     if not read_kwargs:
         read_kwargs = {}
     if use_categoricals:
         # dataset_with_index has an index on L but not on P
-        categoricals = {SINGLE_TABLE: ["P", "L"]}
+        categoricals = {table_name: ["P", "L"]}
     else:
         categoricals = None
 
@@ -205,7 +208,7 @@ def _perform_read_test(
         result = [mp.data for mp in result]
 
         def sort_by(obj):
-            return obj[SINGLE_TABLE].P.iloc[0]
+            return obj[table_name].P.iloc[0]
 
     elif output_type == "table":
 
@@ -217,11 +220,11 @@ def _perform_read_test(
 
     else:
         assert isinstance(result[0], dict)
-        assert SINGLE_TABLE in result[0]
-        assert "P" in result[0][SINGLE_TABLE]
+        assert table_name in result[0]
+        assert "P" in result[0][table_name]
 
         def sort_by(obj):
-            return obj[SINGLE_TABLE].P.iloc[0]
+            return obj[table_name].P.iloc[0]
 
     result = sorted(result, key=sort_by)
 
@@ -256,15 +259,19 @@ def _perform_read_test(
                 check_like=True,
             )
         else:
-            actual_core = _strip_unused_categoricals(res[SINGLE_TABLE])
-            actual_helper = _strip_unused_categoricals(res["helper"])
-            assert len(res) == 2
+            actual_core = _strip_unused_categoricals(res[table_name])
             pdt.assert_frame_equal(
                 actual_core, expected_df_core, check_dtype=False, check_like=True
             )
-            pdt.assert_frame_equal(
-                actual_helper, expected_df_helper, check_dtype=False, check_like=True
-            )
+            if test_helper:
+                actual_helper = _strip_unused_categoricals(res["helper"])
+                assert len(res) == 2
+                pdt.assert_frame_equal(
+                    actual_helper,
+                    expected_df_helper,
+                    check_dtype=False,
+                    check_like=True,
+                )
 
 
 @pytest.mark.parametrize(
@@ -607,6 +614,49 @@ def test_read_dataset_as_dataframes(
         output_type=output_type,
         label_filter=label_filter,
         dates_as_object=dates_as_object,
+    )
+
+
+def test_read_dataset_alternative_table_name(
+    dataset_alternative_table_name,
+    store_session_factory,
+    dataset_factory_alternative_table_name,
+    use_dataset_factory,
+    bound_load_dataframes,
+    use_categoricals,
+    output_type,
+    label_filter,
+    dates_as_object,
+    alternative_table_name,
+):
+    if use_dataset_factory:
+        dataset_uuid = dataset_alternative_table_name.uuid
+        store_factory = store_session_factory
+        ds_factory = None
+    else:
+        dataset_uuid = None
+        store_factory = None
+        ds_factory = dataset_factory_alternative_table_name
+
+    if isinstance(bound_load_dataframes, functools.partial):
+        read_kwargs = {"tables": [alternative_table_name]}
+    elif bound_load_dataframes.__name__ == "_read_table":
+        read_kwargs = {"tables": alternative_table_name}
+    else:
+        read_kwargs = {"tables": [alternative_table_name]}
+
+    _perform_read_test(
+        dataset_uuid=dataset_uuid,
+        store_factory=store_factory,
+        ds_factory=ds_factory,
+        execute_read_callable=bound_load_dataframes,
+        use_categoricals=use_categoricals,
+        output_type=output_type,
+        label_filter=label_filter,
+        dates_as_object=dates_as_object,
+        table_name=alternative_table_name,
+        read_kwargs=read_kwargs,
+        test_helper=False,
     )
 
 
