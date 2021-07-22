@@ -21,18 +21,19 @@ def _unwrap_partition(part):
 def _update_dataset(partitions, *args, **kwargs):
     # TODO: Simplify once parse_input_to_metapartition is removed / obsolete
     if isinstance(partitions, pd.DataFrame):
-        table_name = "core"
+        if "table" not in kwargs.keys():
+            kwargs["table"] = "core"
         partitions = dd.from_pandas(partitions, npartitions=1)
     elif any(partitions):
-        table_name = next(iter(dict(partitions[0]["data"]).keys()))
+        kwargs["table"] = next(iter(dict(partitions[0]["data"]).keys()))
         delayed_partitions = [
             dask.delayed(_unwrap_partition)(part) for part in partitions
         ]
         partitions = dd.from_delayed(delayed_partitions)
     else:
-        table_name = "core"
+        kwargs["table"] = "core"
         partitions = None
-    ddf = update_dataset_from_ddf(partitions, *args, table=table_name, **kwargs)
+    ddf = update_dataset_from_ddf(partitions, *args, **kwargs)
 
     s = pickle.dumps(ddf, pickle.HIGHEST_PROTOCOL)
     ddf = pickle.loads(s)

@@ -9,7 +9,7 @@ from kartothek.io.testing.update import *  # noqa
 
 @pytest.fixture
 def bound_update_dataset():
-    return _update_dataset
+    return _update_dataset_delayed
 
 
 @dask.delayed
@@ -17,7 +17,7 @@ def _unwrap_partition(part):
     return next(iter(dict(part["data"]).values()))
 
 
-def _update_dataset(partitions, *args, **kwargs):
+def _update_dataset_delayed(partitions, *args, **kwargs):
     if not isinstance(partitions, list):
         partitions = [partitions]
     tasks = update_dataset_from_delayed(partitions, *args, **kwargs)

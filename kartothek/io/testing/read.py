@@ -619,7 +619,7 @@ def test_read_dataset_as_dataframes(
 
 def test_read_dataset_alternative_table_name(
     dataset_alternative_table_name,
-    store_session_factory,
+    store_factory,
     dataset_factory_alternative_table_name,
     use_dataset_factory,
     bound_load_dataframes,
@@ -631,7 +631,6 @@ def test_read_dataset_alternative_table_name(
 ):
     if use_dataset_factory:
         dataset_uuid = dataset_alternative_table_name.uuid
-        store_factory = store_session_factory
         ds_factory = None
     else:
         dataset_uuid = None
@@ -640,8 +639,12 @@ def test_read_dataset_alternative_table_name(
 
     # the table to be read must be passed either as string or list
     if isinstance(bound_load_dataframes, functools.partial):
-        # iter
-        read_kwargs = {"tables": [alternative_table_name]}
+        if output_type == "table":
+            # dask delayed
+            read_kwargs = {"tables": alternative_table_name}
+        else:
+            # iter or dask bag
+            read_kwargs = {"tables": [alternative_table_name]}
     elif (bound_load_dataframes.__name__ == "_read_table") or (
         bound_load_dataframes.__name__ == "_read_as_ddf"
     ):
