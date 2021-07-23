@@ -279,7 +279,9 @@ def df_not_nested():
     return get_dataframe_not_nested()
 
 
-def _get_meta_partitions_with_dataframe(metadata_version):
+def _get_meta_partitions_with_dataframe(
+    metadata_version, table_name=SINGLE_TABLE, table_name_2="helper"
+):
     df = pd.DataFrame(
         OrderedDict(
             [
@@ -291,11 +293,14 @@ def _get_meta_partitions_with_dataframe(metadata_version):
         )
     )
     df_2 = pd.DataFrame(OrderedDict([("P", [1]), ("info", ["a"])]))
-    mp = MetaPartition(
-        label="cluster_1",
-        data={SINGLE_TABLE: df, "helper": df_2},
-        metadata_version=metadata_version,
-    )
+    if table_name_2 is not None:
+        data = {table_name: df, table_name_2: df_2}
+    else:
+        data = {
+            table_name: df,
+        }
+
+    mp = MetaPartition(label="cluster_1", data=data, metadata_version=metadata_version,)
     df_3 = pd.DataFrame(
         OrderedDict(
             [
@@ -307,10 +312,15 @@ def _get_meta_partitions_with_dataframe(metadata_version):
         )
     )
     df_4 = pd.DataFrame(OrderedDict([("P", [2]), ("info", ["b"])]))
+    if table_name_2 is not None:
+        data = {table_name: df_3, table_name_2: df_4}
+    else:
+        data = {
+            table_name: df_3,
+        }
+
     mp2 = MetaPartition(
-        label="cluster_2",
-        data={SINGLE_TABLE: df_3, "helper": df_4},
-        metadata_version=metadata_version,
+        label="cluster_2", data=data, metadata_version=metadata_version,
     )
     return [mp, mp2]
 
@@ -454,10 +464,82 @@ def dataset(meta_partitions_files_only, store_session_factory):
 
 
 @pytest.fixture(scope="session")
+def alternative_table_name():
+    return "other_table"
+
+
+@pytest.fixture
+def meta_partitions_dataframe_alternative_table_name(
+    metadata_version, alternative_table_name
+):
+    """
+    Create a list of MetaPartitions for testing. The tables inside the
+    partitions have a non-standard table name.
+    """
+    with cm_frozen_time(TIME_TO_FREEZE):
+        return _get_meta_partitions_with_dataframe(
+            metadata_version, table_name=alternative_table_name, table_name_2=None,
+        )
+
+
+@pytest.fixture
+def meta_partitions_complete_alternative_table_name(
+    meta_partitions_dataframe_alternative_table_name, store
+):
+    return _store_metapartitions(
+        meta_partitions_dataframe_alternative_table_name, store
+    )
+
+
+@pytest.fixture
+def meta_partitions_files_only_alternative_table_name(
+    meta_partitions_complete_alternative_table_name,
+):
+    """
+    Create a list of MetaPartitions for testing. The partitions
+    only include external file references with data stored in store
+    """
+    result = []
+    for mp in meta_partitions_complete_alternative_table_name:
+        mp = mp.copy(data={})
+        result.append(mp)
+    return result
+
+
+@pytest.fixture
+def dataset_alternative_table_name(
+    meta_partitions_files_only_alternative_table_name, store_factory
+):
+    """
+    Create a proper kartothek dataset in store with two partitions
+    """
+    with cm_frozen_time(TIME_TO_FREEZE):
+        return store_dataset_from_partitions(
+            partition_list=meta_partitions_files_only_alternative_table_name,
+            dataset_uuid="dataset_uuid_alternative_name",
+            store=store_factory(),
+            dataset_metadata={"dataset": "metadata"},
+        )
+
+
+@pytest.fixture(scope="session")
 def dataset_factory(dataset, store_session_factory):
     return DatasetFactory(
         dataset_uuid=dataset.uuid,
         store_factory=store_session_factory,
+        load_schema=True,
+        load_all_indices=False,
+        load_dataset_metadata=True,
+    )
+
+
+@pytest.fixture
+def dataset_factory_alternative_table_name(
+    dataset_alternative_table_name, store_factory
+):
+    return DatasetFactory(
+        dataset_uuid=dataset_alternative_table_name.uuid,
+        store_factory=store_factory,
         load_schema=True,
         load_all_indices=False,
         load_dataset_metadata=True,

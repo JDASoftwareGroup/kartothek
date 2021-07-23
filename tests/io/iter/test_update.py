@@ -9,10 +9,10 @@ from kartothek.io.testing.update import *  # noqa
 
 @pytest.fixture()
 def bound_update_dataset():
-    return _update_dataset
+    return _update_dataset_iter
 
 
-def _update_dataset(df_list, *args, **kwargs):
+def _update_dataset_iter(df_list, *args, **kwargs):
     if isinstance(df_list, pd.DataFrame):
         df_list = [df_list]
     df_generator = (x for x in df_list)

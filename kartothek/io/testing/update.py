@@ -2,6 +2,7 @@
 # pylint: disable=E1101
 
 
+import datetime
 from functools import partial
 
 import numpy as np
@@ -13,10 +14,12 @@ from kartothek.core.index import ExplicitSecondaryIndex
 from kartothek.core.naming import DEFAULT_METADATA_VERSION
 from kartothek.core.testing import TIME_TO_FREEZE_ISO
 from kartothek.io.eager import (
+    read_dataset_as_dataframes,
     read_dataset_as_metapartitions,
     store_dataframes_as_dataset,
 )
 from kartothek.io.iter import read_dataset_as_dataframes__iterator
+from kartothek.io_components.metapartition import SINGLE_TABLE
 
 
 def test_update_dataset_with_partitions__reducer(
@@ -94,6 +97,76 @@ def test_update_dataset_with_partitions__reducer(
     stored_dataset = DatasetMetadata.load_from_store("dataset_uuid", store)
     stored_dataset = stored_dataset.load_index("p", store)
     assert dataset_updated == stored_dataset
+
+
+def test_update_dataset_with_partitions_alternative_name(
+    bound_update_dataset,
+    store,
+    dataset_alternative_table_name,
+    store_factory,
+    dataset_factory_alternative_table_name,
+    alternative_table_name,
+):
+
+    # input: dataset with two rows
+    # update dataset with data for "other_table"
+    new_data = {
+        "data": [
+            (
+                alternative_table_name,
+                pd.DataFrame(
+                    {
+                        "P": [3],
+                        "L": [3],
+                        "TARGET": [3],
+                        "DATE": [datetime.date(2009, 12, 30)],
+                    }
+                ),
+            ),
+        ]
+    }
+
+    read_kwargs = {}
+    if bound_update_dataset.__name__ == "_update_dataset":
+        read_kwargs = {"table": alternative_table_name}
+    _ = bound_update_dataset(
+        [new_data],
+        store=store_factory,
+        dataset_uuid=dataset_alternative_table_name.uuid,
+        **read_kwargs,
+    )
+
+    # result should have three rows
+    result = read_dataset_as_dataframes(
+        dataset_uuid=dataset_alternative_table_name.uuid, store=store_factory
+    )
+    assert len(result) == 3
+
+    # update dataset with data for standard table name (should raise an Error)
+    new_data_2 = {
+        "data": [
+            (
+                SINGLE_TABLE,
+                pd.DataFrame(
+                    {
+                        "P": [4],
+                        "L": [4],
+                        "TARGET": [4],
+                        "DATE": [datetime.date(2008, 12, 30)],
+                    }
+                ),
+            ),
+        ]
+    }
+
+    # may raise ValueError or TypeError, depending on implementation
+    with pytest.raises(Exception):
+        _ = bound_update_dataset(
+            [new_data_2],
+            store=store_factory,
+            dataset_uuid=dataset_alternative_table_name.uuid,
+            **read_kwargs,
+        )
 
 
 def test_update_dataset_with_partitions_no_index_input_info(
