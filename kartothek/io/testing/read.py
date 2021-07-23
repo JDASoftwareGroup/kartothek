@@ -31,7 +31,6 @@ The following fixtures should be present (see tests.read.conftest)
 """
 
 import datetime
-import functools
 from distutils.version import LooseVersion
 from functools import partial
 from itertools import permutations
@@ -638,7 +637,7 @@ def test_read_dataset_alternative_table_name(
         ds_factory = dataset_factory_alternative_table_name
 
     # the table to be read must be passed either as string or list
-    if isinstance(bound_load_dataframes, functools.partial):
+    if isinstance(bound_load_dataframes, partial):
         if output_type == "table":
             # dask delayed
             read_kwargs = {"tables": alternative_table_name}
