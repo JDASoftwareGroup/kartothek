@@ -84,7 +84,7 @@ def delete_dataset__delayed(dataset_uuid=None, store=None, factory=None):
         store=store,
         factory=factory,
         load_schema=False,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     gc = garbage_collect_dataset__delayed(factory=dataset_factory)
@@ -130,7 +130,7 @@ def garbage_collect_dataset__delayed(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     nested_files = dispatch_files_to_gc(
@@ -387,7 +387,7 @@ def read_dataset_as_delayed(
         categoricals=categoricals,
         label_filter=label_filter,
         dates_as_object=dates_as_object,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
         predicates=predicates,
         dispatch_by=dispatch_by,
     )
@@ -441,7 +441,7 @@ def read_table_as_delayed(
         categoricals=categoricals,
         label_filter=label_filter,
         dates_as_object=dates_as_object,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
         predicates=predicates,
         factory=factory,
         dispatch_by=dispatch_by,

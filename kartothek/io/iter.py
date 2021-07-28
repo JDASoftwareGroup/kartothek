@@ -187,7 +187,7 @@ def read_dataset_as_dataframes__iterator(
         categoricals=categoricals,
         label_filter=label_filter,
         dates_as_object=dates_as_object,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
         predicates=predicates,
         factory=factory,
         dispatch_by=dispatch_by,
