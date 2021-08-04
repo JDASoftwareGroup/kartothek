@@ -55,8 +55,13 @@ def dispatch_metapartitions_from_factory(
 
     :meta private:
     """
-    if dispatch_metadata:
+    if label_filter is not None:
+        warnings.warn(
+            "The keyword `label_filter` is deprecated and will be removed in the next major release.",
+            DeprecationWarning
+        )
 
+    if dispatch_metadata:
         warnings.warn(
             "The dispatch of metadata and index information as part of the MetaPartition instance is deprecated. "
             "The future behaviour will be that this metadata is not dispatched. To set the future behaviour, "
@@ -70,9 +75,11 @@ def dispatch_metapartitions_from_factory(
             "`concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. "
             "Please only provide the `dispatch_by` argument. "
         )
+
     if concat_partitions_on_primary_index:
         warnings.warn(
-            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. Use `dispatch_by=dataset_factory.partition_keys` to achieve the same behavior instead.",
+            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major "
+            "release. Use `dispatch_by=dataset_factory.partition_keys` to achieve the same behavior instead.",
             DeprecationWarning,
         )
         dispatch_by = dataset_factory.partition_keys
@@ -81,8 +88,10 @@ def dispatch_metapartitions_from_factory(
         set(dataset_factory.index_columns)
     ):
         raise RuntimeError(
-            f"Dispatch columns must be indexed.\nRequested index: {dispatch_by} but available index columns: {sorted(dataset_factory.index_columns)}"
+            f"Dispatch columns must be indexed.\nRequested index: {dispatch_by} "
+            f"but available index columns: {sorted(dataset_factory.index_columns)}"
         )
+
     check_predicates(predicates)
 
     # Determine which indices need to be loaded.
@@ -102,7 +111,7 @@ def dispatch_metapartitions_from_factory(
         list(index_cols), predicates=predicates
     )
 
-    if label_filter:
+    if label_filter is not None:
         base_df = base_df[base_df.index.map(label_filter)]
 
     indices_to_dispatch = {

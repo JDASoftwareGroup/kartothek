@@ -65,3 +65,25 @@ def test_read_dataset_as_dataframes_partition_size(store_factory, metadata_versi
             dataset_uuid="partitioned_uuid", store=store_factory, partition_size=2
         )
         assert bag.npartitions == 2
+
+
+@pytest.mark.parametrize("option,value", [
+    ("concat_partitions_on_primary_index", True),
+    ("label_filter", lambda x: True),
+    ("load_dataset_metadata", True),
+])
+def test_read_dataset_as_metapartitions_bag_deprecated_arguments(store_factory, option, value):
+    store_dataframes_as_dataset(
+        store=store_factory,
+        dataset_uuid="partitioned_uuid",
+        dfs=[pd.DataFrame({"A": [1, 1], "B": [10, 10]})]
+    )
+
+    deprecated = {option: value}
+
+    with pytest.warns(DeprecationWarning, match=option):
+        read_dataset_as_metapartitions_bag(
+            dataset_uuid="partitioned_uuid",
+            store=store_factory,
+            **deprecated
+        )
