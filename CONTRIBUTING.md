@@ -10,9 +10,32 @@ If you've found a bug, please report it to the issue tracker and
 
 ### Development
 
-#### Installation using pip
+#### Setup
 
-To get started, set up a new virtual environment and install all requirements
+##### Installation using conda
+
+To get started with conda, install conda according to the official guide, set up a conda environment and install all
+requirements.
+
+```bash
+conda create --name conda_kartothek python=3.6
+conda activate conda_kartothek
+conda install pip
+pip install -e .
+pip install -r test-requirements.txt
+```
+
+##### Installation using pip
+
+---
+###### Note:
+
+You will have to use conda in order to be able to conveniently build and test the documentation. The docs component does
+not support pip.
+
+---
+
+To get started with pip, set up a new virtual environment and install all requirements.
 
 ```bash
 virtualenv kartothek-dev --python=python3.6
@@ -43,7 +66,28 @@ asv run --python=same --show-stderr
 ```
 
 #### Building documentation
+
+##### Docs setup
+
+---
+###### Note:
+
+Kartothek does not supply a pip requirements provisions for docs. Please use conda for the best setup experience.
+
+---
+
+Build the `kartothek-docs` conda environment.
+
 ```bash
+conda env create -f docs/environment-docs.yml
+```
+
+##### Build documentation
+
+Activate the `kartothek-docs` conda environment and build the documentation.
+
+```bash
+conda activate kartothek-docs
 python setup.py docs
 ```
 
