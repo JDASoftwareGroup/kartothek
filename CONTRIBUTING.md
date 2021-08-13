@@ -18,8 +18,8 @@ To get started with conda, install conda according to the official guide, set up
 requirements.
 
 ```bash
-conda create --name conda_kartothek python=3.6
-conda activate conda_kartothek
+conda create --name kartothek-dev python=3.6
+conda activate kartothek-dev
 conda install pip
 pip install -e .
 pip install -r test-requirements.txt
@@ -72,7 +72,7 @@ asv run --python=same --show-stderr
 ---
 ###### Note:
 
-Kartothek does not supply a pip requirements provisions for docs. Please use conda for the best setup experience.
+Kartothek does not supply pip requirement provisions for docs. Please use conda for the best setup experience.
 
 ---
 
