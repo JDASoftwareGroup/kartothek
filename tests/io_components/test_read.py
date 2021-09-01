@@ -6,9 +6,10 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from kartothek.core.factory import _ensure_factory
 from kartothek.io.eager import store_dataframes_as_dataset
 from kartothek.io_components.metapartition import SINGLE_TABLE, MetaPartition
-from kartothek.io_components.read import dispatch_metapartitions
+from kartothek.io_components.read import dispatch_metapartitions, dispatch_metapartitions_from_factory
 
 
 def test_dispatch_metapartitions(dataset, store_session):
@@ -279,3 +280,25 @@ def test_dispatch_metapartitions_complex_or_predicates(store_factory):
         }
     )
     pd.testing.assert_frame_equal(actual, expected)
+
+
+def test_dispatch_metapartitions_from_factory_deprecated_arguments(store):
+    store_dataframes_as_dataset(
+        dfs=[pd.DataFrame({"p": [0], "x": [0]}), pd.DataFrame({"p": [0], "x": [1]})],
+        dataset_uuid="test",
+        store=store,
+        partition_on=["p"],
+    )
+
+    ds_factory = _ensure_factory(
+        dataset_uuid="test",
+        store=store,
+        factory=None,
+        load_dataset_metadata=False,
+    )
+
+    with pytest.warns(DeprecationWarning):
+        next(dispatch_metapartitions_from_factory(
+            dataset_factory=ds_factory,
+            label_filter=lambda x: True,
+        ))

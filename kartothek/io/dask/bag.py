@@ -79,6 +79,25 @@ def read_dataset_as_metapartitions_bag(
     dask.bag.Bag:
         A dask.bag object containing the metapartions.
     """
+    if label_filter is not None:
+        warnings.warn(
+            "The keyword `label_filter` is deprecated and will be removed in the next major release.",
+            DeprecationWarning
+        )
+
+    if load_dataset_metadata is not False:
+        warnings.warn(
+            "The keyword `load_dataset_metadata` is deprecated and will be removed in the next major release.",
+            DeprecationWarning
+        )
+
+    if concat_partitions_on_primary_index is not False:
+        warnings.warn(
+            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major "
+            "release.",
+            DeprecationWarning
+        )
+
     ds_factory = _ensure_factory(
         dataset_uuid=dataset_uuid,
         store=store,
