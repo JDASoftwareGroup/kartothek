@@ -60,6 +60,17 @@ from kartothek.serialization import (
     default_serializer,
     filter_df_from_predicates,
 )
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    deprecate_parameters,
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_dict_multi_table_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_parameter_default_value_deprecation_warning,
+    get_parameter_generic_replacement_deprecation_warning,
+    get_parameter_type_change_deprecation_warning,
+    get_specific_function_deprecation_warning_multi_table,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -212,6 +223,25 @@ class MetaPartition(Iterable):
     about the parent dataset
     """
 
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "dataset_metadata",
+        "metadata",
+    )
+    @deprecate_parameters_if_set(
+        get_parameter_generic_replacement_deprecation_warning("schema"), "table_meta"
+    )
+    @deprecate_parameters_if_set(
+        get_parameter_generic_replacement_deprecation_warning("file"), "files"
+    )
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_dict_multi_table_specific_version(
+            deprecated_in="5.3", changed_in="6.0"
+        ),
+        "data",
+    )
     def __init__(
         self,
         label: Optional[str],
@@ -422,6 +452,21 @@ class MetaPartition(Iterable):
         return True
 
     @staticmethod
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "dataset_metadata",
+    )
+    @deprecate_parameters_if_set(
+        get_parameter_generic_replacement_deprecation_warning("schema"), "table_meta"
+    )
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_dict_multi_table_specific_version(
+            deprecated_in="5.3", changed_in="6.0"
+        ),
+        "data",
+    )
     def from_partition(
         partition: Partition,
         data: Optional[Dict] = None,
@@ -468,6 +513,12 @@ class MetaPartition(Iterable):
             logical_conjunction=logical_conjunction,
         )
 
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "metadata_merger",
+    )
     def add_metapartition(
         self,
         metapartition: "MetaPartition",
@@ -601,6 +652,12 @@ class MetaPartition(Iterable):
             split_predicates.append(_SplitPredicate(key_part, content_part))
         return split_predicates, has_index_condition
 
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "table",
+    )
     def _apply_partition_key_predicates(self, table, indices, split_predicates):
         """
         Apply the predicates to the partition_key columns and return the remaining
@@ -645,6 +702,20 @@ class MetaPartition(Iterable):
 
     @default_docs
     @_apply_to_list
+    @deprecate_parameters(
+        get_parameter_default_value_deprecation_warning("False", "True"),
+        "dates_as_object",
+    )
+    @deprecate_parameters_if_set(
+        get_parameter_type_change_deprecation_warning("StoreInput", "KeyValueStore"),
+        "store",
+    )
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "tables",
+    )
     def load_dataframes(
         self,
         store: StoreInput,
@@ -818,6 +889,18 @@ class MetaPartition(Iterable):
             self.table_meta[table] = _common_metadata
         return self
 
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "table",
+    )
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_dict_multi_table_specific_version(
+            deprecated_in="5.3", changed_in="6.0"
+        ),
+        "categories",
+    )
     def _reconstruct_index_columns(
         self, df, key_indices, table, columns, categories, date_as_object
     ):
@@ -922,6 +1005,13 @@ class MetaPartition(Iterable):
         MetaPartition
 
         """
+        warnings.warn(
+            message=get_specific_function_deprecation_warning_multi_table(
+                function_name="merge_dataframes", deprecated_in="5.3", removed_in="6.0"
+            ),
+            category=DeprecationWarning,
+        )
+
         # Shallow copy
         new_data = copy(self.data)
         if merge_kwargs is None:
@@ -997,6 +1087,13 @@ class MetaPartition(Iterable):
         return self
 
     @_apply_to_list
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "store_metadata",
+        "metadata_storage_format",
+    )
     def store_dataframes(
         self,
         store: StoreInput,
@@ -1106,6 +1203,19 @@ class MetaPartition(Iterable):
             return self
 
     @_apply_to_list
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_dict_multi_table_specific_version(
+            deprecated_in="5.3", changed_in="6.0"
+        ),
+        "func",
+    )
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "tables",
+        "metadata",
+    )
     def apply(
         self,
         func: Union[Callable, Dict[str, Callable]],
@@ -1145,11 +1255,6 @@ class MetaPartition(Iterable):
             new_data = {k: func(v) for k, v in self.data.items() if k in tables}
         elif isinstance(func, dict):
             new_data = {k: func[k](v) for k, v in self.data.items() if k in tables}
-        if metadata:
-            warnings.warn(
-                "The keyword argument ``metadata`` doesn't have any effect and will be removed soon.",
-                DeprecationWarning,
-            )
         if type_safe:
             new_table_meta = self.table_meta
         else:
@@ -1676,6 +1781,10 @@ def partition_labels_from_mps(mps: List[MetaPartition]) -> List[str]:
     return partition_labels
 
 
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "expected_secondary_indices",
+)
 def parse_input_to_metapartition(
     obj: MetaPartitionInput,
     metadata_version: Optional[int] = None,
@@ -1798,12 +1907,6 @@ def parse_input_to_metapartition(
             data = obj["data"]
 
         indices = obj.get("indices", {})
-        if indices:
-            warnings.warn(
-                "The explicit input of indices using the `indices` key is deprecated."
-                'Use the `secondary_indices` keyword argument of "write" and "update" functions instead.',
-                DeprecationWarning,
-            )
         indices = {k: v for k, v in indices.items() if v}
         _ensure_valid_indices(
             mp_indices=indices, secondary_indices=expected_secondary_indices, data=data

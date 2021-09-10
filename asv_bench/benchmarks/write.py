@@ -13,10 +13,20 @@ from kartothek.io_components.write import (
     persist_common_metadata,
     store_dataset_from_partitions,
 )
+from kartothek.utils.migration_helpers import (
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+)
 
 from .config import AsvBenchmarkConfig
 
 
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "dataset_metadata",
+)
 def generate_mp(dataset_metadata=None):
     return MetaPartition(
         label=uuid.uuid4().hex,

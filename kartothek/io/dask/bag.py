@@ -30,6 +30,11 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.utils.migration_helpers import (
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_parameter_default_value_deprecation_warning,
+)
 
 __all__ = (
     "read_dataset_as_dataframe_bag",
@@ -51,6 +56,22 @@ def _load_and_concat_metapartitions_inner(mps, *args, **kwargs):
 
 
 @default_docs
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+    "load_dataset_metadata",
+    "dispatch_metadata",
+)
 def read_dataset_as_metapartitions_bag(
     dataset_uuid=None,
     store=None,
@@ -146,6 +167,20 @@ def read_dataset_as_metapartitions_bag(
 
 
 @default_docs
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+)
 def read_dataset_as_dataframe_bag(
     dataset_uuid=None,
     store=None,

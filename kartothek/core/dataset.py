@@ -1,10 +1,10 @@
 import copy
 import logging
 import re
-import warnings
 from collections import OrderedDict, defaultdict
 from typing import Any, Dict, List, Optional, Set, Tuple, TypeVar, Union
 
+import deprecation
 import pandas as pd
 import pyarrow as pa
 import simplejson
@@ -28,6 +28,12 @@ from kartothek.core.typing import StoreInput
 from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_store, verify_metadata_version
 from kartothek.serialization import PredicatesType, columns_in_predicates
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+)
 
 _logger = logging.getLogger(__name__)
 
@@ -54,6 +60,12 @@ T = TypeVar("T", bound="DatasetMetadataBase")
 
 
 class DatasetMetadataBase(CopyMixin):
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "table_meta",
+    )
     def __init__(
         self,
         uuid: str,
@@ -104,11 +116,6 @@ class DatasetMetadataBase(CopyMixin):
 
     @property
     def table_meta(self) -> Dict[str, SchemaWrapper]:
-        warnings.warn(
-            "The attribute `DatasetMetadataBase.table_meta` will be removed in "
-            "kartothek 4.0 in favour of `DatasetMetadataBase.schema`.",
-            DeprecationWarning,
-        )
         return self._table_meta
 
     @table_meta.setter
@@ -272,6 +279,10 @@ class DatasetMetadataBase(CopyMixin):
         indices = dict(self.indices, **col_loaded_index)
         return self.copy(indices=indices)
 
+    @deprecate_parameters_if_set(
+        DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+        "load_partition_indices",
+    )
     def load_all_indices(
         self: T, store: StoreInput, load_partition_indices: bool = True
     ) -> T:
@@ -336,6 +347,11 @@ class DatasetMetadataBase(CopyMixin):
 
         return list(candidate_set)
 
+    @deprecation.deprecated(
+        deprecated_in="5.3",
+        removed_in="6.0",
+        details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+    )
     def load_partition_indices(self: T) -> T:
         """
         Load all filename encoded indices into RAM. File encoded indices can be extracted from datasets with partitions
@@ -700,6 +716,12 @@ class DatasetMetadata(DatasetMetadataBase):
         return builder.to_dataset()
 
 
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "table_meta",
+)
 def _get_type_from_meta(
     table_meta: Optional[Dict[str, SchemaWrapper]],
     column: str,
@@ -722,6 +744,12 @@ def _get_type_from_meta(
     )
 
 
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "table_meta",
+)
 def _empty_partition_indices(
     partition_keys: List[str], table_meta: TableMetaType, default_dtype: pa.DataType
 ):
@@ -732,6 +760,12 @@ def _empty_partition_indices(
     return indices
 
 
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "table_meta",
+)
 def _construct_dynamic_index_from_partitions(
     partitions: Dict[str, Partition],
     table_meta: TableMetaType,
@@ -872,6 +906,12 @@ class DatasetMetadataBuilder(CopyMixin):
     need to be fully materialised).
     """
 
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "table_meta",
+    )
     def __init__(
         self,
         uuid: str,

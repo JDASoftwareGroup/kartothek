@@ -30,10 +30,26 @@ from kartothek.io_components.utils import (
     sort_values_categorical,
 )
 from kartothek.serialization import DataFrameSerializer
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    deprecate_parameters,
+    deprecate_parameters_if_set,
+    get_deprecation_warning_parameter_waning_non_optional_specific_version,
+    get_parameter_replaced_by_deprecation_warning,
+)
 
 SINGLE_CATEGORY = SINGLE_TABLE
 
 
+@deprecate_parameters(
+    get_deprecation_warning_parameter_waning_non_optional_specific_version(
+        deprecated_in="5.3", changed_in="6.0"
+    ),
+    "secondary_indices",
+    "sort_partitions_by",
+    "partition_on",
+    "dataset_table_name",
+)
 def write_partition(
     partition_df: MetaPartitionInput,
     secondary_indices: Optional[InferredIndices],
@@ -97,6 +113,9 @@ def persist_indices(
     return output_filenames
 
 
+@deprecate_parameters_if_set(
+    get_parameter_replaced_by_deprecation_warning("schemas"), "partition_list"
+)
 def persist_common_metadata(partition_list, update_dataset, store, dataset_uuid):
     # hash the schemas for quick equality check with possible false negatives
     # (e.g. other pandas version or null schemas)
@@ -221,6 +240,10 @@ def store_dataset_from_partitions(
     return dataset
 
 
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "add_partitions",
+)
 def update_metadata(dataset_builder, metadata_merger, add_partitions, dataset_metadata):
 
     metadata_list = [dataset_builder.metadata]

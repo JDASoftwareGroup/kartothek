@@ -45,6 +45,12 @@ from kartothek.io_components.write import (
 )
 from kartothek.serialization import DataFrameSerializer, PredicatesType
 
+from ...utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_parameter_default_value_deprecation_warning,
+)
 from ._shuffle import shuffle_store_dask_partitions
 from ._utils import _maybe_get_categoricals_from_index
 from .delayed import read_table_as_delayed
@@ -60,6 +66,17 @@ __all__ = (
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "concat_partitions_on_primary_index",
+    "label_filter",
+)
 def read_dataset_as_ddf(
     dataset_uuid=None,
     store=None,
@@ -262,6 +279,10 @@ def _shuffle_docs(func):
 
 @default_docs
 @_shuffle_docs
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "delete_scope",
+)
 def store_dataset_from_ddf(
     ddf: dd.DataFrame,
     store: StoreInput,
@@ -461,6 +482,12 @@ def update_dataset_from_ddf(
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "table_name",
+)
 def collect_dataset_metadata(
     store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,

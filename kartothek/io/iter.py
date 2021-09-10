@@ -28,6 +28,12 @@ from kartothek.io_components.write import (
     raise_if_dataset_exists,
     store_dataset_from_partitions,
 )
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_parameter_default_value_deprecation_warning,
+)
 
 __all__ = (
     "read_dataset_as_dataframes__iterator",
@@ -38,6 +44,22 @@ __all__ = (
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+    "load_dataset_metadata",
+    "dispatch_metadata",
+)
 def read_dataset_as_metapartitions__iterator(
     dataset_uuid=None,
     store=None,
@@ -125,6 +147,20 @@ def read_dataset_as_metapartitions__iterator(
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+)
 def read_dataset_as_dataframes__iterator(
     dataset_uuid=None,
     store=None,
@@ -199,6 +235,11 @@ def read_dataset_as_dataframes__iterator(
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "central_partition_metadata",
+    "load_dynamic_metadata",
+)
 def update_dataset_from_dataframes__iter(
     df_generator,
     store=None,
@@ -231,17 +272,6 @@ def update_dataset_from_dataframes__iter(
     --------
     :ref:`mutating_datasets`
     """
-    if load_dynamic_metadata is not True:
-        warnings.warn(
-            "The keyword `load_dynamic_metadata` has no use and will be removed soon",
-            DeprecationWarning,
-        )
-
-    if central_partition_metadata is not True:
-        warnings.warn(
-            "The keyword `central_partition_metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,

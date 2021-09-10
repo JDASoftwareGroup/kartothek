@@ -42,6 +42,13 @@ from kartothek.io_components.write import (
     write_partition,
 )
 
+from ...utils.migration_helpers import (
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_parameter_default_value_deprecation_warning,
+    get_specific_function_deprecation_warning,
+    get_specific_function_deprecation_warning_multi_table,
+)
 from ._utils import (
     _cast_categorical_to_index_cat,
     _get_data,
@@ -223,6 +230,16 @@ def merge_datasets_as_delayed(
             ... ]
 
     """
+
+    warnings.warn(
+        message=get_specific_function_deprecation_warning(
+            function_name="merge_datasets_as_delayed",
+            deprecated_in="5.3",
+            removed_in="6.0",
+        ),
+        category=DeprecationWarning,
+    )
+
     store = lazy_store(store)
 
     mps = align_datasets(
@@ -257,6 +274,22 @@ def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+    "load_dataset_metadata",
+    "dispatch_metadata",
+)
 def read_dataset_as_delayed_metapartitions(
     dataset_uuid=None,
     store=None,
@@ -355,6 +388,20 @@ def read_dataset_as_delayed_metapartitions(
 
 
 @default_docs
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+)
 def read_dataset_as_delayed(
     dataset_uuid=None,
     store=None,
@@ -429,6 +476,14 @@ def read_table_as_delayed(
     Parameters
     ----------
     """
+
+    warnings.warn(
+        message=get_specific_function_deprecation_warning_multi_table(
+            function_name="read_table_as_delayed", deprecated_in="5.3", removed_in="6.0"
+        ),
+        category=DeprecationWarning,
+    )
+
     if not isinstance(columns, dict):
         columns = {table: columns}
     mps = read_dataset_as_delayed_metapartitions(

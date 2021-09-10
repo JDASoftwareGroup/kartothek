@@ -12,6 +12,10 @@ from kartothek.io_components.metapartition import MetaPartition
 from kartothek.io_components.utils import InferredIndices
 from kartothek.io_components.write import write_partition
 from kartothek.serialization import DataFrameSerializer
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_PARAMETER_NON_OPTIONAL_GENERIC_VERSION,
+    deprecate_parameters,
+)
 
 _KTK_HASH_BUCKET = "__KTK_HASH_BUCKET"
 
@@ -33,6 +37,9 @@ def _hash_bucket(df: pd.DataFrame, subset: Optional[Sequence[str]], num_buckets:
     return df.assign(**{_KTK_HASH_BUCKET: buckets.astype(f"uint{bit_width}")})
 
 
+@deprecate_parameters(
+    DEPRECATION_WARNING_PARAMETER_NON_OPTIONAL_GENERIC_VERSION, "secondary_indices"
+)
 def shuffle_store_dask_partitions(
     ddf: dd.DataFrame,
     table: str,
@@ -130,6 +137,11 @@ def shuffle_store_dask_partitions(
     )
 
 
+@deprecate_parameters(
+    DEPRECATION_WARNING_PARAMETER_NON_OPTIONAL_GENERIC_VERSION,
+    "secondary_indices",
+    "partition_on",
+)
 def _unpack_store_partition(
     df: pd.DataFrame,
     secondary_indices: Optional[InferredIndices],

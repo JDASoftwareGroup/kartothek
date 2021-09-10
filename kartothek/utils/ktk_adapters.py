@@ -3,6 +3,7 @@ Methods to make working with Kartothek easier.
 """
 from __future__ import absolute_import
 
+import deprecation
 import pandas as pd
 import pyarrow.parquet as pq
 from simplekv import KeyValueStore
@@ -17,6 +18,9 @@ from kartothek.core.naming import (
 from kartothek.io_components.metapartition import SINGLE_TABLE
 from kartothek.serialization._io_buffer import BlockBuffer
 from kartothek.utils.converters import converter_str
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+)
 
 __all__ = (
     "get_dataset_columns",
@@ -28,6 +32,11 @@ __all__ = (
 )
 
 
+@deprecation.deprecated(
+    deprecated_in="5.3",
+    removed_in="6.0",
+    details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+)
 def get_dataset_schema(dataset):
     """
     Get schema from a Kartothek_Cube-compatible Kartothek dataset.

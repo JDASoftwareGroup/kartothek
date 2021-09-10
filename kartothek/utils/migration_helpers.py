@@ -1,15 +1,142 @@
 import inspect
-import traceback
 import warnings
-from functools import partial, wraps
-from typing import Callable, Tuple
+from functools import wraps
+from typing import Callable, Optional, Tuple
 
-# This constant string is supposed to be passed as message to the decorators in the current migration effort and to be
-# subsequently removed.
-MULTI_TABLE_FEATURE_DEPRECATION_WARNING = (
-    "The `{parameter}` keyword is deprecated and will be removed in the next major"
-    "release in an effort to remove the multi table feature."
+# Parameter deprecation messages: Pass these to the parameter deprecators below
+# Inserting the right parameter will be handled automatically.
+
+DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION = (
+    "The `{parameter}` keyword is deprecated and will be removed in the next major release in an effort to remove the "
+    "multi table feature."
 )
+
+DEPRECATION_WARNING_REMOVE_DICT_MULTI_TABLE_GENERIC_VERSION = (
+    "The logic of the`{parameter}` keyword will be changed in the next major release to not accept a dict of values "
+    "anymore in an effort to remove the multi table feature."
+)
+
+# Do not use with deprecate_parameters_if_set since the warning should implicitly include default value fallbacks
+DEPRECATION_WARNING_PARAMETER_NON_OPTIONAL_GENERIC_VERSION = (
+    "The `{parameter}` keyword will be non-Optional in the next major release."
+)
+
+
+def get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    deprecated_in: str, removed_in: str
+) -> str:
+    return (
+        "The `{parameter}` keyword is deprecated in veriosn: "
+        + deprecated_in
+        + " and will be removed in version: "
+        + removed_in
+        + " in an effort to remove the multi table feature."
+    )
+
+
+def get_deprecation_warning_remove_dict_multi_table_specific_version(
+    deprecated_in: str, changed_in: str
+) -> str:
+    return (
+        "The logic of the`{parameter}` keyword is deprecated since version: "
+        + deprecated_in
+        + " and will be "
+        "changed in version: "
+        + changed_in
+        + " to not accept a dict of values anymore in an effort to remove the multi"
+        " table feature."
+    )
+
+
+def get_deprecation_warning_parameter_waning_non_optional_specific_version(
+    deprecated_in: str, changed_in: str
+) -> str:
+    return (
+        "The `{parameter}` keyword is deprecated since version: "
+        + deprecated_in
+        + " and will be non-Optional in"
+        " version: " + changed_in + "."
+    )
+
+
+def get_parameter_replaced_by_deprecation_warning(replaced_by: str) -> str:
+    return (
+        "The `{parameter}` keyword will be replaced by "
+        + replaced_by
+        + " non-Optional in the next major release."
+    )
+
+
+def get_parameter_default_value_deprecation_warning(
+    from_value: str, to_value: str
+) -> str:
+    return (
+        "The default value of the `{parameter}` keyword is deprecated and will be changed from "
+        + from_value
+        + " to "
+        + to_value
+        + "in the next major release."
+    )
+
+
+def get_parameter_type_change_deprecation_warning(from_type: str, to_type: str) -> str:
+    return (
+        "The type of the `{parameter}` keyword is deprecated and will be changed from "
+        + from_type
+        + " to "
+        + to_type
+        + "in the next major release."
+    )
+
+
+def get_parameter_generic_replacement_deprecation_warning(
+    replacing_parameter: str,
+) -> str:
+    return (
+        "The `{parameter}` keyword is deprecated and will be replaced by the "
+        + replacing_parameter
+        + " parameter "
+        "in the next major release in an effort to remove the multi table feature."
+    )
+
+
+# /Parameter deprecation messages
+
+
+# Function deprecation messages: They are supposed to be used stand-alone because no default handling is provided here
+DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION = (
+    "The `{function}` keyword is deprecated and will be removed."
+)
+
+
+def get_specific_function_deprecation_warning(
+    function_name: str,
+    deprecated_in: str,
+    removed_in: Optional[str] = None,
+    reason: Optional[str] = None,
+):
+    return (
+        f"The `{function_name}` keyword is deprecated since version "
+        + deprecated_in
+        + " and will be removed"
+        + ((" in version " + removed_in + ".") if removed_in is not None else "")
+        + ((" Reason: " + reason + ".") if reason is not None else "")
+        + "."
+    )
+
+
+def get_specific_function_deprecation_warning_multi_table(
+    function_name: str, deprecated_in: str, removed_in: Optional[str] = None,
+):
+    return get_specific_function_deprecation_warning(
+        function_name=function_name,
+        deprecated_in=deprecated_in,
+        removed_in=removed_in,
+        reason="Part of the Effort to remove the multi table feature",
+    )
+
+
+# /Function deprecation messages
 
 
 def _check_params(func: Callable, params: Tuple[str, ...]) -> None:
@@ -32,6 +159,22 @@ def _check_params(func: Callable, params: Tuple[str, ...]) -> None:
     ValueError
         If validation fails.
     """
+
+    def _raise_invalid_param_error_if_applicable(
+        params, func_args, is_maybe_duplicate: bool = False
+    ):
+        if not all([parameter in func_args for parameter in params]):
+            raise ValueError(
+                "Invalid "
+                + (
+                    "or duplicate "
+                    if is_maybe_duplicate
+                    else "" + "parameter in decorator definition: "
+                )
+                + ", ".join(sorted(set(params) - set(func_args)))
+                + "!"
+            )
+
     if len(params) < 1:
         raise ValueError(
             "At least one parameter must be specified when using this decorator!"
@@ -41,16 +184,51 @@ def _check_params(func: Callable, params: Tuple[str, ...]) -> None:
         raise ValueError("Duplicate parameter assignment in decorator definition!")
 
     arg_spec = inspect.getfullargspec(func)
-    if not (
-        arg_spec.varargs or arg_spec.varkw
-    ):  # deactivate check for decorated functions with *args or **kwargs
-        func_args = arg_spec.args
-        if not all([parameter in func_args for parameter in params]):
-            raise ValueError(
-                "Invalid parameter in decorator definition: "
-                + ", ".join(sorted(set(params) - set(func_args)))
-                + "!"
+    if not hasattr(func, "kartothek_deprecation_decorator_params"):
+        if not (arg_spec.varargs or arg_spec.varkw):
+            _raise_invalid_param_error_if_applicable(
+                params=params, func_args=inspect.signature(func).parameters.keys()
             )
+        else:
+            raise ValueError(
+                "Decorator cannot be applied to function with *args or **kwargs"
+            )
+    else:
+        _raise_invalid_param_error_if_applicable(
+            params=params, func_args=func.kartothek_deprecation_decorator_params  # type: ignore
+        )
+
+
+def _get_trace_message(trace: str) -> str:
+    return ("\nCalled in: " + trace) if "/kartothek/" not in trace else ""
+
+
+def _assemble_warning_message(parameter: str, message: str, func_name: str) -> str:
+    return (
+        message.format(parameter=parameter)
+        + "\nAffected Kartothek function: "
+        + func_name
+    )
+
+# Adds neccessary meta info making multiple instance of these deprecation decorators stackable while the parameter
+# check before runtime stays intact.
+def _make_decorator_stackable(
+    wrapper_func: Callable, base_func: Callable, exclude_parameters: Tuple[str],
+) -> Callable:
+    if hasattr(base_func, "kartothek_deprecation_decorator_params"):
+        wrapper_func.kartothek_deprecation_decorator_params = tuple(  # type: ignore
+            param
+            for param in base_func.kartothek_deprecation_decorator_params  # type: ignore
+            if param not in exclude_parameters
+        )
+    else:
+        wrapper_func.kartothek_deprecation_decorator_params = tuple(  # type: ignore
+            param
+            for param in inspect.signature(base_func).parameters.keys()
+            if param not in exclude_parameters
+        )
+    wrapper_func.__signature__ = inspect.signature(base_func)  # type: ignore
+    return wrapper_func
 
 
 def deprecate_parameters(warning: str, *parameters: str) -> Callable:
@@ -58,9 +236,9 @@ def deprecate_parameters(warning: str, *parameters: str) -> Callable:
     Decorator, raising warnings that specified parameters of the decorated function are deprecated and will be removed
     or changed in the future.
 
-    .. note:: Please avoid using this decorator with other decorators. The correct call origin can not be passed if this
-        decorator is nested inside others. If you absolutely have to use it with other decorators, add it last in order
-        to enable it to parse the final function signature.
+    .. note:: Please only use this decorator before other decorators preserving the function __name__ and __signature__.
+        And note, that the correct call origin can not be returned if this decorator is nested inside others. If you
+        absolutely have to use it with other decorators, best add it last.
 
     Examples
     --------
@@ -76,7 +254,7 @@ def deprecate_parameters(warning: str, *parameters: str) -> Callable:
     Parameters
     ----------
     warning: str
-        warning, the DeprecationWarnings will be raised with. Please make sure to include the substring '{parameter}'
+        Warning, the DeprecationWarnings will be raised with. Please make sure to include the substring '{parameter}'
         that will be replaced by the parameter name in the warning.
     *parameters: Tuple [str]
         Tuple of strings denoting the parameters to be marked deprecated.
@@ -98,18 +276,18 @@ def deprecate_parameters(warning: str, *parameters: str) -> Callable:
         def wraps_func(*args, **kwargs):
             for parameter in parameters:
                 warnings.warn(
-                    # prints the call origin, in order to indicate to the user where the code has to be adjusted.
-                    warning.format(parameter=parameter)
-                    + "\nCalled in: "
-                    + str(traceback.extract_stack()[-2])
-                    + "\nAffected Kartothek function: "
-                    + func.__name__,
+                    _assemble_warning_message(
+                        parameter=parameter, message=warning, func_name=func.__name__,
+                    ),
                     DeprecationWarning,
+                    stacklevel=2,
                 )
             return func(*args, **kwargs)
 
         _check_params(func=func, params=parameters)
-        return wraps_func
+        return _make_decorator_stackable(
+            wrapper_func=wraps_func, base_func=func, exclude_parameters=parameters
+        )
 
     return wrapper
 
@@ -121,9 +299,9 @@ def deprecate_parameters_if_set(warning, *parameters: str) -> Callable:
     set when called in order to avoid confusion and limit the users visibility of the change process they are not
     affected by.
 
-    .. note:: Please avoid using this decorator with other decorators. The correct call origin can not be passed if this
-        decorator is nested inside others. If you absolutely have to use it with other decorators, add it last in order
-        to enable it to parse the final function signature.
+    .. note:: Please only use this decorator before other decorators preserving the function __name__ and __signature__.
+        And note, that the correct call origin can not be returned if this decorator is nested inside others. If you
+        absolutely have to use it with other decorators, best add it last.
 
     .. note:: Do not decorate parameters hiding behind \\*args or \\*\\*kwargs!
 
@@ -143,7 +321,7 @@ def deprecate_parameters_if_set(warning, *parameters: str) -> Callable:
     Parameters
     ----------
     warning: str
-        warning, the DeprecationWarnings will be raised with. Please make sure to include the substring '{parameter}'
+        Warning, the DeprecationWarnings will be raised with. Please make sure to include the substring '{parameter}'
         that will be replaced by the parameter name in the warning.
     *parameters: str
         Tuple of strings denoting the parameters to be marked deprecated.
@@ -162,37 +340,48 @@ def deprecate_parameters_if_set(warning, *parameters: str) -> Callable:
 
     def wrapper(func):
         @wraps(func)
-        def wraps_func(parameters_positions, *args, **kwargs):
+        def wraps_func(*args, **kwargs):
             def raise_warning(parameter):
+                # gets original trace message if deprecators have been stacked
                 warnings.warn(
-                    warning.format(parameter=parameter)
-                    + "\nCalled in: "
-                    + str(traceback.extract_stack()[-3])
-                    + "\nAffected Kartothek function: "
-                    + func.__name__,
+                    _assemble_warning_message(
+                        parameter=parameter, message=warning, func_name=func.__name__,
+                    ),
                     DeprecationWarning,
+                    stacklevel=3,
                 )
 
             n_args = len(args)
             # (n_args - 1) because we are comparing a length with an index
             deprecated_arg_params = [
                 parameter
-                for parameter, position in parameters_positions.items()
+                for parameter, position in parameters_mapping.items()
                 if position <= (n_args - 1)
             ]
             for parameter in deprecated_arg_params:
                 raise_warning(parameter)
             for kwarg_key in set(kwargs.keys()) - set(deprecated_arg_params):
-                if kwarg_key in parameters_positions.keys():
+                if kwarg_key in parameters_mapping.keys():
                     raise_warning(kwarg_key)
 
             return func(*args, **kwargs)
 
-        _check_params(func, parameters)
-        func_args = inspect.getfullargspec(func).args
+        _check_params(func=func, params=parameters)
+
+        # decorator is stacked on another deprecation decorator if hasattr==True
+        # else decorator is directly applied to the decorated function.
+        func_args = (
+            func.kartothek_deprecation_decorator_params
+            if hasattr(func, "kartothek_deprecation_decorator_params")
+            else list(inspect.signature(func).parameters.keys())
+        )
+
         parameters_mapping = {  # required for resolving optional parameters being passed as non-kwargs
             parameter: func_args.index(parameter) for parameter in parameters
         }
-        return partial(wraps_func, parameters_mapping)
+        # _make_decorator_stackable required in order to be able to stack multiple of these decorators.
+        return _make_decorator_stackable(
+            wrapper_func=wraps_func, base_func=func, exclude_parameters=parameters
+        )
 
     return wrapper
