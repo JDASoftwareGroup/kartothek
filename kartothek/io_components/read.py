@@ -1,4 +1,3 @@
-import warnings
 from typing import Callable, Iterator, List, Optional, Set, Union, cast, overload
 
 import pandas as pd
@@ -13,9 +12,22 @@ from kartothek.serialization import (
     check_predicates,
     columns_in_predicates,
 )
+from kartothek.utils.migration_helpers import (
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+)
 
 
 @overload
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "label_filter",
+    "concat_partitions_on_primary_index",
+    "store",
+    "dispatch_metadata",
+)
 def dispatch_metapartitions_from_factory(
     dataset_factory: DatasetFactory,
     label_filter: Optional[Callable] = None,
@@ -29,6 +41,15 @@ def dispatch_metapartitions_from_factory(
 
 
 @overload
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "label_filter",
+    "concat_partitions_on_primary_index",
+    "store",
+    "dispatch_metadata",
+)
 def dispatch_metapartitions_from_factory(
     dataset_factory: DatasetFactory,
     label_filter: Optional[Callable],
@@ -42,6 +63,15 @@ def dispatch_metapartitions_from_factory(
 
 
 @normalize_args
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "label_filter",
+    "concat_partitions_on_primary_index",
+    "store",
+    "dispatch_metadata",
+)
 def dispatch_metapartitions_from_factory(
     dataset_factory: DatasetFactory,
     label_filter: Optional[Callable] = None,
@@ -55,14 +85,6 @@ def dispatch_metapartitions_from_factory(
 
     :meta private:
     """
-    if dispatch_metadata:
-
-        warnings.warn(
-            "The dispatch of metadata and index information as part of the MetaPartition instance is deprecated. "
-            "The future behaviour will be that this metadata is not dispatched. To set the future behaviour, "
-            "specifiy ``dispatch_metadata=False``",
-            DeprecationWarning,
-        )
 
     if dispatch_by is not None and concat_partitions_on_primary_index:
         raise ValueError(
@@ -71,10 +93,6 @@ def dispatch_metapartitions_from_factory(
             "Please only provide the `dispatch_by` argument. "
         )
     if concat_partitions_on_primary_index:
-        warnings.warn(
-            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release. Use `dispatch_by=dataset_factory.partition_keys` to achieve the same behavior instead.",
-            DeprecationWarning,
-        )
         dispatch_by = dataset_factory.partition_keys
 
     if dispatch_by is not None and not set(dispatch_by).issubset(
@@ -160,6 +178,17 @@ def dispatch_metapartitions_from_factory(
             )
 
 
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "load_dataset_metadata",
+    "keep_indices",
+    "keep_table_meta",
+    "label_filter",
+    "concat_partitions_on_primary_index",
+    "dispatch_metadata",
+)
 def dispatch_metapartitions(
     dataset_uuid: str,
     store: StoreInput,

@@ -1,10 +1,15 @@
 import logging
 from typing import Callable, Generator, List, Union
 
+import deprecation
+
 from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.typing import StoreInput
 from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import MetaPartition
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -14,6 +19,11 @@ except ImportError:
     from typing import Literal  # type: ignore
 
 
+@deprecation.deprecated(
+    deprecated_in="5.3",
+    removed_in="6.0",
+    details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+)
 def align_datasets(
     left_dataset_uuid: str,
     right_dataset_uuid: str,

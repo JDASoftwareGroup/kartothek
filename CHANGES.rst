@@ -2,6 +2,10 @@
 Changelog
 =========
 
+Version 5.3.0 (2021-11-26)
+==========================
+* Add Deprecation warnings and migration helpers in order to facilitate the Kartothek version 6.0.0 migration.
+
 
 Version 5.2.0 (2021-11-22)
 ==========================

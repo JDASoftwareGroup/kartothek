@@ -2,6 +2,7 @@ import warnings
 from functools import partial
 from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, cast
 
+import deprecation
 import pandas as pd
 from simplekv import KeyValueStore
 
@@ -49,6 +50,16 @@ from kartothek.io_components.write import raise_if_dataset_exists
 from kartothek.serialization import DataFrameSerializer
 from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import get_dataset_keys
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_dict_multi_table_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_parameter_default_value_deprecation_warning,
+    get_parameter_generic_replacement_deprecation_warning,
+    get_parameter_type_change_deprecation_warning,
+)
 from kartothek.utils.store import copy_rename_keys
 
 __all__ = (
@@ -102,6 +113,26 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
 
 
 @default_docs
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_dict_multi_table_specific_version(
+        deprecated_in="5.3", changed_in="6.0"
+    ),
+    "categoricals",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "label_filter",
+    "concat_partitions_on_primary_index",
+)
 def read_dataset_as_dataframes(
     dataset_uuid: Optional[str] = None,
     store=None,
@@ -168,6 +199,21 @@ def read_dataset_as_dataframes(
 
 
 @default_docs
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "tables",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+    "dispatch_metadata",
+)
 def read_dataset_as_metapartitions(
     dataset_uuid=None,
     store=None,
@@ -245,6 +291,11 @@ def read_dataset_as_metapartitions(
     return list(ds_iter)
 
 
+@deprecation.deprecated(
+    deprecated_in="5.3",
+    removed_in="6.0",
+    details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+)
 def _check_compatible_list(table, obj, argument_name=""):
     if obj is None:
         return obj
@@ -267,6 +318,26 @@ def _check_compatible_list(table, obj, argument_name=""):
 
 
 @default_docs
+@deprecate_parameters_if_set(
+    get_parameter_default_value_deprecation_warning(
+        from_value="False", to_value="True"
+    ),
+    "dates_as_object",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_dict_multi_table_specific_version(
+        deprecated_in="5.3", changed_in="6.0"
+    ),
+    "categoricals",
+)
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "table",
+    "concat_partitions_on_primary_index",
+    "label_filter",
+)
 def read_table(
     dataset_uuid: Optional[str] = None,
     store=None,
@@ -308,12 +379,6 @@ def read_table(
         >>> df = read_table(store, 'dataset_uuid', 'core')
 
     """
-    if concat_partitions_on_primary_index is not False:
-        warnings.warn(
-            "The keyword `concat_partitions_on_primary_index` is deprecated and will be removed in the next major release.",
-            DeprecationWarning,
-        )
-
     if not isinstance(table, str):
         raise TypeError("Argument `table` needs to be a string")
 
@@ -359,6 +424,11 @@ def read_table(
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "output_dataset_uuid",
+    "df_serializer",
+)
 def commit_dataset(
     store: Optional[StoreInput] = None,
     dataset_uuid: Optional[str] = None,
@@ -444,18 +514,6 @@ def commit_dataset(
         Input partition to be committed.
 
     """
-    if output_dataset_uuid is not None:
-        warnings.warn(
-            "The keyword `output_dataset_uuid` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if df_serializer is not None:
-        warnings.warn(
-            "The keyword `df_serializer` is deprecated and will be removed in the next major release.",
-            DeprecationWarning,
-        )
-
     if not new_partitions and not metadata and not delete_scope:
         raise ValueError(
             "Need to provide either new data, new metadata or a delete scope. None of it was provided."
@@ -518,6 +576,12 @@ def _maybe_infer_files_attribute(metapartition, dataset_uuid):
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_type_change_deprecation_warning(
+        from_type="Optional[ParquetSerializer]", to_type="Optional[DataFrameSerializer]"
+    ),
+    "df_serializer",
+)
 def store_dataframes_as_dataset(
     store: KeyValueStore,
     dataset_uuid: str,
@@ -565,6 +629,10 @@ def store_dataframes_as_dataset(
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_generic_replacement_deprecation_warning(replacing_parameter="schema"),
+    "table_meta",
+)
 def create_empty_dataset_header(
     store,
     dataset_uuid,
@@ -628,6 +696,18 @@ def create_empty_dataset_header(
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_type_change_deprecation_warning(
+        from_type="Optional[ParquetSerializer]", to_type="Optional[DataFrameSerializer]"
+    ),
+    "df_serializer",
+)
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "metadata",
+    "overwrite",
+    "metadata_merger",
+)
 def write_single_partition(
     store: Optional[KeyValueStore] = None,
     dataset_uuid: Optional[str] = None,
@@ -670,24 +750,6 @@ def write_single_partition(
     -------
     An empty :class:`~kartothek.io_components.metapartition.MetaPartition` referencing the new files
     """
-    if metadata is not None:
-        warnings.warn(
-            "The keyword `metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if overwrite is not False:
-        warnings.warn(
-            "The keyword `overwrite` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if metadata_merger is not None:
-        warnings.warn(
-            "The keyword `metadata_merger` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
     if data is None:
         raise TypeError("The parameter `data` is not optional")
     _, ds_metadata_version, partition_on = validate_partition_keys(
@@ -715,6 +777,17 @@ def write_single_partition(
 
 @default_docs
 @normalize_args
+@deprecate_parameters_if_set(
+    get_parameter_type_change_deprecation_warning(
+        from_type="Optional[ParquetSerializer]", to_type="Optional[DataFrameSerializer]"
+    ),
+    "df_serializer",
+)
+@deprecate_parameters_if_set(
+    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    "central_partition_metadata",
+    "load_dynamic_metadata",
+)
 def update_dataset_from_dataframes(
     df_list: List[Union[pd.DataFrame, Dict[str, pd.DataFrame]]],
     store: Optional[KeyValueStore] = None,
@@ -749,18 +822,6 @@ def update_dataset_from_dataframes(
     --------
     :ref:`mutating_datasets`
     """
-    if load_dynamic_metadata is not True:
-        warnings.warn(
-            "The keyword `load_dynamic_metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
-    if central_partition_metadata is not True:
-        warnings.warn(
-            "The keyword `central_partition_metadata` has no use and will be removed in the next major release ",
-            DeprecationWarning,
-        )
-
     ds_factory, metadata_version, partition_on = validate_partition_keys(
         dataset_uuid=dataset_uuid,
         store=store,

@@ -6,6 +6,10 @@ from typing import TYPE_CHECKING, Any, Optional, TypeVar, cast
 from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
 from kartothek.core.typing import StoreInput
 from kartothek.core.utils import lazy_store
+from kartothek.utils.migration_helpers import (
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+)
 
 if TYPE_CHECKING:
     from simplekv import KeyValueStore
@@ -22,6 +26,12 @@ class DatasetFactory(DatasetMetadataBase):
 
     _nullable_attributes = ["_cache_metadata", "_cache_store"]
 
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "load_dataset_metadata",
+    )
     def __init__(
         self,
         dataset_uuid: str,
@@ -148,6 +158,12 @@ class DatasetFactory(DatasetMetadataBase):
         self._cache_metadata = self.dataset_metadata.load_index(column, self.store)
         return self
 
+    @deprecate_parameters_if_set(
+        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+            deprecated_in="5.3", removed_in="6.0"
+        ),
+        "load_partition_indices",
+    )
     def load_all_indices(
         self: T, store: Any = None, load_partition_indices: bool = True,
     ) -> T:
@@ -161,6 +177,12 @@ class DatasetFactory(DatasetMetadataBase):
         return self
 
 
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "load_dataset_metadata",
+)
 def _ensure_factory(
     dataset_uuid: Optional[str],
     store: Optional[StoreInput],

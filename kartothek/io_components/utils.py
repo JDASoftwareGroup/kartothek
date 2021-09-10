@@ -6,13 +6,19 @@ import inspect
 import logging
 from typing import Dict, Iterable, List, Optional, TypeVar, Union, overload
 
-import decorator
+import deprecation
 import pandas as pd
+from decorator import decorator
 
 from kartothek.core.dataset import DatasetMetadata, DatasetMetadataBase
 from kartothek.core.factory import _ensure_factory
 from kartothek.core.typing import StoreFactory, StoreInput
 from kartothek.core.utils import ensure_store, lazy_store
+from kartothek.utils.migration_helpers import (
+    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+    deprecate_parameters_if_set,
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+)
 
 try:
     from typing_extensions import Literal  # type: ignore
@@ -159,6 +165,12 @@ def _ensure_valid_indices(mp_indices, secondary_indices=None, data=None):
             )
 
 
+@deprecate_parameters_if_set(
+    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        deprecated_in="5.3", removed_in="6.0"
+    ),
+    "load_dataset_metadata",
+)
 def validate_partition_keys(
     dataset_uuid,
     store,
@@ -281,7 +293,7 @@ def normalize_arg(arg_name, old_value):
     return old_value
 
 
-@decorator.decorator
+@decorator
 def normalize_args(function, *args, **kwargs):
     sig = signature(function)
 
@@ -406,6 +418,11 @@ def sort_values_categorical(
     return df.sort_values(by=columns).reset_index(drop=True)
 
 
+@deprecation.deprecated(
+    deprecated_in="5.3",
+    removed_in="6.0",
+    details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+)
 def check_single_table_dataset(dataset, expected_table=None):
     """
     Raise if the given dataset is not a single-table dataset.
