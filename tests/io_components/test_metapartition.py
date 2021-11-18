@@ -8,6 +8,7 @@ from datetime import date, datetime
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
+import pyarrow as pa
 import pytest
 
 from kartothek.core.common_metadata import make_meta, store_schema_metadata
@@ -270,7 +271,13 @@ def test_load_dataframes_columns_raises_missing(
             tables=["PRED"],
             columns={"PRED": ["P", "L", "HORIZON", "foo", "bar"]},
         )
-    assert str(e.value) == "Columns cannot be found in stored dataframe: bar, foo"
+
+    error_message = str(e.value)
+
+    if pa.__version__ < "4.0.0":
+        assert error_message == "Columns cannot be found in stored dataframe: bar, foo"
+    else:
+        assert error_message.startswith("No match for FieldRef.Name(foo) in")
 
 
 def test_load_dataframes_columns_table_missing(
