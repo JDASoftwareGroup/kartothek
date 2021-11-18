@@ -3,6 +3,11 @@ Changelog
 =========
 
 
+Version 5.2.0 (2021-11-19)
+==========================
+* Remove support for Python 3.6
+
+
 Version 5.1.0 (2021-07-05)
 ==========================
 * Add :meth:`~kartothek.io.eager.copy_dataset` to copy and optionally rename datasets within one store or between stores (eager only)
