@@ -18,7 +18,7 @@ To get started with conda, install conda according to the official guide, set up
 requirements.
 
 ```bash
-conda create --name conda_kartothek python=3.6
+conda create --name conda_kartothek python=3.7
 conda activate conda_kartothek
 conda install pip
 pip install -e .
@@ -38,7 +38,7 @@ not support pip.
 To get started with pip, set up a new virtual environment and install all requirements.
 
 ```bash
-virtualenv kartothek-dev --python=python3.6
+virtualenv kartothek-dev --python=python3.7
 source kartothek-dev/bin/activate
 pip install -e .
 pip install -r test-requirements.txt
