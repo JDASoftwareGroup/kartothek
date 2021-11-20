@@ -20,6 +20,7 @@ on:
 jobs:
   build:
     strategy:
+      fail-fast: false
       matrix:
         numfocus_nightly: [false]
         os: ["ubuntu-latest"]
