@@ -3,7 +3,7 @@ Changelog
 =========
 
 
-Version 5.2.0 (2021-11-19)
+Version 5.2.0 (2021-11-22)
 ==========================
 * Remove support for Python 3.6
 * Allow ``pyarrow<7`` as a dependency.
