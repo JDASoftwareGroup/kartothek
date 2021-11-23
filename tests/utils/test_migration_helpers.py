@@ -9,6 +9,7 @@ from kartothek.utils.migration_helpers import (
     DEPRECATION_WARNING_REMOVE_DICT_MULTI_TABLE_GENERIC_VERSION,
     DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
     DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    _WarningActuator,
     deprecate_parameters,
     deprecate_parameters_if_set,
     get_deprecation_warning_parameter_waning_non_optional_specific_version,
@@ -71,6 +72,35 @@ def default_function_deprecation_texts_specific(request) -> Callable:
     return request.param
 
 
+@deprecate_parameters_if_set("bla3 {parameter}", "param3")
+@deprecate_parameters("bla4 {parameter}", "param4")
+def func_non_optional_params_multiple_params_stacked_nested_counterpart(
+    param3: int, param4: int
+) -> Tuple[int, int]:
+    return param3, param4
+
+
+@deprecate_parameters("bla6 {parameter}", "param6")
+@deprecate_parameters_if_set("bla5 {parameter}", "param5")
+def func_non_optional_params_multiple_params_stacked_nested_counterpart_inverse(
+    param5: int, param6: int
+) -> Tuple[int, int]:
+    return param5, param6
+
+
+@pytest.fixture(
+    scope="class",
+    params=[
+        func_non_optional_params_multiple_params_stacked_nested_counterpart,
+        func_non_optional_params_multiple_params_stacked_nested_counterpart_inverse,
+    ],
+)
+def func_non_optional_params_multiple_params_stacked_nested_counterparts(
+    request,
+) -> Callable:
+    return request.param
+
+
 @deprecate_parameters(MESSAGE, "param1")
 def func_non_optional_params_one_param(param1: int):
     return param1
@@ -90,6 +120,22 @@ def func_non_optional_params_multiple_params_stacked(
     param1: int, param2: int, param3: int
 ) -> Tuple[int, int, int]:
     return param1, param2, param3
+
+
+@deprecate_parameters_if_set("bla1 {parameter}", "param1")
+@deprecate_parameters("bla2 {parameter}", "param2")
+def func_non_optional_params_multiple_params_stacked_nested(
+    func, param1: int, param2: int
+) -> Tuple[int, int]:
+    return func(param1, param2)
+
+
+@deprecate_parameters("bla2 {parameter}", "param2")
+@deprecate_parameters_if_set("bla1 {parameter}", "param1")
+def func_non_optional_params_multiple_params_stacked_nested_inverse(
+    func, param1: int, param2: int
+) -> Tuple[int, int]:
+    return func(param1, param2)
 
 
 @deprecate_parameters("bla1 {parameter}", "param1")
@@ -218,6 +264,44 @@ def test_deprecate_parameter_stacked_inverse():
             param1: int, param2: int, param3: int
         ) -> Tuple[int, int, int]:
             return param1, param2, param3
+
+
+def test_deprecate_parameter_stacked_nested(
+    func_non_optional_params_multiple_params_stacked_nested_counterparts,
+):
+    # check: Only the first stacked deprecator construct in the callstack should raise warnings.
+    with pytest.warns(DeprecationWarning,) as warn_record:
+        result = func_non_optional_params_multiple_params_stacked_nested(
+            func_non_optional_params_multiple_params_stacked_nested_counterparts, 0, 1,
+        )
+
+    # ensures, that the second - nested - deprecator construct does not raise warnings
+    assert len(warn_record) == 2
+    messages = ["bla1 param1", "bla2 param2"]
+    for i, message in enumerate(messages):
+        assert message in warn_record[i].message.args[0]
+    # ensure singleton state has been cleared
+    assert _WarningActuator().outermost_deprecator is None
+    assert result == (0, 1)
+
+
+def test_deprecate_parameter_stacked_nested_inverse(
+    func_non_optional_params_multiple_params_stacked_nested_counterparts,
+):
+    # check: Only the first stacked deprecator construct in the callstack should raise warnings.
+    with pytest.warns(DeprecationWarning,) as warn_record:
+        result = func_non_optional_params_multiple_params_stacked_nested_inverse(
+            func_non_optional_params_multiple_params_stacked_nested_counterparts, 0, 1,
+        )
+
+    # ensures, that the second - nested - deprecator construct does not raise warnings
+    assert len(warn_record) == 2
+    messages = ["bla2 param2", "bla1 param1"]
+    for i, message in enumerate(messages):
+        assert message in warn_record[i].message.args[0]
+    # ensure singleton state has been cleared
+    assert _WarningActuator().outermost_deprecator is None
+    assert result == (0, 1)
 
 
 def test_deprecate_optional_parameter_if_set_multi_table():
