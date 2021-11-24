@@ -43,8 +43,9 @@ from kartothek.io_components.write import (
 )
 
 from ...utils.migration_helpers import (
+    deprecate_parameters,
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table,
     get_parameter_default_value_deprecation_warning,
     get_specific_function_deprecation_warning,
     get_specific_function_deprecation_warning_multi_table,
@@ -274,14 +275,14 @@ def _load_and_concat_metapartitions(list_of_mps, *args, **kwargs):
 
 @default_docs
 @normalize_args
-@deprecate_parameters_if_set(
+@deprecate_parameters(
     get_parameter_default_value_deprecation_warning(
-        from_value="False", to_value="True"
+        from_value="False", to_value="True", deprecated_in="5.3", changed_in="6.0"
     ),
     "dates_as_object",
 )
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "tables",
@@ -388,14 +389,14 @@ def read_dataset_as_delayed_metapartitions(
 
 
 @default_docs
-@deprecate_parameters_if_set(
+@deprecate_parameters(
     get_parameter_default_value_deprecation_warning(
-        from_value="False", to_value="True"
+        from_value="False", to_value="True", deprecated_in="5.3", changed_in="6.0"
     ),
     "dates_as_object",
 )
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "tables",

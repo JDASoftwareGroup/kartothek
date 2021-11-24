@@ -61,11 +61,11 @@ from kartothek.serialization import (
     filter_df_from_predicates,
 )
 from kartothek.utils.migration_helpers import (
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
     deprecate_parameters,
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_dict_multi_table_specific_version,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_dict_multi_table,
+    get_deprecation_warning_remove_parameter_multi_table,
     get_parameter_default_value_deprecation_warning,
     get_parameter_generic_replacement_deprecation_warning,
     get_parameter_type_change_deprecation_warning,
@@ -224,20 +224,26 @@ class MetaPartition(Iterable):
     """
 
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "dataset_metadata",
         "metadata",
     )
     @deprecate_parameters_if_set(
-        get_parameter_generic_replacement_deprecation_warning("schema"), "table_meta"
+        get_parameter_generic_replacement_deprecation_warning(
+            replacing_parameter="schema", deprecated_in="5.3", changed_in="6.0"
+        ),
+        "table_meta",
     )
     @deprecate_parameters_if_set(
-        get_parameter_generic_replacement_deprecation_warning("file"), "files"
+        get_parameter_generic_replacement_deprecation_warning(
+            replacing_parameter="file", deprecated_in="5.3", changed_in="6.0"
+        ),
+        "files",
     )
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_dict_multi_table_specific_version(
+        get_deprecation_warning_remove_dict_multi_table(
             deprecated_in="5.3", changed_in="6.0"
         ),
         "data",
@@ -453,16 +459,19 @@ class MetaPartition(Iterable):
 
     @staticmethod
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "dataset_metadata",
     )
     @deprecate_parameters_if_set(
-        get_parameter_generic_replacement_deprecation_warning("schema"), "table_meta"
+        get_parameter_generic_replacement_deprecation_warning(
+            replacing_parameter="schema", deprecated_in="5.3", changed_in="6.0"
+        ),
+        "table_meta",
     )
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_dict_multi_table_specific_version(
+        get_deprecation_warning_remove_dict_multi_table(
             deprecated_in="5.3", changed_in="6.0"
         ),
         "data",
@@ -514,7 +523,7 @@ class MetaPartition(Iterable):
         )
 
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "metadata_merger",
@@ -653,7 +662,7 @@ class MetaPartition(Iterable):
         return split_predicates, has_index_condition
 
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "table",
@@ -703,15 +712,22 @@ class MetaPartition(Iterable):
     @default_docs
     @_apply_to_list
     @deprecate_parameters(
-        get_parameter_default_value_deprecation_warning("False", "True"),
+        get_parameter_default_value_deprecation_warning(
+            from_value="False", to_value="True", deprecated_in="5.3", changed_in="6.0"
+        ),
         "dates_as_object",
     )
     @deprecate_parameters_if_set(
-        get_parameter_type_change_deprecation_warning("StoreInput", "KeyValueStore"),
+        get_parameter_type_change_deprecation_warning(
+            from_type="StoreInput",
+            to_type="KeyValueStore",
+            deprecated_in="5.3",
+            changed_in="6.0",
+        ),
         "store",
     )
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "tables",
@@ -890,13 +906,13 @@ class MetaPartition(Iterable):
         return self
 
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "table",
     )
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_dict_multi_table_specific_version(
+        get_deprecation_warning_remove_dict_multi_table(
             deprecated_in="5.3", changed_in="6.0"
         ),
         "categories",
@@ -1088,7 +1104,7 @@ class MetaPartition(Iterable):
 
     @_apply_to_list
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "store_metadata",
@@ -1204,13 +1220,13 @@ class MetaPartition(Iterable):
 
     @_apply_to_list
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_dict_multi_table_specific_version(
+        get_deprecation_warning_remove_dict_multi_table(
             deprecated_in="5.3", changed_in="6.0"
         ),
         "func",
     )
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "tables",
@@ -1782,8 +1798,7 @@ def partition_labels_from_mps(mps: List[MetaPartition]) -> List[str]:
 
 
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
-    "expected_secondary_indices",
+    DEPRECATION_WARNING_REMOVE_PARAMETER, "expected_secondary_indices",
 )
 def parse_input_to_metapartition(
     obj: MetaPartitionInput,

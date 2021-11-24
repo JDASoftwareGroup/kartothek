@@ -29,10 +29,10 @@ from kartothek.core.urlencode import decode_key, quote_indices
 from kartothek.core.utils import ensure_store, verify_metadata_version
 from kartothek.serialization import PredicatesType, columns_in_predicates
 from kartothek.utils.migration_helpers import (
-    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table,
+    get_generic_function_deprecation_waring,
 )
 
 _logger = logging.getLogger(__name__)
@@ -61,7 +61,7 @@ T = TypeVar("T", bound="DatasetMetadataBase")
 
 class DatasetMetadataBase(CopyMixin):
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "table_meta",
@@ -280,8 +280,7 @@ class DatasetMetadataBase(CopyMixin):
         return self.copy(indices=indices)
 
     @deprecate_parameters_if_set(
-        DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
-        "load_partition_indices",
+        DEPRECATION_WARNING_REMOVE_PARAMETER, "load_partition_indices",
     )
     def load_all_indices(
         self: T, store: StoreInput, load_partition_indices: bool = True
@@ -350,7 +349,9 @@ class DatasetMetadataBase(CopyMixin):
     @deprecation.deprecated(
         deprecated_in="5.3",
         removed_in="6.0",
-        details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+        details=get_generic_function_deprecation_waring(
+            function_name="load_partition_indices"
+        ),
     )
     def load_partition_indices(self: T) -> T:
         """
@@ -717,7 +718,7 @@ class DatasetMetadata(DatasetMetadataBase):
 
 
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "table_meta",
@@ -745,7 +746,7 @@ def _get_type_from_meta(
 
 
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "table_meta",
@@ -761,7 +762,7 @@ def _empty_partition_indices(
 
 
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "table_meta",
@@ -907,7 +908,7 @@ class DatasetMetadataBuilder(CopyMixin):
     """
 
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "table_meta",

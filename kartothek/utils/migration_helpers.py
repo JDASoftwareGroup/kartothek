@@ -6,27 +6,19 @@ from typing import Callable, Optional, Tuple
 # Parameter deprecation messages: Pass these to the parameter deprecators below
 # Inserting the right parameter will be handled automatically.
 
-DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION = (
-    "The `{parameter}` keyword is deprecated and will be removed in the next major release in an effort to remove the "
-    "multi table feature."
-)
-
-DEPRECATION_WARNING_REMOVE_DICT_MULTI_TABLE_GENERIC_VERSION = (
-    "The logic of the`{parameter}` keyword will be changed in the next major release to not accept a dict of values "
-    "anymore in an effort to remove the multi table feature."
-)
+DEPRECATION_WARNING_REMOVE_PARAMETER = "The `{parameter}` keyword is deprecated and will be removed in an upcoming version."
 
 # Do not use with deprecate_parameters_if_set since the warning should implicitly include default value fallbacks
 DEPRECATION_WARNING_PARAMETER_NON_OPTIONAL_GENERIC_VERSION = (
-    "The `{parameter}` keyword will be non-Optional in the next major release."
+    "The `{parameter}` keyword will be non-Optional in an upcoming version."
 )
 
 
-def get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+def get_deprecation_warning_remove_parameter_multi_table(
     deprecated_in: str, removed_in: str
 ) -> str:
     return (
-        "The `{parameter}` keyword is deprecated in veriosn: "
+        "The `{parameter}` keyword is deprecated in version: "
         + deprecated_in
         + " and will be removed in version: "
         + removed_in
@@ -34,69 +26,87 @@ def get_deprecation_warning_remove_parameter_multi_table_feature_specific_versio
     )
 
 
-def get_deprecation_warning_remove_dict_multi_table_specific_version(
+def get_deprecation_warning_remove_dict_multi_table(
     deprecated_in: str, changed_in: str
 ) -> str:
     return (
         "The logic of the`{parameter}` keyword is deprecated since version: "
         + deprecated_in
-        + " and will be "
-        "changed in version: "
+        + " and will be changed in version: "
         + changed_in
-        + " to not accept a dict of values anymore in an effort to remove the multi"
-        " table feature."
+        + " to not accept a dict of values anymore in an effort to remove the multi table feature."
     )
 
 
-def get_deprecation_warning_parameter_waning_non_optional_specific_version(
+def get_deprecation_warning_parameter_non_optional(
     deprecated_in: str, changed_in: str
 ) -> str:
     return (
         "The `{parameter}` keyword is deprecated since version: "
         + deprecated_in
-        + " and will be non-Optional in"
-        " version: " + changed_in + "."
+        + " and will be non-Optional in version: "
+        + changed_in
+        + "."
     )
 
 
-def get_parameter_replaced_by_deprecation_warning(replaced_by: str) -> str:
+def get_parameter_replaced_by_deprecation_warning(
+    replaced_by: str, deprecated_in: str, changed_in: str
+) -> str:
     return (
-        "The `{parameter}` keyword will be replaced by "
+        "The `{parameter}` keyword is deprecated since version: "
+        + deprecated_in
+        + " and will be replaced by "
         + replaced_by
-        + " non-Optional in the next major release."
+        + " in version: "
+        + changed_in
+        + " ."
     )
 
 
 def get_parameter_default_value_deprecation_warning(
-    from_value: str, to_value: str
+    from_value: str, to_value: str, deprecated_in: str, changed_in: str
 ) -> str:
     return (
-        "The default value of the `{parameter}` keyword is deprecated and will be changed from "
+        "The default value of the `{parameter}` keyword is deprecated since version: "
+        + deprecated_in
+        + " and will be changed from "
         + from_value
         + " to "
         + to_value
-        + "in the next major release."
+        + " in version: "
+        + changed_in
+        + " ."
     )
 
 
-def get_parameter_type_change_deprecation_warning(from_type: str, to_type: str) -> str:
+def get_parameter_type_change_deprecation_warning(
+    from_type: str, to_type: str, deprecated_in: str, changed_in: str
+) -> str:
     return (
-        "The type of the `{parameter}` keyword is deprecated and will be changed from "
+        "The type of the `{parameter}` keyword is deprecated since version: "
+        + deprecated_in
+        + " and will be changed from "
         + from_type
         + " to "
         + to_type
-        + "in the next major release."
+        + " in version: "
+        + changed_in
+        + " ."
     )
 
 
 def get_parameter_generic_replacement_deprecation_warning(
-    replacing_parameter: str,
+    replacing_parameter: str, deprecated_in: str, changed_in: str
 ) -> str:
     return (
-        "The `{parameter}` keyword is deprecated and will be replaced by the "
+        "The `{parameter}` keyword is deprecated since version: "
+        + deprecated_in
+        + " and will be replaced by the "
         + replacing_parameter
-        + " parameter "
-        "in the next major release in an effort to remove the multi table feature."
+        + " parameter in version: "
+        + changed_in
+        + " ."
     )
 
 
@@ -107,6 +117,12 @@ def get_parameter_generic_replacement_deprecation_warning(
 DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION = (
     "The `{function}` keyword is deprecated and will be removed."
 )
+
+
+def get_generic_function_deprecation_waring(function_name: str) -> str:
+    return DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION.format(
+        function=function_name
+    )
 
 
 def get_specific_function_deprecation_warning(
@@ -227,6 +243,28 @@ def raise_warning(
 def _make_decorator_stackable(
     wrapper_func: Callable, base_func: Callable, exclude_parameters: Tuple[str],
 ) -> Callable:
+    """
+    Attaches neccessary meta info directly to the decorator function's objects making multiple instance of these
+    deprecation decorators stackable while the parameter check before runtime stays intact.
+    This now also facilitates the Blocking of deprecation warnings in the call hierarchy below another annotated
+    function in order to prevent the raising of deprecation warnings triggered by kartothek internal calls.
+
+    Parameters
+    ----------
+    wraps_func
+        The deprecation decorator's wraps func, that has the first deprecation decprator in the stacked strucure
+        attached as attribute `outermost_stacked_kartothek_deprecator`.
+    base_func
+        The fuction decorated by the individual deprecation decorator. Please note, that this can either be the
+        decorated fuction or another nested decorator.
+    exclude_parameters
+        Tuple of parameter names, that have been handled by other deprecation decorators already.
+
+    Returns
+    -------
+    any
+        Returns the result of `func(*args, **kwargs)`.
+    """
     if hasattr(base_func, "kartothek_deprecation_decorator_params"):
         wrapper_func.kartothek_deprecation_decorator_params = tuple(  # type: ignore
             param
@@ -342,16 +380,21 @@ def deprecate_parameters(warning: str, *parameters: str) -> Callable:
         And note, that the correct call origin can not be returned if this decorator is nested inside others. If you
         absolutely have to use it with other decorators, best add it last.
 
+    ..note:: You may stack `deprecate_parameters` and `deprecate_parameters_if_set` decorators interchanigibly.
+
     Examples
     --------
     >>> from kartothek.utils.migration_helpers import deprecate_parameters
-    >>> @deprecate_parameters('Parameter {parameter} is deprecated!', 'param1', 'param2')
-    ... def func(param1: str, param2: int, param3: float):
-    ...    return param1, param2, param3
+    >>> message = 'Parameter {parameter} is deprecated due to reason X!'
+    >>> message2 = 'Parameter {parameter} is deprecated due to reason Y!'
+    >>> @deprecate_parameters(message, 'param1', 'param2')
+    ... @deprecate_parameters(message2, 'param4')
+    ... def func(param1: str, param2: int, param3: float, param4: float):
+    ...    return param1, param2, param3, param4
     ...
-    >>> # Warnings will be generated for `param1` and `param2`
-    >>> func('example', 0, 5.0)
-    ('example', 0, 5.0)
+    >>> # Warnings will be generated for `param1`, `param2` and `param4` with a different message
+    >>> func('example', 0, 5.0, 10.0)
+    ('example', 0, 5.0, 10.0)
 
     Parameters
     ----------
@@ -414,11 +457,15 @@ def deprecate_parameters_if_set(warning, *parameters: str) -> Callable:
 
     .. note:: Do not decorate parameters hiding behind \\*args or \\*\\*kwargs!
 
+    ..note:: You may stack `deprecate_parameters` and `deprecate_parameters_if_set` decorators interchanigibly.
+
     Examples
     --------
     >>> from kartothek.utils.migration_helpers import deprecate_parameters_if_set
-    >>> message = 'Parameter {parameter} is deprecated!'
-    >>> @deprecate_parameters_if_set(message, 'param2', 'param3', 'param4')
+    >>> message = 'Parameter {parameter} is deprecated due to reason X!'
+    >>> message2 = 'Parameter {parameter} is deprecated due to reason Y!'
+    >>> @deprecate_parameters_if_set(message, 'param2', 'param3')
+    ... @deprecate_parameters_if_set(message2, 'param4')
     ... def func(param1: str, param2: int, param3: float=None, param4: float=None):
     ...     return param1, param2, param3, param4
     ...

@@ -51,11 +51,12 @@ from kartothek.serialization import DataFrameSerializer
 from kartothek.serialization._parquet import ParquetSerializer
 from kartothek.utils.ktk_adapters import get_dataset_keys
 from kartothek.utils.migration_helpers import (
-    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
+    deprecate_parameters,
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_dict_multi_table_specific_version,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_dict_multi_table,
+    get_deprecation_warning_remove_parameter_multi_table,
+    get_generic_function_deprecation_waring,
     get_parameter_default_value_deprecation_warning,
     get_parameter_generic_replacement_deprecation_warning,
     get_parameter_type_change_deprecation_warning,
@@ -113,20 +114,20 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
 
 
 @default_docs
-@deprecate_parameters_if_set(
+@deprecate_parameters(
     get_parameter_default_value_deprecation_warning(
-        from_value="False", to_value="True"
+        from_value="False", to_value="True", deprecated_in="5.3", changed_in="6.0"
     ),
     "dates_as_object",
 )
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_dict_multi_table_specific_version(
+    get_deprecation_warning_remove_dict_multi_table(
         deprecated_in="5.3", changed_in="6.0"
     ),
     "categoricals",
 )
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "tables",
@@ -199,14 +200,14 @@ def read_dataset_as_dataframes(
 
 
 @default_docs
-@deprecate_parameters_if_set(
+@deprecate_parameters(
     get_parameter_default_value_deprecation_warning(
-        from_value="False", to_value="True"
+        from_value="False", to_value="True", deprecated_in="5.3", changed_in="6.0"
     ),
     "dates_as_object",
 )
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "tables",
@@ -294,7 +295,9 @@ def read_dataset_as_metapartitions(
 @deprecation.deprecated(
     deprecated_in="5.3",
     removed_in="6.0",
-    details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+    details=get_generic_function_deprecation_waring(
+        function_name="_check_compatible_list"
+    ),
 )
 def _check_compatible_list(table, obj, argument_name=""):
     if obj is None:
@@ -318,20 +321,20 @@ def _check_compatible_list(table, obj, argument_name=""):
 
 
 @default_docs
-@deprecate_parameters_if_set(
+@deprecate_parameters(
     get_parameter_default_value_deprecation_warning(
-        from_value="False", to_value="True"
+        from_value="False", to_value="True", deprecated_in="5.3", changed_in="6.0"
     ),
     "dates_as_object",
 )
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_dict_multi_table_specific_version(
+    get_deprecation_warning_remove_dict_multi_table(
         deprecated_in="5.3", changed_in="6.0"
     ),
     "categoricals",
 )
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "table",
@@ -425,9 +428,7 @@ def read_table(
 @default_docs
 @normalize_args
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
-    "output_dataset_uuid",
-    "df_serializer",
+    DEPRECATION_WARNING_REMOVE_PARAMETER, "output_dataset_uuid", "df_serializer",
 )
 def commit_dataset(
     store: Optional[StoreInput] = None,
@@ -578,7 +579,10 @@ def _maybe_infer_files_attribute(metapartition, dataset_uuid):
 @normalize_args
 @deprecate_parameters_if_set(
     get_parameter_type_change_deprecation_warning(
-        from_type="Optional[ParquetSerializer]", to_type="Optional[DataFrameSerializer]"
+        from_type="Optional[ParquetSerializer]",
+        to_type="Optional[DataFrameSerializer]",
+        deprecated_in="5.3",
+        changed_in="6.0",
     ),
     "df_serializer",
 )
@@ -630,7 +634,9 @@ def store_dataframes_as_dataset(
 @default_docs
 @normalize_args
 @deprecate_parameters_if_set(
-    get_parameter_generic_replacement_deprecation_warning(replacing_parameter="schema"),
+    get_parameter_generic_replacement_deprecation_warning(
+        replacing_parameter="schema", deprecated_in="5.3", changed_in="6.0"
+    ),
     "table_meta",
 )
 def create_empty_dataset_header(
@@ -698,15 +704,15 @@ def create_empty_dataset_header(
 @normalize_args
 @deprecate_parameters_if_set(
     get_parameter_type_change_deprecation_warning(
-        from_type="Optional[ParquetSerializer]", to_type="Optional[DataFrameSerializer]"
+        from_type="Optional[ParquetSerializer]",
+        to_type="Optional[DataFrameSerializer]",
+        deprecated_in="5.3",
+        changed_in="6.0",
     ),
     "df_serializer",
 )
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
-    "metadata",
-    "overwrite",
-    "metadata_merger",
+    DEPRECATION_WARNING_REMOVE_PARAMETER, "metadata", "overwrite", "metadata_merger",
 )
 def write_single_partition(
     store: Optional[KeyValueStore] = None,
@@ -779,12 +785,15 @@ def write_single_partition(
 @normalize_args
 @deprecate_parameters_if_set(
     get_parameter_type_change_deprecation_warning(
-        from_type="Optional[ParquetSerializer]", to_type="Optional[DataFrameSerializer]"
+        from_type="Optional[ParquetSerializer]",
+        to_type="Optional[DataFrameSerializer]",
+        deprecated_in="5.3",
+        changed_in="6.0",
     ),
     "df_serializer",
 )
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
     "central_partition_metadata",
     "load_dynamic_metadata",
 )
