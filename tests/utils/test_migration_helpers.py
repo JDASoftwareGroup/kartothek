@@ -6,15 +6,15 @@ import pytest
 
 from kartothek.utils.migration_helpers import (
     DEPRECATION_WARNING_PARAMETER_NON_OPTIONAL_GENERIC_VERSION,
-    DEPRECATION_WARNING_REMOVE_DICT_MULTI_TABLE_GENERIC_VERSION,
     DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
     _WarningActuator,
     deprecate_parameters,
     deprecate_parameters_if_set,
-    get_deprecation_warning_parameter_waning_non_optional_specific_version,
-    get_deprecation_warning_remove_dict_multi_table_specific_version,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_parameter_non_optional,
+    get_deprecation_warning_remove_dict_multi_table,
+    get_deprecation_warning_remove_parameter_multi_table,
+    get_generic_function_deprecation_waring,
     get_parameter_default_value_deprecation_warning,
     get_parameter_generic_replacement_deprecation_warning,
     get_parameter_replaced_by_deprecation_warning,
@@ -29,8 +29,7 @@ MESSAGE = "Parameter {parameter} is deprecated!"
 @pytest.fixture(
     scope="class",
     params=[
-        DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
-        DEPRECATION_WARNING_REMOVE_DICT_MULTI_TABLE_GENERIC_VERSION,
+        DEPRECATION_WARNING_REMOVE_PARAMETER,
         DEPRECATION_WARNING_PARAMETER_NON_OPTIONAL_GENERIC_VERSION,
     ],
 )
@@ -47,10 +46,18 @@ def default_function_deprecation_texts_generic(request) -> str:
 
 @pytest.fixture(
     scope="class",
+    params=[get_generic_function_deprecation_waring(function_name="test_func")],
+)
+def default_deprecation_texts_generic(request) -> str:
+    return request.param
+
+
+@pytest.fixture(
+    scope="class",
     params=[
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
-        get_deprecation_warning_remove_dict_multi_table_specific_version,
-        get_deprecation_warning_parameter_waning_non_optional_specific_version,
+        get_deprecation_warning_remove_parameter_multi_table,
+        get_deprecation_warning_remove_dict_multi_table,
+        get_deprecation_warning_parameter_non_optional,
         get_parameter_replaced_by_deprecation_warning,
         get_parameter_default_value_deprecation_warning,
         get_parameter_type_change_deprecation_warning,
@@ -224,7 +231,7 @@ def test_deprecate_parameter_multi_table():
 
 def test_deprecate_parameter_stacked():
     # check: raise if used without kwargs
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_non_optional_params_multiple_params_stacked(0, 1, 2)
 
     assert len(warn_record) == 3
@@ -246,7 +253,7 @@ def test_deprecate_parameter_stacked():
 
 def test_deprecate_parameter_stacked_inverse():
     # check: raise if used without kwargs
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_non_optional_params_multiple_params_stacked_inverse(0, 1, 2)
 
     assert len(warn_record) == 3
@@ -270,7 +277,7 @@ def test_deprecate_parameter_stacked_nested(
     func_non_optional_params_multiple_params_stacked_nested_counterparts,
 ):
     # check: Only the first stacked deprecator construct in the callstack should raise warnings.
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_non_optional_params_multiple_params_stacked_nested(
             func_non_optional_params_multiple_params_stacked_nested_counterparts, 0, 1,
         )
@@ -289,7 +296,7 @@ def test_deprecate_parameter_stacked_nested_inverse(
     func_non_optional_params_multiple_params_stacked_nested_counterparts,
 ):
     # check: Only the first stacked deprecator construct in the callstack should raise warnings.
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_non_optional_params_multiple_params_stacked_nested_inverse(
             func_non_optional_params_multiple_params_stacked_nested_counterparts, 0, 1,
         )
@@ -342,25 +349,25 @@ def test_deprecate_optional_parameter_if_set_multi_table():
     assert result == (0, None, None)
 
     # check: raise if used without kwargs
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_optional_params_multiple_params(0, 1, 2)
     assert len(warn_record) == 2
     assert result == (0, 1, 2)
 
     # check: raise if used with kwargs
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_optional_params_multiple_params(0, param2=1, param3=2)
     assert len(warn_record) == 2
     assert result == (0, 1, 2)
 
     # check: raise mixed if used without kwargs
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_optional_params_mixed_optional(0, 1)
     assert len(warn_record) == 2
     assert result == (0, 1)
 
     # check: raise mixed if used without kwargs
-    with pytest.warns(DeprecationWarning,) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         result = func_optional_params_mixed_optional(param1=0, param2=1)
     assert len(warn_record) == 2
     assert result == (0, 1)
@@ -394,9 +401,7 @@ def test_default_deprecation_warning_texts_specific_version(
     def func_test_raise_unparametrized_decorator(param1: int) -> int:
         return param1
 
-    with pytest.warns(
-        DeprecationWarning, match=".*" + ".*".join(strings) + ".*"
-    ) as warn_record:
+    with pytest.warns(DeprecationWarning) as warn_record:
         func_test_raise_unparametrized_decorator(1)
 
     assert len(warn_record) == 1
@@ -410,6 +415,10 @@ def test_default_function_deprecation_warning_texts_generic_version(
     default_function_deprecation_texts_generic: str,
 ):
     assert "{function}" in default_function_deprecation_texts_generic
+
+
+def test_generic_deprecation_warning(default_deprecation_texts_generic: str):
+    assert type(default_deprecation_texts_generic) == str
 
 
 @pytest.fixture(

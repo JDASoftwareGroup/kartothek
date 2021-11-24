@@ -46,9 +46,10 @@ from kartothek.io_components.write import (
 from kartothek.serialization import DataFrameSerializer, PredicatesType
 
 from ...utils.migration_helpers import (
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
+    deprecate_parameters,
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table,
     get_parameter_default_value_deprecation_warning,
 )
 from ._shuffle import shuffle_store_dask_partitions
@@ -66,14 +67,14 @@ __all__ = (
 
 @default_docs
 @normalize_args
-@deprecate_parameters_if_set(
+@deprecate_parameters(
     get_parameter_default_value_deprecation_warning(
-        from_value="False", to_value="True"
+        from_value="False", to_value="True", deprecated_in="5.3", changed_in="6.0"
     ),
     "dates_as_object",
 )
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
     "concat_partitions_on_primary_index",
     "label_filter",
 )
@@ -280,8 +281,7 @@ def _shuffle_docs(func):
 @default_docs
 @_shuffle_docs
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER_MULTI_TABLE_FEATURE_GENERIC_VERSION,
-    "delete_scope",
+    DEPRECATION_WARNING_REMOVE_PARAMETER, "delete_scope",
 )
 def store_dataset_from_ddf(
     ddf: dd.DataFrame,
@@ -483,7 +483,7 @@ def update_dataset_from_ddf(
 @default_docs
 @normalize_args
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "table_name",

@@ -7,9 +7,7 @@ from kartothek.core.dataset import DatasetMetadata
 from kartothek.core.typing import StoreInput
 from kartothek.core.utils import ensure_store
 from kartothek.io_components.metapartition import MetaPartition
-from kartothek.utils.migration_helpers import (
-    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
-)
+from kartothek.utils.migration_helpers import get_generic_function_deprecation_waring
 
 LOGGER = logging.getLogger(__name__)
 
@@ -22,7 +20,7 @@ except ImportError:
 @deprecation.deprecated(
     deprecated_in="5.3",
     removed_in="6.0",
-    details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+    details=get_generic_function_deprecation_waring(function_name="align_datasets"),
 )
 def align_datasets(
     left_dataset_uuid: str,

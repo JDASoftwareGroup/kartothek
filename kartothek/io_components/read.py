@@ -14,13 +14,13 @@ from kartothek.serialization import (
 )
 from kartothek.utils.migration_helpers import (
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table,
 )
 
 
 @overload
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "label_filter",
@@ -42,7 +42,7 @@ def dispatch_metapartitions_from_factory(
 
 @overload
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "label_filter",
@@ -64,7 +64,7 @@ def dispatch_metapartitions_from_factory(
 
 @normalize_args
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "label_filter",
@@ -179,7 +179,7 @@ def dispatch_metapartitions_from_factory(
 
 
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "load_dataset_metadata",

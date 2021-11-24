@@ -15,9 +15,9 @@ from kartothek.core.factory import _ensure_factory
 from kartothek.core.typing import StoreFactory, StoreInput
 from kartothek.core.utils import ensure_store, lazy_store
 from kartothek.utils.migration_helpers import (
-    DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table,
+    get_generic_function_deprecation_waring,
 )
 
 try:
@@ -166,7 +166,7 @@ def _ensure_valid_indices(mp_indices, secondary_indices=None, data=None):
 
 
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "load_dataset_metadata",
@@ -421,7 +421,9 @@ def sort_values_categorical(
 @deprecation.deprecated(
     deprecated_in="5.3",
     removed_in="6.0",
-    details=DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION,
+    details=get_generic_function_deprecation_waring(
+        function_name="check_single_table_dataset"
+    ),
 )
 def check_single_table_dataset(dataset, expected_table=None):
     """

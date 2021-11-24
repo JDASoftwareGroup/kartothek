@@ -8,7 +8,7 @@ from kartothek.core.typing import StoreInput
 from kartothek.core.utils import lazy_store
 from kartothek.utils.migration_helpers import (
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table,
 )
 
 if TYPE_CHECKING:
@@ -27,7 +27,7 @@ class DatasetFactory(DatasetMetadataBase):
     _nullable_attributes = ["_cache_metadata", "_cache_store"]
 
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "load_dataset_metadata",
@@ -159,7 +159,7 @@ class DatasetFactory(DatasetMetadataBase):
         return self
 
     @deprecate_parameters_if_set(
-        get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+        get_deprecation_warning_remove_parameter_multi_table(
             deprecated_in="5.3", removed_in="6.0"
         ),
         "load_partition_indices",
@@ -178,7 +178,7 @@ class DatasetFactory(DatasetMetadataBase):
 
 
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "load_dataset_metadata",

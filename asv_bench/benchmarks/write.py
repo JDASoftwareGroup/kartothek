@@ -15,14 +15,14 @@ from kartothek.io_components.write import (
 )
 from kartothek.utils.migration_helpers import (
     deprecate_parameters_if_set,
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version,
+    get_deprecation_warning_remove_parameter_multi_table,
 )
 
 from .config import AsvBenchmarkConfig
 
 
 @deprecate_parameters_if_set(
-    get_deprecation_warning_remove_parameter_multi_table_feature_specific_version(
+    get_deprecation_warning_remove_parameter_multi_table(
         deprecated_in="5.3", removed_in="6.0"
     ),
     "dataset_metadata",
