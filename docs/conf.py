@@ -134,7 +134,5 @@ reftarget_replace = {
     "kartothek.serialization._parquet": "kartothek.serialization",
 }
 
-# In particular the deprecation warning in DatasetMetadata.table_schema is
-# raising too many warning to handle sensibly using ipython directive pseudo
-# decorators. Remove this with 4.X again
+# Revert to True in Kartothek 6.0! This excepts the newly added deprecation warnings for the migration effort.
 ipython_warning_is_error = False
