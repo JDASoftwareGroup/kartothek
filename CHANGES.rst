@@ -2,9 +2,10 @@
 Changelog
 =========
 
-Version 5.3.0 (2021-11-26)
+Version 5.3.0 (2021-12-10)
 ==========================
 * Add Deprecation warnings and migration helpers in order to facilitate the Kartothek version 6.0.0 migration.
+* Removed warning for distinct categoricals (#501)
 
 
 Version 5.2.0 (2021-11-22)

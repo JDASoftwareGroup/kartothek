@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 
-import warnings
 from functools import partial
 
 import pandas as pd
@@ -11,8 +10,6 @@ try:
     from cytoolz import map
 except ImportError:
     pass
-
-CATEGORICAL_EFFICIENCY_WARN_LIMIT = 100000
 
 
 def _identity():
@@ -49,12 +46,6 @@ def _cast_categorical_to_index_cat(df, categories):
 def _construct_categorical(column, dataset_metadata_factory):
     dataset_metadata = dataset_metadata_factory.load_index(column)
     values = dataset_metadata.indices[column].index_dct.keys()
-    if len(values) > CATEGORICAL_EFFICIENCY_WARN_LIMIT:
-        warnings.warn(
-            "Column {} has {} distinct values, reading as categorical may increase memory consumption.",
-            column,
-            len(values),
-        )
     return pd.api.types.CategoricalDtype(values, ordered=False)
 
 
