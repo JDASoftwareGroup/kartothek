@@ -18,7 +18,7 @@ def setup_package():
         install_requires=get_install_requirements("requirements.txt"),
         tests_require=get_install_requirements("test-requirements.txt"),
         packages=find_packages(exclude=["tests*"]),
-        license='MIT',
+        license="MIT",
         classifiers=[
             "Development Status :: 5 - Production/Stable",
             "Programming Language :: Python",
