@@ -93,7 +93,7 @@ def delete_dataset(dataset_uuid=None, store=None, factory=None):
         load_schema=False,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     # Remove possibly unreferenced files
@@ -262,7 +262,7 @@ def read_dataset_as_metapartitions(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     if len(ds_factory.tables) > 1:
@@ -392,7 +392,7 @@ def read_table(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
     partitions = read_dataset_as_dataframes(
         tables=[table],
@@ -888,7 +888,7 @@ def build_dataset_indices(store, dataset_uuid, columns, factory=None):
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     cols_to_load = {
@@ -931,7 +931,7 @@ def garbage_collect_dataset(dataset_uuid=None, store=None, factory=None):
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     nested_files = dispatch_files_to_gc(

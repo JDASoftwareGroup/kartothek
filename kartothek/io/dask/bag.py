@@ -219,7 +219,7 @@ def read_dataset_as_dataframe_bag(
         categoricals=categoricals,
         label_filter=label_filter,
         dates_as_object=dates_as_object,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
         predicates=predicates,
         dispatch_by=dispatch_by,
         partition_size=partition_size,
@@ -318,7 +318,7 @@ def build_dataset_indices__bag(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     cols_to_load = {

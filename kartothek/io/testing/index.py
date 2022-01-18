@@ -183,3 +183,33 @@ def test_empty_partitions(store_factory, metadata_version, bound_build_dataset_i
     # Assert indices are properly created
     dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
     assert_index_dct_equal(expected, dataset_factory.indices["p"].index_dct)
+
+
+def test_build_indices_doesnot_drop_metadata(
+    store_factory, bound_build_dataset_indices
+):
+    dataset_uuid = "dataset_uuid"
+    partitions = [
+        {"label": "cluster_1", "data": [("core", pd.DataFrame({"p": [1, 2]}))]},
+        {"label": "cluster_2", "data": [("core", pd.DataFrame({"p": [2, 3]}))]},
+    ]
+
+    dataset = store_dataframes_as_dataset(
+        dfs=partitions,
+        store=store_factory,
+        dataset_uuid=dataset_uuid,
+        metadata={"test_key": {"key": "some_val"}},
+    )
+    dataset = dataset.load_all_indices(store=store_factory)
+    assert not dataset.indices
+
+    # Create indices
+    bound_build_dataset_indices(store_factory, dataset_uuid, columns=["p"])
+
+    dataset_factory = DatasetFactory(dataset_uuid, store_factory, load_all_indices=True)
+    # Assert metadata is not lost
+    actual_metadata = dataset_factory.dataset_metadata.metadata
+    # Don't check creation_time
+    actual_metadata.pop("creation_time", None)
+    expected_metadata = {"test_key": {"key": "some_val"}}
+    assert actual_metadata == expected_metadata

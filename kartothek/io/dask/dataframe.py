@@ -123,7 +123,7 @@ def read_dataset_as_ddf(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     if len(ds_factory.tables) > 1:
@@ -546,7 +546,7 @@ def collect_dataset_metadata(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     mps = list(
@@ -625,7 +625,7 @@ def hash_dataset(
         dataset_uuid=dataset_uuid,
         store=store,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
 
     columns = subset

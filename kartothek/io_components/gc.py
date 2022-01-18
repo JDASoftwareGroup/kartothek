@@ -10,7 +10,7 @@ def dispatch_files_to_gc(dataset_uuid, store_factory, chunk_size, factory):
         dataset_uuid=dataset_uuid,
         store=store_factory,
         factory=factory,
-        load_dataset_metadata=False,
+        load_dataset_metadata=True,
     )
     dataset_uuid = dataset_uuid or ds_factory.uuid
 
