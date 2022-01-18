@@ -417,6 +417,13 @@ def _ensure_type_stability(
         )
     return array_like, value
 
+def logical_and(comparison, mask, out):
+    # To conform pandas behavior to numpy behavior, force any NA values
+    # to be `False`, ie differ from `value`
+    if isinstance(comparison, pd.api.extensions.ExtensionArray):
+        res = comparison.fillna(False)
+
+    np.logical_and(comparison, mask, out=out)
 
 def filter_array_like(
     array_like,
@@ -465,7 +472,7 @@ def filter_array_like(
     # In the case of an empty list, don't bother with evaluating types, etc.
     if is_list_like(value) and len(value) == 0:
         false_arr = np.zeros(len(array_like), dtype=bool)
-        np.logical_and(false_arr, mask, out=out)
+        logical_and(false_arr, mask, out=out)
         return out
 
     require_ordered = "<" in op or ">" in op
@@ -476,22 +483,22 @@ def filter_array_like(
     with np.errstate(invalid="ignore"):
         if op == "==":
             if pd.isnull(value):
-                np.logical_and(pd.isnull(array_like), mask, out=out)
+                logical_and(pd.isnull(array_like), mask, out=out)
             else:
-                np.logical_and(array_like == value, mask, out=out)
+                logical_and(array_like == value, mask, out=out)
         elif op == "!=":
             if pd.isnull(value):
-                np.logical_and(~pd.isnull(array_like), mask, out=out)
+                logical_and(~pd.isnull(array_like), mask, out=out)
             else:
-                np.logical_and(array_like != value, mask, out=out)
+                logical_and(array_like != value, mask, out=out)
         elif op == "<=":
-            np.logical_and(array_like <= value, mask, out=out)
+            logical_and(array_like <= value, mask, out=out)
         elif op == ">=":
-            np.logical_and(array_like >= value, mask, out=out)
+            logical_and(array_like >= value, mask, out=out)
         elif op == "<":
-            np.logical_and(array_like < value, mask, out=out)
+            logical_and(array_like < value, mask, out=out)
         elif op == ">":
-            np.logical_and(array_like > value, mask, out=out)
+            logical_and(array_like > value, mask, out=out)
         elif op == "in":
             value = np.asarray(value)
             nullmask = pd.isnull(value)
@@ -520,7 +527,7 @@ def filter_array_like(
             if any(nullmask):
                 matching_idx |= pd.isnull(array_like)
 
-            np.logical_and(
+            logical_and(
                 matching_idx, mask, out=out,
             )
         else:
