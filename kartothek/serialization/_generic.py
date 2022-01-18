@@ -419,7 +419,7 @@ def _ensure_type_stability(
 
 def logical_and(comparison, mask, out):
     # To conform pandas behavior to numpy behavior, force any NA values
-    # to be `False`, ie differ from `value`
+    # to be `False`, ie differ from `value` whenever compared
     if isinstance(comparison, pd.api.extensions.ExtensionArray):
         res = comparison.fillna(False)
 
