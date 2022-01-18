@@ -2,6 +2,11 @@
 Changelog
 =========
 
+Version 5.3.1 (2022-1-18)
+==========================
+* Forced ``pandas.NA`` to always evaluate to ``False`` when compared in :meth:`~kartothek.serialization._generic.filter_array_like`. Stays aligned with numpy semantics.
+
+
 Version 5.3.0 (2021-12-10)
 ==========================
 * Add Deprecation warnings and migration helpers in order to facilitate the Kartothek version 6.0.0 migration.
