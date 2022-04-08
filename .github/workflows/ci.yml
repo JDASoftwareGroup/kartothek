@@ -136,7 +136,7 @@ jobs:
         run: python setup.py sdist bdist_wheel
 
       - name: Codecov
-        uses: codecov/codecov-action@v1.5.2
+        uses: codecov/codecov-action@v3.0.0
         with:
           # NOTE: `token` is not required, because the kartothek repo is public
           file: ./coverage.xml
