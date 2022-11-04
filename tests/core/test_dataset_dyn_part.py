@@ -337,7 +337,7 @@ def test_dask_partitions(metadata_version):
     and check that it can be read with kartothek
     """
     import dask.dataframe
-
+    partition_suffix = "suffix"
     bucket_dir = tempfile.mkdtemp()
     dataset_uuid = "uuid+namespace-attribute12_underscored"
     os.mkdir("{}/{}".format(bucket_dir, dataset_uuid))
@@ -384,6 +384,15 @@ def test_dask_partitions(metadata_version):
 
     metadata.update(expected_partitions)
     metadata.update(expected_tables)
+    store_schema_metadata(
+        make_meta(
+            pd.DataFrame({"location": ["L-0/{}".format(partition_suffix)]}),
+            origin="stored",
+        ),
+        dataset_uuid,
+        store,
+        "core",
+    )
     dmd = DatasetMetadata.load_from_store(dataset_uuid, store)
     actual_partitions = dmd.to_dict()["partitions"]
     # we partition on location ID which has two values
