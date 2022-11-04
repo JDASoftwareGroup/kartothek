@@ -522,7 +522,9 @@ def filter_array_like(
                 matching_idx |= pd.isnull(array_like)
 
             np.logical_and(
-                matching_idx, mask, out=out,
+                matching_idx,
+                mask,
+                out=out,
             )
         else:
             raise NotImplementedError("op not supported")

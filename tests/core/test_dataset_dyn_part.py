@@ -337,6 +337,7 @@ def test_dask_partitions(metadata_version):
     and check that it can be read with kartothek
     """
     import dask.dataframe
+
     partition_suffix = "suffix"
     bucket_dir = tempfile.mkdtemp()
     dataset_uuid = "uuid+namespace-attribute12_underscored"

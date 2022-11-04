@@ -2,6 +2,7 @@ name: kartothek-docs
 channels:
   - conda-forge
 dependencies:
+  - python=3.8
   - dask[dataframe]
   - decorator
   - msgpack-python>=0.5.2
@@ -10,6 +11,7 @@ dependencies:
   - pandas>=0.23.0, !=1.0.0
   - pyarrow>=0.17.1,!=1.0.0, <4
   - simplejson
+  - jinja2<3.1
   - simplekv
   - storefact
   - toolz

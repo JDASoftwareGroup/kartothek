@@ -1,8 +1,8 @@
 import pytest
-from tests.io.cube.utils import wrap_bag_write
 
 from kartothek.io.dask.bag_cube import update_cube_from_bag
 from kartothek.io.testing.update_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_write
 
 
 @pytest.fixture

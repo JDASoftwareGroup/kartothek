@@ -92,7 +92,8 @@ def test_rowgroups_are_applied_when_df_serializer_is_passed_to_extend_cube(
     Test that the dataset is split into row groups depending on the chunk size
     """
     df_extra = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]},
+        columns=["x", "p"],
     )
     result = driver(
         data={"extra": df_extra},
@@ -116,9 +117,14 @@ def test_single_rowgroup_when_df_serializer_is_not_passed_to_extend_cube(
     Test that the dataset has a single row group as default path
     """
     df_extra = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]},
+        columns=["x", "p"],
     )
-    result = driver(data={"extra": df_extra}, cube=existing_cube, store=function_store,)
+    result = driver(
+        data={"extra": df_extra},
+        cube=existing_cube,
+        store=function_store,
+    )
     dataset = result["extra"].load_all_indices(function_store())
 
     part_num_rows = {0: 1, 1: 3}
@@ -138,7 +144,10 @@ def test_compression_is_compatible_on_extend_cube(driver, function_store):
     unnecessarily.
     """
     # Build cube
-    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]},
+        columns=["x", "p"],
+    )
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     build_cube(
         data=df,
@@ -148,7 +157,8 @@ def test_compression_is_compatible_on_extend_cube(driver, function_store):
     )
 
     df_extra = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]},
+        columns=["x", "p"],
     )
     result = driver(
         data={"extra": df_extra},

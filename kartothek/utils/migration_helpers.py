@@ -142,7 +142,9 @@ def get_specific_function_deprecation_warning(
 
 
 def get_specific_function_deprecation_warning_multi_table(
-    function_name: str, deprecated_in: str, removed_in: Optional[str] = None,
+    function_name: str,
+    deprecated_in: str,
+    removed_in: Optional[str] = None,
 ):
     return get_specific_function_deprecation_warning(
         function_name=function_name,
@@ -233,7 +235,9 @@ def raise_warning(
     # gets original trace message if deprecators have been stacked
     warnings.warn(
         _assemble_warning_message(
-            parameter=parameter, message=warning, func_name=func_name,
+            parameter=parameter,
+            message=warning,
+            func_name=func_name,
         ),
         DeprecationWarning,
         stacklevel=stacklevel,
@@ -241,7 +245,9 @@ def raise_warning(
 
 
 def _make_decorator_stackable(
-    wrapper_func: Callable, base_func: Callable, exclude_parameters: Tuple[str],
+    wrapper_func: Callable,
+    base_func: Callable,
+    exclude_parameters: Tuple[str],
 ) -> Callable:
     """
     Attaches neccessary meta info directly to the decorator function's objects making multiple instance of these
@@ -539,9 +545,11 @@ def deprecate_parameters_if_set(warning, *parameters: str) -> Callable:
             else list(inspect.signature(func).parameters.keys())
         )
 
-        parameters_mapping = {  # required for resolving optional parameters being passed as non-kwargs
-            parameter: func_args.index(parameter) for parameter in parameters
-        }
+        parameters_mapping = (
+            {  # required for resolving optional parameters being passed as non-kwargs
+                parameter: func_args.index(parameter) for parameter in parameters
+            }
+        )
         # _make_decorator_stackable required in order to be able to stack multiple of these decorators.
         return _make_decorator_stackable(
             wrapper_func=wraps_func, base_func=func, exclude_parameters=parameters

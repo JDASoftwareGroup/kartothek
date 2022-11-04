@@ -83,7 +83,10 @@ def test_collect_dataset_metadata_predicates_on_index(store_factory):
         data={"P": range(10), "L": ["a", "a", "a", "a", "a", "b", "b", "b", "b", "b"]}
     )
     store_dataframes_as_dataset(
-        store=store_factory, dataset_uuid="dataset_uuid", partition_on=["L"], dfs=[df],
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        partition_on=["L"],
+        dfs=[df],
     )
     predicates = [[("L", "==", "b")]]
 
@@ -211,7 +214,9 @@ def test_collect_dataset_metadata_empty_dataset(store_factory):
         store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"]
     )
     df_stats = collect_dataset_metadata(
-        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        table_name="table",
     ).compute()
     expected = pd.DataFrame(columns=_METADATA_SCHEMA.keys())
     expected = expected.astype(_METADATA_SCHEMA)
@@ -225,7 +230,9 @@ def test_collect_dataset_metadata_concat(store_factory):
         store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"]
     )
     df_stats1 = collect_dataset_metadata(
-        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        table_name="table",
     ).compute()
 
     # Remove all partitions of the dataset
@@ -234,7 +241,9 @@ def test_collect_dataset_metadata_concat(store_factory):
     )
 
     df_stats2 = collect_dataset_metadata(
-        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        table_name="table",
     ).compute()
     pd.concat([df_stats1, df_stats2])
 
@@ -250,7 +259,9 @@ def test_collect_dataset_metadata_delete_dataset(store_factory):
     )
 
     df_stats = collect_dataset_metadata(
-        store=store_factory, dataset_uuid="dataset_uuid", table_name="table",
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        table_name="table",
     ).compute()
     expected = pd.DataFrame(columns=_METADATA_SCHEMA)
     expected = expected.astype(_METADATA_SCHEMA)
@@ -261,7 +272,10 @@ def test_collect_dataset_metadata_fraction_precision(store_factory):
     df = pd.DataFrame(data={"A": range(100), "B": range(100)})
 
     store_dataframes_as_dataset(
-        store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"],
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        dfs=[df],
+        partition_on=["A"],
     )  # Creates 100 partitions
 
     df_stats = collect_dataset_metadata(
@@ -277,7 +291,10 @@ def test_collect_dataset_metadata_at_least_one_partition(store_factory):
     df = pd.DataFrame(data={"A": range(100), "B": range(100)})
 
     store_dataframes_as_dataset(
-        store=store_factory, dataset_uuid="dataset_uuid", dfs=[df], partition_on=["A"],
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        dfs=[df],
+        partition_on=["A"],
     )  # Creates 100 partitions
 
     df_stats = collect_dataset_metadata(
@@ -302,7 +319,9 @@ def test_collect_dataset_metadata_table_without_partition(store_factory):
     )
 
     df_stats = collect_dataset_metadata(
-        store=store_factory, dataset_uuid="dataset_uuid", table_name="table2",
+        store=store_factory,
+        dataset_uuid="dataset_uuid",
+        table_name="table2",
     ).compute()
     actual = df_stats.drop(
         columns=[

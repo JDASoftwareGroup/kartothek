@@ -13,10 +13,10 @@ from kartothek.core.dataset import DatasetMetadata
 
 try:
     # azure-storage-blob < 12
-    from azure.storage.blob import BlockBlobService as _BlockBlobService
     from azure.common import (
         AzureMissingResourceHttpError as _AzureMissingResourceHttpError,
     )
+    from azure.storage.blob import BlockBlobService as _BlockBlobService
 except ImportError:
 
     class _BlockBlobService:  # type: ignore
@@ -32,8 +32,8 @@ except ImportError:
 
 try:
     # azure-storage-blob >= 12
-    from azure.storage.blob import ContainerClient as _ContainerClient
     from azure.core.exceptions import ResourceNotFoundError as _ResourceNotFoundError
+    from azure.storage.blob import ContainerClient as _ContainerClient
 except ImportError:
 
     class _ContainerClient:  # type: ignore

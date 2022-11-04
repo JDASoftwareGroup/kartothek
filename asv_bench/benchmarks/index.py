@@ -60,8 +60,8 @@ class IndexBase(AsvBenchmarkConfig):
 
 class Index(IndexBase):
     params = (
-        [10 * 1, 10 ** 3],  # values
-        [10 * 1, 10 ** 3],  # partitions
+        [10 * 1, 10**3],  # values
+        [10 * 1, 10**3],  # partitions
         [(int, pa.int64())],  # types
     )
     param_names = ["number_values", "number_partitions", "dtype"]
@@ -93,7 +93,7 @@ class Index(IndexBase):
 class SerializeIndex(IndexBase):
     timeout = 180
     params = (
-        [(10 ** 3, 10), (10 ** 4, 100)],  # (values, partitions)
+        [(10**3, 10), (10**4, 100)],  # (values, partitions)
         [(int, pa.int64())],  # types
     )
     param_names = ["number_values__number_partitions", "dtype"]
@@ -117,7 +117,7 @@ class SerializeIndex(IndexBase):
 
 
 class BuildIndex(AsvBenchmarkConfig):
-    params = ([-1, 1], [10 ** 3, 10 ** 4], [10, 100])
+    params = ([-1, 1], [10**3, 10**4], [10, 100])
     param_names = ["cardinality", "num_values", "partitions_to_merge"]
 
     def setup(self, cardinality, num_values, partitions_to_merge):

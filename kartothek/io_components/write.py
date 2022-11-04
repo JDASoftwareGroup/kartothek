@@ -244,7 +244,8 @@ def store_dataset_from_partitions(
 
 
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER, "add_partitions",
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
+    "add_partitions",
 )
 def update_metadata(dataset_builder, metadata_merger, add_partitions, dataset_metadata):
 

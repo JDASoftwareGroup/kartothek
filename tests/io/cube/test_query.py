@@ -1,10 +1,10 @@
 import pytest
-from tests.io.cube.utils import wrap_bag_read, wrap_ddf_read
 
 from kartothek.io.dask.bag_cube import query_cube_bag
 from kartothek.io.dask.dataframe_cube import query_cube_dataframe
 from kartothek.io.eager_cube import query_cube
 from kartothek.io.testing.query_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_read, wrap_ddf_read
 
 
 @pytest.fixture(scope="session")

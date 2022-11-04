@@ -1676,8 +1676,14 @@ def test_parse_input_schema_formats():
 
 def test_get_parquet_metadata(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(
+        label="test_label",
+        data={"core": df},
+    )
+    meta_partition = mp.store_dataframes(
+        store=store,
+        dataset_uuid="dataset_uuid",
+    )
 
     actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
     actual.drop(labels="serialized_size", axis=1, inplace=True)
@@ -1698,8 +1704,14 @@ def test_get_parquet_metadata(store):
 
 def test_get_parquet_metadata_empty_df(store):
     df = pd.DataFrame()
-    mp = MetaPartition(label="test_label", data={"core": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(
+        label="test_label",
+        data={"core": df},
+    )
+    meta_partition = mp.store_dataframes(
+        store=store,
+        dataset_uuid="dataset_uuid",
+    )
 
     actual = meta_partition.get_parquet_metadata(store=store, table_name="core")
     actual.drop(
@@ -1727,7 +1739,10 @@ def test_get_parquet_metadata_empty_df(store):
 
 def test_get_parquet_metadata_row_group_size(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df},)
+    mp = MetaPartition(
+        label="test_label",
+        data={"core": df},
+    )
     ps = ParquetSerializer(chunk_size=5)
 
     meta_partition = mp.store_dataframes(
@@ -1758,8 +1773,14 @@ def test_get_parquet_metadata_row_group_size(store):
 
 def test_get_parquet_metadata_table_name_not_str(store):
     df = pd.DataFrame({"P": np.arange(0, 10), "L": np.arange(0, 10)})
-    mp = MetaPartition(label="test_label", data={"core": df, "another_table": df},)
-    meta_partition = mp.store_dataframes(store=store, dataset_uuid="dataset_uuid",)
+    mp = MetaPartition(
+        label="test_label",
+        data={"core": df, "another_table": df},
+    )
+    meta_partition = mp.store_dataframes(
+        store=store,
+        dataset_uuid="dataset_uuid",
+    )
 
     with pytest.raises(TypeError):
         meta_partition.get_parquet_metadata(

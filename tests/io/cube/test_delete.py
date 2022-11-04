@@ -1,9 +1,9 @@
 import pytest
-from tests.io.cube.utils import wrap_bag_delete
 
 from kartothek.io.dask.bag_cube import delete_cube_bag
 from kartothek.io.eager_cube import delete_cube
 from kartothek.io.testing.delete_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_delete
 
 
 @pytest.fixture

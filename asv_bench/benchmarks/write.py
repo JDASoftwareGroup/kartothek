@@ -55,7 +55,7 @@ def generate_metadata(max_depth=7, num_leafs=5):
 
 class TimeStoreDataset(AsvBenchmarkConfig):
     timeout = 120
-    params = ([10, 10 ** 2, 10 ** 3], [4], [2, 4])
+    params = ([10, 10**2, 10**3], [4], [2, 4])
     param_names = ["num_partitions", "max_depth", "num_leafs"]
 
     def setup(self, num_partitions, max_depth, num_leafs):
@@ -76,7 +76,7 @@ class TimeStoreDataset(AsvBenchmarkConfig):
 
 class TimePersistMetadata(AsvBenchmarkConfig):
     timeout = 240
-    params = [1, 10 ** 2, 10 ** 3]
+    params = [1, 10**2, 10**3]
 
     def setup(self, num_partitions):
         self.store = get_store_from_url("hfs://{}".format(tempfile.mkdtemp()))
