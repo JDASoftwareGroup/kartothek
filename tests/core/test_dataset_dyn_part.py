@@ -3,10 +3,10 @@ import random
 import tempfile
 from urllib.parse import quote
 
+import minimalkv
 import numpy as np
 import pandas as pd
 import simplejson
-import storefact
 
 from kartothek.core.common_metadata import (
     _get_common_metadata_key,
@@ -344,7 +344,7 @@ def test_dask_partitions(metadata_version):
     os.mkdir("{}/{}".format(bucket_dir, dataset_uuid))
     table_dir = "{}/{}/core".format(bucket_dir, dataset_uuid)
     os.mkdir(table_dir)
-    store = storefact.get_store_from_url("hfs://{}".format(bucket_dir))
+    store = minimalkv.get_store_from_url("hfs://{}".format(bucket_dir))
 
     locations = ["L-{}".format(i) for i in range(2)]
     df = pd.DataFrame()

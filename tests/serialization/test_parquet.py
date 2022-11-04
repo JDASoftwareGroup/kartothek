@@ -1,12 +1,12 @@
 import os
 from datetime import date, datetime
 
+import minimalkv
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
-import storefact
 from pyarrow.parquet import ParquetFile
 
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
@@ -27,7 +27,7 @@ def reference_store():
         "reference-data",
         "pyarrow-bugs",
     )
-    return storefact.get_store_from_url("hfs://{}".format(path))
+    return minimalkv.get_store_from_url("hfs://{}".format(path))
 
 
 def test_timestamp_us(store):

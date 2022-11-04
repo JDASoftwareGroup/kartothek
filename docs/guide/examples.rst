@@ -8,7 +8,7 @@ Setup a store
     from tempfile import TemporaryDirectory
 
     # You can, of course, also directly use S3, ABS or anything else
-    # supported by :mod:`storefact`
+    # supported by :mod:`minimalkv`
     dataset_dir = TemporaryDirectory()
     store_url = f"hfs://{dataset_dir.name}"
 

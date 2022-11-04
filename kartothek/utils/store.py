@@ -1,13 +1,13 @@
 """
-Workarounds for limitations of the simplekv API.
+Workarounds for limitations of the minimalkv API.
 """
 import logging
 import time
 from typing import Callable, Dict, Iterable, Optional, Union
 from urllib.parse import quote
 
-from simplekv import KeyValueStore
-from simplekv.contrib import VALID_KEY_RE_EXTENDED
+from minimalkv import KeyValueStore
+from minimalkv.contrib import VALID_KEY_RE_EXTENDED
 
 from kartothek.core.dataset import DatasetMetadata
 
@@ -218,9 +218,9 @@ def _copy_naive(
     key_mappings: Dict[str, str]
         Mapping of source key names to target key names. May be equal if a key will
         not be renamed.
-    src_store: simplekv.KeyValueStore
+    src_store: minimalkv.KeyValueStore
         Source KV store–
-    tgt_store: simplekv.KeyValueStore
+    tgt_store: minimalkv.KeyValueStore
         Target KV store
     md_transformed: Dict[str, DatasetMetadata]
         Mapping containing {target dataset uuid: modified target metadata} values which will be written
@@ -246,9 +246,9 @@ def copy_rename_keys(
     ----------
     key_mappings: Dict[str, str]
         Dict with {old key: new key} mappings to rename keys during copying
-    src_store: simplekv.KeyValueStore
+    src_store: minimalkv.KeyValueStore
         Source KV store.
-    tgt_store: simplekv.KeyValueStore
+    tgt_store: minimalkv.KeyValueStore
         Target KV store.
     md_transformed:
         Mapping of the new target dataset uuid to the new and potentially renamed metadata of the copied dataset.
@@ -272,9 +272,9 @@ def copy_keys(
     ----------
     keys: Iterable[str]
         Set of keys to copy without renaming;
-    src_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    src_store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Source KV store.
-    tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    tgt_store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Target KV store.
     """
     if callable(src_store):

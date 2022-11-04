@@ -30,7 +30,7 @@ first and store the data there with Kartothek:
     import pandas as pd
     from functools import partial
     from tempfile import TemporaryDirectory
-    from storefact import get_store_from_url
+    from minimalkv import get_store_from_url
 
     from kartothek.api.dataset import store_dataframes_as_dataset
 

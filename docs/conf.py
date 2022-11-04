@@ -109,13 +109,11 @@ nitpick_ignore = [
 
 intersphinx_mapping = {
     "pandas": ("https://pandas.pydata.org/docs/", None),
-    "simplekv": ("https://simplekv.readthedocs.io/en/stable/", None),
+    "minimalkv": ("https://minimalkv.readthedocs.io/en/stable/", None),
     "pyarrow": ("https://arrow.apache.org/docs/", None),
     "numpy": ("https://numpy.org/doc/stable/", None),
     "python": ("https://docs.python.org/3", None),
     "dask": ("https://docs.dask.org/en/stable/", None),
-    # Storefact isn't exposing any sphinx refs
-    # "storefact": ("https://storefact.readthedocs.io/en/stable", None),
 }
 
 # In particular type annotations are rendered as its full path to the class but

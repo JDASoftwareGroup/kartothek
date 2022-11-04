@@ -4,7 +4,7 @@ from typing import Any, Callable, Dict, Iterable, List, Optional, Tuple, Union, 
 
 import deprecation
 import pandas as pd
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.core.common_metadata import (
     empty_dataframe_from_schema,
@@ -167,10 +167,10 @@ def read_dataset_as_dataframes(
 
     .. code ::
 
-        >>> import storefact
+        >>> import minimalkv
         >>> from kartothek.io.eager import read_dataset_as_dataframes
 
-        >>> store = storefact.get_store_from_url('s3://bucket_with_dataset')
+        >>> store = minimalkv.get_store_from_url('s3://bucket_with_dataset')
 
         >>> dfs = read_dataset_as_dataframes('dataset_uuid', store, 'core')
 
@@ -249,10 +249,10 @@ def read_dataset_as_metapartitions(
 
     .. code ::
 
-        >>> import storefact
+        >>> import minimalkv
         >>> from kartothek.io.eager import read_dataset_as_dataframe
 
-        >>> store = storefact.get_store_from_url('s3://bucket_with_dataset')
+        >>> store = minimalkv.get_store_from_url('s3://bucket_with_dataset')
 
         >>> list_mps = read_dataset_as_metapartitions('dataset_uuid', store, 'core')
 
@@ -374,10 +374,10 @@ def read_table(
 
     .. code ::
 
-        >>> import storefact
+        >>> import minimalkv
         >>> from kartothek.io.eager import read_table
 
-        >>> store = storefact.get_store_from_url('s3://bucket_with_dataset')
+        >>> store = minimalkv.get_store_from_url('s3://bucket_with_dataset')
 
         >>> df = read_table(store, 'dataset_uuid', 'core')
 
@@ -962,12 +962,12 @@ def copy_dataset(
     ----------
     source_dataset_uuid: str
         UUID of source dataset
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         Source store
     target_dataset_uuid: Optional[str]
         UUID of target dataset. May be the same as src_dataset_uuid, if store
         and tgt_store are different. If empty, src_dataset_uuid is used
-    target_store: Optional[simplekv.KeyValueStore]
+    target_store: Optional[minimalkv.KeyValueStore]
         Target Store. May be the same as store, if src_dataset_uuid and
         target_dataset_uuid are different. If empty, value from parameter store is
         used

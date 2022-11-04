@@ -417,7 +417,7 @@ def apply_postwrite_checks(datasets, cube, store, existing_datasets):
         Datasets that just got written.
     cube: kartothek.core.cube.cube.Cube
         Cube specification.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store: Union[Callable[[], minimalkv.KeyValueStore], minimalkv.KeyValueStore]
         KV store.
     existing_datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
         Datasets that were present before the write procedure started.
@@ -538,7 +538,7 @@ def _rollback_transaction(existing_datasets, new_datasets, store):
         Datasets that existings before the write process started.
     new_datasets: Dict[str, kartothek.core.dataset.DatasetMetadata]
         Datasets that where created / changed during the write process.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store: Union[Callable[[], minimalkv.KeyValueStore], minimalkv.KeyValueStore]
         KV store.
     """
     if callable(store):

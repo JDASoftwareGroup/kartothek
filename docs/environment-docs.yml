@@ -12,8 +12,7 @@ dependencies:
   - pyarrow>=0.17.1,!=1.0.0, <4
   - simplejson
   - jinja2<3.1
-  - simplekv
-  - storefact
+  - minimalkv
   - toolz
   - typing_extensions # Some backports of the py3.8 typing module
   - urlquote>=1.1.3

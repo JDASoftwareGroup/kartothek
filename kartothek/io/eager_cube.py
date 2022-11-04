@@ -5,9 +5,9 @@ import logging
 from collections import defaultdict
 from typing import Any, Callable, Dict, Iterable, List, Optional, Sequence, Union
 
+import minimalkv
 import pandas as pd
-import simplekv
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.api.consistency import get_cube_payload
 from kartothek.api.discover import discover_datasets, discover_datasets_unchecked
@@ -342,7 +342,7 @@ def query_cube(
     ----------
     cube: Cube
         Cube specification.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         KV store that preserves the cube.
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional.
@@ -398,7 +398,7 @@ def delete_cube(cube, store, datasets=None):
     ----------
     cube: Cube
         Cube specification.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         KV store.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
         Datasets to delete, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
@@ -478,9 +478,9 @@ def copy_cube(
     ----------
     cube: Cube
         Cube specification.
-    src_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    src_store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Source KV store.
-    tgt_store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    tgt_store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Target KV store.
     overwrite: bool
         If possibly existing datasets in the target store should be overwritten.
@@ -564,7 +564,7 @@ def collect_stats(cube, store, datasets=None):
     ----------
     cube: Cube
         Cube specification.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         KV store that preserves the cube.
     datasets: Union[None, Iterable[str], Dict[str, kartothek.core.dataset.DatasetMetadata]]
         Datasets to query, must all be part of the cube. May be either the result of :func:`~kartothek.api.discover.discover_datasets`, a list
@@ -602,7 +602,7 @@ def cleanup_cube(cube, store):
     ----------
     cube: Cube
         Cube specification.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         KV store.
     """
     if callable(store):
@@ -617,7 +617,7 @@ def cleanup_cube(cube, store):
 
 def remove_partitions(
     cube: Cube,
-    store: Union[simplekv.KeyValueStore, StoreFactory],
+    store: Union[minimalkv.KeyValueStore, StoreFactory],
     conditions: Union[None, Condition, Sequence[Condition], Conjunction] = None,
     ktk_cube_dataset_ids: Optional[Union[Sequence[str], str]] = None,
     metadata: Optional[Dict[str, Dict[str, Any]]] = None,

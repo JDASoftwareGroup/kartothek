@@ -7,7 +7,7 @@ import dask
 import dask.bag as db
 import dask.dataframe as dd
 from dask.delayed import Delayed
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.api.discover import discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube
@@ -210,7 +210,7 @@ def query_cube_dataframe(
     ----------
     cube: Cube
         Cube specification.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         KV store that preserves the cube.
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional.

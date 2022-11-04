@@ -60,7 +60,7 @@ def _load_required_explicit_indices(datasets, intention, store):
         Available datasets.
     intention: kartothek.io_components.cube.query._intention.QueryIntention
         Query intention.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         Store to query from.
 
     Returns
@@ -286,7 +286,7 @@ def plan_query(
         By which column logical partitions should be formed.
     payload_columns: Optional[Iterable[str]]
         Which columns apart from ``dimension_columns`` and ``partition_by`` should be returned.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Store to query from.
 
     Returns

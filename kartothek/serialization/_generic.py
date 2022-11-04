@@ -19,8 +19,8 @@ from typing import Dict, Iterable, List, Optional, Set, Tuple, TypeVar
 
 import numpy as np
 import pandas as pd
+from minimalkv import KeyValueStore
 from pandas.api.types import is_list_like
-from simplekv import KeyValueStore
 
 from kartothek.serialization._util import _check_contains_null
 
@@ -37,7 +37,7 @@ PredicatesType = Optional[List[ConjunctionType]]
 class DataFrameSerializer:
     """
     Abstract class that supports serializing DataFrames to/from
-    simplekv stores.
+    minimalkv stores.
 
     :meta public:
     """
@@ -137,7 +137,7 @@ class DataFrameSerializer:
 
         Parameters
         ----------
-        store: simplekv.KeyValueStore
+        store: minimalkv.KeyValueStore
                 store engine
         key_prefix: str
                 Key prefix that specifies a path where object should be

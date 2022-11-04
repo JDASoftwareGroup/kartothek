@@ -3,7 +3,7 @@ from copy import copy
 from functools import partial
 
 import pytest
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.core.factory import DatasetFactory
 

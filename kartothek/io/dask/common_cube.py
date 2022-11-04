@@ -6,7 +6,7 @@ from functools import partial
 from typing import Any, Dict, Iterable, Mapping, Optional, Set
 
 import dask.bag as db
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.api.consistency import get_cube_payload
 from kartothek.api.discover import discover_datasets, discover_datasets_unchecked
@@ -297,7 +297,7 @@ def query_cube_bag_internal(
     ----------
     cube: Cube
         Cube specification.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         KV store that preserves the cube.
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional.

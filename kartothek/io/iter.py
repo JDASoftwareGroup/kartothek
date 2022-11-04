@@ -196,10 +196,10 @@ def read_dataset_as_dataframes__iterator(
 
     .. code ::
 
-        >>> import storefact
+        >>> import minimalkv
         >>> from kartothek.io.iter import read_dataset_as_dataframes__iterator
 
-        >>> store = storefact.get_store_from_url('s3://bucket_with_dataset')
+        >>> store = minimalkv.get_store_from_url('s3://bucket_with_dataset')
 
         >>> dataframes = read_dataset_as_dataframes__iterator('dataset_uuid', store)
         >>> next(dataframes)
