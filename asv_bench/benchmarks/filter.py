@@ -26,7 +26,7 @@ class TimeFilterDF:
                 [("int32", "<", 321)],
                 [("int32", "<", 321)],
             ]
-        self.df = get_dataframe_not_nested(10 ** 5)
+        self.df = get_dataframe_not_nested(10**5)
 
     def time_filter_df_from_predicates(self, predicate):
         filter_df_from_predicates(self.df, self.predicate)
@@ -48,7 +48,7 @@ class TimeFilterArray:
         if column == "null":
             raise NotImplementedError()
         self.arr = (
-            get_dataframe_not_nested(10 ** 5)
+            get_dataframe_not_nested(10**5)
             .sample(frac=1.0)
             .reset_index(drop=True)[column]
             .values
@@ -69,7 +69,7 @@ class TimeFilterArrayIn:
     params = (
         cols_to_filter,
         [10, 100, 1000],
-        [10 ** 4, 10 ** 5, 10 ** 6],
+        [10**4, 10**5, 10**6],
     )
     param_names = ["column", "filter_size", "array_size", "enabled"]
 

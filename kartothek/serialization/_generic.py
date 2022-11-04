@@ -321,7 +321,7 @@ def _handle_categorical_data(array_like, require_ordered):
         else:
             categorical = array_like.cat
         array_value_type = categorical.categories.dtype
-        if categorical.categories.is_monotonic:
+        if categorical.categories.is_monotonic_increasing:
             array_like = categorical.as_ordered()
         else:
             array_like = categorical.reorder_categories(
@@ -522,7 +522,9 @@ def filter_array_like(
                 matching_idx |= pd.isnull(array_like)
 
             np.logical_and(
-                matching_idx, mask, out=out,
+                matching_idx,
+                mask,
+                out=out,
             )
         else:
             raise NotImplementedError("op not supported")

@@ -6,12 +6,12 @@ def _dct_sizeof(obj):
 
 
 def register_sizeof_ktk_classes():
+    from kartothek.core.common_metadata import SchemaWrapper
     from kartothek.core.dataset import DatasetMetadata
     from kartothek.core.factory import DatasetFactory
-    from kartothek.io_components.metapartition import MetaPartition
     from kartothek.core.index import ExplicitSecondaryIndex, PartitionIndex
     from kartothek.core.partition import Partition
-    from kartothek.core.common_metadata import SchemaWrapper
+    from kartothek.io_components.metapartition import MetaPartition
 
     dask_sizeof.register(DatasetMetadata, _dct_sizeof)
     dask_sizeof.register(DatasetFactory, _dct_sizeof)

@@ -119,7 +119,8 @@ def _combine_metadata(dataset_metadata, append_to_list):
 
 
 def _ensure_compatible_indices(
-    dataset: Optional[DatasetMetadataBase], secondary_indices: Optional[Iterable[str]],
+    dataset: Optional[DatasetMetadataBase],
+    secondary_indices: Optional[Iterable[str]],
 ) -> InferredIndices:
     if dataset:
         ds_secondary_indices = list(dataset.secondary_indices.keys())

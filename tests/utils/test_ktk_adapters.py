@@ -30,7 +30,11 @@ def cube_has_ts_col(request):
 
 @pytest.fixture
 def cube():
-    return Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="cube",)
+    return Cube(
+        dimension_columns=["x"],
+        partition_columns=["p"],
+        uuid_prefix="cube",
+    )
 
 
 @pytest.fixture

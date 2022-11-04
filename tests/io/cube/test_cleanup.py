@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import pytest
-from tests.io.cube.utils import wrap_bag_delete
 
 from kartothek.io.dask.bag_cube import cleanup_cube_bag
 from kartothek.io.eager_cube import cleanup_cube
 from kartothek.io.testing.cleanup_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_delete
 
 
 @pytest.fixture
