@@ -392,6 +392,7 @@ def _ensure_type_stability(
         ("i", "u"),
         # various string kinds
         ("O", "S"),
+        ("S", "O"),
         ("O", "U"),
         # bool w/ Nones
         ("b", "O"),
