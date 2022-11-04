@@ -16,7 +16,7 @@ from .config import AsvBenchmarkConfig
 
 class TimeMetaPartition(AsvBenchmarkConfig):
     params = (
-        [10 ** 5, 10 ** 6],
+        [10**5, 10**6],
         [
             (np.int64, 123456789),
             (str, "abcdefgh"),

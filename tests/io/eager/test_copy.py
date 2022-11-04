@@ -26,7 +26,10 @@ def assert_target_ktk_readable(tgt_store, tgt_ds):
     """
     Try to read the target dataset using high level KTK functionality
     """
-    df_result = read_table(store=tgt_store, dataset_uuid=tgt_ds,)
+    df_result = read_table(
+        store=tgt_store,
+        dataset_uuid=tgt_ds,
+    )
     assert df_result is not None
     assert len(df_result) == 10
     df_result = read_table(
@@ -45,11 +48,13 @@ def assert_target_keys(src_store, src_uuid, tgt_store, tgt_uuid):
     values are equal to the source data set (or modified as expected)
     """
     df_source = DatasetFactory(
-        dataset_uuid=src_uuid, store_factory=lazy_store(src_store),
+        dataset_uuid=src_uuid,
+        store_factory=lazy_store(src_store),
     )
     src_keys = get_dataset_keys(df_source.dataset_metadata)
     df_target = DatasetFactory(
-        dataset_uuid=tgt_uuid, store_factory=lazy_store(tgt_store),
+        dataset_uuid=tgt_uuid,
+        store_factory=lazy_store(tgt_store),
     )
     tgt_keys = get_dataset_keys(df_target.dataset_metadata)
 

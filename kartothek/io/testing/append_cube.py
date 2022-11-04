@@ -116,7 +116,10 @@ def test_rowgroups_are_applied_when_df_serializer_is_passed_to_append_cube(
     """
 
     # Build cube
-    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]},
+        columns=["x", "p"],
+    )
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     build_cube(
         data=df,
@@ -127,7 +130,8 @@ def test_rowgroups_are_applied_when_df_serializer_is_passed_to_append_cube(
 
     # Append to cube
     df_append = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]},
+        columns=["x", "p"],
     )
     result = driver(
         data={"seed": df_append},
@@ -157,17 +161,27 @@ def test_single_rowgroup_when_df_serializer_is_not_passed_to_append_cube(
     """
 
     # Build cube
-    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]},
+        columns=["x", "p"],
+    )
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     build_cube(
-        data=df, cube=cube, store=function_store,
+        data=df,
+        cube=cube,
+        store=function_store,
     )
 
     # Append to cube
     df_append = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]},
+        columns=["x", "p"],
     )
-    result = driver(data={"seed": df_append}, cube=cube, store=function_store,)
+    result = driver(
+        data={"seed": df_append},
+        cube=cube,
+        store=function_store,
+    )
     dataset = result["seed"].load_all_indices(function_store())
 
     part_num_rows = {0: 2, 1: 2, 2: 1, 3: 3}
@@ -187,7 +201,10 @@ def test_compression_is_compatible_on_append_cube(driver, function_store):
     unnecessarily.
     """
     # Build cube
-    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 0, 1, 1]},
+        columns=["x", "p"],
+    )
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     build_cube(
         data=df,
@@ -198,7 +215,8 @@ def test_compression_is_compatible_on_append_cube(driver, function_store):
 
     # Append to cube
     df_append = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [2, 3, 3, 3]},
+        columns=["x", "p"],
     )
     result = driver(
         data={"seed": df_append},

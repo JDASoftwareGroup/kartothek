@@ -3,10 +3,10 @@ import random
 import tempfile
 from urllib.parse import quote
 
+import minimalkv
 import numpy as np
 import pandas as pd
 import simplejson
-import storefact
 
 from kartothek.core.common_metadata import (
     _get_common_metadata_key,
@@ -338,12 +338,13 @@ def test_dask_partitions(metadata_version):
     """
     import dask.dataframe
 
+    partition_suffix = "suffix"
     bucket_dir = tempfile.mkdtemp()
     dataset_uuid = "uuid+namespace-attribute12_underscored"
     os.mkdir("{}/{}".format(bucket_dir, dataset_uuid))
     table_dir = "{}/{}/core".format(bucket_dir, dataset_uuid)
     os.mkdir(table_dir)
-    store = storefact.get_store_from_url("hfs://{}".format(bucket_dir))
+    store = minimalkv.get_store_from_url("hfs://{}".format(bucket_dir))
 
     locations = ["L-{}".format(i) for i in range(2)]
     df = pd.DataFrame()
@@ -384,6 +385,15 @@ def test_dask_partitions(metadata_version):
 
     metadata.update(expected_partitions)
     metadata.update(expected_tables)
+    store_schema_metadata(
+        make_meta(
+            pd.DataFrame({"location": ["L-0/{}".format(partition_suffix)]}),
+            origin="stored",
+        ),
+        dataset_uuid,
+        store,
+        "core",
+    )
     dmd = DatasetMetadata.load_from_store(dataset_uuid, store)
     actual_partitions = dmd.to_dict()["partitions"]
     # we partition on location ID which has two values

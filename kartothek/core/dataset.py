@@ -280,7 +280,8 @@ class DatasetMetadataBase(CopyMixin):
         return self.copy(indices=indices)
 
     @deprecate_parameters_if_set(
-        DEPRECATION_WARNING_REMOVE_PARAMETER, "load_partition_indices",
+        DEPRECATION_WARNING_REMOVE_PARAMETER,
+        "load_partition_indices",
     )
     def load_all_indices(
         self: T, store: StoreInput, load_partition_indices: bool = True
@@ -446,7 +447,9 @@ class DatasetMetadataBase(CopyMixin):
             )
         else:
             df = dm._evaluate_conjunction(
-                columns=columns, predicates=None, date_as_object=date_as_object,
+                columns=columns,
+                predicates=None,
+                date_as_object=date_as_object,
             )
         return df
 

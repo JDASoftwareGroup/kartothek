@@ -23,7 +23,7 @@ class TimeMakeMeta(AsvBenchmarkConfig):
 
 class TimeValidateCompatible(AsvBenchmarkConfig):
 
-    params = ([2, 10 ** 2, 10 ** 3, 10 ** 4], [True, False])
+    params = ([2, 10**2, 10**3, 10**4], [True, False])
     timeout = 120.0
 
     param_names = ["num_schemas", "has_na"]
@@ -50,7 +50,7 @@ class TimeValidateCompatible(AsvBenchmarkConfig):
 
 
 class TimeValidateSharedColumns(AsvBenchmarkConfig):
-    params = [2, 10 ** 2]
+    params = [2, 10**2]
     timeout = 120.0
 
     param_names = ["num_schemas"]

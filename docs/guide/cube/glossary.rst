@@ -55,8 +55,8 @@ Glossary
         Dataset that provides the groundtruth about which :term:`Cell` are in a :term:`Cube`.
 
     Store Factory
-        A callable that does not take any arguments and creates a new `simplekv`_ store when being called. Its type is
-        ``Callable[[], simplekv.KeyValueStore]``.
+        A callable that does not take any arguments and creates a new `minimalkv`_ store when being called. Its type is
+        ``Callable[[], minimalkv.KeyValueStore]``.
 
     Query
         A request for data from the cube, including things like "payload columns", "conditions", and more.
@@ -76,4 +76,4 @@ Glossary
 
 .. _Data Cubes: https://en.wikipedia.org/wiki/Data_cube
 .. _Parquet: https://parquet.apache.org/
-.. _simplekv: https://simplekv.readthedocs.io/
+.. _minimalkv: https://minimalkv.readthedocs.io/

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
-from tests.io.cube.utils import wrap_bag_stats
 
 from kartothek.io.dask.bag_cube import collect_stats_bag
 from kartothek.io.eager_cube import collect_stats
 from kartothek.io.testing.stats_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_stats
 
 
 @pytest.fixture

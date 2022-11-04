@@ -133,7 +133,10 @@ def test_rowgroups_are_applied_when_df_serializer_is_passed_to_update_cube(
     ``chunk_size>0`` should be split into row groups accordingly.
     """
     # Build cube
-    df = pd.DataFrame(data={"x": [0, 1], "p": [0, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1], "p": [0, 1]},
+        columns=["x", "p"],
+    )
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     build_cube(
         data=df,
@@ -144,7 +147,8 @@ def test_rowgroups_are_applied_when_df_serializer_is_passed_to_update_cube(
 
     # Update cube - replace p=1 and append p=2 partitions
     df_update = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]},
+        columns=["x", "p"],
     )
     result = driver(
         data={"seed": df_update},
@@ -173,15 +177,21 @@ def test_single_rowgroup_when_df_serializer_is_not_passed_to_update_cube(
     Test that the dataset has a single row group as default path
     """
     # Build cube
-    df = pd.DataFrame(data={"x": [0, 1], "p": [0, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1], "p": [0, 1]},
+        columns=["x", "p"],
+    )
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     build_cube(
-        data=df, cube=cube, store=function_store,
+        data=df,
+        cube=cube,
+        store=function_store,
     )
 
     # Update cube - replace p=1 and append p=2 partitions
     df_update = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]},
+        columns=["x", "p"],
     )
     result = driver(
         data={"seed": df_update},
@@ -208,7 +218,10 @@ def test_compression_is_compatible_on_update_cube(driver, function_store):
     unnecessarily.
     """
     # Build cube
-    df = pd.DataFrame(data={"x": [0, 1], "p": [0, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1], "p": [0, 1]},
+        columns=["x", "p"],
+    )
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     build_cube(
         data=df,
@@ -219,7 +232,8 @@ def test_compression_is_compatible_on_update_cube(driver, function_store):
 
     # Update cube - replace p=1 and append p=2 partitions
     df_update = pd.DataFrame(
-        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]}, columns=["x", "p"],
+        data={"x": [0, 1, 2, 3], "p": [1, 1, 2, 2]},
+        columns=["x", "p"],
     )
     result = driver(
         data={"seed": df_update},

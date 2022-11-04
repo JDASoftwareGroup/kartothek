@@ -13,14 +13,14 @@ First, we want to create a cube for geodata:
 ...     partition_columns=["country"],
 ... )
 
-Apart from an abstract cube definition, we need a `simplekv`_-based storage backend:
+Apart from an abstract cube definition, we need a `minimalkv`_-based storage backend:
 
 >>> from functools import partial
 >>> import tempfile
->>> import storefact
+>>> import minimalkv
 >>> store_location = tempfile.mkdtemp()
 >>> store_factory = partial(
-...     storefact.get_store_from_url,
+...     minimalkv.get_store_from_url,
 ...     "hfs://" + store_location,
 ... )
 >>> store = store_factory()
@@ -424,4 +424,4 @@ geodata++time/table/_common_metadata
 .. _Dask: https://docs.dask.org/
 .. _Dask.Bag: https://docs.dask.org/en/latest/bag.html
 .. _Dask.DataFrame: https://docs.dask.org/en/latest/dataframe.html
-.. _simplekv: https://simplekv.readthedocs.io/
+.. _minimalkv: https://minimalkv.readthedocs.io/

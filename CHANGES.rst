@@ -2,6 +2,10 @@
 Changelog
 =========
 
+Version 5.4.0 (unreleased)
+==========================
+* Moved from storefact and simplekv to minimalkv. Previous stores and urls are compatible.
+
 Version 5.3.0 (2021-12-10)
 ==========================
 * Add Deprecation warnings and migration helpers in order to facilitate the Kartothek version 6.0.0 migration.

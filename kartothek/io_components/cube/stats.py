@@ -73,7 +73,7 @@ def collect_stats_block(metapartitions, store):
     ----------
     metapartitions: Tuple[Tuple[str, Tuple[kartothek.io_components.metapartition.MetaPartition, ...]], ...]
         Part of the result of :meth:`get_metapartitions_for_stats`.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         KV store.
 
     Returns

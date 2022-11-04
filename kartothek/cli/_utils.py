@@ -2,7 +2,7 @@ import fnmatch
 from functools import partial
 
 import click
-import storefact
+import minimalkv
 import yaml
 
 from kartothek.api.discover import discover_cube
@@ -18,7 +18,7 @@ def get_cube(store, uuid_prefix):
     ----------
     uuid_prefix: str
         Dataset UUID prefix.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store: Union[Callable[[], minimalkv.KeyValueStore], minimalkv.KeyValueStore]
         KV store.
 
     Returns
@@ -41,18 +41,18 @@ def get_cube(store, uuid_prefix):
 
 def get_store(skv, store):
     """
-    Get simplekv store from storefact config file.
+    Get minimalkv store from minimalkv config file.
 
     Parameters
     ----------
     skv: str
-        Name of the storefact yaml. Normally ``'skv.yml'``.
+        Name of the minimalkv yaml. Normally ``'skv.yml'``.
     store: str
         ID of the store.
 
     Returns
     -------
-    store_factory: Callable[[], simplekv.KeyValueStore]
+    store_factory: Callable[[], minimalkv.KeyValueStore]
         Store object.
 
     Raises
@@ -73,7 +73,7 @@ def get_store(skv, store):
             "Could not find store {store} in {skv}".format(store=store, skv=skv)
         )
 
-    return partial(storefact.get_store, **store_cfg[store])
+    return partial(minimalkv.get_store, **store_cfg[store])
 
 
 def _match_pattern(what, items, pattern):

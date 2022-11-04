@@ -2,6 +2,7 @@ name: kartothek-docs
 channels:
   - conda-forge
 dependencies:
+  - python=3.8
   - dask[dataframe]
   - decorator
   - msgpack-python>=0.5.2
@@ -10,8 +11,8 @@ dependencies:
   - pandas>=0.23.0, !=1.0.0
   - pyarrow>=0.17.1,!=1.0.0, <4
   - simplejson
-  - simplekv
-  - storefact
+  - jinja2<3.1
+  - minimalkv
   - toolz
   - typing_extensions # Some backports of the py3.8 typing module
   - urlquote>=1.1.3

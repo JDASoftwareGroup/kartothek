@@ -9,7 +9,7 @@ from functools import partial
 
 import pandas as pd
 import pytest
-import storefact
+import minimalkv
 
 # fmt: off
 pytest.register_assert_rewrite("kartothek.io.testing")
@@ -115,7 +115,7 @@ def _refuse_write(*args, **kwargs):
 
 def _get_store(path):
     url = "hfs://{}".format(path)
-    store = storefact.get_store_from_url(url)
+    store = minimalkv.get_store_from_url(url)
     store.delete = partial(_check_and_delete, store=store, delete_orig=store.delete)
     return store
 
@@ -300,7 +300,11 @@ def _get_meta_partitions_with_dataframe(
             table_name: df,
         }
 
-    mp = MetaPartition(label="cluster_1", data=data, metadata_version=metadata_version,)
+    mp = MetaPartition(
+        label="cluster_1",
+        data=data,
+        metadata_version=metadata_version,
+    )
     df_3 = pd.DataFrame(
         OrderedDict(
             [
@@ -320,7 +324,9 @@ def _get_meta_partitions_with_dataframe(
         }
 
     mp2 = MetaPartition(
-        label="cluster_2", data=data, metadata_version=metadata_version,
+        label="cluster_2",
+        data=data,
+        metadata_version=metadata_version,
     )
     return [mp, mp2]
 
@@ -478,7 +484,9 @@ def meta_partitions_dataframe_alternative_table_name(
     """
     with cm_frozen_time(TIME_TO_FREEZE):
         return _get_meta_partitions_with_dataframe(
-            metadata_version, table_name=alternative_table_name, table_name_2=None,
+            metadata_version,
+            table_name=alternative_table_name,
+            table_name_2=None,
         )
 
 

@@ -7,11 +7,11 @@ from io import StringIO
 
 _PARAMETER_MAPPING = {
     "store": """
-    store: Callable or str or simplekv.KeyValueStore
+    store: Callable or str or minimalkv.KeyValueStore
         The store where we can find or store the dataset.
 
-        Can be either ``simplekv.KeyValueStore``, a storefact store url or a
-        generic Callable producing a ``simplekv.KeyValueStore``""",
+        Can be either ``minimalkv.KeyValueStore``, a minimalkv store url or a
+        generic Callable producing a ``minimalkv.KeyValueStore``""",
     "overwrite": """
     overwrite: Optional[bool]
         If True, allow overwrite of an existing dataset.""",
@@ -68,12 +68,12 @@ _PARAMETER_MAPPING = {
         `merge_datasets__pipeline` key that contains the source dataset uuids for
         the merge.""",
     "output_store": """
-    output_store : Union[Callable, str, simplekv.KeyValueStore]
+    output_store : Union[Callable, str, minimalkv.KeyValueStore]
         If given, the resulting dataset is written to this store. By default
         the input store.
 
-        Can be either `simplekv.KeyValueStore`, a storefact store url or a
-        generic Callable producing a ``simplekv.KeyValueStore``""",
+        Can be either `minimalkv.KeyValueStore`, a minimalkv store url or a
+        generic Callable producing a ``minimalkv.KeyValueStore``""",
     "metadata": """
     metadata : Optional[Dict]
         A dictionary used to update the dataset metadata.""",

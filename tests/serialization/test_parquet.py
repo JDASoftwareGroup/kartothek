@@ -1,12 +1,12 @@
 import os
 from datetime import date, datetime
 
+import minimalkv
 import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
-import storefact
 from pyarrow.parquet import ParquetFile
 
 from kartothek.serialization import DataFrameSerializer, ParquetSerializer
@@ -27,7 +27,7 @@ def reference_store():
         "reference-data",
         "pyarrow-bugs",
     )
-    return storefact.get_store_from_url("hfs://{}".format(path))
+    return minimalkv.get_store_from_url("hfs://{}".format(path))
 
 
 def test_timestamp_us(store):
@@ -388,7 +388,7 @@ def test_int64_statistics_overflow(reference_store, predicate_pushdown_to_io):
         ([0, 4, 1], True),
         ([-2, 44], False),
         ([-3, 0], True),
-        ([-1, 10 ** 4], False),
+        ([-1, 10**4], False),
         ([2, 3], True),
         ([-1, 20], True),
         ([-30, -5, 50, 10], True),

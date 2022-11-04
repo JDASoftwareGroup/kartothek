@@ -22,7 +22,7 @@ def prepare_metapartitions_for_removal_action(
     ----------
     cube: kartothek.core.cube.cube.Cube
         Cube spec.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         Store.
     conditions: Union[None, Condition, Iterable[Condition], Conjunction]
         Conditions that should be applied, optional. Defaults to "entire cube".

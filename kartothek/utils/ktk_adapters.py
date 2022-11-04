@@ -6,7 +6,7 @@ from __future__ import absolute_import
 import deprecation
 import pandas as pd
 import pyarrow.parquet as pq
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.core.factory import DatasetFactory
 from kartothek.core.index import ExplicitSecondaryIndex
@@ -134,7 +134,7 @@ def metadata_factory_from_dataset(dataset, with_schema=True, store=None):
         Already loaded dataset.
     with_schema: bool
         If dataset was loaded with ``load_schema``.
-    store: Optional[Callable[[], simplekv.KeyValueStore]]
+    store: Optional[Callable[[], minimalkv.KeyValueStore]]
         Optional store factory.
 
     Returns
@@ -163,7 +163,7 @@ def get_physical_partition_stats(metapartitions, store):
     ----------
     metapartitions: Iterable[kartothek.io_components.metapartition.MetaPartition]
         Iterable of metapartitions belonging to the same physical partition.
-    store: Union[simplekv.KeyValueStore, Callable[[], simplekv.KeyValueStore]]
+    store: Union[minimalkv.KeyValueStore, Callable[[], minimalkv.KeyValueStore]]
         KV store.
 
     Returns

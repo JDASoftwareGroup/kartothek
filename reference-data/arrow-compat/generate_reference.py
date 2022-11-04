@@ -2,7 +2,7 @@
 import os
 
 import pyarrow as pa
-from storefact import get_store_from_url
+from minimalkv import get_store_from_url
 
 from kartothek.core.testing import get_dataframe_alltypes
 from kartothek.serialization import ParquetSerializer

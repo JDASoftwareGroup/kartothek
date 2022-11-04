@@ -39,7 +39,7 @@ import pandas as pd
 import pandas.testing as pdt
 import pyarrow as pa
 import pytest
-from storefact import get_store_from_url
+from minimalkv import get_store_from_url
 
 from kartothek.core.uuid import gen_uuid
 from kartothek.io.eager import store_dataframes_as_dataset

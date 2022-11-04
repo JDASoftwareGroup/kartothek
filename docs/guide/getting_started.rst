@@ -51,7 +51,7 @@ We want to store this DataFrame now as a dataset. Therefore, we first need
 to connect to a storage location.
 
 We define a store factory as a callable which contains the storage information.
-We will use `storefact`_ in this example to construct such a store factory
+We will use `minimalkv`_ in this example to construct such a store factory
 for the local filesystem (``hfs://`` indicates we are using the local filesystem and
 what follows is the filepath).
 
@@ -59,7 +59,7 @@ what follows is the filepath).
 
     from functools import partial
     from tempfile import TemporaryDirectory
-    from storefact import get_store_from_url
+    from minimalkv import get_store_from_url
 
     dataset_dir = TemporaryDirectory()
 
@@ -67,8 +67,8 @@ what follows is the filepath).
 
 .. admonition:: Storage locations
 
-    `storefact`_ offers support for several stores in Kartothek, these can be created using the
-    function `storefact.get_store_from_url` with one of the following prefixes:
+    `minimalkv`_ offers support for several stores in Kartothek, these can be created using the
+    function `minimalkv.get_store_from_url` with one of the following prefixes:
 
     - ``hfs``: Local filesystem
     - ``hazure``: AzureBlockBlobStorage
@@ -78,14 +78,13 @@ Interface
 ---------
 
 Kartothek can write to any location that
-fulfills the `simplekv.KeyValueStore interface
-<https://simplekv.readthedocs.io/en/latest/#simplekv.KeyValueStore>`_  as long as they
-support `ExtendedKeyspaceMixin
-<https://github.com/mbr/simplekv/search?q=%22class+ExtendedKeyspaceMixin%22&unscoped_q=%22class+ExtendedKeyspaceMixin%22>`_
+fulfills the `minimalkv.KeyValueStore interface
+<https://minimalkv.readthedocs.io/en/latest/#minimalkv.KeyValueStore>`_  as long as they
+support ``ExtendedKeyspaceMixin``
 (this is necessary so that ``/`` can be used in the storage key name).
 
-For more information, take a look out at the `storefact documentation
-<https://storefact.readthedocs.io/en/latest/reference/storefact.html>`_.
+For more information, take a look out at the `minimalkv documentation
+<https://minimalkv.readthedocs.io/en/latest/reference/minimalkv.html>`_.
 
 
 Writing data to storage
@@ -278,5 +277,5 @@ function but returns a collection of ``dask.delayed`` objects.
         # Read only values table `core-table` where `f` < 2.5
         read_table("two-tables", store_url, table="core-table", predicates=[[("f", "<", 2.5)]])
 
-.. _storefact: https://github.com/blue-yonder/storefact
+.. _minimalkv: https://github.com/data-engineering-collective/minimalkv
 .. _dask: https://docs.dask.org/en/latest/

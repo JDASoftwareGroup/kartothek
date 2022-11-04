@@ -13,8 +13,8 @@ import numpy as np
 import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+from minimalkv import KeyValueStore
 from pyarrow.parquet import ParquetFile
-from simplekv import KeyValueStore
 
 from ._generic import (
     DataFrameSerializer,
@@ -28,7 +28,7 @@ from ._util import ensure_unicode_string_type
 
 try:
     # Only check for BotoStore instance if boto is really installed
-    from simplekv.net.botostore import BotoStore
+    from minimalkv.net.botostore import BotoStore
 
     HAVE_BOTO = True
 except ImportError:
@@ -62,7 +62,10 @@ def _reset_dictionary_columns(table, exclude=None):
             continue
         if pa.types.is_dictionary(field.type):
             new_field = pa.field(
-                field.name, field.type.value_type, field.nullable, field.metadata,
+                field.name,
+                field.type.value_type,
+                field.nullable,
+                field.metadata,
             )
             schema = schema.remove(i).insert(i, new_field)
 
@@ -316,7 +319,7 @@ class ParquetSerializer(DataFrameSerializer):
                 )
                 # we don't sleep when we're done with the last attempt
                 if nb_retry < (MAX_NB_RETRIES - 1):
-                    time.sleep(BACKOFF_TIME * 2 ** nb_retry)
+                    time.sleep(BACKOFF_TIME * 2**nb_retry)
 
         raise ParquetReadError(
             f"Failed to restore dataframe after {MAX_NB_RETRIES} attempts. Parameters: "
@@ -632,4 +635,4 @@ def _epsilon(num):
     if epsilon_position < 0:
         epsilon_position += 1
 
-    return 10 ** epsilon_position
+    return 10**epsilon_position

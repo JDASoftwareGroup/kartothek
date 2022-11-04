@@ -3,7 +3,7 @@ from __future__ import absolute_import
 from copy import copy
 from typing import Callable, Dict, Iterable, Optional, Union
 
-from simplekv import KeyValueStore
+from minimalkv import KeyValueStore
 
 from kartothek.api.discover import check_datasets, discover_datasets_unchecked
 from kartothek.core.cube.cube import Cube

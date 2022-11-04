@@ -281,7 +281,8 @@ def _shuffle_docs(func):
 @default_docs
 @_shuffle_docs
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER, "delete_scope",
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
+    "delete_scope",
 )
 def store_dataset_from_ddf(
     ddf: dd.DataFrame,

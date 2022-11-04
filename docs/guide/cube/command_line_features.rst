@@ -17,7 +17,7 @@ Command Line Features
        </style>
 
 Kartothek Cube also features a command line interface (CLI) for some cube operations. To use it, create a ``skv.yml`` file that
-describes `storefact`_ stores:
+describes `minimalkv`_ stores:
 
 .. code-block:: yaml
 
@@ -147,5 +147,5 @@ Some information is not available when reading the schema information and requir
 
 Use ``kartothek_cube --help`` to get a list of all commands, or see :mod:`~kartothek.cli`.
 
-.. _storefact: https://github.com/blue-yonder/storefact
+.. _minimalkv: https://github.com/data-engineering-collective/minimalkv
 

@@ -66,7 +66,7 @@ def _load_all_mps(mps, store, load_columns, predicates, empty):
     ----------
     mps: Iterable[MetaPartition]
         MetaPartitions to load.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         Store to load data from.
     load_columns: List[str]
         Columns to load.
@@ -109,7 +109,7 @@ def _load_partition_dfs(cube, group, partition_mps, store):
         Query group.
     partition_mps: Dict[str, Iterable[MetaPartition]]
         MetaPartitions for every dataset in this partition.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         Store to load data from.
 
     Returns
@@ -169,7 +169,7 @@ def _load_partition(cube, group, partition_mps, store):
         Query group.
     partition_mps: Dict[str, Iterable[MetaPartition]]
         MetaPartitions for every dataset in this partition.
-    store: simplekv.KeyValueStore
+    store: minimalkv.KeyValueStore
         Store to load data from.
 
     Returns
@@ -200,7 +200,7 @@ def load_group(group, store, cube):
     ----------
     group: QueryGroup
         Query group.
-    store: Union[Callable[[], simplekv.KeyValueStore], simplekv.KeyValueStore]
+    store: Union[Callable[[], minimalkv.KeyValueStore], minimalkv.KeyValueStore]
         Store to load data from.
     cube: kartothek.core.cube.cube.Cube
         Cube specification.

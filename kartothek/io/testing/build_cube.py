@@ -280,7 +280,10 @@ def test_rowgroups_are_applied_when_df_serializer_is_passed_to_build_cube(
     """
     Test that the dataset is split into row groups depending on the chunk size
     """
-    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]},
+        columns=["x", "p"],
+    )
 
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
     result = driver(
@@ -304,10 +307,17 @@ def test_single_rowgroup_when_df_serializer_is_not_passed_to_build_cube(
     """
     Test that the dataset has a single row group as default path
     """
-    df = pd.DataFrame(data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]}, columns=["x", "p"],)
+    df = pd.DataFrame(
+        data={"x": [0, 1, 2, 3], "p": [0, 1, 1, 1]},
+        columns=["x", "p"],
+    )
 
     cube = Cube(dimension_columns=["x"], partition_columns=["p"], uuid_prefix="rg-cube")
-    result = driver(data=df, cube=cube, store=function_store,)
+    result = driver(
+        data=df,
+        cube=cube,
+        store=function_store,
+    )
     dataset = result["seed"].load_all_indices(function_store())
 
     part_num_rows = {0: 1, 1: 3}
