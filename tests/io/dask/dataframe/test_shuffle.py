@@ -202,4 +202,4 @@ def test_update_shuffle_buckets(
     ):
         df = data_dct["core"]
         assert len(df.primary.unique()) == 1
-        assert df.sorted_column.is_monotonic
+        assert df.sorted_column.is_monotonic_increasing

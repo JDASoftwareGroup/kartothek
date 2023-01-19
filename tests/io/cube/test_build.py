@@ -5,13 +5,13 @@ import dask.bag as db
 import dask.core
 import pandas as pd
 import pytest
-from tests.io.cube.utils import wrap_bag_write, wrap_ddf_write
 
 from kartothek.core.cube.cube import Cube
 from kartothek.io.dask.bag_cube import build_cube_from_bag
 from kartothek.io.dask.dataframe_cube import build_cube_from_dataframe
 from kartothek.io.eager_cube import build_cube
 from kartothek.io.testing.build_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_write, wrap_ddf_write
 
 
 @pytest.fixture

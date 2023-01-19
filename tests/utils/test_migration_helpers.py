@@ -38,7 +38,8 @@ def default_parameter_deprecation_texts_generic(request) -> str:
 
 
 @pytest.fixture(
-    scope="class", params=[DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION],
+    scope="class",
+    params=[DEPRECATION_WARNING_REMOVE_FUNCTION_GENERIC_VERSION],
 )
 def default_function_deprecation_texts_generic(request) -> str:
     return request.param
@@ -279,7 +280,9 @@ def test_deprecate_parameter_stacked_nested(
     # check: Only the first stacked deprecator construct in the callstack should raise warnings.
     with pytest.warns(DeprecationWarning) as warn_record:
         result = func_non_optional_params_multiple_params_stacked_nested(
-            func_non_optional_params_multiple_params_stacked_nested_counterparts, 0, 1,
+            func_non_optional_params_multiple_params_stacked_nested_counterparts,
+            0,
+            1,
         )
 
     # ensures, that the second - nested - deprecator construct does not raise warnings
@@ -298,7 +301,9 @@ def test_deprecate_parameter_stacked_nested_inverse(
     # check: Only the first stacked deprecator construct in the callstack should raise warnings.
     with pytest.warns(DeprecationWarning) as warn_record:
         result = func_non_optional_params_multiple_params_stacked_nested_inverse(
-            func_non_optional_params_multiple_params_stacked_nested_counterparts, 0, 1,
+            func_non_optional_params_multiple_params_stacked_nested_counterparts,
+            0,
+            1,
         )
 
     # ensures, that the second - nested - deprecator construct does not raise warnings
@@ -422,7 +427,8 @@ def test_generic_deprecation_warning(default_deprecation_texts_generic: str):
 
 
 @pytest.fixture(
-    scope="class", params=[False, True],
+    scope="class",
+    params=[False, True],
 )
 def is_test_optional_parameters(request) -> bool:
     return request.param

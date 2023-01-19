@@ -236,7 +236,7 @@ def test_predicate_pushdown(
     """
     # All test dataframes need to have the same length
     assert len(df) == 4
-    assert df[df.columns[0]].is_monotonic and df.iloc[0, 0] < df.iloc[-1, 0]
+    assert df[df.columns[0]].is_monotonic_increasing and df.iloc[0, 0] < df.iloc[-1, 0]
 
     # This is due to the limitation that dates cannot be expressed in
     # Pandas' query() method.

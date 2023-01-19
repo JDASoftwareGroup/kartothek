@@ -9,11 +9,12 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v2
 
-      - name: Setup Conda Environment
-        uses: conda-incubator/setup-miniconda@v2.1.1
+      - name: Mamba Docs environment
+        uses: mamba-org/provision-with-micromamba@main
         with:
           environment-file: docs/environment-docs.yml
-          activate-environment: kartothek-docs
+          environment-name: kartothek-docs
+          cache-downloads: true
 
       - name: List conda
         shell: bash -l {0}

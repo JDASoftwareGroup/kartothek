@@ -1,10 +1,10 @@
 import pytest
-from tests.io.cube.utils import wrap_bag_write, wrap_ddf_write
 
 from kartothek.io.dask.bag_cube import append_to_cube_from_bag
 from kartothek.io.dask.dataframe_cube import append_to_cube_from_dataframe
 from kartothek.io.eager_cube import append_to_cube
 from kartothek.io.testing.append_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_write, wrap_ddf_write
 
 
 @pytest.fixture

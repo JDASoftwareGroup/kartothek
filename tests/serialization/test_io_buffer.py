@@ -280,10 +280,10 @@ def test_empty(blocksize):
 
 
 def test_giga():
-    raw_size = 100 * 1024 ** 3  # 100 GB
+    raw_size = 100 * 1024**3  # 100 GB
     raw_inner = _ZeroFile(raw_size)
     raw = _ReadRecordWrapper(raw_inner)
-    blocksize = 4 * 1024 ** 2  # 4MB
+    blocksize = 4 * 1024**2  # 4MB
     b = BlockBuffer(raw, blocksize)
 
     assert b.size == raw_size

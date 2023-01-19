@@ -228,7 +228,7 @@ def test_sort_cateogrical():
     expected_values = sorted(values)
 
     assert all(sorted_df["cat"].values == expected_values)
-    assert sorted_df["cat"].is_monotonic
+    assert sorted_df["cat"].is_monotonic_increasing
     assert sorted_df["cat"].cat.ordered
     assert all(sorted_df["cat"].cat.categories == sorted(categories))
 

@@ -165,7 +165,9 @@ class DatasetFactory(DatasetMetadataBase):
         "load_partition_indices",
     )
     def load_all_indices(
-        self: T, store: Any = None, load_partition_indices: bool = True,
+        self: T,
+        store: Any = None,
+        load_partition_indices: bool = True,
     ) -> T:
         self._cache_metadata = self.dataset_metadata.load_all_indices(
             self.store, load_partition_indices=load_partition_indices

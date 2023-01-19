@@ -10,8 +10,7 @@ _PAYLOAD_COL = "__ktk_shuffle_payload"
 
 try:
     # Technically distributed is an optional dependency
-    from distributed.protocol import serialize_bytes
-    from distributed.protocol import deserialize_bytes
+    from distributed.protocol import deserialize_bytes, serialize_bytes
 
     HAS_DISTRIBUTED = True
 except ImportError:

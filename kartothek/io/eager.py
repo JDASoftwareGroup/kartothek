@@ -428,7 +428,9 @@ def read_table(
 @default_docs
 @normalize_args
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER, "output_dataset_uuid", "df_serializer",
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
+    "output_dataset_uuid",
+    "df_serializer",
 )
 def commit_dataset(
     store: Optional[StoreInput] = None,
@@ -712,7 +714,10 @@ def create_empty_dataset_header(
     "df_serializer",
 )
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER, "metadata", "overwrite", "metadata_merger",
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
+    "metadata",
+    "overwrite",
+    "metadata_merger",
 )
 def write_single_partition(
     store: Optional[KeyValueStore] = None,

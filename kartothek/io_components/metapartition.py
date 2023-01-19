@@ -1285,8 +1285,7 @@ class MetaPartition(Iterable):
         return self.copy(data=new_data, table_meta=new_table_meta)
 
     def as_sentinel(self):
-        """
-        """
+        """ """
         return MetaPartition(
             None,
             metadata_version=self.metadata_version,
@@ -1798,7 +1797,8 @@ def partition_labels_from_mps(mps: List[MetaPartition]) -> List[str]:
 
 
 @deprecate_parameters_if_set(
-    DEPRECATION_WARNING_REMOVE_PARAMETER, "expected_secondary_indices",
+    DEPRECATION_WARNING_REMOVE_PARAMETER,
+    "expected_secondary_indices",
 )
 def parse_input_to_metapartition(
     obj: MetaPartitionInput,

@@ -256,7 +256,13 @@ def _reduce_empty_dtype_sizes(df):
 
 
 def plan_query(
-    conditions, cube, datasets, dimension_columns, partition_by, payload_columns, store,
+    conditions,
+    cube,
+    datasets,
+    dimension_columns,
+    partition_by,
+    payload_columns,
+    store,
 ):
     """
     Plan cube query execution.

@@ -62,7 +62,10 @@ def _reset_dictionary_columns(table, exclude=None):
             continue
         if pa.types.is_dictionary(field.type):
             new_field = pa.field(
-                field.name, field.type.value_type, field.nullable, field.metadata,
+                field.name,
+                field.type.value_type,
+                field.nullable,
+                field.metadata,
             )
             schema = schema.remove(i).insert(i, new_field)
 
@@ -316,7 +319,7 @@ class ParquetSerializer(DataFrameSerializer):
                 )
                 # we don't sleep when we're done with the last attempt
                 if nb_retry < (MAX_NB_RETRIES - 1):
-                    time.sleep(BACKOFF_TIME * 2 ** nb_retry)
+                    time.sleep(BACKOFF_TIME * 2**nb_retry)
 
         raise ParquetReadError(
             f"Failed to restore dataframe after {MAX_NB_RETRIES} attempts. Parameters: "
@@ -632,4 +635,4 @@ def _epsilon(num):
     if epsilon_position < 0:
         epsilon_position += 1
 
-    return 10 ** epsilon_position
+    return 10**epsilon_position

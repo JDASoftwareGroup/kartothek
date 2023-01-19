@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 import pytest
-from tests.io.cube.utils import wrap_bag_copy
 
 from kartothek.io.dask.bag_cube import copy_cube_bag
 from kartothek.io.eager_cube import copy_cube
 from kartothek.io.testing.copy_cube import *  # noqa
+from tests.io.cube.utils import wrap_bag_copy
 
 
 @pytest.fixture

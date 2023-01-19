@@ -275,7 +275,8 @@ def discover_cube(
         if len(partition_keys) == 0:
             raise ValueError(
                 'Seed dataset ("{seed_dataset}") has no partition keys.'.format(  # type: ignore # noqa
-                    seed_dataset=seed_dataset, partition_keys=", ".join(partition_keys),
+                    seed_dataset=seed_dataset,
+                    partition_keys=", ".join(partition_keys),
                 )
             )
         elif len(partition_keys) < 2:

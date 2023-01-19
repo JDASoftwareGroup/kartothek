@@ -10,7 +10,7 @@ class TimeRestore:
     of iterating over dictionaries in Python.
     """
 
-    params = [(10 ** 3, 10 ** 4), (10, 10 ** 2, 10 ** 3)]
+    params = [(10**3, 10**4), (10, 10**2, 10**3)]
     param_names = ["num_rows", "chunk_size"]
 
     def setup(self, num_rows, chunk_size):
